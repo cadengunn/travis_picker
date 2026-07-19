@@ -19,7 +19,9 @@ A personal practice tool that randomly generates playable 4- or 8-bar Travis pic
 - No syncopation, ties, or 16ths in v1. (Planned for v2.)
 
 ### Hand domains (core principle)
-The right hand splits the guitar in half: **thumb (p) owns strings 6–5–4; fingers own strings 3–2–1** with default assignment **i→string 3, m→string 2, a→string 1**. All generation respects these domains. A separate **"domain crossing"** toggle (off by default, even in Chaos) lets fingers reach into string 4 or the thumb wander above the bass strings for experimental sessions.
+The right hand splits the guitar in half: **thumb (p) owns strings 6–5–4; fingers own strings 3–2–1** with default assignment **i→string 3, m→string 2, a→string 1**. All generation respects these domains.
+
+**Chord-aware thumb domain:** the thumb's legal strings are `{6, 5, 4}` **union the current chord's role strings** (root / alt / fifth from the chord table). Fingers always own 3/2/1. Where these overlap — e.g. string 3 is a finger string *and* D's alt-bass role — the string is legal for **both** hands; which hand actually plays it in a given slot is inferred by slot (see editor inference). The hard rule (no two simultaneous notes on one string) is unchanged and resolves any collision on an overlap string. The **"domain crossing"** toggle (off by default, even in Chaos) only applies to strings *outside* these sets — fingers reaching below string 3's set or the thumb wandering above its set — for experimental sessions.
 
 ### Thumb (the skeleton — never randomized away)
 - Plays quarter notes on beats 1, 2, 3, 4 (slots 1, 3, 5, 7).
@@ -77,12 +79,14 @@ Used by role resolution (`root`, `alt`, `fifth`). Absolute and random entries ig
 |-------|-------------|------------|---------------------|
 | C     | 5           | 4          | 6 (fret 3)          |
 | G     | 6           | 4          | 4 (open)            |
-| D     | 4           | 3          | 5 (open)            |
+| D     | 4           | 3 (fret 2) | 5 (open)            |
 | E / Em| 6           | 4          | 5 (fret 2)          |
 | A / Am| 5           | 4          | 6 (open)            |
 | F (small barre or Fmaj7 shape) | 6 (or 4 for Fmaj7) | 4 (or 3) | 5 (fret 3) |
 
 Note G's alt and fifth are both string 4 — Root–Fifth and Alternating coincide on G. That's correct, not a bug.
+
+Note D's alt bass intentionally sits on string 3, matching real Travis technique; see chord-aware domains above. String 3 is thus legal for the thumb *on D specifically* while remaining a finger string generally.
 
 Tab shows fretted notes from standard open chord shapes (define shapes as string→fret maps in a data file so they're easy to extend).
 
