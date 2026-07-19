@@ -138,7 +138,7 @@ function enforceHardRule(events) {
 // ---- public: generatePattern -----------------------------------------------
 export function generatePattern(chordId, options = {}) {
   const {
-    bass = "alternating",
+    bass = "travis",
     chaos = "tame",
     loop = "1bar",
     phraseBars = 4,

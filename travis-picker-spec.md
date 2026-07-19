@@ -26,7 +26,7 @@ The right hand splits the guitar in half: **thumb (p) owns strings 6–5–4; fi
 ### Thumb (the skeleton — never randomized away)
 - Plays quarter notes on beats 1, 2, 3, 4 (slots 1, 3, 5, 7).
 - The thumb is a **pluggable bass engine**: every mode is a data preset, not code. See "Bass engine presets" below for the full definitions.
-- v1 must ship with at least Alternating + Full random; the preset format makes the rest drop-in additions.
+- v1 must ship with at least Travis (standard, the default), Simple alternating, and Full random; the preset format makes the rest drop-in additions.
 
 ### Fingers (where the variety lives)
 - i, m, a on strings 3, 2, 1 respectively (per hand domains above).
@@ -55,13 +55,13 @@ Each preset is a 4-entry array, one entry per beat. An entry is either a **role*
 
 ```json
 [
-  { "id": "alternating", "name": "Alternating",  "beats": ["root", "alt", "root", "alt"], "default": true },
-  { "id": "dead_thumb",  "name": "Dead Thumb",   "beats": ["root", "root", "root", "root"] },
-  { "id": "root_fifth",  "name": "Root–Fifth",   "beats": ["root", "fifth", "root", "fifth"] },
-  { "id": "triangle",    "name": "Triangle Walk","beats": ["root", "fifth", "alt", "fifth"] },
-  { "id": "climb",       "name": "Climb",        "beats": [6, 5, 4, 5] },
-  { "id": "descend",     "name": "Descend",      "beats": [4, 5, 6, 5] },
-  { "id": "full_random", "name": "Full Random",  "beats": ["random", "random", "random", "random"] }
+  { "id": "travis",      "name": "Travis (standard)",  "beats": ["root", "alt", "fifth", "alt"], "default": true },
+  { "id": "simple_alt",  "name": "Simple alternating", "beats": ["root", "alt", "root", "alt"] },
+  { "id": "dead_thumb",  "name": "Dead Thumb",         "beats": ["root", "root", "root", "root"] },
+  { "id": "root_fifth",  "name": "Root–Fifth",         "beats": ["root", "fifth", "root", "fifth"] },
+  { "id": "climb",       "name": "Climb",              "beats": [6, 5, 4, 5] },
+  { "id": "descend",     "name": "Descend",            "beats": [4, 5, 6, 5] },
+  { "id": "full_random", "name": "Full Random",        "beats": ["random", "random", "random", "random"] }
 ]
 ```
 
@@ -84,7 +84,7 @@ Used by role resolution (`root`, `alt`, `fifth`). Absolute and random entries ig
 | A / Am| 5           | 4          | 6 (open)            |
 | F (small barre or Fmaj7 shape) | 6 (or 4 for Fmaj7) | 4 (or 3) | 5 (fret 3) |
 
-Note G's alt and fifth are both string 4 — Root–Fifth and Alternating coincide on G. That's correct, not a bug.
+Note G's alt and fifth are both string 4 — Root–Fifth and Simple alternating coincide on G. That's correct, not a bug.
 
 Note D's alt bass intentionally sits on string 3, matching real Travis technique; see chord-aware domains above. String 3 is thus legal for the thumb *on D specifically* while remaining a finger string generally.
 
@@ -138,7 +138,7 @@ Editing = the grid with tapping enabled:
 4. Metronome / tempo control — click track, BPM slider (40–160), count-in. NOTE (iOS): Web Audio requires a user gesture — call `Tone.start()` (or resume the AudioContext) on first tap or nothing will sound in Safari.
 
 **v2:**
-5. Remaining bass presets beyond Alternating + Full Random (Dead Thumb, Root–Fifth, Triangle Walk, Climb, Descend) — already fully spec'd as data above; plus the custom 4-slot pattern builder UI.
+5. Remaining bass presets beyond Travis + Simple alternating + Full Random (Dead Thumb, Root–Fifth, Climb, Descend) — already fully spec'd as data above; plus the custom 4-slot pattern builder UI.
 6. Audio playback of the pattern itself (Tone.js, simple plucked synth or samples).
 7. Syncopation: allow held/tied treble notes across the beat.
 8. 16th-note fills, hammer-on/pull-off annotations.

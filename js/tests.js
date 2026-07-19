@@ -94,9 +94,9 @@ check("domain (chord-aware): thumb within legal set, fingers on 3/2/1", () => {
   });
 });
 
-// 2b) The D outlier is real: on D, Alternating puts the thumb on string 3.
-check("D alt-bass: Alternating thumb reaches string 3 on D", () => {
-  const p = generatePattern("D", { bass: "alternating", chaos: "tame", loop: "1bar", rng: seeded(3) });
+// 2b) The D outlier is real: on D, the alt role puts the thumb on string 3.
+check("D alt-bass: simple-alt thumb reaches string 3 on D", () => {
+  const p = generatePattern("D", { bass: "simple_alt", chaos: "tame", loop: "1bar", rng: seeded(3) });
   const r = resolvePattern(p, "D");
   const altThumb = r.bars[0].find((e) => e.finger === "p" && e.role === "alt_bass");
   assert(altThumb && altThumb.string === 3, `D alt bass should be string 3, got ${altThumb && altThumb.string}`);
@@ -119,13 +119,13 @@ check("thumb skeleton: one thumb per beat, none on offbeats", () => {
   });
 });
 
-// 4) Relative<->resolved round-trip: Alternating resolves to each chord's
-//    root/alt strings, and re-resolving is stable.
-check("round-trip: Alternating resolves to chord root/alt per table", () => {
+// 4) Relative<->resolved round-trip: Simple alternating resolves to each
+//    chord's root/alt strings, and re-resolving is stable.
+check("round-trip: Simple alternating resolves to chord root/alt per table", () => {
   for (const chordId of CHORD_IDS) {
     const chord = CHORDS[chordId];
-    const p = generatePattern(chordId, { bass: "alternating", chaos: "tame", loop: "1bar", rng: seeded(5) });
-    assert(p.type === "relative", `Alternating should be relative, got ${p.type}`);
+    const p = generatePattern(chordId, { bass: "simple_alt", chaos: "tame", loop: "1bar", rng: seeded(5) });
+    assert(p.type === "relative", `Simple alternating should be relative, got ${p.type}`);
     const r = resolvePattern(p, chordId);
     const thumbs = r.bars[0].filter((e) => e.finger === "p").sort((a, b) => a.slot - b.slot);
     // beats: root, alt, root, alt
@@ -146,22 +146,20 @@ check("round-trip: Alternating resolves to chord root/alt per table", () => {
   }
 });
 
-// 4c) Chord-aware round-trip: a relative [root, alt, fifth, alt] bass resolves
-//     to 4-3-5-3 on D and 5-4-6-4 on C (spec point 6).
-check("round-trip: [root,alt,fifth,alt] resolves 4-3-5-3 on D, 5-4-6-4 on C", () => {
-  const relBar = [
-    { slot: 1, finger: "p", role: "root",     absolute: false },
-    { slot: 3, finger: "p", role: "alt_bass", absolute: false },
-    { slot: 5, finger: "p", role: "fifth",    absolute: false },
-    { slot: 7, finger: "p", role: "alt_bass", absolute: false },
-  ];
-  const relPattern = { type: "relative", chord: "C", bass: "custom", chaos: "tame", loop: "1bar", phraseBars: 4, bars: [relBar] };
+// 4c) The DEFAULT preset (Travis, root-alt-fifth-alt) is relative and its bass
+//     resolves to 4-3-5-3 on D and 5-4-6-4 on C (spec point 6).
+check("default preset is Travis; bass resolves 4-3-5-3 on D, 5-4-6-4 on C", () => {
+  // omit `bass` so the generator's global default is exercised
+  const pD = generatePattern("D", { chaos: "tame", loop: "1bar", rng: seeded(7) });
+  assert(pD.bass === "travis", `default bass should be "travis", got "${pD.bass}"`);
+  assert(pD.type === "relative", `Travis should be relative, got ${pD.type}`);
 
-  const onD = resolvePattern(relPattern, "D").bars[0].map((e) => e.string);
+  const onD = resolvePattern(pD, "D").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
   assert(JSON.stringify(onD) === JSON.stringify([4, 3, 5, 3]),
     `expected 4-3-5-3 on D, got ${onD.join("-")}`);
 
-  const onC = resolvePattern(relPattern, "C").bars[0].map((e) => e.string);
+  const pC = generatePattern("C", { chaos: "tame", loop: "1bar", rng: seeded(7) });
+  const onC = resolvePattern(pC, "C").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
   assert(JSON.stringify(onC) === JSON.stringify([5, 4, 6, 4]),
     `expected 5-4-6-4 on C, got ${onC.join("-")}`);
 });
@@ -179,7 +177,7 @@ check("Full Random is absolute and bass ignores chord changes", () => {
 //    consecutive offbeat slots.
 check("Tame: 2-4 offbeats per bar, no repeated treble string on consecutive offbeats", () => {
   for (let seed = 1; seed <= 40; seed++) {
-    const p = generatePattern("C", { bass: "alternating", chaos: "tame", loop: "1bar", rng: seeded(seed) });
+    const p = generatePattern("C", { bass: "simple_alt", chaos: "tame", loop: "1bar", rng: seeded(seed) });
     const bar = p.bars[0];
     // count distinct offbeat slots that have any finger note
     const filled = OFFBEAT_SLOTS.filter((s) => bar.some((e) => e.slot === s && e.finger !== "p"));

@@ -17,17 +17,18 @@ export const OFFBEAT_SLOTS = [2, 4, 6, 8]; // the "&"s
 // An entry is a role ("root"|"alt"|"fifth"), an absolute string (6/5/4), or
 // "random". A preset of only roles is fully relative/portable.
 export const BASS_PRESETS = [
-  { id: "alternating", name: "Alternating",   beats: ["root", "alt", "root", "alt"], default: true },
-  { id: "dead_thumb",  name: "Dead Thumb",    beats: ["root", "root", "root", "root"] },
-  { id: "root_fifth",  name: "Root–Fifth",    beats: ["root", "fifth", "root", "fifth"] },
-  { id: "triangle",    name: "Triangle Walk", beats: ["root", "fifth", "alt", "fifth"] },
-  { id: "climb",       name: "Climb",         beats: [6, 5, 4, 5] },
-  { id: "descend",     name: "Descend",       beats: [4, 5, 6, 5] },
-  { id: "full_random", name: "Full Random",   beats: ["random", "random", "random", "random"] },
+  { id: "travis",      name: "Travis (standard)",   beats: ["root", "alt", "fifth", "alt"], default: true },
+  { id: "simple_alt",  name: "Simple alternating",  beats: ["root", "alt", "root", "alt"] },
+  { id: "dead_thumb",  name: "Dead Thumb",          beats: ["root", "root", "root", "root"] },
+  { id: "root_fifth",  name: "Root–Fifth",          beats: ["root", "fifth", "root", "fifth"] },
+  { id: "climb",       name: "Climb",               beats: [6, 5, 4, 5] },
+  { id: "descend",     name: "Descend",             beats: [4, 5, 6, 5] },
+  { id: "full_random", name: "Full Random",         beats: ["random", "random", "random", "random"] },
 ];
 
 // Presets surfaced in the UI this session; the rest ship as data for later.
-export const V1_BASS_IDS = ["alternating", "full_random"];
+// Travis needs the fifth role, so it's in the v1 set alongside the others.
+export const V1_BASS_IDS = ["travis", "simple_alt", "full_random"];
 
 export function getBassPreset(id) {
   return BASS_PRESETS.find((p) => p.id === id) || BASS_PRESETS[0];
