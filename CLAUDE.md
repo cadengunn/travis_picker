@@ -21,6 +21,12 @@ python3 serve.py          # port 8137
 
 Narrow the browser to phone width — this is a phone-first app.
 
+**Testing on a phone:** `python3 serve.py --lan` binds all interfaces and prints
+a `http://192.168.x.x:8137/index.html` URL to open on a device on the same
+Wi-Fi. It's opt-in because it exposes the server to the local network. Plain
+HTTP is fine for testing audio, tap targets and layout; **installing as a PWA
+needs HTTPS**, which is what GitHub Pages is for.
+
 Use `serve.py`, not `python3 -m http.server`: it adds `Cache-Control: no-store`.
 Browsers cache ES modules aggressively **and** a cache-busting query on the page
 does not propagate to its imports, so with a plain server you keep testing stale
@@ -215,6 +221,12 @@ length extending rather than re-rolling, unsaved-edit warnings, and playhead
 timing against the audio clock.
 
 **Open threads — worth raising before building on top of them:**
+- **Nothing has ever run on a phone.** Every session so far has been on the
+  laptop, so the whole mobile-first premise — tap targets, the 2×2 grid at real
+  phone size, one-handed reach — is still unverified on hardware. **Walking
+  through a phone test is the next session's first job.** Quickest route is
+  `python3 serve.py --lan` on the same Wi-Fi; GitHub Pages comes later with the
+  PWA work.
 - **The metronome has never been heard.** Timing, scheduling and the playhead
   were verified programmatically, but audio output was not, and **iOS Safari was
   never tested**. If it's silent on a phone, look first at the AudioContext
