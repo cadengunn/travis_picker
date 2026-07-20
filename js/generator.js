@@ -201,6 +201,26 @@ export function regenerateBass(pattern, bassId, chordId = pattern.chord, rng = M
   };
 }
 
+// Change how many distinct bars the pattern has WITHOUT re-rolling: growing
+// duplicates the existing bars (cycling), shrinking keeps the first n. Bars are
+// copied deeply enough that the new ones can then be edited independently.
+// This is what the Pattern control uses, so hand-drawn work survives when you
+// realise you need more room.
+export function setPatternBars(pattern, n) {
+  const size = Math.max(1, n);
+  const copy = (bars) =>
+    Array.from({ length: size }, (_, i) => bars[i % bars.length].map((e) => ({ ...e })));
+  const thumbBars = copy(pattern.thumbBars);
+  const trebleBars = copy(pattern.trebleBars);
+  return {
+    ...pattern,
+    patternBars: size,
+    thumbBars,
+    trebleBars,
+    bars: thumbBars.map((t, i) => mergeBar(t, trebleBars[i])),
+  };
+}
+
 // Re-roll the fingers (and re-apply chaos constraints) over the same bass.
 export function regenerateTreble(pattern, chaosId, rng = Math.random) {
   const flags = CHAOS_PRESETS[chaosId] || CHAOS_PRESETS.tame;

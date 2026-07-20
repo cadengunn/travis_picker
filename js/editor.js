@@ -74,10 +74,13 @@ export function toggleNote(pattern, { cellIndex, slot, string, chordId }) {
       // Keep it relative when the string is one of this chord's roles, so the
       // note follows a progression. Otherwise it's an absolute bass note — the
       // "matches no role" case, surfaced by the type indicator.
+      // `string` is stored even for relative notes (resolveBar recomputes it
+      // per chord). Without it the hard-rule dedupe key is "slot:undefined",
+      // which silently swallowed a second bass note in the same slot.
       const role = roleFor(string, chordId);
       thumb.push(
         role
-          ? { slot, finger: "p", role, absolute: false }
+          ? { slot, finger: "p", role, string, absolute: false }
           : { slot, finger: "p", string, absolute: true }
       );
     } else {

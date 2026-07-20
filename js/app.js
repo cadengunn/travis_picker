@@ -11,6 +11,7 @@ import {
   CHAOS_PRESETS,
   PATTERN_LENGTHS,
   DEFAULT_PATTERN_BARS,
+  LABEL_MODES,
   KEY_IDS,
   KEYS,
   DEFAULT_KEY,
@@ -20,7 +21,13 @@ import {
   detectProgression,
   degreeOf,
 } from "./data.js";
-import { generatePattern, resolvePhrase, regenerateBass, regenerateTreble } from "./generator.js";
+import {
+  generatePattern,
+  resolvePhrase,
+  regenerateBass,
+  regenerateTreble,
+  setPatternBars,
+} from "./generator.js";
 import { renderGrid } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
 import { savedStore } from "./storage.js";
@@ -37,6 +44,7 @@ const state = {
   loaded: null,         // { id, name } of the saved pattern on screen, if any
   dirty: false,         // has it been altered since it was loaded/saved?
   editing: false,       // manual edit mode (off by default: no accidental taps)
+  unsavedEdits: false,  // hand-drawn changes not yet written to the library
 };
 
 // ----- populate controls from data -----
@@ -56,6 +64,7 @@ function initControls() {
   fillSelect(el("bass"), BASS_PRESETS.filter((p) => V1_BASS_IDS.includes(p.id)), (p) => p.id, (p) => p.name);
   fillSelect(el("chaos"), CHAOS_IDS, (c) => c, (c) => CHAOS_PRESETS[c].name);
   fillSelect(el("pattern"), PATTERN_LENGTHS, (n) => n, (n) => `${n} bar${n > 1 ? "s" : ""}`);
+  fillSelect(el("label-mode"), LABEL_MODES, (m) => m.id, (m) => m.name);
 
   // Progression list + the "Custom" entry shown once bars stop matching a preset.
   fillSelect(el("progression"), PROGRESSIONS, (p) => p.id, (p) => p.name);
@@ -150,10 +159,19 @@ function render() {
   ind.className = "type-indicator " + t;
 }
 
+// Hand-drawn work is the only thing here that can't be re-rolled back, so warn
+// before anything throws it away. Returns false if the user backs out.
+function confirmDiscardEdits(what) {
+  if (!state.unsavedEdits) return true;
+  return confirm(`You have unsaved edits. ${what}\n\nContinue?`);
+}
+
 function generate() {
+  if (!confirmDiscardEdits("Generating will replace the whole pattern.")) return;
   // Reference chord only affects absolute (random) generation; relative
   // patterns are re-resolved per bar anyway.
   state.pattern = generatePattern(phraseChords()[0], readOptions());
+  state.unsavedEdits = false;
   // A fresh roll is no longer the saved pattern at all.
   state.loaded = null;
   state.dirty = false;
@@ -307,6 +325,7 @@ function saveCurrent() {
   // What's on screen IS this saved pattern now.
   state.loaded = { id: item.id, name: item.name };
   state.dirty = false;
+  state.unsavedEdits = false;
   renderLoadedName();
   renderSavedList();
   refreshSavedCount();
@@ -315,6 +334,7 @@ function saveCurrent() {
 function loadSaved(id) {
   const item = savedStore.get(id);
   if (!item) return;
+  if (!confirmDiscardEdits("Loading will replace the pattern on screen.")) return;
   const ctx = item.context || {};
 
   // Restore musical content only — theme and label mode stay as the user has them.
@@ -331,6 +351,7 @@ function loadSaved(id) {
   setChordMode(ctx.chordMode === "progression" ? "progression" : "single");
   state.loaded = { id: item.id, name: item.name };
   state.dirty = false;
+  state.unsavedEdits = false;
   renderLoadedName();
   closeSheet();
 }
@@ -360,17 +381,31 @@ function closeSheet() {
 function attach() {
   el("generate").addEventListener("click", generate);
 
-  // Pattern length changes the bar count, so it re-rolls everything.
-  el("pattern").addEventListener("change", generate);
+  // Pattern length EXTENDS rather than re-rolls: growing duplicates what you
+  // already have (so hand-drawn work survives when you need more room), and the
+  // copies can then be edited independently.
+  el("pattern").addEventListener("change", () => {
+    state.pattern = setPatternBars(state.pattern, Number(el("pattern").value));
+    markDirty();
+    render();
+  });
 
   // Thumb and Chaos each re-roll only their own layer, so you can audition bass
   // patterns under one finger part (and vice versa) without losing the other.
   el("bass").addEventListener("change", () => {
+    if (!confirmDiscardEdits("Re-rolling the bass will discard your edits to it.")) {
+      el("bass").value = state.pattern.bass; // put the control back
+      return;
+    }
     state.pattern = regenerateBass(state.pattern, el("bass").value, phraseChords()[0]);
     markDirty();
     render();
   });
   el("chaos").addEventListener("change", () => {
+    if (!confirmDiscardEdits("Re-rolling the fingers will discard your edits to them.")) {
+      el("chaos").value = state.pattern.chaos;
+      return;
+    }
     state.pattern = regenerateTreble(state.pattern, el("chaos").value);
     markDirty();
     render();
@@ -393,13 +428,8 @@ function attach() {
     render();
   });
 
-  el("label-mode").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-label]");
-    if (!btn) return;
-    state.labelMode = btn.dataset.label;
-    for (const b of el("label-mode").querySelectorAll("[data-label]")) {
-      b.classList.toggle("active", b.dataset.label === state.labelMode);
-    }
+  el("label-mode").addEventListener("change", (e) => {
+    state.labelMode = e.target.value;
     render();
   });
 
@@ -426,6 +456,7 @@ function attach() {
       string: Number(cell.dataset.string),
       chordId: chords[screenBar],
     });
+    state.unsavedEdits = true;
     markDirty();
     render();
   });

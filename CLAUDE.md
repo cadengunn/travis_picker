@@ -74,7 +74,13 @@ CSS sizes cells as a fraction of available width (square via `aspect-ratio`),
 wrapping 4 bars to a 2×2 on a phone. Don't reintroduce a fixed `--cell` px size
 or an `overflow-x` scroller.
 
-**Control layout:** the controls are fixed 3-slot rows. Only row 1's
+**Where controls live:** app bar = app-wide *preferences* (note labels, theme).
+The slim bar above the grid = things acting on the pattern in front of you
+(Edit / Save / Load, plus its name and relative/mixed/absolute indicator). The
+bottom panel = *generation* inputs plus Generate. Keep that split when adding
+controls.
+
+**Control layout:** the bottom controls are fixed 3-slot rows. Only row 1's
 contents swap between chord modes (single: Chord spanning 2 slots; progression:
 Key + Progression), so switching modes never shifts the rows below. Keep that
 invariant — a jumping control panel was a specific complaint.
@@ -96,9 +102,18 @@ into `{cellIndex, slot, string, chordId}`):
   A pattern can therefore be **`mixed`** — legal per the spec, surfaced by the
   type indicator rather than silently guessed. `deriveType()` computes it.
 - Editing only enforces the hard rule, which the grid gives for free (one cell
-  *is* one string+slot). The thumb skeleton and hand domains are guidance here,
-  not walls — you can draw a thumb note on an offbeat.
+  *is* one string+slot). **Generation constraints never apply to drawing** —
+  every cell must accept a note. The thumb skeleton and hand domains are
+  guidance here, not walls: you can draw a thumb note on an offbeat, or stack
+  three bass notes in one slot.
+- Every stored thumb event carries `string`, **including relative ones**
+  (`resolveBar` recomputes it per chord). Omitting it made the hard-rule dedupe
+  key `"slot:undefined"`, which silently swallowed a second drawn bass note in
+  the same slot — 17 of 48 cells refused a note. There's a regression test.
 - Edits set `pattern.edited`, which saves the item with `source: "drawn"`.
+- `state.unsavedEdits` guards the destructive paths: Generate, Load, and a
+  Thumb/Chaos change all `confirm()` first, and declining reverts the control.
+  Hand-drawn work is the only thing here that can't be re-rolled back.
 
 **Saved library** (`storage.js`): a saved item is **musical content only** —
 `{ pattern, context: { chordMode, chord, key, progression } }` plus a name, id
@@ -151,7 +166,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - **Chaos** (Tame/Loose/Chaos) is **presets over independent constraint flags** (`CHAOS_PRESETS`), not branching code — leaves room for a future custom panel. Tame's `noAdjacentSameString` forbids a string sounding on two **adjacent** 8th slots, thumb included — same-string re-strikes are the hardest thing for a beginner. Treble generation walks slots 1→8 in order (checking both neighbours) so this is enforced during generation, not by pruning after.
 - **Bass presets** are data (`BASS_PRESETS`). Default is `travis` (root-alt-fifth-alt, the standard Travis pattern). `simple_alt` and `full_random` are the other v1-surfaced presets (`V1_BASS_IDS`); the rest ship as data for later.
 - **Chord library** is 14 chords covering degrees 1–6 in the keys C/G/D/A/E. Barre chords assume a *full* barre, so the low string is available as a bass note even where the textbook voicing mutes it — the same convention C already used (its fifth is string 6 fret 3). A test asserts every chord's role strings are covered by its shape.
-- **Pattern length** (`PATTERN_LENGTHS`, 1/2/4) is the *only* length dial: how many **distinct** bars of picking. Bars on screen are derived — single mode shows exactly that many; progression mode shows the progression's bars and cycles the pattern across them. This replaced a separate Loop + Phrase-length pair whose only useful combinations were "displayed == distinct"; the rest just redrew the same bar. Don't reintroduce a display-length control without that reasoning changing.
+- **Pattern length** (`PATTERN_LENGTHS`, 1/2/4) is the *only* length dial: how many **distinct** bars of picking. Bars on screen are derived — single mode shows exactly that many; progression mode shows the progression's bars and cycles the pattern across them. Changing it **extends** rather than re-rolls (`setPatternBars`): growing duplicates the existing bars so hand-drawn work survives, and the copies are independent from then on; shrinking keeps the first n. Only **Generate** re-rolls. This replaced a separate Loop + Phrase-length pair whose only useful combinations were "displayed == distinct"; the rest just redrew the same bar. Don't reintroduce a display-length control without that reasoning changing.
 
 ## Conventions
 

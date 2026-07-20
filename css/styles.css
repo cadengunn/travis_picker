@@ -64,46 +64,52 @@ body {
 .type-indicator.absolute,
 .type-indicator.mixed { color: var(--active); }
 
-.theme-select {
-  margin-left: auto;
+/* compact selects in the app bar: note labels + theme, kept together */
+.bar-select {
   appearance: none;
   background: var(--control);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 6px 9px;
   font-size: 13px;
+  min-width: 0;
 }
+#label-mode { margin-left: auto; }
 
 /* ---- main / grid area ---- */
 main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 .grid { width: 100%; }
 
-/* slim bar above the grid: loaded name on the left, edit toggle on the right */
+/* slim bar above the grid: pattern info on the left, its actions on the right */
 .grid-bar {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 2px 6px;
-  min-height: 34px;
+  min-height: 36px;
 }
-.edit-toggle {
-  margin-left: auto;
-  flex: 0 0 auto;
+.grid-bar-info { min-width: 0; display: flex; flex-direction: column; }
+.grid-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
+
+.pill {
   background: var(--control);
-  color: var(--muted);
+  color: var(--text);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 7px 12px;
+  padding: 8px 11px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
-.edit-toggle[aria-pressed="true"] {
+.pill:active { transform: translateY(1px); }
+.pill[aria-pressed="true"] {
   background: var(--active);
   color: var(--label);
   border-color: var(--active);
 }
+.pill:disabled { opacity: 0.45; cursor: default; }
 
 /* name of the saved pattern currently on screen */
 .loaded-name {

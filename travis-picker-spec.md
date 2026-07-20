@@ -49,6 +49,10 @@ Implement each stylistic constraint as an independent flag internally; Tame/Loos
 - **Pattern length** (1, 2 or 4 bars) is the single length dial: how many
   **distinct** bars of right-hand picking before it repeats. 4 bars is what used
   to be called "through-composed".
+- Changing it **extends rather than re-rolls**: growing duplicates the bars you
+  already have (so a pattern you drew survives when you realise you need more
+  room) and the copies are independently editable from then on; shrinking keeps
+  the first n. Only **Generate** rolls fresh bars.
 - Bars on screen are derived, never set separately:
   - **Single-chord mode** shows exactly the pattern length.
   - **Progression mode** shows the progression's bars (4) and cycles the pattern
@@ -183,7 +187,8 @@ differ, raise the pattern length first.
 
 Editing = the grid with tapping enabled:
 - Tapping a cell toggles a note; the app infers p/i/m/a from the string row (per hand domains).
-- Enforce only the hard rule (no impossible simultaneities); warn softly on domain crossings rather than block.
+- Enforce only the hard rule (no impossible simultaneities); warn softly on domain crossings rather than block. **The generator's stylistic constraints (Tame's adjacency rule, offbeat density, the thumb skeleton) never apply to drawing** — every cell accepts a note. Those dials shape automatic generation only.
+- Warn before anything discards hand-drawn work: Generate, Load, and changing Thumb or Chaos all confirm first, since drawing is the one thing that can't be re-rolled back.
 - Hand-drawn patterns save to the same library as generated favorites, tagged "drawn" vs "generated" and "relative" vs "absolute".
 - Editing a saved/generated pattern opens the same grid — this doubles as a "tweak a generated pattern" feature.
 - Cells must be comfortably tappable on a phone screen.

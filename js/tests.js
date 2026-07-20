@@ -27,6 +27,7 @@ import {
   resolvePhrase,
   regenerateBass,
   regenerateTreble,
+  setPatternBars,
 } from "./generator.js";
 import { createStore } from "./storage.js";
 import { toggleNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
@@ -528,6 +529,60 @@ check("editor: editing a shared cell changes every repeat of it", () => {
   const hasNote = (bar) => bar.some((e) => e.slot === 6 && e.string === 1);
   const changedEverywhere = after.every(({ bar }) => hasNote(bar));
   assert(changedEverywhere, "editing the shared cell should change all four bars");
+});
+
+// 12) Two drawn bass notes can share a slot. Regression: relative thumb events
+//     were stored without `string`, so the hard-rule dedupe key collapsed to
+//     "slot:undefined" and silently swallowed the second one.
+check("editor: two drawn bass notes in one slot both survive", () => {
+  let p = generatePattern("C", { patternBars: 1, rng: seeded(41) });
+  // clear the slot first
+  for (const s of [4, 5, 6]) {
+    if (p.bars[0].some((e) => e.slot === 2 && e.string === s)) {
+      p = toggleNote(p, { cellIndex: 0, slot: 2, string: s, chordId: "C" });
+    }
+  }
+  const add = (string) => (p = toggleNote(p, { cellIndex: 0, slot: 2, string, chordId: "C" }));
+  add(5); add(4); add(6); // C's root, alt and fifth strings
+
+  const at2 = p.bars[0]
+    .filter((e) => e.slot === 2 && e.finger === "p")
+    .map((e) => e.string)
+    .sort((a, b) => a - b);
+  assert(JSON.stringify(at2) === JSON.stringify([4, 5, 6]),
+    `expected bass on 4,5,6 at slot 2, got ${JSON.stringify(at2)}`);
+  // every stored thumb event carries a string, like generated ones do
+  for (const ev of p.thumbBars[0]) {
+    assert(typeof ev.string === "number", `thumb event missing string: ${JSON.stringify(ev)}`);
+  }
+});
+
+// 13) Pattern length extends instead of re-rolling, so edits survive.
+check("setPatternBars duplicates existing bars and keeps them independent", () => {
+  let p = generatePattern("C", { patternBars: 1, rng: seeded(42) });
+  // draw a distinctive note so we can follow it
+  p = toggleNote(p, { cellIndex: 0, slot: 8, string: 1, chordId: "C" });
+  const sig = (bar) => JSON.stringify(bar.map((e) => [e.slot, e.finger, e.string]).sort());
+  const original = sig(p.bars[0]);
+
+  const grown = setPatternBars(p, 4);
+  assert(grown.bars.length === 4, `expected 4 bars, got ${grown.bars.length}`);
+  assert(grown.patternBars === 4, "patternBars should update");
+  for (let i = 0; i < 4; i++) {
+    assert(sig(grown.bars[i]) === original, `bar ${i} should duplicate the original`);
+  }
+
+  // the copies are independent: editing bar 2 leaves the others alone
+  const edited = toggleNote(grown, { cellIndex: 1, slot: 6, string: 2, chordId: "C" });
+  assert(sig(edited.bars[0]) === original, "editing bar 2 must not change bar 1");
+  assert(sig(edited.bars[1]) !== original, "bar 2 should have changed");
+  assert(sig(edited.bars[2]) === original, "editing bar 2 must not change bar 3");
+
+  // shrinking keeps the first n bars
+  const shrunk = setPatternBars(edited, 2);
+  assert(shrunk.bars.length === 2, "shrinking should truncate");
+  assert(sig(shrunk.bars[0]) === sig(edited.bars[0]), "first bar preserved on shrink");
+  assert(sig(shrunk.bars[1]) === sig(edited.bars[1]), "second bar preserved on shrink");
 });
 
 // ---- render report ----
