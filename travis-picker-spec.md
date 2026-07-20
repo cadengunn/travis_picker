@@ -184,7 +184,7 @@ Editing = the grid with tapping enabled:
 
 **v1 (build in this order):**
 1. Pattern generator + grid display (fret/PIMA label toggle) — "Generate" button re-rolls. Relative/absolute data model in place from the start.
-2. **Saved patterns** — name and save a pattern (or chord progression) to localStorage; list view; reload. Nomenclature is **"Saved"**, not "Favorites" — favorites may later become a subset/folder *within* saved. A saved item is the musical content only: the pattern, and the chord/key/progression it was written against. **UI settings — theme, label mode — are NOT saved with it**; they're independent app preferences (theme already persists on its own). Hand-drawn patterns (item 3) save into this same library.
+2. **Saved patterns** *(built)* — name and save a pattern (or chord progression) to localStorage; list view; reload; delete. Nomenclature is **"Saved"**, not "Favorites" — favorites may later become a subset/folder *within* saved. A saved item is the musical content only: the pattern, and the chord/key/progression it was written against. **UI settings — theme, label mode — are NOT saved with it**; they're independent app preferences (theme already persists on its own). Hand-drawn patterns (item 3) save into this same library.
 3. Manual editor (tapping on the grid) with the relative/absolute save dialog.
 4. Metronome / tempo control — click track, BPM slider (40–160), count-in. NOTE (iOS): Web Audio requires a user gesture — call `Tone.start()` (or resume the AudioContext) on first tap or nothing will sound in Safari.
 

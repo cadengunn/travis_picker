@@ -42,6 +42,7 @@ js/data.js        pure data tables + small pure helpers (no generation logic)
 js/generator.js   pure generatePattern() + resolveBar/resolvePattern/resolvePhrase
 js/grid.js        renderGrid() — resolved phrase -> DOM only
 js/theme.js       loads themes.json, applies a theme as CSS custom properties
+js/storage.js     the Saved library (localStorage); store is injectable for tests
 js/app.js         the ONLY stateful/DOM-glue file: controls -> generator -> grid
 js/tests.js       browser-run unit checks
 ```
@@ -76,6 +77,19 @@ or an `overflow-x` scroller.
 contents swap between chord modes (single: Chord spanning 2 slots; progression:
 Key + Progression), so switching modes never shifts the rows below. Keep that
 invariant — a jumping control panel was a specific complaint.
+
+**Saved library** (`storage.js`): a saved item is **musical content only** —
+`{ pattern, context: { chordMode, chord, key, progression } }` plus a name, id
+and timestamp. **Never store UI settings** (theme, label mode) with it; a test
+asserts the serialized item contains none. Nomenclature is "Saved", not
+"Favorites" (favorites may later be a folder within it). `createStore(key,
+storage)` takes its backing store as an argument so tests use an in-memory stub
+and never touch the user's real library — keep it that way. The store degrades
+quietly: corrupt JSON reads as an empty library, and a refused write (quota /
+private mode) returns `null` so the UI can report it instead of throwing. `list()`
+sorts newest-first with an insertion-order tie-break, so same-millisecond saves
+are still deterministic. Loading restores the pattern **and** its chord context,
+then re-renders — it never re-rolls.
 
 **Themes:** `themes.json` is the source of truth — each theme is 5 roles
 (`bg`, `surface`, `accent`, `active`, `label`). `theme.js` sets those as CSS
@@ -128,8 +142,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 1. **DONE** — pattern generator + grid with Fret/PIMA toggle, relative/absolute model, full generator controls.
 1b. **DONE** — progression mode (per-bar chords) with the Nashville number system + key selector; 14-chord library; UI themes from `themes.json`. Pulled forward ahead of favorites.
-2. **NEXT** — **Saved patterns** (nomenclature is "Saved", not "Favorites"; favorites may later be a folder *within* saved). Name + save to `localStorage`, list view, reload. A saved item is **musical content only**: the pattern plus the chord/key/progression it was written against. **Do not save UI settings** (theme, label mode) with it — those are independent app preferences and theme already persists separately. Hand-drawn patterns (item 3) go into the same library.
-3. Manual editor: tapping toggles cells on the grid, with the relative/absolute save dialog (incl. the "bass note matches no role" flag).
+2. **DONE** — **Saved patterns**: name + save to `localStorage`, list view, load, delete. See the Saved-library notes above.
+3. **NEXT** — Manual editor: tapping toggles cells on the grid, with the relative/absolute save dialog (incl. the "bass note matches no role" flag). Drawn patterns save into the same library with `source: "drawn"` (the field already exists).
 4. Metronome/tempo: Tone.js click, BPM 40–160, count-in. iOS: call `Tone.start()` on first user gesture or Safari stays silent.
 
 v2+: remaining bass presets in the UI + custom 4-slot builder; pattern audio playback; syncopation/16ths; PWA packaging (manifest, icons, service worker) for phone install via GitHub Pages.

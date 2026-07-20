@@ -28,6 +28,7 @@ import {
   regenerateBass,
   regenerateTreble,
 } from "./generator.js";
+import { createStore } from "./storage.js";
 
 const results = [];
 function check(name, fn) {
@@ -377,6 +378,78 @@ check("regenerateBass updates relative/absolute type", () => {
   assert(abs.type === "absolute", "full_random should flip type to absolute");
   const rel = regenerateBass(abs, "travis", "C", seeded(5));
   assert(rel.type === "relative", "travis should flip type back to relative");
+});
+
+// 10) Saved library: round-trips a pattern, lists newest-first, deletes, and
+//     survives corrupt/unavailable storage. Uses an in-memory stub so the
+//     user's real saved patterns are never touched.
+function memoryStorage(initial) {
+  let data = initial;
+  return {
+    getItem: () => (data === undefined ? null : data),
+    setItem: (_k, v) => { data = v; },
+  };
+}
+
+check("saved: round-trips a pattern with its chord context", () => {
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("C", { bass: "travis", chaos: "tame", patternBars: 2, rng: seeded(12) });
+  const context = { chordMode: "progression", chord: "C", key: "G", progression: ["G", "C", "D", "G"] };
+
+  assert(store.count() === 0, "new store should be empty");
+  const item = store.save({ name: "  Test lick  ", pattern, context });
+  assert(item, "save should return the stored item");
+  assert(item.name === "Test lick", `name should be trimmed, got "${item.name}"`);
+  assert(item.id && item.savedAt, "item should get an id and timestamp");
+  assert(store.count() === 1, "count should be 1 after save");
+
+  const back = store.get(item.id);
+  assert(JSON.stringify(back.pattern.bars) === JSON.stringify(pattern.bars), "pattern bars should round-trip");
+  assert(JSON.stringify(back.pattern.thumbBars) === JSON.stringify(pattern.thumbBars), "thumb layer should round-trip");
+  assert(JSON.stringify(back.pattern.trebleBars) === JSON.stringify(pattern.trebleBars), "treble layer should round-trip");
+  assert(JSON.stringify(back.context) === JSON.stringify(context), "chord context should round-trip");
+});
+
+check("saved: no UI settings are stored with a pattern", () => {
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("C", { rng: seeded(1) });
+  const item = store.save({
+    name: "x",
+    pattern,
+    context: { chordMode: "single", chord: "C", key: "C", progression: [] },
+  });
+  const blob = JSON.stringify(item);
+  for (const banned of ["theme", "labelMode", "merle", "elizabeth", "pima"]) {
+    assert(!blob.includes(banned), `saved item must not contain UI setting "${banned}"`);
+  }
+});
+
+check("saved: lists newest first, deletes, and handles bad storage", () => {
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("C", { rng: seeded(2) });
+  const ctx = { chordMode: "single", chord: "C", key: "C", progression: [] };
+
+  const a = store.save({ name: "first", pattern, context: ctx });
+  const b = store.save({ name: "second", pattern, context: ctx });
+  // same-millisecond saves must still order deterministically (insertion order)
+  assert(store.list()[0].id === b.id, "newest item should sort first");
+  assert(store.list()[1].id === a.id, "older item should sort second");
+
+  assert(store.remove(a.id) === true, "remove should report success");
+  assert(store.count() === 1, "count should drop after remove");
+  assert(store.remove("nope") === false, "removing an unknown id should report false");
+
+  // corrupt payload behaves like an empty library rather than throwing
+  const corrupt = createStore("test", memoryStorage("{not json"));
+  assert(corrupt.list().length === 0, "corrupt storage should read as empty");
+
+  // storage that refuses writes reports failure instead of throwing
+  const readOnly = createStore("test", {
+    getItem: () => null,
+    setItem: () => { throw new Error("QuotaExceeded"); },
+  });
+  assert(readOnly.save({ name: "x", pattern, context: ctx }) === null,
+    "save should return null when storage refuses the write");
 });
 
 // ---- render report ----
