@@ -56,10 +56,12 @@ function buildHeader(chordId, barIdx, editableChords) {
 export function renderGrid(container, phrase, opts = {}) {
   const labelMode = opts.labelMode || "fret";
   const editableChords = !!opts.editableChords;
+  const editable = !!opts.editable;
   container.innerHTML = "";
 
   const track = document.createElement("div");
   track.className = "grid-track";
+  if (editable) track.classList.add("editable");
   // Drives the responsive layout: every bar must be on screen at once (no
   // scrolling while your hands are on the guitar), so CSS sizes cells from the
   // bar count rather than using a fixed cell width.
@@ -86,6 +88,10 @@ export function renderGrid(container, phrase, opts = {}) {
         const cell = document.createElement("div");
         cell.className = "cell";
         cell.classList.add(slot % 2 === 1 ? "beat" : "offbeat");
+        // Coordinates for tap-to-edit; app.js only acts on them in edit mode.
+        cell.dataset.bar = String(barIdx);
+        cell.dataset.slot = String(slot);
+        cell.dataset.string = String(string);
 
         const ev = idx.get(slot)?.get(string);
         if (ev) {

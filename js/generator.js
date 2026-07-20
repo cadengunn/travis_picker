@@ -121,7 +121,7 @@ function generateTrebleBar(flags, thumbEvents, rng) {
 }
 
 // Merge the two layers into the flat event list everything downstream uses.
-function mergeBar(thumbBar, trebleBar) {
+export function mergeBar(thumbBar, trebleBar) {
   return enforceHardRule([...thumbBar, ...trebleBar]);
 }
 

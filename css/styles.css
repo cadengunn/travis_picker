@@ -51,9 +51,18 @@ body {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.2px;
+  white-space: nowrap; /* never let the indicator wrap the title */
 }
-.type-indicator { font-size: 12px; color: var(--muted); }
-.type-indicator.absolute { color: var(--active); }
+.type-indicator {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.type-indicator.absolute,
+.type-indicator.mixed { color: var(--active); }
 
 .theme-select {
   margin-left: auto;
@@ -70,12 +79,38 @@ body {
 main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 .grid { width: 100%; }
 
+/* slim bar above the grid: loaded name on the left, edit toggle on the right */
+.grid-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px 6px;
+  min-height: 34px;
+}
+.edit-toggle {
+  margin-left: auto;
+  flex: 0 0 auto;
+  background: var(--control);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.edit-toggle[aria-pressed="true"] {
+  background: var(--active);
+  color: var(--label);
+  border-color: var(--active);
+}
+
 /* name of the saved pattern currently on screen */
 .loaded-name {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  padding: 0 2px 6px;
+  min-width: 0;
   font-size: 14px;
   font-weight: 700;
   color: var(--active);
@@ -143,6 +178,12 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
   border-bottom: 1px solid var(--line);
 }
 .cell.beat { background: var(--beat-tint); } /* downbeat columns stand out */
+
+/* edit mode: cells become tappable. Off by default so you can't nudge a
+   pattern by accident while playing. */
+.grid-track.editable { outline: 2px dashed var(--active); outline-offset: 5px; border-radius: 6px; }
+.grid-track.editable .cell { cursor: pointer; }
+.grid-track.editable .cell:active { filter: brightness(1.35); }
 
 .note {
   width: 82%;

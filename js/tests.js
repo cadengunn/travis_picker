@@ -29,6 +29,7 @@ import {
   regenerateTreble,
 } from "./generator.js";
 import { createStore } from "./storage.js";
+import { toggleNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
 
 const results = [];
 function check(name, fn) {
@@ -450,6 +451,83 @@ check("saved: lists newest first, deletes, and handles bad storage", () => {
   });
   assert(readOnly.save({ name: "x", pattern, context: ctx }) === null,
     "save should return null when storage refuses the write");
+});
+
+// 11) Manual editor: tap inference, add/remove, shared-cell editing, and the
+//     relative/absolute consequences of drawing a bass note.
+check("editor: infers thumb vs finger, including the D string-3 overlap", () => {
+  // thumb strings are always the thumb
+  for (const s of [6, 5, 4]) {
+    assert(inferFinger(s, 2, "C") === "p", `string ${s} should be the thumb`);
+  }
+  // plain finger strings map to i/m/a
+  assert(inferFinger(3, 2, "C") === "i", "string 3 offbeat on C should be i");
+  assert(inferFinger(2, 4, "C") === "m", "string 2 should be m");
+  assert(inferFinger(1, 6, "C") === "a", "string 1 should be a");
+  // string 3 on C is NOT a bass role, so it stays a finger even on a beat
+  assert(inferFinger(3, 1, "C") === "i", "string 3 on C is a finger even on a beat");
+  // on D, string 3 IS the alt bass: thumb on beats, finger off-beat
+  assert(inferFinger(3, 1, "D") === "p", "string 3 on D should be the thumb on a beat");
+  assert(inferFinger(3, 2, "D") === "i", "string 3 on D should be a finger off-beat");
+});
+
+check("editor: toggling adds then removes a note", () => {
+  const p = generatePattern("C", { patternBars: 1, rng: seeded(31) });
+  const at = { cellIndex: 0, slot: 4, string: 2, chordId: "C" };
+  const has = (pat) => pat.bars[0].some((e) => e.slot === 4 && e.string === 2);
+
+  const cleared = has(p) ? toggleNote(p, at) : p;
+  assert(!has(cleared), "cell should start empty for this check");
+
+  const added = toggleNote(cleared, at);
+  assert(has(added), "toggling an empty cell should add a note");
+  assert(added.bars[0].find((e) => e.slot === 4 && e.string === 2).finger === "m",
+    "string 2 should be added as m");
+  assert(added.edited === true, "editing should mark the pattern as edited");
+
+  const removed = toggleNote(added, at);
+  assert(!has(removed), "toggling again should remove it");
+
+  // the source layers stay consistent with the merged bars
+  assert(removed.trebleBars[0].every((e) => !(e.slot === 4 && e.string === 2)),
+    "removal should come out of the treble layer too");
+});
+
+check("editor: a drawn bass note keeps its role when it matches the chord", () => {
+  const p = generatePattern("C", { patternBars: 1, rng: seeded(32) });
+  // C's fifth is string 6 — drawing there should stay RELATIVE (follows chords)
+  const onRole = toggleNote(p, { cellIndex: 0, slot: 2, string: 6, chordId: "C" });
+  const drawn = onRole.thumbBars[0].find((e) => e.slot === 2);
+  assert(drawn && drawn.role === "fifth", `expected a fifth role, got ${JSON.stringify(drawn)}`);
+  assert(onRole.type === "relative", `should stay relative, got ${onRole.type}`);
+
+  // it follows the chord: on G the fifth is string 5
+  assert(resolvedThumbString(drawn, "G") === 5, "a relative fifth should follow to G's string 5");
+});
+
+check("editor: a bass note matching no role goes absolute and flags the pattern mixed", () => {
+  const p = generatePattern("D", { patternBars: 1, rng: seeded(33) });
+  // D's roles are 4/3/5 — string 6 matches none of them
+  const mixed = toggleNote(p, { cellIndex: 0, slot: 2, string: 6, chordId: "D" });
+  const drawn = mixed.thumbBars[0].find((e) => e.slot === 2 && e.string === 6);
+  assert(drawn && drawn.absolute === true, "an off-role bass note should be stored absolute");
+  assert(mixed.type === "mixed", `pattern should read as mixed, got ${mixed.type}`);
+  // absolute notes do not follow the chord
+  assert(resolvedThumbString(drawn, "G") === 6, "an absolute bass note should stay on string 6");
+});
+
+check("editor: editing a shared cell changes every repeat of it", () => {
+  const p = generatePattern("C", { patternBars: 1, rng: seeded(34) });
+  const chords = ["C", "F", "G", "C"]; // 1-bar pattern across a 4-bar progression
+  const before = resolvePhrase(p, chords);
+  assert(before.length === 4, "phrase should be 4 bars");
+
+  // tap in the THIRD bar; cellIndex is 2 % 1 = 0, the one shared cell
+  const edited = toggleNote(p, { cellIndex: 2 % p.bars.length, slot: 6, string: 1, chordId: "G" });
+  const after = resolvePhrase(edited, chords);
+  const hasNote = (bar) => bar.some((e) => e.slot === 6 && e.string === 1);
+  const changedEverywhere = after.every(({ bar }) => hasNote(bar));
+  assert(changedEverywhere, "editing the shared cell should change all four bars");
 });
 
 // ---- render report ----

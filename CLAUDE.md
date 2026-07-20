@@ -43,6 +43,7 @@ js/generator.js   pure generatePattern() + resolveBar/resolvePattern/resolvePhra
 js/grid.js        renderGrid() — resolved phrase -> DOM only
 js/theme.js       loads themes.json, applies a theme as CSS custom properties
 js/storage.js     the Saved library (localStorage); store is injectable for tests
+js/editor.js      pure tap-to-edit logic (toggleNote, hand inference) — no DOM
 js/app.js         the ONLY stateful/DOM-glue file: controls -> generator -> grid
 js/tests.js       browser-run unit checks
 ```
@@ -77,6 +78,27 @@ or an `overflow-x` scroller.
 contents swap between chord modes (single: Chord spanning 2 slots; progression:
 Key + Progression), so switching modes never shifts the rows below. Keep that
 invariant — a jumping control panel was a specific complaint.
+
+**Manual editor** (`editor.js`, all pure — app.js only translates a tapped cell
+into `{cellIndex, slot, string, chordId}`):
+- Gated behind a **pencil toggle, off by default** — taps must never nudge a
+  pattern while you're playing. Edit mode is signalled by a dashed outline.
+- **Editing a repeat edits the shared cell.** A 1-bar pattern shown across a
+  4-bar progression is *one* cell, so tapping bar 3 changes all four
+  (`cellIndex = screenBar % bars.length`). To make one bar differ, raise Pattern
+  length first. This was a deliberate choice over auto-expanding.
+- **Hand inference:** strings 6/5/4 are always the thumb; 3/2/1 are fingers —
+  *except* on an overlap string (a finger string that's also a bass role for
+  that chord, e.g. string 3 on D), where it's the thumb on beats and a finger
+  off-beat.
+- **Drawn bass notes stay relative when they match a role** of the bar's chord
+  (so they follow a progression); one matching no role is stored `absolute`.
+  A pattern can therefore be **`mixed`** — legal per the spec, surfaced by the
+  type indicator rather than silently guessed. `deriveType()` computes it.
+- Editing only enforces the hard rule, which the grid gives for free (one cell
+  *is* one string+slot). The thumb skeleton and hand domains are guidance here,
+  not walls — you can draw a thumb note on an offbeat.
+- Edits set `pattern.edited`, which saves the item with `source: "drawn"`.
 
 **Saved library** (`storage.js`): a saved item is **musical content only** —
 `{ pattern, context: { chordMode, chord, key, progression } }` plus a name, id
@@ -143,7 +165,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 1. **DONE** — pattern generator + grid with Fret/PIMA toggle, relative/absolute model, full generator controls.
 1b. **DONE** — progression mode (per-bar chords) with the Nashville number system + key selector; 14-chord library; UI themes from `themes.json`. Pulled forward ahead of favorites.
 2. **DONE** — **Saved patterns**: name + save to `localStorage`, list view, load, delete. See the Saved-library notes above.
-3. **NEXT** — Manual editor: tapping toggles cells on the grid, with the relative/absolute save dialog (incl. the "bass note matches no role" flag). Drawn patterns save into the same library with `source: "drawn"` (the field already exists).
+3. **DONE** — Manual editor (see the editor notes above). The spec's explicit relative/absolute *save dialog* was not built: drawing already keeps role-matching bass notes relative and marks off-role ones absolute, and the type indicator reports `relative`/`mixed`/`absolute` live. Revisit if a save-time choice ("snap to nearest role" vs "keep absolute") is actually wanted.
 4. Metronome/tempo: Tone.js click, BPM 40–160, count-in. iOS: call `Tone.start()` on first user gesture or Safari stays silent.
 
 v2+: remaining bass presets in the UI + custom 4-slot builder; pattern audio playback; syncopation/16ths; PWA packaging (manifest, icons, service worker) for phone install via GitHub Pages.

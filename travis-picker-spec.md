@@ -168,6 +168,19 @@ Every pattern is tagged `"type": "relative"` or `"type": "absolute"`:
 
 ## Manual pattern editor
 
+*(built — with one deviation: there is no relative/absolute save dialog. Drawing
+keeps a bass note relative when it matches one of the chord's roles and stores
+it absolute when it matches none, and the header reports `relative` / `mixed` /
+`absolute` live. A save-time "snap to nearest role" choice can be added later.)*
+
+Editing is gated behind a **pencil toggle, off by default** — while you're
+playing, a stray tap must not alter the pattern. Edit mode is signalled by a
+dashed outline round the grid.
+
+When a short pattern repeats across a longer progression, the bars on screen are
+**one shared cell**, so editing any repeat edits them all. To make a single bar
+differ, raise the pattern length first.
+
 Editing = the grid with tapping enabled:
 - Tapping a cell toggles a note; the app infers p/i/m/a from the string row (per hand domains).
 - Enforce only the hard rule (no impossible simultaneities); warn softly on domain crossings rather than block.

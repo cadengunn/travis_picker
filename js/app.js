@@ -24,6 +24,7 @@ import { generatePattern, resolvePhrase, regenerateBass, regenerateTreble } from
 import { renderGrid } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
 import { savedStore } from "./storage.js";
+import { toggleNote } from "./editor.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -35,6 +36,7 @@ const state = {
   progression: [],      // chord id per phrase bar (progression mode)
   loaded: null,         // { id, name } of the saved pattern on screen, if any
   dirty: false,         // has it been altered since it was loaded/saved?
+  editing: false,       // manual edit mode (off by default: no accidental taps)
 };
 
 // ----- populate controls from data -----
@@ -130,13 +132,22 @@ function render() {
   renderGrid(el("grid"), phrase, {
     labelMode: state.labelMode,
     editableChords: state.chordMode === "progression",
+    editable: state.editing,
   });
   syncProgressionSelect();
 
+  // Short label in the bar, full explanation on hover/long-press.
   const t = state.pattern.type;
-  el("type-indicator").textContent =
-    t === "absolute" ? "absolute — bass won't follow chords" : "relative";
-  el("type-indicator").className = "type-indicator " + t;
+  const LABEL = { relative: "relative", absolute: "absolute bass", mixed: "mixed bass" };
+  const DETAIL = {
+    relative: "Bass follows chord changes.",
+    absolute: "Bass won't follow chord changes.",
+    mixed: "Some bass notes won't follow chord changes.",
+  };
+  const ind = el("type-indicator");
+  ind.textContent = LABEL[t] ?? t;
+  ind.title = DETAIL[t] ?? "";
+  ind.className = "type-indicator " + t;
 }
 
 function generate() {
@@ -284,6 +295,7 @@ function saveCurrent() {
     name: typed.trim() || describeCurrent(),
     pattern: state.pattern,
     context: currentContext(),
+    source: state.pattern.edited ? "drawn" : "generated",
   });
   const hint = el("save-hint");
   if (!item) {
@@ -392,6 +404,31 @@ function attach() {
   });
 
   el("theme").addEventListener("change", (e) => applyTheme(e.target.value));
+
+  // Manual editing — off by default so taps can't nudge a pattern mid-practice.
+  el("edit-toggle").addEventListener("click", () => {
+    state.editing = !state.editing;
+    el("edit-toggle").setAttribute("aria-pressed", String(state.editing));
+    render();
+  });
+
+  // Tap a cell to toggle a note. A short pattern repeating across a longer
+  // progression shares one cell, so editing any repeat edits them all.
+  el("grid").addEventListener("click", (e) => {
+    if (!state.editing) return;
+    const cell = e.target.closest(".cell");
+    if (!cell) return;
+    const screenBar = Number(cell.dataset.bar);
+    const chords = phraseChords();
+    state.pattern = toggleNote(state.pattern, {
+      cellIndex: screenBar % state.pattern.bars.length,
+      slot: Number(cell.dataset.slot),
+      string: Number(cell.dataset.string),
+      chordId: chords[screenBar],
+    });
+    markDirty();
+    render();
+  });
 
   // Save / Load sheets
   el("open-save").addEventListener("click", () => openSheet("save"));
