@@ -33,6 +33,8 @@ const state = {
   chordMode: "single",  // "single" | "progression"
   key: DEFAULT_KEY,
   progression: [],      // chord id per phrase bar (progression mode)
+  loaded: null,         // { id, name } of the saved pattern on screen, if any
+  dirty: false,         // has it been altered since it was loaded/saved?
 };
 
 // ----- populate controls from data -----
@@ -90,6 +92,36 @@ function syncProgressionSelect() {
   el("progression").value = detectProgression(state.progression, state.key);
 }
 
+// The name of the saved pattern on screen. Anything that alters the pattern or
+// its chord context marks it modified, so the label never lies about what
+// you're looking at.
+function markDirty() {
+  if (state.loaded) {
+    state.dirty = true;
+    renderLoadedName();
+  }
+}
+
+function renderLoadedName() {
+  const box = el("loaded-name");
+  if (!state.loaded) {
+    box.hidden = true;
+    box.textContent = "";
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = "";
+  const name = document.createElement("span");
+  name.textContent = state.loaded.name;
+  box.appendChild(name);
+  if (state.dirty) {
+    const mod = document.createElement("span");
+    mod.className = "modified";
+    mod.textContent = "· modified";
+    box.appendChild(mod);
+  }
+}
+
 // ----- render -----
 function render() {
   if (!state.pattern) return;
@@ -111,6 +143,10 @@ function generate() {
   // Reference chord only affects absolute (random) generation; relative
   // patterns are re-resolved per bar anyway.
   state.pattern = generatePattern(phraseChords()[0], readOptions());
+  // A fresh roll is no longer the saved pattern at all.
+  state.loaded = null;
+  state.dirty = false;
+  renderLoadedName();
   render();
 }
 
@@ -135,6 +171,7 @@ function applyProgressionPreset(presetId) {
   if (presetId === CUSTOM_PROGRESSION_ID) return; // "Custom" is a readout, not a choice
   // The progression's own length sets the bar count.
   state.progression = progressionChords(presetId, state.key);
+  markDirty();
   render();
 }
 
@@ -147,6 +184,7 @@ function setKey(newKey) {
     const deg = degreeOf(c, oldKey);
     return deg ? KEYS[newKey].degrees[deg] || c : c;
   });
+  markDirty();
   render();
 }
 
@@ -175,7 +213,8 @@ function describeCurrent() {
 
 function refreshSavedCount() {
   const n = savedStore.count();
-  el("open-saved").textContent = n ? `Saved (${n})` : "Saved";
+  el("open-load").textContent = n ? `Load (${n})` : "Load";
+  el("open-load").disabled = n === 0;
 }
 
 function renderSavedList() {
@@ -253,6 +292,10 @@ function saveCurrent() {
   }
   el("save-name").value = "";
   hint.textContent = `Saved "${item.name}".`;
+  // What's on screen IS this saved pattern now.
+  state.loaded = { id: item.id, name: item.name };
+  state.dirty = false;
+  renderLoadedName();
   renderSavedList();
   refreshSavedCount();
 }
@@ -274,15 +317,28 @@ function loadSaved(id) {
   if (ctx.chord) el("chord").value = ctx.chord;
 
   setChordMode(ctx.chordMode === "progression" ? "progression" : "single");
+  state.loaded = { id: item.id, name: item.name };
+  state.dirty = false;
+  renderLoadedName();
   closeSheet();
 }
 
-function openSheet() {
-  el("save-name").value = "";
-  el("save-hint").textContent = "";
-  el("save-name").placeholder = describeCurrent();
-  renderSavedList();
+// One sheet, two modes: Save shows the name field, Load shows the library.
+function openSheet(mode) {
+  const saving = mode === "save";
+  el("saved-title").textContent = saving ? "Save" : "Load";
+  el("save-section").hidden = !saving;
+  el("saved-list").hidden = saving;
+
+  if (saving) {
+    el("save-name").value = "";
+    el("save-hint").textContent = "";
+    el("save-name").placeholder = describeCurrent();
+  } else {
+    renderSavedList();
+  }
   el("saved-sheet").hidden = false;
+  if (saving) el("save-name").focus();
 }
 function closeSheet() {
   el("saved-sheet").hidden = true;
@@ -299,13 +355,15 @@ function attach() {
   // patterns under one finger part (and vice versa) without losing the other.
   el("bass").addEventListener("change", () => {
     state.pattern = regenerateBass(state.pattern, el("bass").value, phraseChords()[0]);
+    markDirty();
     render();
   });
   el("chaos").addEventListener("change", () => {
     state.pattern = regenerateTreble(state.pattern, el("chaos").value);
+    markDirty();
     render();
   });
-  el("chord").addEventListener("change", render);
+  el("chord").addEventListener("change", () => { markDirty(); render(); });
   el("key").addEventListener("change", (e) => setKey(e.target.value));
   el("progression").addEventListener("change", (e) => applyProgressionPreset(e.target.value));
 
@@ -319,6 +377,7 @@ function attach() {
     const sel = e.target.closest("select.bar-chord");
     if (!sel) return;
     state.progression[Number(sel.dataset.bar)] = sel.value;
+    markDirty();
     render();
   });
 
@@ -334,8 +393,9 @@ function attach() {
 
   el("theme").addEventListener("change", (e) => applyTheme(e.target.value));
 
-  // Saved sheet
-  el("open-saved").addEventListener("click", openSheet);
+  // Save / Load sheets
+  el("open-save").addEventListener("click", () => openSheet("save"));
+  el("open-load").addEventListener("click", () => openSheet("load"));
   el("save-btn").addEventListener("click", saveCurrent);
   el("save-name").addEventListener("keydown", (e) => {
     if (e.key === "Enter") saveCurrent();

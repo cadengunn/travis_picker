@@ -15,6 +15,7 @@
   </header>
 
   <main>
+    <div id="loaded-name" class="loaded-name" hidden></div>
     <section id="grid" class="grid" aria-label="Pattern grid"></section>
   </main>
 
@@ -71,10 +72,12 @@
       </div>
     </div>
 
-    <div class="control-row">
-      <button id="open-saved" class="btn-secondary" type="button">Saved</button>
-      <button id="generate" class="btn-primary span-2" type="button">Generate</button>
+    <div class="control-row two">
+      <button id="open-save" class="btn-secondary" type="button">Save</button>
+      <button id="open-load" class="btn-secondary" type="button">Load</button>
     </div>
+
+    <button id="generate" class="btn-primary" type="button">Generate</button>
   </div>
 
   <!-- Saved library: save the current pattern, or load/delete an existing one -->
@@ -82,15 +85,17 @@
     <div class="sheet-backdrop" data-close></div>
     <section class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="saved-title">
       <header class="sheet-head">
-        <h2 id="saved-title">Saved</h2>
+        <h2 id="saved-title">Save</h2>
         <button class="sheet-close" type="button" data-close aria-label="Close">✕</button>
       </header>
 
-      <div class="save-row">
-        <input id="save-name" type="text" placeholder="Name this pattern" autocomplete="off" />
-        <button id="save-btn" class="btn-primary" type="button">Save</button>
+      <div id="save-section">
+        <div class="save-row">
+          <input id="save-name" type="text" placeholder="Name this pattern" autocomplete="off" />
+          <button id="save-btn" class="btn-primary" type="button">Save</button>
+        </div>
+        <p id="save-hint" class="save-hint"></p>
       </div>
-      <p id="save-hint" class="save-hint"></p>
 
       <ul id="saved-list" class="saved-list"></ul>
     </section>
