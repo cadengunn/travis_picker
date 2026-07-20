@@ -21,7 +21,13 @@ import {
   detectProgression,
   fitProgression,
 } from "./data.js";
-import { generatePattern, resolvePattern, resolvePhrase } from "./generator.js";
+import {
+  generatePattern,
+  resolvePattern,
+  resolvePhrase,
+  regenerateBass,
+  regenerateTreble,
+} from "./generator.js";
 
 const results = [];
 function check(name, fn) {
@@ -307,29 +313,70 @@ check("patternBars produces that many distinct bars and cycles across a phrase",
   assert(sig(phrase[1].bar) !== sig(phrase[0].bar), "a 2-bar pattern should have two different bars");
 });
 
-// 5) Tame constraints: 2-4 offbeats/bar, no identical treble string on
-//    consecutive offbeat slots.
-check("Tame: 2-4 offbeats per bar, no repeated treble string on consecutive offbeats", () => {
-  for (let seed = 1; seed <= 40; seed++) {
-    const p = generatePattern("C", { bass: "simple_alt", chaos: "tame", rng: seeded(seed) });
-    const bar = p.bars[0];
-    // count distinct offbeat slots that have any finger note
-    const filled = OFFBEAT_SLOTS.filter((s) => bar.some((e) => e.slot === s && e.finger !== "p"));
-    assert(filled.length >= 2 && filled.length <= 4,
-      `Tame offbeats should be 2-4, got ${filled.length} (seed ${seed})`);
+// 5) Tame constraints: 2-4 offbeats/bar, and NO string sounds on two adjacent
+//    8th slots — counting the thumb, since that re-strike is the awkward one.
+check("Tame: 2-4 offbeats per bar, no same string on adjacent 8th slots", () => {
+  for (const chord of CHORD_IDS) {
+    for (let seed = 1; seed <= 12; seed++) {
+      for (const bass of ["travis", "simple_alt"]) {
+        const p = generatePattern(chord, { bass, chaos: "tame", rng: seeded(seed * 31) });
+        const bar = p.bars[0];
 
-    // no identical treble string on consecutive FILLED offbeats
-    let prev = null;
-    for (const s of filled) {
-      const strings = bar.filter((e) => e.slot === s && e.finger !== "p").map((e) => e.string);
-      if (prev != null) {
-        for (const st of strings) {
-          assert(st !== prev, `Tame repeated treble string ${st} on consecutive offbeats (seed ${seed})`);
+        const filled = OFFBEAT_SLOTS.filter((s) => bar.some((e) => e.slot === s && e.finger !== "p"));
+        assert(filled.length >= 2 && filled.length <= 4,
+          `Tame offbeats should be 2-4, got ${filled.length} (${chord}/${bass} seed ${seed})`);
+
+        // adjacency across ALL slots, thumb included
+        const stringsAt = (slot) => new Set(bar.filter((e) => e.slot === slot).map((e) => e.string));
+        for (let slot = 1; slot < 8; slot++) {
+          const a = stringsAt(slot), b = stringsAt(slot + 1);
+          for (const s of a) {
+            assert(!b.has(s),
+              `Tame: string ${s} sounds on adjacent slots ${slot}/${slot + 1} (${chord}/${bass} seed ${seed})`);
+          }
         }
       }
-      prev = strings[0];
     }
   }
+});
+
+// 9) Layer independence: swapping the bass keeps the exact finger pattern, and
+//    re-rolling the fingers keeps the exact bass.
+check("regenerateBass keeps the right hand; regenerateTreble keeps the bass", () => {
+  const p = generatePattern("C", { bass: "travis", chaos: "tame", patternBars: 2, rng: seeded(21) });
+  const trebleSig = (pat) => JSON.stringify(pat.trebleBars);
+  const thumbSig = (pat) => JSON.stringify(pat.thumbBars);
+
+  const rebassed = regenerateBass(p, "simple_alt", "C", seeded(99));
+  assert(trebleSig(rebassed) === trebleSig(p), "regenerateBass must not change the treble layer");
+  assert(thumbSig(rebassed) !== thumbSig(p), "regenerateBass should change the thumb layer");
+  assert(rebassed.bass === "simple_alt", "bass id should update");
+
+  const retrebled = regenerateTreble(p, "chaos", seeded(77));
+  assert(thumbSig(retrebled) === thumbSig(p), "regenerateTreble must not change the thumb layer");
+  assert(retrebled.chaos === "chaos", "chaos id should update");
+
+  // merged bars still obey the hard rule after either swap
+  for (const pat of [rebassed, retrebled]) {
+    for (const bar of pat.bars) {
+      const seen = new Set();
+      for (const ev of bar) {
+        const k = `${ev.slot}:${ev.string}`;
+        assert(!seen.has(k), `collision at ${k} after a layer swap`);
+        seen.add(k);
+      }
+    }
+  }
+});
+
+// 9b) Full Random -> relative preset flips the pattern type back.
+check("regenerateBass updates relative/absolute type", () => {
+  const p = generatePattern("C", { bass: "travis", chaos: "tame", rng: seeded(3) });
+  assert(p.type === "relative", "travis should be relative");
+  const abs = regenerateBass(p, "full_random", "C", seeded(4));
+  assert(abs.type === "absolute", "full_random should flip type to absolute");
+  const rel = regenerateBass(abs, "travis", "C", seeded(5));
+  assert(rel.type === "relative", "travis should flip type back to relative");
 });
 
 // ---- render report ----

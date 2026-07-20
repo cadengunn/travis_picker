@@ -66,7 +66,13 @@ chords left alone. `detectProgression()` re-identifies the current bars after
 any edit and the selector falls back to **Custom** when they stop matching a
 preset. Degree 7 (diminished) is intentionally absent.
 
-**Control layout:** the controls are three fixed 3-slot rows. Only row 1's
+**No scrolling, ever:** every bar must be visible at once — you're holding a
+guitar and can't swipe mid-pattern. `grid.js` sets `data-bars` on the track and
+CSS sizes cells as a fraction of available width (square via `aspect-ratio`),
+wrapping 4 bars to a 2×2 on a phone. Don't reintroduce a fixed `--cell` px size
+or an `overflow-x` scroller.
+
+**Control layout:** the controls are fixed 3-slot rows. Only row 1's
 contents swap between chord modes (single: Chord spanning 2 slots; progression:
 Key + Progression), so switching modes never shifts the rows below. Keep that
 invariant — a jumping control panel was a specific complaint.
@@ -88,14 +94,16 @@ Pattern = {
   type: "relative" | "absolute", // relative from chord-aware thumb modes; absolute from Full Random
   chord: "C",                     // reference chord id
   bass, chaos, patternBars,       // the options it was generated with
-  bars: [ [ Event, ... ], ... ],  // exactly `patternBars` DISTINCT bars (1, 2 or 4)
+  thumbBars:  [ [ Event, ... ] ], // the two layers, kept separately
+  trebleBars: [ [ Event, ... ] ],
+  bars: [ [ Event, ... ], ... ],  // merge of the layers; exactly `patternBars` DISTINCT bars
 }
 Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 ```
 
 - A slot may hold multiple events (pinches = thumb+finger; double stops = 2–3 fingers).
 - **Relative** thumb events store a `role` (`root`/`alt_bass`/`fifth`) and derive string; **absolute** events store the literal `string`.
-- Both label modes (Fret = `event.fret`, PIMA = `event.finger`) are pure transforms of the same events.
+- All three label modes (Fret = `event.fret`, PIMA = `event.finger`, None = dot only) are pure transforms of the same events.
 - `resolvePhrase(pattern, chords)` cycles the distinct `bars` across however many bars are on screen (one chord per bar).
 
 ## Key rules (from the spec — keep these invariants)
@@ -103,7 +111,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - **Hard rule (physics):** never two events on the same string in the same slot. Enforced generically in `generator.js` (`enforceHardRule`) and asserted in tests.
 - **Thumb skeleton:** one quarter-note thumb on each beat (slots 1,3,5,7); never on offbeats.
 - **Hand domains:** fingers own strings 3/2/1 (i→3, m→2, a→1). **Chord-aware thumb domain:** thumb-legal = `{6,5,4}` ∪ the current chord's role strings. This is why D's alt-bass legitimately lands on string 3 — see `thumbLegalStrings()` in `data.js`.
-- **Chaos** (Tame/Loose/Chaos) is **presets over independent constraint flags** (`CHAOS_PRESETS`), not branching code — leaves room for a future custom panel.
+- **Two independent layers.** `thumbBars` and `trebleBars` are generated and stored separately; `bars` is their merge (`mergeBar` → `enforceHardRule`). `regenerateBass()` re-rolls the thumb keeping the exact finger part, `regenerateTreble()` does the reverse — so the Thumb and Chaos controls each disturb only their own layer, and you can audition bass patterns under one right-hand part. Only Pattern-length and **Generate** re-roll everything.
+- **Chaos** (Tame/Loose/Chaos) is **presets over independent constraint flags** (`CHAOS_PRESETS`), not branching code — leaves room for a future custom panel. Tame's `noAdjacentSameString` forbids a string sounding on two **adjacent** 8th slots, thumb included — same-string re-strikes are the hardest thing for a beginner. Treble generation walks slots 1→8 in order (checking both neighbours) so this is enforced during generation, not by pruning after.
 - **Bass presets** are data (`BASS_PRESETS`). Default is `travis` (root-alt-fifth-alt, the standard Travis pattern). `simple_alt` and `full_random` are the other v1-surfaced presets (`V1_BASS_IDS`); the rest ship as data for later.
 - **Chord library** is 14 chords covering degrees 1–6 in the keys C/G/D/A/E. Barre chords assume a *full* barre, so the low string is available as a bass note even where the textbook voicing mutes it — the same convention C already used (its fifth is string 6 fret 3). A test asserts every chord's role strings are covered by its shape.
 - **Pattern length** (`PATTERN_LENGTHS`, 1/2/4) is the *only* length dial: how many **distinct** bars of picking. Bars on screen are derived — single mode shows exactly that many; progression mode shows the progression's bars and cycles the pattern across them. This replaced a separate Loop + Phrase-length pair whose only useful combinations were "displayed == distinct"; the rest just redrew the same bar. Don't reintroduce a display-length control without that reasoning changing.
@@ -119,7 +128,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 1. **DONE** — pattern generator + grid with Fret/PIMA toggle, relative/absolute model, full generator controls.
 1b. **DONE** — progression mode (per-bar chords) with the Nashville number system + key selector; 14-chord library; UI themes from `themes.json`. Pulled forward ahead of favorites.
-2. **NEXT** — save favorites: name + save to `localStorage`, list view, reload. Should persist the chord mode + progression alongside the pattern.
+2. **NEXT** — **Saved patterns** (nomenclature is "Saved", not "Favorites"; favorites may later be a folder *within* saved). Name + save to `localStorage`, list view, reload. A saved item is **musical content only**: the pattern plus the chord/key/progression it was written against. **Do not save UI settings** (theme, label mode) with it — those are independent app preferences and theme already persists separately. Hand-drawn patterns (item 3) go into the same library.
 3. Manual editor: tapping toggles cells on the grid, with the relative/absolute save dialog (incl. the "bass note matches no role" flag).
 4. Metronome/tempo: Tone.js click, BPM 40–160, count-in. iOS: call `Tone.start()` on first user gesture or Safari stays silent.
 

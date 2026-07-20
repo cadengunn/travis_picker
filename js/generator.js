@@ -50,29 +50,59 @@ function resolveThumbEntry(entry, chordId, rng) {
   return { finger: "p", role, string: stringForRole[role], absolute: false };
 }
 
-// ---- finger (treble) generation for one bar ---------------------------------
-// Returns a list of treble events for offbeats (and downbeat pinches) obeying
-// the active chaos flags. Never touches thumb rows (domain crossing off in v1).
-function generateTrebleForBar(flags, thumbBeatSlots, rng) {
-  const events = [];
+const ALL_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8];
 
-  // Decide how many offbeats to fill, within [min,max].
+// ---- thumb layer: one quarter-note per beat (slots 1,3,5,7) -----------------
+function generateThumbBar(chordId, preset, rng) {
+  return preset.beats.map((entry, i) => ({
+    slot: BEAT_SLOTS[i],
+    ...resolveThumbEntry(entry, chordId, rng),
+  }));
+}
+
+// ---- treble (finger) layer for one bar --------------------------------------
+// Walks slots 1..8 in order so constraints can look at neighbours. Takes the
+// bar's thumb events so it can honour the hard rule and — under Tame's
+// noAdjacentSameString — avoid re-striking a string the thumb just used (this
+// matters on chords like D whose alt bass sits on string 3).
+function generateTrebleBar(flags, thumbEvents, rng) {
+  // slot -> Set(strings) already sounding. Thumb is known up front, so we can
+  // check the NEXT slot too, not just the previous one.
+  const occupied = new Map();
+  const add = (slot, s) => {
+    if (!occupied.has(slot)) occupied.set(slot, new Set());
+    occupied.get(slot).add(s);
+  };
+  for (const ev of thumbEvents) add(ev.slot, ev.string);
+
+  // Which offbeats get filled, within [min,max].
   const span = flags.maxOffbeats - flags.minOffbeats;
   const count = flags.minOffbeats + Math.floor(rng() * (span + 1));
-  const chosenOffbeats = shuffled(OFFBEAT_SLOTS, rng).slice(0, count).sort((a, b) => a - b);
+  const offbeats = new Set(shuffled(OFFBEAT_SLOTS, rng).slice(0, count));
 
-  let prevString = null; // for noRepeatTrebleString across consecutive filled offbeats
-  for (const slot of chosenOffbeats) {
-    let candidates = FINGER_STRINGS.slice();
-    if (flags.noRepeatTrebleString && prevString != null) {
-      const filtered = candidates.filter((s) => s !== prevString);
+  // Pinches: finger note(s) sounding together with the thumb on a downbeat.
+  const pinchChance = flags.pinchesDownbeatsOnly ? 0.35 : 0.25;
+  const pinches = new Set(thumbEvents.map((e) => e.slot).filter(() => rng() < pinchChance));
+
+  const events = [];
+  for (const slot of ALL_SLOTS) {
+    if (!offbeats.has(slot) && !pinches.has(slot)) continue;
+
+    // Hard rule: never a string already sounding in this slot.
+    let candidates = FINGER_STRINGS.filter((s) => !occupied.get(slot)?.has(s));
+
+    // Tame: never the same string on an adjacent 8th (either side) — that's
+    // the awkward same-string re-strike a beginner shouldn't have to fight.
+    if (flags.noAdjacentSameString) {
+      const near = [occupied.get(slot - 1), occupied.get(slot + 1)];
+      const filtered = candidates.filter((s) => !near.some((set) => set?.has(s)));
       if (filtered.length) candidates = filtered;
     }
+    if (!candidates.length) continue;
 
     // How many notes in this slot: single, or a double/triple stop if allowed.
     let notesHere = 1;
     if (flags.allowDoubleStops && !flags.favorSingleOffbeats) {
-      // ~35% double, ~10% triple when double stops are permitted
       const r = rng();
       if (r > 0.9) notesHere = 3;
       else if (r > 0.55) notesHere = 2;
@@ -81,44 +111,18 @@ function generateTrebleForBar(flags, thumbBeatSlots, rng) {
     }
     notesHere = Math.min(notesHere, candidates.length);
 
-    const strings = shuffled(candidates, rng).slice(0, notesHere);
-    for (const string of strings) {
+    for (const string of shuffled(candidates, rng).slice(0, notesHere)) {
       events.push({ slot, finger: STRING_FINGER[string], string });
-    }
-    prevString = strings[0];
-  }
-
-  // Pinches: finger notes sounding together with the thumb on a downbeat.
-  // (Offbeat notes are already handled above; "pinches anywhere" just means the
-  // downbeat pinch is allowed regardless of the pinchesDownbeatsOnly flag.)
-  const pinchChance = flags.pinchesDownbeatsOnly ? 0.35 : 0.25;
-  for (const slot of thumbBeatSlots) {
-    if (rng() < pinchChance) {
-      const string = pick(FINGER_STRINGS, rng);
-      events.push({ slot, finger: STRING_FINGER[string], string });
+      add(slot, string);
     }
   }
 
   return events;
 }
 
-// ---- one bar ----------------------------------------------------------------
-function generateBar(chordId, preset, flags, rng) {
-  const events = [];
-
-  // Thumb skeleton: one quarter-note per beat on slots 1,3,5,7.
-  preset.beats.forEach((entry, i) => {
-    const slot = BEAT_SLOTS[i];
-    const t = resolveThumbEntry(entry, chordId, rng);
-    events.push({ slot, ...t });
-  });
-
-  // Treble.
-  const treble = generateTrebleForBar(flags, BEAT_SLOTS, rng);
-  for (const ev of treble) events.push(ev);
-
-  // Hard rule: never two events on the same string in the same slot.
-  return enforceHardRule(events);
+// Merge the two layers into the flat event list everything downstream uses.
+function mergeBar(thumbBar, trebleBar) {
+  return enforceHardRule([...thumbBar, ...trebleBar]);
 }
 
 // Drop any event that would collide with an already-kept event on the same
@@ -150,23 +154,62 @@ export function generatePattern(chordId, options = {}) {
   // patternBars = how many DISTINCT bars of picking. The renderer cycles them
   // across however many bars are on screen (see resolvePhrase).
   const n = Math.max(1, patternBars);
+  const thumbBars = [];
+  const trebleBars = [];
   const bars = [];
   for (let i = 0; i < n; i++) {
-    bars.push(generateBar(chordId, preset, flags, rng));
+    const thumb = generateThumbBar(chordId, preset, rng);
+    const treble = generateTrebleBar(flags, thumb, rng);
+    thumbBars.push(thumb);
+    trebleBars.push(treble);
+    bars.push(mergeBar(thumb, treble));
   }
 
-  // Relative unless any thumb entry is absolute (integers or "random").
-  const isAbsolute = preset.beats.some(
-    (e) => typeof e === "number" || e === "random"
-  );
-
   return {
-    type: isAbsolute ? "absolute" : "relative",
+    type: patternType(preset),
     chord: chordId,
     bass,
     chaos,
     patternBars: n,
+    // The two layers are kept so either can be re-rolled without disturbing the
+    // other (see regenerateBass / regenerateTreble). `bars` is their merge and
+    // is what everything downstream reads.
+    thumbBars,
+    trebleBars,
     bars,
+  };
+}
+
+// Relative unless any thumb entry is absolute (integers or "random").
+function patternType(preset) {
+  const isAbsolute = preset.beats.some((e) => typeof e === "number" || e === "random");
+  return isAbsolute ? "absolute" : "relative";
+}
+
+// ---- layer-wise re-rolls ----------------------------------------------------
+// Swap the bass engine while keeping the exact same right-hand pattern, so you
+// can audition thumb patterns under one finger part.
+export function regenerateBass(pattern, bassId, chordId = pattern.chord, rng = Math.random) {
+  const preset = getBassPreset(bassId);
+  const thumbBars = pattern.trebleBars.map(() => generateThumbBar(chordId, preset, rng));
+  return {
+    ...pattern,
+    bass: bassId,
+    type: patternType(preset),
+    thumbBars,
+    bars: thumbBars.map((thumb, i) => mergeBar(thumb, pattern.trebleBars[i])),
+  };
+}
+
+// Re-roll the fingers (and re-apply chaos constraints) over the same bass.
+export function regenerateTreble(pattern, chaosId, rng = Math.random) {
+  const flags = CHAOS_PRESETS[chaosId] || CHAOS_PRESETS.tame;
+  const trebleBars = pattern.thumbBars.map((thumb) => generateTrebleBar(flags, thumb, rng));
+  return {
+    ...pattern,
+    chaos: chaosId,
+    trebleBars,
+    bars: pattern.thumbBars.map((thumb, i) => mergeBar(thumb, trebleBars[i])),
   };
 }
 

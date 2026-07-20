@@ -112,7 +112,7 @@ export const CHAOS_PRESETS = {
   tame: {
     id: "tame",
     name: "Tame",
-    noRepeatTrebleString: true, // no identical treble string on consecutive offbeats
+    noAdjacentSameString: true, // no string sounds on two adjacent 8th slots (incl. thumb)
     minOffbeats: 2,
     maxOffbeats: 4,
     pinchesDownbeatsOnly: true, // pinches only land with the thumb on beats
@@ -123,7 +123,7 @@ export const CHAOS_PRESETS = {
   loose: {
     id: "loose",
     name: "Loose",
-    noRepeatTrebleString: false,
+    noAdjacentSameString: false,
     minOffbeats: 1,
     maxOffbeats: 4,
     pinchesDownbeatsOnly: false, // pinches anywhere
@@ -134,7 +134,7 @@ export const CHAOS_PRESETS = {
   chaos: {
     id: "chaos",
     name: "Chaos",
-    noRepeatTrebleString: false,
+    noAdjacentSameString: false,
     minOffbeats: 0,
     maxOffbeats: 4,
     pinchesDownbeatsOnly: false,

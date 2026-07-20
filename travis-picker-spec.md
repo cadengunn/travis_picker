@@ -38,7 +38,7 @@ The right hand splits the guitar in half: **thumb (p) owns strings 6–5–4; fi
 **Hard rule (always enforced):** no two simultaneous notes on the same string. That's physics, not taste.
 
 Everything else is governed by a **Chaos** setting:
-- **Tame**: no identical treble string on consecutive 8th slots; 2–4 filled offbeats per bar; pinches on downbeats only; single-note offbeats favored.
+- **Tame**: **no string sounds on two adjacent 8th slots** — counting the thumb, not just the fingers (e.g. a note on "1" and again on the following "&" of the same string is out). Same-string re-strikes at speed are the hardest thing for a beginner, and Tame is the beginner setting. Plus: 2–4 filled offbeats per bar; pinches on downbeats only; single-note offbeats favored.
 - **Loose**: repeat-string allowed; any density; pinches anywhere; double stops occasionally.
 - **Chaos**: no stylistic constraints at all — any legal combination of thumb + fingers in any slot. Novelty over playability; the point is discovering patterns.
 
@@ -117,14 +117,21 @@ Tab shows fretted notes from standard open chord shapes (define shapes as string
 ## Display: the grid (one component for everything)
 
 A step-sequencer / drum-machine style grid is the single display AND editor:
-- 6 rows (strings, low E at bottom) × 8 columns per bar (8th-note slots), bars laid side by side or swipeable.
+- 6 rows (strings, low E at bottom) × 8 columns per bar (8th-note slots).
+- **All bars must be visible at once — never scroll.** Practice is hands-free:
+  you're holding a guitar, so you can't swipe between bars mid-pattern. Cells are
+  sized as a fraction of the available width (square via `aspect-ratio`) rather
+  than a fixed pixel size, and 4 bars wrap to a 2×2 on a phone (one row on
+  desktop). This is why phrase length is capped at 4.
 - Active notes render as **filled circles inside cells**; inactive cells are empty boxes.
 - Thumb-domain rows (6/5/4) and finger rows (3/2/1) get subtle visual separation (color or divider) to reinforce hand domains.
 - Beat columns (1, 2, 3, 4) visually distinguished from "&" columns.
 - **Label mode toggle** (what's printed inside each circle):
   - **Fret mode**: fret number from the current chord shape.
   - **PIMA mode**: p / i / m / a, chord-agnostic, for pure right-hand drilling.
-- The same grid component handles playback display, browsing favorites, and editing — edit mode simply enables tapping.
+  - **None**: dot only — the cleanest read of pure rhythm/shape, and the most
+    legible at 4-bar cell sizes.
+- The same grid component handles playback display, browsing saved patterns, and editing — edit mode simply enables tapping.
 
 ## Theming
 
@@ -177,7 +184,7 @@ Editing = the grid with tapping enabled:
 
 **v1 (build in this order):**
 1. Pattern generator + grid display (fret/PIMA label toggle) — "Generate" button re-rolls. Relative/absolute data model in place from the start.
-2. Save favorites — name and save patterns to localStorage; list view; reload.
+2. **Saved patterns** — name and save a pattern (or chord progression) to localStorage; list view; reload. Nomenclature is **"Saved"**, not "Favorites" — favorites may later become a subset/folder *within* saved. A saved item is the musical content only: the pattern, and the chord/key/progression it was written against. **UI settings — theme, label mode — are NOT saved with it**; they're independent app preferences (theme already persists on its own). Hand-drawn patterns (item 3) save into this same library.
 3. Manual editor (tapping on the grid) with the relative/absolute save dialog.
 4. Metronome / tempo control — click track, BPM slider (40–160), count-in. NOTE (iOS): Web Audio requires a user gesture — call `Tone.start()` (or resume the AudioContext) on first tap or nothing will sound in Safari.
 

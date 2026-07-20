@@ -23,8 +23,9 @@ function indexBar(bar) {
 }
 
 function labelFor(ev, labelMode) {
+  if (labelMode === "none") return "";     // dot only
   if (labelMode === "pima") return ev.finger;
-  return String(ev.fret ?? 0); // fret mode
+  return String(ev.fret ?? 0);             // fret mode
 }
 
 // Bar header: an editable chord <select> in progression mode, else a static
@@ -59,6 +60,10 @@ export function renderGrid(container, phrase, opts = {}) {
 
   const track = document.createElement("div");
   track.className = "grid-track";
+  // Drives the responsive layout: every bar must be on screen at once (no
+  // scrolling while your hands are on the guitar), so CSS sizes cells from the
+  // bar count rather than using a fixed cell width.
+  track.dataset.bars = String(phrase.length);
 
   phrase.forEach(({ chord, bar }, barIdx) => {
     const barEl = document.createElement("div");

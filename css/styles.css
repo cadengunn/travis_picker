@@ -19,8 +19,6 @@
   --beat-tint: #57422f;
   --row-thumb: #503c2d;
   --control: #453224;
-
-  --cell: 34px;         /* base cell size, comfortably tappable */
 }
 
 * { box-sizing: border-box; }
@@ -72,21 +70,23 @@ body {
 main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 .grid { width: 100%; }
 
+/* Every bar is on screen at once — practice is hands-free, so nothing may
+   require scrolling. Cells are fractions of the available width (square via
+   aspect-ratio) instead of a fixed pixel size, and 4 bars wrap to a 2x2. */
 .grid-track {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+  --note-font: 14px;
 }
+.grid-track[data-bars="2"] { grid-template-columns: repeat(2, 1fr); --note-font: 12px; }
+.grid-track[data-bars="4"] { grid-template-columns: repeat(2, 1fr); --note-font: 10px; }
 
 .bar {
-  scroll-snap-align: start;
-  flex: 0 0 auto;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 6px;
+  padding: 5px;
 }
 
 /* chord label / picker above each bar */
@@ -111,14 +111,14 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
   text-align-last: center;
 }
 
-.row { display: grid; grid-template-columns: repeat(8, var(--cell)); }
+.row { display: grid; grid-template-columns: repeat(8, 1fr); }
 .row.domain-thumb .cell { background: var(--row-thumb); }
 .row.domain-thumb .cell.beat { background: var(--beat-tint); }
 .row.domain-divider { border-bottom: 2px solid var(--line); }
 
 .cell {
-  width: var(--cell);
-  height: var(--cell);
+  aspect-ratio: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -129,20 +129,21 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 .cell.beat { background: var(--beat-tint); } /* downbeat columns stand out */
 
 .note {
-  width: calc(var(--cell) - 8px);
-  height: calc(var(--cell) - 8px);
+  width: 82%;
+  height: 82%;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--note-font);
+  line-height: 1;
   font-weight: 700;
 }
 .note-thumb  { background: var(--active); color: var(--label); }
 .note-finger { background: var(--accent); color: var(--bg); }
 
 /* beat-number ruler under each bar */
-.ruler { display: grid; grid-template-columns: repeat(8, var(--cell)); margin-top: 4px; }
+.ruler { display: grid; grid-template-columns: repeat(8, 1fr); margin-top: 3px; }
 .tick { text-align: center; font-size: 11px; color: var(--muted); }
 .tick.beat { color: var(--text); font-weight: 700; }
 
@@ -166,6 +167,7 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
   align-items: end;
 }
 .span-2 { grid-column: span 2; }
+.span-3 { grid-column: span 3; }
 .field {
   min-width: 0;
   display: flex;
@@ -220,7 +222,8 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 
 /* ---- desktop afterthought ---- */
 @media (min-width: 720px) {
-  :root { --cell: 40px; }
   body { max-width: 900px; margin: 0 auto; }
-  .grid-track { flex-wrap: wrap; }
+  /* room for all four bars in a single row */
+  .grid-track[data-bars="4"] { grid-template-columns: repeat(4, 1fr); --note-font: 13px; }
+  .grid-track[data-bars="2"] { --note-font: 15px; }
 }

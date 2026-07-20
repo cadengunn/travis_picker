@@ -20,7 +20,7 @@ import {
   detectProgression,
   degreeOf,
 } from "./data.js";
-import { generatePattern, resolvePhrase } from "./generator.js";
+import { generatePattern, resolvePhrase, regenerateBass, regenerateTreble } from "./generator.js";
 import { renderGrid } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
 
@@ -153,9 +153,19 @@ function setKey(newKey) {
 function attach() {
   el("generate").addEventListener("click", generate);
 
-  for (const id of ["bass", "chaos", "pattern"]) {
-    el(id).addEventListener("change", generate);
-  }
+  // Pattern length changes the bar count, so it re-rolls everything.
+  el("pattern").addEventListener("change", generate);
+
+  // Thumb and Chaos each re-roll only their own layer, so you can audition bass
+  // patterns under one finger part (and vice versa) without losing the other.
+  el("bass").addEventListener("change", () => {
+    state.pattern = regenerateBass(state.pattern, el("bass").value, phraseChords()[0]);
+    render();
+  });
+  el("chaos").addEventListener("change", () => {
+    state.pattern = regenerateTreble(state.pattern, el("chaos").value);
+    render();
+  });
   el("chord").addEventListener("change", render);
   el("key").addEventListener("change", (e) => setKey(e.target.value));
   el("progression").addEventListener("change", (e) => applyProgressionPreset(e.target.value));
