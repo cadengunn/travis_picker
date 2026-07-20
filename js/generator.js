@@ -140,20 +140,18 @@ export function generatePattern(chordId, options = {}) {
   const {
     bass = "travis",
     chaos = "tame",
-    loop = "1bar",
-    phraseBars = 4,
+    patternBars = 1,
     rng = Math.random,
   } = options;
 
   const preset = getBassPreset(bass);
   const flags = CHAOS_PRESETS[chaos] || CHAOS_PRESETS.tame;
 
-  // Never generate more distinct bars than the phrase shows (e.g. a 2-bar loop
-  // inside a 1-bar phrase collapses to 1).
-  const wanted = loop === "through" ? phraseBars : loop === "2bar" ? 2 : 1;
-  const cellBars = Math.min(wanted, phraseBars);
+  // patternBars = how many DISTINCT bars of picking. The renderer cycles them
+  // across however many bars are on screen (see resolvePhrase).
+  const n = Math.max(1, patternBars);
   const bars = [];
-  for (let i = 0; i < cellBars; i++) {
+  for (let i = 0; i < n; i++) {
     bars.push(generateBar(chordId, preset, flags, rng));
   }
 
@@ -167,8 +165,7 @@ export function generatePattern(chordId, options = {}) {
     chord: chordId,
     bass,
     chaos,
-    loop,
-    phraseBars,
+    patternBars: n,
     bars,
   };
 }
@@ -205,19 +202,10 @@ export function resolvePattern(pattern, chordId = pattern.chord) {
   return { ...pattern, chord: chordId, bars: pattern.bars.map((bar) => resolveBar(bar, chordId)) };
 }
 
-// Expand distinct `bars` across the phrase length by cycling. Grid uses this.
-export function expandToPhrase(pattern) {
-  const out = [];
-  for (let i = 0; i < pattern.phraseBars; i++) {
-    out.push(pattern.bars[i % pattern.bars.length]);
-  }
-  return out;
-}
-
-// ---- public: resolvePhrase (per-bar chords = progression mode) --------------
-// `chords` is an array of chord ids, one per phrase bar (length phraseBars).
-// The distinct cell bars cycle across the phrase; each phrase bar is resolved
-// against its own chord. Returns [{ chord, bar }, ...] ready for rendering.
+// ---- public: resolvePhrase (per-bar chords) ---------------------------------
+// `chords` is an array of chord ids, one per bar on screen. The distinct
+// pattern bars cycle across them; each bar is resolved against its own chord.
+// Returns [{ chord, bar }, ...] ready for rendering.
 export function resolvePhrase(pattern, chords) {
   const cell = pattern.bars;
   return chords.map((chordId, i) => ({

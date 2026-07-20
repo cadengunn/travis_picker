@@ -3,16 +3,6 @@
   "default": "merle",
   "themes": [
     {
-      "id": "chet",
-      "name": "Chet",
-      "desc": "Gretsch cherry — big, red, unapologetic",
-      "bg": "#7a1220",
-      "surface": "#9c2433",
-      "accent": "#f5e6c8",
-      "active": "#ffd9a0",
-      "label": "#5a0d16"
-    },
-    {
       "id": "merle",
       "name": "Merle",
       "desc": "Tobacco & parchment — the neutral flagship (default)",
@@ -21,6 +11,16 @@
       "accent": "#e8dcc0",
       "active": "#e0a458",
       "label": "#2a1c12"
+    },
+    {
+      "id": "chet",
+      "name": "Chet",
+      "desc": "Gretsch cherry — big, red, unapologetic",
+      "bg": "#7a1220",
+      "surface": "#9c2433",
+      "accent": "#f5e6c8",
+      "active": "#ffd9a0",
+      "label": "#5a0d16"
     },
     {
       "id": "jerry",

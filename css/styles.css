@@ -156,11 +156,18 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
   flex-direction: column;
   gap: 10px;
 }
-/* wrapping layout: hidden fields simply take no space */
-.control-fields { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Fixed 3-slot rows. Only row 1's contents swap between chord modes, and the
+   single-chord select spans 2 slots to fill the space Key+Progression use — so
+   switching modes never moves the rows below. */
+.control-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+.span-2 { grid-column: span 2; }
 .field {
-  flex: 1 1 calc(33.333% - 8px);
-  min-width: 96px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -216,5 +223,4 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
   :root { --cell: 40px; }
   body { max-width: 900px; margin: 0 auto; }
   .grid-track { flex-wrap: wrap; }
-  .field { flex: 0 1 140px; }
 }

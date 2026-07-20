@@ -49,20 +49,20 @@ function seeded(seed) {
 
 const ALL_BASS = BASS_PRESETS.map((p) => p.id);
 const ALL_CHAOS = ["tame", "loose", "chaos"];
-const LOOPS = ["1bar", "2bar", "through"];
+const ALL_PATTERN_BARS = [1, 2, 4];
 
 function everyBar(cb) {
   let n = 0;
   for (const chord of CHORD_IDS) {
     for (const bass of ALL_BASS) {
       for (const chaos of ALL_CHAOS) {
-        for (const loop of LOOPS) {
+        for (const patternBars of ALL_PATTERN_BARS) {
           for (let seed = 1; seed <= 8; seed++) {
             const p = generatePattern(chord, {
-              bass, chaos, loop, phraseBars: 8, rng: seeded(seed * 97 + n),
+              bass, chaos, patternBars, rng: seeded(seed * 97 + n),
             });
             const r = resolvePattern(p, chord);
-            for (const bar of r.bars) cb(bar, { chord, bass, chaos, loop, seed });
+            for (const bar of r.bars) cb(bar, { chord, bass, chaos, patternBars, seed });
             n++;
           }
         }
@@ -104,7 +104,7 @@ check("domain (chord-aware): thumb within legal set, fingers on 3/2/1", () => {
 
 // 2b) The D outlier is real: on D, the alt role puts the thumb on string 3.
 check("D alt-bass: simple-alt thumb reaches string 3 on D", () => {
-  const p = generatePattern("D", { bass: "simple_alt", chaos: "tame", loop: "1bar", rng: seeded(3) });
+  const p = generatePattern("D", { bass: "simple_alt", chaos: "tame", rng: seeded(3) });
   const r = resolvePattern(p, "D");
   const altThumb = r.bars[0].find((e) => e.finger === "p" && e.role === "alt_bass");
   assert(altThumb && altThumb.string === 3, `D alt bass should be string 3, got ${altThumb && altThumb.string}`);
@@ -132,7 +132,7 @@ check("thumb skeleton: one thumb per beat, none on offbeats", () => {
 check("round-trip: Simple alternating resolves to chord root/alt per table", () => {
   for (const chordId of CHORD_IDS) {
     const chord = CHORDS[chordId];
-    const p = generatePattern(chordId, { bass: "simple_alt", chaos: "tame", loop: "1bar", rng: seeded(5) });
+    const p = generatePattern(chordId, { bass: "simple_alt", chaos: "tame", rng: seeded(5) });
     assert(p.type === "relative", `Simple alternating should be relative, got ${p.type}`);
     const r = resolvePattern(p, chordId);
     const thumbs = r.bars[0].filter((e) => e.finger === "p").sort((a, b) => a.slot - b.slot);
@@ -158,7 +158,7 @@ check("round-trip: Simple alternating resolves to chord root/alt per table", () 
 //     resolves to 4-3-5-3 on D and 5-4-6-4 on C (spec point 6).
 check("default preset is Travis; bass resolves 4-3-5-3 on D, 5-4-6-4 on C", () => {
   // omit `bass` so the generator's global default is exercised
-  const pD = generatePattern("D", { chaos: "tame", loop: "1bar", rng: seeded(7) });
+  const pD = generatePattern("D", { chaos: "tame", rng: seeded(7) });
   assert(pD.bass === "travis", `default bass should be "travis", got "${pD.bass}"`);
   assert(pD.type === "relative", `Travis should be relative, got ${pD.type}`);
 
@@ -166,7 +166,7 @@ check("default preset is Travis; bass resolves 4-3-5-3 on D, 5-4-6-4 on C", () =
   assert(JSON.stringify(onD) === JSON.stringify([4, 3, 5, 3]),
     `expected 4-3-5-3 on D, got ${onD.join("-")}`);
 
-  const pC = generatePattern("C", { chaos: "tame", loop: "1bar", rng: seeded(7) });
+  const pC = generatePattern("C", { chaos: "tame", rng: seeded(7) });
   const onC = resolvePattern(pC, "C").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
   assert(JSON.stringify(onC) === JSON.stringify([5, 4, 6, 4]),
     `expected 5-4-6-4 on C, got ${onC.join("-")}`);
@@ -174,7 +174,7 @@ check("default preset is Travis; bass resolves 4-3-5-3 on D, 5-4-6-4 on C", () =
 
 // 4d) G's Travis bass walks 6-4-5-4 (G-D-B-D), frets 3-0-2-0.
 check("G Travis bass walks strings 6-4-5-4 with frets 3-0-2-0", () => {
-  const p = generatePattern("G", { chaos: "tame", loop: "1bar", rng: seeded(7) });
+  const p = generatePattern("G", { chaos: "tame", rng: seeded(7) });
   const thumbs = resolvePattern(p, "G").bars[0].filter((e) => e.finger === "p");
   const strings = thumbs.map((e) => e.string);
   const frets = thumbs.map((e) => e.fret);
@@ -186,7 +186,7 @@ check("G Travis bass walks strings 6-4-5-4 with frets 3-0-2-0", () => {
 
 // 4b) Full Random is absolute and stays put across chords.
 check("Full Random is absolute and bass ignores chord changes", () => {
-  const p = generatePattern("C", { bass: "full_random", chaos: "loose", loop: "1bar", rng: seeded(11) });
+  const p = generatePattern("C", { bass: "full_random", chaos: "loose", rng: seeded(11) });
   assert(p.type === "absolute", `Full Random should be absolute, got ${p.type}`);
   const a = resolvePattern(p, "C").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
   const b = resolvePattern(p, "G").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
@@ -196,7 +196,7 @@ check("Full Random is absolute and bass ignores chord changes", () => {
 // 4e) Progression mode: one relative cell, per-bar chords. The bass re-maps
 //     per bar while the right hand (fingers/slots) stays identical.
 check("progression: relative bass re-maps per bar, right hand unchanged", () => {
-  const p = generatePattern("C", { bass: "travis", chaos: "tame", loop: "1bar", phraseBars: 4, rng: seeded(9) });
+  const p = generatePattern("C", { bass: "travis", chaos: "tame", patternBars: 1, rng: seeded(9) });
   const chords = ["C", "G", "D", "Am"];
   const phrase = resolvePhrase(p, chords);
 
@@ -224,7 +224,7 @@ check("progression: relative bass re-maps per bar, right hand unchanged", () => 
 
 // 4f) Absolute patterns do NOT follow the progression (bass strings frozen).
 check("progression: absolute bass strings stay put across chords", () => {
-  const p = generatePattern("C", { bass: "full_random", chaos: "loose", loop: "1bar", phraseBars: 4, rng: seeded(4) });
+  const p = generatePattern("C", { bass: "full_random", chaos: "loose", patternBars: 1, rng: seeded(4) });
   const phrase = resolvePhrase(p, ["C", "G", "D", "Am"]);
   const bassOf = (b) => JSON.stringify(b.filter((e) => e.finger === "p").map((e) => e.string));
   const first = bassOf(phrase[0].bar);
@@ -289,22 +289,29 @@ check("detectProgression: matches presets, falls back to Custom", () => {
     "edited progression should read as Custom");
 });
 
-// 8) Phrase length clamps the loop cell (2-bar loop inside a 1-bar phrase).
-check("loop cell never exceeds the phrase length", () => {
-  for (const phraseBars of [1, 2, 4]) {
-    for (const loop of ["1bar", "2bar", "through"]) {
-      const p = generatePattern("C", { loop, phraseBars, rng: seeded(2) });
-      assert(p.bars.length <= phraseBars,
-        `${loop} @ ${phraseBars} bars produced ${p.bars.length} distinct bars`);
-    }
+// 8) Pattern length produces exactly that many distinct bars, and a shorter
+//    pattern cycles cleanly across a longer progression.
+check("patternBars produces that many distinct bars and cycles across a phrase", () => {
+  for (const n of [1, 2, 4]) {
+    const p = generatePattern("C", { patternBars: n, rng: seeded(2) });
+    assert(p.bars.length === n, `patternBars ${n} produced ${p.bars.length} distinct bars`);
+    assert(p.patternBars === n, `pattern should record patternBars ${n}`);
   }
+
+  // a 2-bar pattern over a 4-bar progression: bar 3 repeats bar 1, bar 4 repeats bar 2
+  const p2 = generatePattern("C", { patternBars: 2, rng: seeded(6) });
+  const phrase = resolvePhrase(p2, ["C", "C", "C", "C"]);
+  const sig = (bar) => JSON.stringify(bar.map((e) => [e.slot, e.finger, e.string]));
+  assert(sig(phrase[2].bar) === sig(phrase[0].bar), "bar 3 should repeat bar 1");
+  assert(sig(phrase[3].bar) === sig(phrase[1].bar), "bar 4 should repeat bar 2");
+  assert(sig(phrase[1].bar) !== sig(phrase[0].bar), "a 2-bar pattern should have two different bars");
 });
 
 // 5) Tame constraints: 2-4 offbeats/bar, no identical treble string on
 //    consecutive offbeat slots.
 check("Tame: 2-4 offbeats per bar, no repeated treble string on consecutive offbeats", () => {
   for (let seed = 1; seed <= 40; seed++) {
-    const p = generatePattern("C", { bass: "simple_alt", chaos: "tame", loop: "1bar", rng: seeded(seed) });
+    const p = generatePattern("C", { bass: "simple_alt", chaos: "tame", rng: seeded(seed) });
     const bar = p.bars[0];
     // count distinct offbeat slots that have any finger note
     const filled = OFFBEAT_SLOTS.filter((s) => bar.some((e) => e.slot === s && e.finger !== "p"));

@@ -146,14 +146,13 @@ export const CHAOS_PRESETS = {
 
 export const CHAOS_IDS = ["tame", "loose", "chaos"];
 
-export const LOOP_OPTIONS = [
-  { id: "1bar", name: "1-bar loop" },
-  { id: "2bar", name: "2-bar loop" },
-  { id: "through", name: "Through-composed" },
-];
-
-export const PHRASE_LENGTHS = [1, 2, 4];
-export const DEFAULT_PHRASE_BARS = 4;
+// How many DISTINCT bars of right-hand pattern before it repeats. This is the
+// only length dial: in single-chord mode the grid shows exactly this many bars;
+// in progression mode the progression sets the bar count and the pattern cycles
+// across it. (Replaces the old separate Loop + Length pair, whose useful
+// combinations were always "displayed bars == distinct bars".)
+export const PATTERN_LENGTHS = [1, 2, 4];
+export const DEFAULT_PATTERN_BARS = 1;
 
 // ----- Nashville number system -----
 // Progressions are stored as scale degrees; the selected KEY resolves them to
@@ -174,7 +173,7 @@ export const DEFAULT_KEY = "C";
 // phrase. Users can hand-edit any bar; if the result stops matching a preset the
 // selector reads "Custom".
 export const PROGRESSIONS = [
-  { id: "1_4_5",   name: "1–4–5",   degrees: [1, 4, 5] },
+  { id: "1_4_5_1", name: "1–4–5–1", degrees: [1, 4, 5, 1] },
   { id: "1_5_6_4", name: "1–5–6–4", degrees: [1, 5, 6, 4] },
   { id: "1_6_4_5", name: "1–6–4–5", degrees: [1, 6, 4, 5] },
   { id: "6_4_1_5", name: "6–4–1–5", degrees: [6, 4, 1, 5] },

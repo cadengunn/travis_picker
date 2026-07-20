@@ -46,8 +46,18 @@ Implement each stylistic constraint as an independent flag internally; Tame/Loos
 
 ### Pattern structure (this is what makes it musical, not random)
 - Generate a **1-bar or 2-bar cell**, then repeat it across the phrase. Real Travis playing grooves on a repeating pattern.
-- Options: "1-bar loop", "2-bar loop", "through-composed" (fully random each bar — advanced mode).
-- Phrase length: 1, 2 or 4 bars, user toggle. (8 was tried and is too wide to read on a phone; revisit if the grid ever gets a zoom/wrap.) The loop cell is clamped to the phrase, so a 2-bar loop in a 1-bar phrase collapses to 1.
+- **Pattern length** (1, 2 or 4 bars) is the single length dial: how many
+  **distinct** bars of right-hand picking before it repeats. 4 bars is what used
+  to be called "through-composed".
+- Bars on screen are derived, never set separately:
+  - **Single-chord mode** shows exactly the pattern length.
+  - **Progression mode** shows the progression's bars (4) and cycles the pattern
+    across them — so a 1-bar pattern plays over all four chords.
+- This replaced an earlier separate "Loop" + "Phrase length" pair. Their only
+  useful combinations were the ones where displayed bars equalled distinct bars;
+  everything else just drew the same bar repeatedly, which costs phone screen
+  and tells the player nothing. (8-bar phrases were also tried and are too wide
+  to read on a phone; revisit if the grid ever gets zoom/wrap.)
 
 ## Bass engine presets (data spec — ready to implement)
 

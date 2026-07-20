@@ -9,15 +9,13 @@ import {
   V1_BASS_IDS,
   CHAOS_IDS,
   CHAOS_PRESETS,
-  LOOP_OPTIONS,
-  PHRASE_LENGTHS,
-  DEFAULT_PHRASE_BARS,
+  PATTERN_LENGTHS,
+  DEFAULT_PATTERN_BARS,
   KEY_IDS,
   KEYS,
   DEFAULT_KEY,
   PROGRESSIONS,
   CUSTOM_PROGRESSION_ID,
-  fitProgression,
   progressionChords,
   detectProgression,
   degreeOf,
@@ -52,8 +50,7 @@ function initControls() {
   fillSelect(el("key"), KEY_IDS, (k) => k, (k) => KEYS[k].name);
   fillSelect(el("bass"), BASS_PRESETS.filter((p) => V1_BASS_IDS.includes(p.id)), (p) => p.id, (p) => p.name);
   fillSelect(el("chaos"), CHAOS_IDS, (c) => c, (c) => CHAOS_PRESETS[c].name);
-  fillSelect(el("loop"), LOOP_OPTIONS, (o) => o.id, (o) => o.name);
-  fillSelect(el("phrase"), PHRASE_LENGTHS, (n) => n, (n) => `${n} bar${n > 1 ? "s" : ""}`);
+  fillSelect(el("pattern"), PATTERN_LENGTHS, (n) => n, (n) => `${n} bar${n > 1 ? "s" : ""}`);
 
   // Progression list + the "Custom" entry shown once bars stop matching a preset.
   fillSelect(el("progression"), PROGRESSIONS, (p) => p.id, (p) => p.name);
@@ -63,28 +60,27 @@ function initControls() {
   el("progression").appendChild(custom);
 
   el("key").value = state.key;
-  el("phrase").value = String(DEFAULT_PHRASE_BARS);
+  el("pattern").value = String(DEFAULT_PATTERN_BARS);
 }
 
-const phraseBars = () => Number(el("phrase").value);
+// Distinct bars of right-hand pattern (the only length dial).
+const patternBars = () => Number(el("pattern").value);
 
 function readOptions() {
   return {
     bass: el("bass").value,
     chaos: el("chaos").value,
-    loop: el("loop").value,
-    phraseBars: phraseBars(),
+    patternBars: patternBars(),
   };
 }
 
-// Chords for the current phrase: one per bar.
+// Chords for the bars on screen — one per bar. In progression mode the
+// progression sets the bar count; in single mode the pattern length does.
 function phraseChords() {
-  const n = phraseBars();
   if (state.chordMode === "progression") {
-    state.progression = fitProgression(state.progression, n);
     return state.progression;
   }
-  return Array.from({ length: n }, () => el("chord").value);
+  return Array.from({ length: patternBars() }, () => el("chord").value);
 }
 
 // Keep the progression dropdown honest: a preset id, or "Custom".
@@ -136,7 +132,8 @@ function setChordMode(mode) {
 
 function applyProgressionPreset(presetId) {
   if (presetId === CUSTOM_PROGRESSION_ID) return; // "Custom" is a readout, not a choice
-  state.progression = fitProgression(progressionChords(presetId, state.key), phraseBars());
+  // The progression's own length sets the bar count.
+  state.progression = progressionChords(presetId, state.key);
   render();
 }
 
@@ -156,7 +153,7 @@ function setKey(newKey) {
 function attach() {
   el("generate").addEventListener("click", generate);
 
-  for (const id of ["bass", "chaos", "loop", "phrase"]) {
+  for (const id of ["bass", "chaos", "pattern"]) {
     el(id).addEventListener("change", generate);
   }
   el("chord").addEventListener("change", render);
@@ -172,7 +169,6 @@ function attach() {
   el("grid").addEventListener("change", (e) => {
     const sel = e.target.closest("select.bar-chord");
     if (!sel) return;
-    state.progression = fitProgression(state.progression, phraseBars());
     state.progression[Number(sel.dataset.bar)] = sel.value;
     render();
   });

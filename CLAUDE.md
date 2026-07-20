@@ -66,6 +66,11 @@ chords left alone. `detectProgression()` re-identifies the current bars after
 any edit and the selector falls back to **Custom** when they stop matching a
 preset. Degree 7 (diminished) is intentionally absent.
 
+**Control layout:** the controls are three fixed 3-slot rows. Only row 1's
+contents swap between chord modes (single: Chord spanning 2 slots; progression:
+Key + Progression), so switching modes never shifts the rows below. Keep that
+invariant — a jumping control panel was a specific complaint.
+
 **Themes:** `themes.json` is the source of truth — each theme is 5 roles
 (`bg`, `surface`, `accent`, `active`, `label`). `theme.js` sets those as CSS
 custom properties and *derives* the rest (`--line`, `--muted`, `--beat-tint`,
@@ -82,8 +87,8 @@ fails.
 Pattern = {
   type: "relative" | "absolute", // relative from chord-aware thumb modes; absolute from Full Random
   chord: "C",                     // reference chord id
-  bass, chaos, loop, phraseBars,  // the options it was generated with
-  bars: [ [ Event, ... ], ... ],  // DISTINCT bars: 1 (1-bar loop), 2 (2-bar), or phraseBars (through-composed)
+  bass, chaos, patternBars,       // the options it was generated with
+  bars: [ [ Event, ... ], ... ],  // exactly `patternBars` DISTINCT bars (1, 2 or 4)
 }
 Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 ```
@@ -91,7 +96,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - A slot may hold multiple events (pinches = thumb+finger; double stops = 2–3 fingers).
 - **Relative** thumb events store a `role` (`root`/`alt_bass`/`fifth`) and derive string; **absolute** events store the literal `string`.
 - Both label modes (Fret = `event.fret`, PIMA = `event.finger`) are pure transforms of the same events.
-- `expandToPhrase()` cycles the distinct `bars` across `phraseBars` for rendering.
+- `resolvePhrase(pattern, chords)` cycles the distinct `bars` across however many bars are on screen (one chord per bar).
 
 ## Key rules (from the spec — keep these invariants)
 
@@ -101,7 +106,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - **Chaos** (Tame/Loose/Chaos) is **presets over independent constraint flags** (`CHAOS_PRESETS`), not branching code — leaves room for a future custom panel.
 - **Bass presets** are data (`BASS_PRESETS`). Default is `travis` (root-alt-fifth-alt, the standard Travis pattern). `simple_alt` and `full_random` are the other v1-surfaced presets (`V1_BASS_IDS`); the rest ship as data for later.
 - **Chord library** is 14 chords covering degrees 1–6 in the keys C/G/D/A/E. Barre chords assume a *full* barre, so the low string is available as a bass note even where the textbook voicing mutes it — the same convention C already used (its fifth is string 6 fret 3). A test asserts every chord's role strings are covered by its shape.
-- **Phrase length** is 1, 2, or 4 bars (8 was too wide for a phone). The generator clamps the loop cell to the phrase, so a 2-bar loop inside a 1-bar phrase collapses to 1.
+- **Pattern length** (`PATTERN_LENGTHS`, 1/2/4) is the *only* length dial: how many **distinct** bars of picking. Bars on screen are derived — single mode shows exactly that many; progression mode shows the progression's bars and cycles the pattern across them. This replaced a separate Loop + Phrase-length pair whose only useful combinations were "displayed == distinct"; the rest just redrew the same bar. Don't reintroduce a display-length control without that reasoning changing.
 
 ## Conventions
 
