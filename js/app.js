@@ -32,6 +32,7 @@ import { renderGrid } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
 import { savedStore } from "./storage.js";
 import { toggleNote } from "./editor.js";
+import { createMetronome, DEFAULT_BPM } from "./metronome.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -75,6 +76,8 @@ function initControls() {
 
   el("key").value = state.key;
   el("pattern").value = String(DEFAULT_PATTERN_BARS);
+  el("bpm").value = String(DEFAULT_BPM);
+  el("bpm-value").textContent = String(DEFAULT_BPM);
 }
 
 // Distinct bars of right-hand pattern (the only length dial).
@@ -144,6 +147,9 @@ function render() {
     editable: state.editing,
   });
   syncProgressionSelect();
+  // Re-rendering drops the playhead's cells; keep the loop length in sync too.
+  litCells = [];
+  metronome.setBars(chords.length);
 
   // Short label in the bar, full explanation on hover/long-press.
   const t = state.pattern.type;
@@ -215,6 +221,50 @@ function setKey(newKey) {
   });
   markDirty();
   render();
+}
+
+// ----- metronome -----
+// The playhead touches cells directly rather than re-rendering the grid — it
+// moves up to 8 times a bar and a full re-render would be wasteful (and would
+// fight edit mode).
+let litCells = [];
+function highlightColumn(pos) {
+  for (const c of litCells) c.classList.remove("playing");
+  litCells = [];
+  if (!pos) return;
+  litCells = [...el("grid").querySelectorAll(
+    `.cell[data-bar="${pos.bar}"][data-slot="${pos.slot}"]`
+  )];
+  for (const c of litCells) c.classList.add("playing");
+}
+
+function showCountIn(n) {
+  const track = el("grid").querySelector(".grid-track");
+  if (track) track.classList.toggle("counting", n != null);
+  el("play").textContent =
+    n != null ? `Count ${n}` : metronome.running ? "■ Stop" : "▶ Play";
+}
+
+const metronome = createMetronome({
+  onStep: (pos) => {
+    // The first real step ends the count-in — nothing else reports that.
+    if (pos) showCountIn(null);
+    highlightColumn(pos);
+  },
+  onCountIn: showCountIn,
+});
+
+async function togglePlay() {
+  if (metronome.running) {
+    metronome.stop();
+    el("play").setAttribute("aria-pressed", "false");
+    showCountIn(null); // clears the dim and resets the label
+    return;
+  }
+  el("play").setAttribute("aria-pressed", "true");
+  el("play").textContent = "■ Stop";
+  // Started from the click handler so iOS Safari unlocks audio.
+  await metronome.start(phraseChords().length);
 }
 
 // ----- saved library -----
@@ -434,6 +484,12 @@ function attach() {
   });
 
   el("theme").addEventListener("change", (e) => applyTheme(e.target.value));
+
+  // Transport
+  el("play").addEventListener("click", togglePlay);
+  el("bpm").addEventListener("input", (e) => {
+    el("bpm-value").textContent = metronome.setBpm(Number(e.target.value));
+  });
 
   // Manual editing — off by default so taps can't nudge a pattern mid-practice.
   el("edit-toggle").addEventListener("click", () => {

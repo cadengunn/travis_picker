@@ -58,6 +58,8 @@ export function applyTheme(id) {
   r.setProperty("--beat-tint", mix(t.surface, t.accent, 0.13));
   r.setProperty("--row-thumb", mix(t.surface, t.accent, 0.05));
   r.setProperty("--control", mix(t.surface, t.bg, 0.25));
+  // playhead column — reads clearly against `surface` in light and dark themes
+  r.setProperty("--playhead", mix(t.surface, t.active, 0.4));
 
   document.documentElement.setAttribute("data-theme", t.id);
   try { localStorage.setItem(STORAGE_KEY, t.id); } catch {}

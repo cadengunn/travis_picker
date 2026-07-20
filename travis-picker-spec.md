@@ -204,7 +204,8 @@ Editing = the grid with tapping enabled:
 1. Pattern generator + grid display (fret/PIMA label toggle) — "Generate" button re-rolls. Relative/absolute data model in place from the start.
 2. **Saved patterns** *(built)* — name and save a pattern (or chord progression) to localStorage; list view; reload; delete. Nomenclature is **"Saved"**, not "Favorites" — favorites may later become a subset/folder *within* saved. A saved item is the musical content only: the pattern, and the chord/key/progression it was written against. **UI settings — theme, label mode — are NOT saved with it**; they're independent app preferences (theme already persists on its own). Hand-drawn patterns (item 3) save into this same library.
 3. Manual editor (tapping on the grid) with the relative/absolute save dialog.
-4. Metronome / tempo control — click track, BPM slider (40–160), count-in. NOTE (iOS): Web Audio requires a user gesture — call `Tone.start()` (or resume the AudioContext) on first tap or nothing will sound in Safari.
+4. **Metronome / tempo control** *(built)* — click track, BPM slider (40–160), one-bar count-in, plus a **visual playhead**: the sounding 8th-note column lights up and walks across every bar, so you can track the pattern hands-free. NOTE (iOS): Web Audio requires a user gesture — the AudioContext is created/resumed inside the Play handler or Safari stays silent.
+   **Deviation:** built on **raw Web Audio, not Tone.js**. A click is an oscillator plus a gain envelope, and timing uses the standard lookahead scheduler; pulling in Tone.js would have been the project's first dependency (~200KB) and complicated the v2 offline PWA. Reconsider if v2's pattern playback needs a real synth library.
 
 **v2:**
 5. Remaining bass presets beyond Travis + Simple alternating + Full Random (Dead Thumb, Root–Fifth, Climb, Descend) — already fully spec'd as data above; plus the custom 4-slot pattern builder UI.

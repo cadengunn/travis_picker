@@ -31,6 +31,14 @@ import {
 } from "./generator.js";
 import { createStore } from "./storage.js";
 import { toggleNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
+import {
+  createMetronome,
+  secondsPerSlot,
+  isBeatSlot,
+  stepToPosition,
+  BPM_MIN,
+  BPM_MAX,
+} from "./metronome.js";
 
 const results = [];
 function check(name, fn) {
@@ -583,6 +591,33 @@ check("setPatternBars duplicates existing bars and keeps them independent", () =
   assert(shrunk.bars.length === 2, "shrinking should truncate");
   assert(sig(shrunk.bars[0]) === sig(edited.bars[0]), "first bar preserved on shrink");
   assert(sig(shrunk.bars[1]) === sig(edited.bars[1]), "second bar preserved on shrink");
+});
+
+// 14) Metronome timing maths (the audio itself can't be unit-tested here).
+check("metronome: slot duration, beat slots and playhead position", () => {
+  // an 8th note is half a beat
+  assert(secondsPerSlot(120) === 0.25, `120bpm 8th should be 0.25s, got ${secondsPerSlot(120)}`);
+  assert(secondsPerSlot(60) === 0.5, `60bpm 8th should be 0.5s, got ${secondsPerSlot(60)}`);
+  assert(Math.abs(secondsPerSlot(90) - 1 / 3) < 1e-9, "90bpm 8th should be a third of a second");
+
+  // clicks land on 1 & 2 & 3 & 4 & -> slots 0,2,4,6 within the bar
+  assert([0, 2, 4, 6].every(isBeatSlot), "even slots are beats");
+  assert([1, 3, 5, 7].every((s) => !isBeatSlot(s)), "odd slots are offbeats");
+
+  // the playhead walks bar by bar, 8 slots each, 1-indexed slots for the grid
+  assert(JSON.stringify(stepToPosition(0)) === JSON.stringify({ bar: 0, slot: 1 }), "step 0 -> bar 0 slot 1");
+  assert(JSON.stringify(stepToPosition(7)) === JSON.stringify({ bar: 0, slot: 8 }), "step 7 -> bar 0 slot 8");
+  assert(JSON.stringify(stepToPosition(8)) === JSON.stringify({ bar: 1, slot: 1 }), "step 8 -> bar 1 slot 1");
+  assert(JSON.stringify(stepToPosition(31)) === JSON.stringify({ bar: 3, slot: 8 }), "step 31 -> bar 3 slot 8");
+});
+
+check("metronome: bpm is clamped to the 40-160 range", () => {
+  const m = createMetronome();
+  assert(m.setBpm(90) === 90, "90 should pass through");
+  assert(m.setBpm(10) === BPM_MIN, `below range should clamp to ${BPM_MIN}`);
+  assert(m.setBpm(999) === BPM_MAX, `above range should clamp to ${BPM_MAX}`);
+  assert(m.setBpm(97.6) === 98, "fractional bpm should round");
+  assert(m.running === false, "a fresh metronome should not be running");
 });
 
 // ---- render report ----

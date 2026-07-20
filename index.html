@@ -31,6 +31,13 @@
   </main>
 
   <div class="controls">
+    <div class="transport">
+      <button id="play" class="btn-play" type="button" aria-pressed="false">▶ Play</button>
+      <input id="bpm" class="bpm-slider" type="range" min="40" max="160" step="1" value="90"
+             aria-label="Tempo in beats per minute" />
+      <output id="bpm-value" class="bpm-value" for="bpm">90</output>
+    </div>
+
     <!-- Row 1 is the only row whose contents change between chord modes; it
          always fills 3 slots so nothing below it ever shifts. -->
     <div class="control-row">

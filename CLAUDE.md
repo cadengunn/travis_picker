@@ -44,6 +44,7 @@ js/grid.js        renderGrid() — resolved phrase -> DOM only
 js/theme.js       loads themes.json, applies a theme as CSS custom properties
 js/storage.js     the Saved library (localStorage); store is injectable for tests
 js/editor.js      pure tap-to-edit logic (toggleNote, hand inference) — no DOM
+js/metronome.js   Web Audio click + playhead scheduling (no dependencies)
 js/app.js         the ONLY stateful/DOM-glue file: controls -> generator -> grid
 js/tests.js       browser-run unit checks
 ```
@@ -115,6 +116,24 @@ into `{cellIndex, slot, string, chordId}`):
   Thumb/Chaos change all `confirm()` first, and declining reverts the control.
   Hand-drawn work is the only thing here that can't be re-rolled back.
 
+**Metronome** (`metronome.js`): **raw Web Audio, not Tone.js** — the spec named
+Tone.js, but a click is an oscillator plus a gain envelope and the dependency
+would have been the project's first, complicating the v2 offline PWA. Revisit
+only if v2's pattern playback actually needs a synth library.
+- Timing uses the standard **lookahead scheduler**: a coarse `setTimeout` wakes
+  every 25ms and schedules clicks ~120ms ahead at exact `AudioContext` times.
+  `setTimeout` alone is far too jittery to hold a beat.
+- The **playhead is driven from a rAF loop reading the audio clock**, never from
+  the scheduler callback — the scheduler runs ahead of what you hear, so
+  highlighting there would visibly lead the click. It touches cell classes
+  directly instead of re-rendering (up to 8 updates/bar, and a re-render would
+  fight edit mode); `render()` resets `litCells`.
+- One bar of **count-in** (grid dims, button counts 1–4). `onCountIn(null)` only
+  fires on stop, so the **first real step clears the count-in state** — that's
+  why `onStep` calls `showCountIn(null)`.
+- `start()` creates/resumes the `AudioContext` **inside the click handler**, or
+  iOS Safari stays silent. BPM 40–160, clamped in `setBpm`.
+
 **Saved library** (`storage.js`): a saved item is **musical content only** —
 `{ pattern, context: { chordMode, chord, key, progression } }` plus a name, id
 and timestamp. **Never store UI settings** (theme, label mode) with it; a test
@@ -181,9 +200,9 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 1b. **DONE** — progression mode (per-bar chords) with the Nashville number system + key selector; 14-chord library; UI themes from `themes.json`. Pulled forward ahead of favorites.
 2. **DONE** — **Saved patterns**: name + save to `localStorage`, list view, load, delete. See the Saved-library notes above.
 3. **DONE** — Manual editor (see the editor notes above). The spec's explicit relative/absolute *save dialog* was not built: drawing already keeps role-matching bass notes relative and marks off-role ones absolute, and the type indicator reports `relative`/`mixed`/`absolute` live. Revisit if a save-time choice ("snap to nearest role" vs "keep absolute") is actually wanted.
-4. Metronome/tempo: Tone.js click, BPM 40–160, count-in. iOS: call `Tone.start()` on first user gesture or Safari stays silent.
+4. **DONE** — Metronome: Web Audio click (not Tone.js — see above), BPM 40–160, one-bar count-in, and a playhead that lights the sounding column across all bars.
 
-v2+: remaining bass presets in the UI + custom 4-slot builder; pattern audio playback; syncopation/16ths; PWA packaging (manifest, icons, service worker) for phone install via GitHub Pages.
+**v1 is complete.** v2+: remaining bass presets in the UI + custom 4-slot builder; pattern audio playback; syncopation/16ths; PWA packaging (manifest, icons, service worker) for phone install via GitHub Pages.
 
 ## Deferred implementation notes
 

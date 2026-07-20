@@ -19,6 +19,7 @@
   --beat-tint: #57422f;
   --row-thumb: #503c2d;
   --control: #453224;
+  --playhead: #7a5f3f;
 }
 
 * { box-sizing: border-box; }
@@ -209,6 +210,53 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 .ruler { display: grid; grid-template-columns: repeat(8, 1fr); margin-top: 3px; }
 .tick { text-align: center; font-size: 11px; color: var(--muted); }
 .tick.beat { color: var(--text); font-weight: 700; }
+
+/* ---- transport (metronome) ---- */
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.btn-play {
+  flex: 0 0 auto;
+  min-width: 96px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--control);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.btn-play[aria-pressed="true"] {
+  background: var(--active);
+  color: var(--label);
+  border-color: var(--active);
+}
+.btn-play:active { transform: translateY(1px); }
+
+.bpm-slider {
+  flex: 1 1 auto;
+  min-width: 0;
+  accent-color: var(--active);
+  height: 28px;
+}
+.bpm-value {
+  flex: 0 0 auto;
+  min-width: 46px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* playhead: the column currently sounding */
+.cell.playing { background: var(--playhead); }
+.grid-track.counting { opacity: 0.55; }
 
 /* ---- controls ---- */
 .controls {
