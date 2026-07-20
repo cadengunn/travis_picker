@@ -164,6 +164,18 @@ check("default preset is Travis; bass resolves 4-3-5-3 on D, 5-4-6-4 on C", () =
     `expected 5-4-6-4 on C, got ${onC.join("-")}`);
 });
 
+// 4d) G's Travis bass walks 6-4-5-4 (G-D-B-D), frets 3-0-2-0.
+check("G Travis bass walks strings 6-4-5-4 with frets 3-0-2-0", () => {
+  const p = generatePattern("G", { chaos: "tame", loop: "1bar", rng: seeded(7) });
+  const thumbs = resolvePattern(p, "G").bars[0].filter((e) => e.finger === "p");
+  const strings = thumbs.map((e) => e.string);
+  const frets = thumbs.map((e) => e.fret);
+  assert(JSON.stringify(strings) === JSON.stringify([6, 4, 5, 4]),
+    `expected strings 6-4-5-4 on G, got ${strings.join("-")}`);
+  assert(JSON.stringify(frets) === JSON.stringify([3, 0, 2, 0]),
+    `expected frets 3-0-2-0 on G, got ${frets.join("-")}`);
+});
+
 // 4b) Full Random is absolute and stays put across chords.
 check("Full Random is absolute and bass ignores chord changes", () => {
   const p = generatePattern("C", { bass: "full_random", chaos: "loose", loop: "1bar", rng: seeded(11) });

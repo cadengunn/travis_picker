@@ -17,7 +17,7 @@ export const OFFBEAT_SLOTS = [2, 4, 6, 8]; // the "&"s
 // An entry is a role ("root"|"alt"|"fifth"), an absolute string (6/5/4), or
 // "random". A preset of only roles is fully relative/portable.
 export const BASS_PRESETS = [
-  { id: "travis",      name: "Travis (standard)",   beats: ["root", "alt", "fifth", "alt"], default: true },
+  { id: "travis",      name: "Travis (default)",    beats: ["root", "alt", "fifth", "alt"], default: true },
   { id: "simple_alt",  name: "Simple alternating",  beats: ["root", "alt", "root", "alt"] },
   { id: "dead_thumb",  name: "Dead Thumb",          beats: ["root", "root", "root", "root"] },
   { id: "root_fifth",  name: "Root–Fifth",          beats: ["root", "fifth", "root", "fifth"] },
@@ -39,8 +39,10 @@ export function getBassPreset(id) {
 // fifth when the open shape doesn't cover it (spec: C's fifth = string 6 fret 3).
 export const CHORDS = {
   C:  { name: "C",  root: 5, alt: 4, fifth: 6, fifthFret: 3 },
-  G:  { name: "G",  root: 6, alt: 4, fifth: 4, fifthFret: 0 },
+  G:  { name: "G",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
   D:  { name: "D",  root: 4, alt: 3, fifth: 5, fifthFret: 0 },
+  E:  { name: "E",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
+  A:  { name: "A",  root: 5, alt: 4, fifth: 6, fifthFret: 0 },
   Em: { name: "Em", root: 6, alt: 4, fifth: 5, fifthFret: 2 },
   Am: { name: "Am", root: 5, alt: 4, fifth: 6, fifthFret: 0 },
   F:  { name: "F",  root: 6, alt: 4, fifth: 5, fifthFret: 3 },
@@ -72,6 +74,8 @@ export const CHORD_SHAPES = {
   C:  { 6: 3, 5: 3, 4: 2, 3: 0, 2: 1, 1: 0 },
   G:  { 6: 3, 5: 2, 4: 0, 3: 0, 2: 0, 1: 3 },
   D:  { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 2 },
+  E:  { 6: 0, 5: 2, 4: 2, 3: 1, 2: 0, 1: 0 },
+  A:  { 6: null, 5: 0, 4: 2, 3: 2, 2: 2, 1: 0 },
   Em: { 6: 0, 5: 2, 4: 2, 3: 0, 2: 0, 1: 0 },
   Am: { 6: null, 5: 0, 4: 2, 3: 2, 2: 1, 1: 0 },
   F:  { 6: 1, 5: 3, 4: 3, 3: 2, 2: 1, 1: 1 },

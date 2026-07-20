@@ -26,7 +26,7 @@ The right hand splits the guitar in half: **thumb (p) owns strings 6–5–4; fi
 ### Thumb (the skeleton — never randomized away)
 - Plays quarter notes on beats 1, 2, 3, 4 (slots 1, 3, 5, 7).
 - The thumb is a **pluggable bass engine**: every mode is a data preset, not code. See "Bass engine presets" below for the full definitions.
-- v1 must ship with at least Travis (standard, the default), Simple alternating, and Full random; the preset format makes the rest drop-in additions.
+- v1 must ship with at least Travis (the default), Simple alternating, and Full random; the preset format makes the rest drop-in additions.
 
 ### Fingers (where the variety lives)
 - i, m, a on strings 3, 2, 1 respectively (per hand domains above).
@@ -55,7 +55,7 @@ Each preset is a 4-entry array, one entry per beat. An entry is either a **role*
 
 ```json
 [
-  { "id": "travis",      "name": "Travis (standard)",  "beats": ["root", "alt", "fifth", "alt"], "default": true },
+  { "id": "travis",      "name": "Travis (default)",   "beats": ["root", "alt", "fifth", "alt"], "default": true },
   { "id": "simple_alt",  "name": "Simple alternating", "beats": ["root", "alt", "root", "alt"] },
   { "id": "dead_thumb",  "name": "Dead Thumb",         "beats": ["root", "root", "root", "root"] },
   { "id": "root_fifth",  "name": "Root–Fifth",         "beats": ["root", "fifth", "root", "fifth"] },
@@ -78,13 +78,13 @@ Used by role resolution (`root`, `alt`, `fifth`). Absolute and random entries ig
 | Chord | Root string | Alt string | Fifth string (fret) |
 |-------|-------------|------------|---------------------|
 | C     | 5           | 4          | 6 (fret 3)          |
-| G     | 6           | 4          | 4 (open)            |
+| G     | 6           | 4          | 5 (fret 2)          |
 | D     | 4           | 3 (fret 2) | 5 (open)            |
 | E / Em| 6           | 4          | 5 (fret 2)          |
 | A / Am| 5           | 4          | 6 (open)            |
 | F (small barre or Fmaj7 shape) | 6 (or 4 for Fmaj7) | 4 (or 3) | 5 (fret 3) |
 
-Note G's alt and fifth are both string 4 — Root–Fifth and Simple alternating coincide on G. That's correct, not a bug.
+Note G's fifth sits on string 5 (fret 2, the B in the open G shape), so its Travis bass walks strings 6–4–5–4 (G–D–B–D) rather than a two-string root/alt. This is the idiomatic Travis bass on G.
 
 Note D's alt bass intentionally sits on string 3, matching real Travis technique; see chord-aware domains above. String 3 is thus legal for the thumb *on D specifically* while remaining a finger string generally.
 
