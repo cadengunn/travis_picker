@@ -254,8 +254,11 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
   font-variant-numeric: tabular-nums;
 }
 
-/* playhead: the column currently sounding */
-.cell.playing { background: var(--playhead); }
+/* playhead: the column currently sounding.
+   Specificity has to beat `.row.domain-thumb .cell` (0-3-0) or the thumb rows'
+   domain tint wins and the playhead lights only strings 3/2/1 — the bass half
+   of the column stays dark. Found on a phone, not on the laptop. */
+.grid-track .row .cell.playing { background: var(--playhead); }
 .grid-track.counting { opacity: 0.55; }
 
 /* ---- controls ---- */
