@@ -21,6 +21,9 @@ python3 -m http.server 8137
 
 Narrow the browser to phone width — this is a phone-first app.
 
+Browsers cache ES modules aggressively: after editing any `js/*.js`, **hard-refresh**
+(Cmd+Shift+R) or you'll be looking at stale code.
+
 ## Architecture
 
 The generator is a **pure function fully decoupled from rendering**. Musical
@@ -32,16 +35,24 @@ index.html        app shell: controls + grid container
 tests.html        loads js/tests.js, renders pass/fail
 css/styles.css    mobile-first (phone portrait first; desktop via min-width query)
 js/data.js        pure data tables + small pure helpers (no generation logic)
-js/generator.js   pure generatePattern() + resolvePattern() + expandToPhrase()
-js/grid.js        renderGrid() — Pattern -> DOM only
+js/generator.js   pure generatePattern() + resolveBar/resolvePattern/resolvePhrase
+js/grid.js        renderGrid() — resolved phrase -> DOM only
 js/app.js         the ONLY stateful/DOM-glue file: controls -> generator -> grid
 js/tests.js       browser-run unit checks
 ```
 
 Data flow: `app.js` reads controls → `generatePattern(chord, options)` produces
-a relative/absolute Pattern → `resolvePattern(pattern, chord)` fills
-string+fret → `renderGrid()` draws it. Changing the **chord** only re-resolves
-(relative patterns follow the chord); **Generate** and other controls re-roll.
+a relative/absolute Pattern → `resolvePhrase(pattern, chords)` expands the cell
+across the phrase and fills string+fret **per bar** → `renderGrid()` draws it.
+Changing a **chord** only re-resolves (relative patterns follow the chord);
+**Generate** and the generation inputs re-roll.
+
+**Chord modes** (`state.chordMode`): `single` applies one chord to every bar;
+`progression` assigns a chord per bar — preset progressions (`PROGRESSIONS`)
+fill them, and each bar's grid header is a `<select>` you can edit. Per-bar
+edits are handled by one delegated `change` listener on `#grid`, so they
+survive re-renders. Absolute patterns (Full Random) keep literal bass strings
+across the progression and show the "bass won't follow chords" indicator.
 
 ## Core data model (one structure powers everything)
 
@@ -78,7 +89,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 ## Status & roadmap (v1 build order)
 
 1. **DONE** — pattern generator + grid with Fret/PIMA toggle, relative/absolute model, full generator controls.
-2. **NEXT** — save favorites: name + save to `localStorage`, list view, reload.
+1b. **DONE** — progression mode (per-bar chords), from the spec's "Modes" section, pulled forward ahead of favorites.
+2. **NEXT** — save favorites: name + save to `localStorage`, list view, reload. Should persist the chord mode + progression alongside the pattern.
 3. Manual editor: tapping toggles cells on the grid, with the relative/absolute save dialog (incl. the "bass note matches no role" flag).
 4. Metronome/tempo: Tone.js click, BPM 40–160, count-in. iOS: call `Tone.start()` on first user gesture or Safari stays silent.
 

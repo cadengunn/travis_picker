@@ -18,6 +18,9 @@
 
 * { box-sizing: border-box; }
 
+/* must beat .field's display:flex so hidden controls actually hide */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;
@@ -78,6 +81,32 @@ main {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 6px;
+}
+
+/* chord label / picker above each bar */
+.bar-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+.bar-header.static {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.3px;
+}
+.bar-chord {
+  width: 100%;
+  appearance: none;
+  background: var(--panel-2);
+  color: var(--accent);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-align-last: center;
 }
 
 .row {
@@ -184,9 +213,15 @@ main {
   color: #17171b;
 }
 
+/* last row pairs the label toggle with the primary action */
+.control-row.two {
+  grid-template-columns: 1fr 1.5fr;
+  align-items: end;
+}
+
 .btn-primary {
   width: 100%;
-  padding: 16px;
+  padding: 15px;
   font-size: 17px;
   font-weight: 700;
   color: #17171b;

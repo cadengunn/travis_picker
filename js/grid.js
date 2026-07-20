@@ -1,14 +1,18 @@
-// grid.js — renders a resolved Pattern into the drum-machine grid.
+// grid.js — renders a resolved phrase into the drum-machine grid.
 // One component for everything (display now; editing/playback later). No
 // generation logic here. Both label modes are pure transforms of the events.
+//
+// Input `phrase` is an array of { chord, bar } — one entry per phrase bar,
+// already resolved (each event has string+fret). See generator.resolvePhrase /
+// resolvePattern+expandToPhrase.
 
-import { expandToPhrase } from "./generator.js";
+import { CHORD_IDS, CHORDS } from "./data.js";
 
 const STRING_ROWS = [1, 2, 3, 4, 5, 6]; // top->bottom: high E (1) ... low E (6)
 const SLOTS = [1, 2, 3, 4, 5, 6, 7, 8];
 const BEAT_LABEL = { 1: "1", 3: "2", 5: "3", 7: "4", 2: "&", 4: "&", 6: "&", 8: "&" };
 
-// Build a fast lookup: bar -> slot -> string -> event
+// Build a fast lookup: slot -> string -> event
 function indexBar(bar) {
   const map = new Map();
   for (const ev of bar) {
@@ -20,25 +24,49 @@ function indexBar(bar) {
 
 function labelFor(ev, labelMode) {
   if (labelMode === "pima") return ev.finger;
-  // fret mode
-  return String(ev.fret ?? 0);
+  return String(ev.fret ?? 0); // fret mode
 }
 
-// renderGrid(container, pattern, { labelMode, chord })
-export function renderGrid(container, pattern, opts = {}) {
+// Bar header: an editable chord <select> in progression mode, else a static
+// chord name. The select carries data-bar so app.js can delegate its change.
+function buildHeader(chordId, barIdx, editableChords) {
+  const header = document.createElement("div");
+  header.className = "bar-header";
+  if (editableChords) {
+    const sel = document.createElement("select");
+    sel.className = "bar-chord";
+    sel.dataset.bar = String(barIdx);
+    for (const c of CHORD_IDS) {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = CHORDS[c].name;
+      if (c === chordId) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    header.appendChild(sel);
+  } else {
+    header.textContent = CHORDS[chordId]?.name ?? chordId;
+    header.classList.add("static");
+  }
+  return header;
+}
+
+// renderGrid(container, phrase, { labelMode, editableChords })
+export function renderGrid(container, phrase, opts = {}) {
   const labelMode = opts.labelMode || "fret";
+  const editableChords = !!opts.editableChords;
   container.innerHTML = "";
 
   const track = document.createElement("div");
   track.className = "grid-track";
 
-  const phraseBars = expandToPhrase(pattern);
-
-  phraseBars.forEach((bar, barIdx) => {
+  phrase.forEach(({ chord, bar }, barIdx) => {
     const barEl = document.createElement("div");
     barEl.className = "bar";
     barEl.setAttribute("role", "group");
-    barEl.setAttribute("aria-label", `Bar ${barIdx + 1}`);
+    barEl.setAttribute("aria-label", `Bar ${barIdx + 1}, chord ${chord}`);
+
+    barEl.appendChild(buildHeader(chord, barIdx, editableChords));
 
     const idx = indexBar(bar);
 
@@ -46,9 +74,7 @@ export function renderGrid(container, pattern, opts = {}) {
     STRING_ROWS.forEach((string) => {
       const rowEl = document.createElement("div");
       rowEl.className = "row";
-      // Domain tint: thumb owns 6/5/4, fingers own 3/2/1.
       rowEl.classList.add(string >= 4 ? "domain-thumb" : "domain-finger");
-      // Divider between finger domain (string 3) and thumb domain (string 4).
       if (string === 3) rowEl.classList.add("domain-divider");
 
       SLOTS.forEach((slot) => {

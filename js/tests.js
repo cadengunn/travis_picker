@@ -13,7 +13,7 @@ import {
   OFFBEAT_SLOTS,
   thumbLegalStrings,
 } from "./data.js";
-import { generatePattern, resolvePattern } from "./generator.js";
+import { generatePattern, resolvePattern, resolvePhrase } from "./generator.js";
 
 const results = [];
 function check(name, fn) {
@@ -183,6 +183,47 @@ check("Full Random is absolute and bass ignores chord changes", () => {
   const a = resolvePattern(p, "C").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
   const b = resolvePattern(p, "G").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
   assert(JSON.stringify(a) === JSON.stringify(b), "absolute bass strings must not change with chord");
+});
+
+// 4e) Progression mode: one relative cell, per-bar chords. The bass re-maps
+//     per bar while the right hand (fingers/slots) stays identical.
+check("progression: relative bass re-maps per bar, right hand unchanged", () => {
+  const p = generatePattern("C", { bass: "travis", chaos: "tame", loop: "1bar", phraseBars: 4, rng: seeded(9) });
+  const chords = ["C", "G", "D", "Am"];
+  const phrase = resolvePhrase(p, chords);
+
+  assert(phrase.length === 4, `expected 4 bars, got ${phrase.length}`);
+
+  phrase.forEach(({ chord, bar }, i) => {
+    assert(chord === chords[i], `bar ${i} should carry chord ${chords[i]}`);
+    const c = CHORDS[chord];
+    const thumbs = bar.filter((e) => e.finger === "p");
+    // travis = root, alt, fifth, alt
+    const expected = [c.root, c.alt, c.fifth, c.alt];
+    const got = thumbs.map((e) => e.string);
+    assert(JSON.stringify(got) === JSON.stringify(expected),
+      `bar ${i} (${chord}) bass should be ${expected.join("-")}, got ${got.join("-")}`);
+  });
+
+  // right hand identical across bars (same cell, 1-bar loop)
+  const fingerSig = (bar) =>
+    JSON.stringify(bar.filter((e) => e.finger !== "p").map((e) => [e.slot, e.finger]));
+  const sig0 = fingerSig(phrase[0].bar);
+  for (let i = 1; i < phrase.length; i++) {
+    assert(fingerSig(phrase[i].bar) === sig0, `bar ${i} right hand should match bar 0`);
+  }
+});
+
+// 4f) Absolute patterns do NOT follow the progression (bass strings frozen).
+check("progression: absolute bass strings stay put across chords", () => {
+  const p = generatePattern("C", { bass: "full_random", chaos: "loose", loop: "1bar", phraseBars: 4, rng: seeded(4) });
+  const phrase = resolvePhrase(p, ["C", "G", "D", "Am"]);
+  const bassOf = (b) => JSON.stringify(b.filter((e) => e.finger === "p").map((e) => e.string));
+  const first = bassOf(phrase[0].bar);
+  for (let i = 1; i < phrase.length; i++) {
+    assert(bassOf(phrase[i].bar) === first,
+      `absolute bass should not change on bar ${i}`);
+  }
 });
 
 // 5) Tame constraints: 2-4 offbeats/bar, no identical treble string on

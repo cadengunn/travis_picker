@@ -136,3 +136,20 @@ export const LOOP_OPTIONS = [
 ];
 
 export const PHRASE_LENGTHS = [4, 8];
+
+// Preset progressions (Progression mode). Any length — they cycle to fill the
+// phrase (a 3-chord progression over 8 bars repeats). All chords must exist in
+// CHORDS. Users can also hand-edit any bar's chord in the grid header.
+export const PROGRESSIONS = [
+  { id: "c_am_f_g", name: "C–Am–F–G", chords: ["C", "Am", "F", "G"] },
+  { id: "g_em_c_d", name: "G–Em–C–D", chords: ["G", "Em", "C", "D"] },
+  { id: "c_g_am_f", name: "C–G–Am–F", chords: ["C", "G", "Am", "F"] },
+  { id: "am_f_c_g", name: "Am–F–C–G", chords: ["Am", "F", "C", "G"] },
+  { id: "g_c_d",    name: "G–C–D",    chords: ["G", "C", "D"] },
+];
+
+// Cycle a chord list to exactly n bars (repeat if shorter, trim if longer).
+export function fitProgression(chords, n, fallback = CHORD_IDS[0]) {
+  const src = chords && chords.length ? chords : [fallback];
+  return Array.from({ length: n }, (_, i) => src[i % src.length]);
+}

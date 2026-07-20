@@ -170,34 +170,36 @@ export function generatePattern(chordId, options = {}) {
   };
 }
 
-// ---- public: resolvePattern -------------------------------------------------
-// Fill string+fret on every event for the given chord. Relative bass events
-// re-derive their string from the chord's roles (the point of progression
-// mode); absolute events keep their literal string. Fret always comes from the
-// chord shape (fifth role uses the chord's fifthFret override).
-export function resolvePattern(pattern, chordId = pattern.chord) {
+// ---- resolve one bar against one chord --------------------------------------
+// Fill string+fret on every event. Relative bass events re-derive their string
+// from the chord's roles (the point of progression mode); absolute events keep
+// their literal string. Fret comes from the chord shape (fifth role uses the
+// chord's fifthFret override).
+export function resolveBar(bar, chordId) {
   const chord = CHORDS[chordId];
-  const bars = pattern.bars.map((bar) =>
-    bar.map((ev) => {
-      const out = { ...ev };
-      if (ev.finger === "p") {
-        if (ev.role && !ev.absolute) {
-          const stringForRole = { root: chord.root, alt_bass: chord.alt, fifth: chord.fifth };
-          out.string = stringForRole[ev.role];
-          out.fret = ev.role === "fifth" ? chord.fifthFret : fretFor(chordId, out.string);
-        } else {
-          // absolute bass string kept as-is
-          out.fret = fretFor(chordId, out.string);
-        }
+  return bar.map((ev) => {
+    const out = { ...ev };
+    if (ev.finger === "p") {
+      if (ev.role && !ev.absolute) {
+        const stringForRole = { root: chord.root, alt_bass: chord.alt, fifth: chord.fifth };
+        out.string = stringForRole[ev.role];
+        out.fret = ev.role === "fifth" ? chord.fifthFret : fretFor(chordId, out.string);
       } else {
-        // treble: string implied by finger (domain crossing off)
-        out.string = ev.string ?? FINGER_STRING[ev.finger];
+        // absolute bass string kept as-is
         out.fret = fretFor(chordId, out.string);
       }
-      return out;
-    })
-  );
-  return { ...pattern, chord: chordId, bars };
+    } else {
+      // treble: string implied by finger (domain crossing off)
+      out.string = ev.string ?? FINGER_STRING[ev.finger];
+      out.fret = fretFor(chordId, out.string);
+    }
+    return out;
+  });
+}
+
+// ---- public: resolvePattern (single chord for the whole pattern) ------------
+export function resolvePattern(pattern, chordId = pattern.chord) {
+  return { ...pattern, chord: chordId, bars: pattern.bars.map((bar) => resolveBar(bar, chordId)) };
 }
 
 // Expand distinct `bars` across the phrase length by cycling. Grid uses this.
@@ -207,4 +209,16 @@ export function expandToPhrase(pattern) {
     out.push(pattern.bars[i % pattern.bars.length]);
   }
   return out;
+}
+
+// ---- public: resolvePhrase (per-bar chords = progression mode) --------------
+// `chords` is an array of chord ids, one per phrase bar (length phraseBars).
+// The distinct cell bars cycle across the phrase; each phrase bar is resolved
+// against its own chord. Returns [{ chord, bar }, ...] ready for rendering.
+export function resolvePhrase(pattern, chords) {
+  const cell = pattern.bars;
+  return chords.map((chordId, i) => ({
+    chord: chordId,
+    bar: resolveBar(cell[i % cell.length], chordId),
+  }));
 }
