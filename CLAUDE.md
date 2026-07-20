@@ -204,6 +204,50 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 **v1 is complete.** v2+: remaining bass presets in the UI + custom 4-slot builder; pattern audio playback; syncopation/16ths; PWA packaging (manifest, icons, service worker) for phone install via GitHub Pages.
 
+## Where things stand (end of session 2, 2026-07-20)
+
+**v1 is complete** — all four items built, 30/30 checks green in `tests.html`.
+Nothing is in progress; the tree is clean.
+
+Verified in-browser this session: the no-scroll 2×2 grid at 375px, per-bar chord
+re-mapping, Save/Load round-trip, all 48 cells accepting a drawn note, pattern
+length extending rather than re-rolling, unsaved-edit warnings, and playhead
+timing against the audio clock.
+
+**Open threads — worth raising before building on top of them:**
+- **The metronome has never been heard.** Timing, scheduling and the playhead
+  were verified programmatically, but audio output was not, and **iOS Safari was
+  never tested**. If it's silent on a phone, look first at the AudioContext
+  create/resume inside the Play handler. Confirm this before building more audio.
+- **Grid bar crowding.** The slim bar above the grid holds the pattern name, the
+  type indicator and three pills (Edit/Save/Load). It fits at 375px, but a long
+  saved-pattern name will squeeze. Options if it bites: truncate harder, or drop
+  "Edit" to just the pencil glyph.
+- **No save-time relative/absolute dialog.** The spec asked for one; drawing
+  instead keeps role-matching bass relative, marks off-role bass absolute, and
+  reports `relative`/`mixed`/`absolute` live. Revisit only if a save-time choice
+  ("snap to nearest role" vs "keep absolute") is actually wanted.
+- Chord voicings, including the barre shapes, were checked on a real guitar and
+  confirmed good. The G Travis bass walks 6–4–5–4 (G–D–B–D); string 5 fret 2 is
+  the B from the open G shape, chosen for playability over the literal fifth.
+
+**Likely next steps** (user's call): PWA packaging — manifest, icons, service
+worker — to get it onto a phone home screen via GitHub Pages, which is what makes
+it genuinely practice-ready; or v2 musical work (remaining bass presets in the
+UI + the custom 4-slot builder, pattern audio playback, syncopation/16ths).
+
+## Working with this user
+
+- **Ask before deviating from the spec** — it's a maintained document, and
+  deviations (Web Audio over Tone.js, no save dialog) get recorded in it.
+- **Surface genuine forks rather than guessing.** Several good decisions came
+  from a single well-framed question (chord-aware thumb domain, shared-cell
+  editing, merging Loop+Length). Don't ask about things with an obvious default.
+- They test each feature themselves on a real guitar between sessions, so
+  **stop at natural checkpoints** and say what's worth trying.
+- **Report what was and wasn't verified.** Several fixes came from empirically
+  reproducing a bug rather than theorising — prefer that.
+
 ## Deferred implementation notes
 
 - **Editor tap-inference (item 3):** on an overlap string (finger-domain AND a chord bass role, e.g. string 3 on D), infer a tapped note as thumb on beat slots and finger on offbeat slots. Label always comes from the stored `finger`, never re-inferred from the row. (Stub comment already in `data.js`.)
