@@ -81,16 +81,38 @@ CSS sizes cells as a fraction of available width (square via `aspect-ratio`),
 wrapping 4 bars to a 2×2 on a phone. Don't reintroduce a fixed `--cell` px size
 or an `overflow-x` scroller.
 
-**Where controls live:** app bar = app-wide *preferences* (note labels, theme).
-The slim bar above the grid = things acting on the pattern in front of you
-(Edit / Save / Load, plus its name and relative/mixed/absolute indicator). The
-bottom panel = *generation* inputs plus Generate. Keep that split when adding
-controls.
+**Where controls live** — the organising question is *"could you use this with a
+guitar in your hands?"*, because vertical space is the scarcest resource:
+- **Bottom strip (always visible), one row:** Play, BPM, 🎲 Generate, ⚙ Options.
+  Only things you reach for mid-practice. 44px tap targets — don't shrink them
+  to buy slider width.
+- **Slim bar above the grid:** things acting on the pattern in front of you —
+  Edit / Save / Load, its name, and the relative/mixed/absolute indicator.
+- **⚙ Options sheet:** *generation* inputs (chord mode, chord or key+progression,
+  thumb, chaos, pattern length) and below a rule, app-wide *preferences* (note
+  labels, theme). You set these sitting down, between takes.
+- **There is no app bar.** A title told you nothing the home-screen icon doesn't,
+  and its 53px was the difference between the 4-bar grid fitting and not.
 
-**Control layout:** the bottom controls are fixed 3-slot rows. Only row 1's
-contents swap between chord modes (single: Chord spanning 2 slots; progression:
-Key + Progression), so switching modes never shifts the rows below. Keep that
-invariant — a jumping control panel was a specific complaint.
+**The height budget is the constraint.** Cells are square and sized from screen
+*width*, so grid height is fixed by how wide the phone is and can only be bought
+back from chrome. Measured with 4 bars on screen:
+
+| viewport | grid needs | chrome | verdict |
+|---|---|---|---|
+| 414×719 (iPhone XS Max, Safari) | 403px | 101px | 255px spare |
+| 375×553 (SE-class, worst case)  | 374px | 101px | 118px spare |
+
+Chrome was 361px before this pass and the grid was clipped — 5px on the XS Max,
+142px on an SE. `main` has `overflow: auto`, so the failure mode is silent: the
+grid scrolls inside its own box instead of anything visibly breaking. **Re-measure
+these two viewports after any chrome change** — the laptop will not show you the
+problem. `.grid { margin: auto 0 }` centres it when there's slack.
+
+**Control layout:** the Options sheet's controls are fixed 3-slot rows. Only row
+1's contents swap between chord modes (single: Chord spanning 2 slots;
+progression: Key + Progression), so switching modes never shifts the rows below.
+Keep that invariant — a jumping control panel was a specific complaint.
 
 **Manual editor** (`editor.js`, all pure — app.js only translates a tapped cell
 into `{cellIndex, slot, string, chordId}`):
@@ -221,6 +243,11 @@ length extending rather than re-rolling, unsaved-edit warnings, and playhead
 timing against the audio clock.
 
 **Open threads — worth raising before building on top of them:**
+- **Themes need a dedicated pass.** They read differently on the phone than on
+  the laptop — all five are a reasonable first cut, none is finished. The user
+  wants a whole session on colour and legibility, deliberately deferred behind
+  functionality. Do it against a real phone screen, not the laptop; `themes.json`
+  is the only file that should change.
 - **Nothing has ever run on a phone.** Every session so far has been on the
   laptop, so the whole mobile-first premise — tap targets, the 2×2 grid at real
   phone size, one-handed reach — is still unverified on hardware. **Walking

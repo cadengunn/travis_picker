@@ -8,12 +8,6 @@
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <header class="app-bar">
-    <h1>Travis Picker</h1>
-    <select id="label-mode" class="bar-select" aria-label="Note labels"></select>
-    <select id="theme" class="bar-select" aria-label="Theme"></select>
-  </header>
-
   <main>
     <div class="grid-bar">
       <div class="grid-bar-info">
@@ -30,56 +24,86 @@
     <section id="grid" class="grid" aria-label="Pattern grid"></section>
   </main>
 
+  <!-- The only permanently-visible controls: the three things you reach for with
+       a guitar in your hands. Everything else lives in the Options sheet, because
+       the grid must fit on screen without scrolling on a small phone. -->
   <div class="controls">
     <div class="transport">
-      <button id="play" class="btn-play" type="button" aria-pressed="false">▶ Play</button>
+      <button id="play" class="btn-icon btn-play" type="button" aria-pressed="false"
+              aria-label="Start metronome">▶</button>
       <input id="bpm" class="bpm-slider" type="range" min="40" max="160" step="1" value="90"
              aria-label="Tempo in beats per minute" />
       <output id="bpm-value" class="bpm-value" for="bpm">90</output>
+      <button id="generate" class="btn-icon btn-roll" type="button"
+              aria-label="Generate a new pattern" title="Generate">🎲</button>
+      <button id="open-options" class="btn-icon" type="button"
+              aria-label="Options" title="Options">⚙</button>
     </div>
+  </div>
 
-    <!-- Row 1 is the only row whose contents change between chord modes; it
-         always fills 3 slots so nothing below it ever shifts. -->
-    <div class="control-row">
-      <div class="field">
-        <span>Chords</span>
-        <div id="chord-mode" class="segmented" role="group" aria-label="Chord mode">
-          <button type="button" data-mode="single" class="active">Single</button>
-          <button type="button" data-mode="progression">Prog.</button>
+  <!-- Options: generation inputs (set between takes) + app-wide preferences. -->
+  <div id="options-sheet" class="sheet" hidden>
+    <div class="sheet-backdrop" data-close></div>
+    <section class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="options-title">
+      <header class="sheet-head">
+        <h2 id="options-title">Options</h2>
+        <button class="sheet-close" type="button" data-close aria-label="Close">✕</button>
+      </header>
+
+      <!-- Row 1 is the only row whose contents change between chord modes; it
+           always fills 3 slots so nothing below it ever shifts. -->
+      <div class="control-row">
+        <div class="field">
+          <span>Chords</span>
+          <div id="chord-mode" class="segmented" role="group" aria-label="Chord mode">
+            <button type="button" data-mode="single" class="active">Single</button>
+            <button type="button" data-mode="progression">Prog.</button>
+          </div>
         </div>
+
+        <label class="field span-2" id="field-chord">
+          <span>Chord</span>
+          <select id="chord"></select>
+        </label>
+
+        <label class="field" id="field-key" hidden>
+          <span>Key</span>
+          <select id="key"></select>
+        </label>
+        <label class="field" id="field-prog" hidden>
+          <span>Progression</span>
+          <select id="progression"></select>
+        </label>
       </div>
 
-      <label class="field span-2" id="field-chord">
-        <span>Chord</span>
-        <select id="chord"></select>
-      </label>
+      <div class="control-row">
+        <label class="field">
+          <span>Thumb</span>
+          <select id="bass"></select>
+        </label>
+        <label class="field">
+          <span>Chaos</span>
+          <select id="chaos"></select>
+        </label>
+        <label class="field">
+          <span>Pattern</span>
+          <select id="pattern"></select>
+        </label>
+      </div>
 
-      <label class="field" id="field-key" hidden>
-        <span>Key</span>
-        <select id="key"></select>
-      </label>
-      <label class="field" id="field-prog" hidden>
-        <span>Progression</span>
-        <select id="progression"></select>
-      </label>
-    </div>
+      <hr class="sheet-rule" />
 
-    <div class="control-row">
-      <label class="field">
-        <span>Thumb</span>
-        <select id="bass"></select>
-      </label>
-      <label class="field">
-        <span>Chaos</span>
-        <select id="chaos"></select>
-      </label>
-      <label class="field">
-        <span>Pattern</span>
-        <select id="pattern"></select>
-      </label>
-    </div>
-
-    <button id="generate" class="btn-primary" type="button">Generate</button>
+      <div class="control-row">
+        <label class="field span-2">
+          <span>Note labels</span>
+          <select id="label-mode"></select>
+        </label>
+        <label class="field">
+          <span>Theme</span>
+          <select id="theme"></select>
+        </label>
+      </div>
+    </section>
   </div>
 
   <!-- Saved library: save the current pattern, or load/delete an existing one -->

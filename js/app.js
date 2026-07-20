@@ -241,8 +241,14 @@ function highlightColumn(pos) {
 function showCountIn(n) {
   const track = el("grid").querySelector(".grid-track");
   if (track) track.classList.toggle("counting", n != null);
-  el("play").textContent =
-    n != null ? `Count ${n}` : metronome.running ? "■ Stop" : "▶ Play";
+  // Glyph-only now that Play is a 44px square: the count-in shows the bare
+  // digit, which is all you can read at arm's length anyway.
+  const play = el("play");
+  play.textContent = n != null ? String(n) : metronome.running ? "■" : "▶";
+  play.setAttribute(
+    "aria-label",
+    n != null ? `Counting in, beat ${n}` : metronome.running ? "Stop metronome" : "Start metronome"
+  );
 }
 
 const metronome = createMetronome({
@@ -262,7 +268,7 @@ async function togglePlay() {
     return;
   }
   el("play").setAttribute("aria-pressed", "true");
-  el("play").textContent = "■ Stop";
+  el("play").textContent = "■";
   // Started from the click handler so iOS Safari unlocks audio.
   await metronome.start(phraseChords().length);
 }
@@ -527,8 +533,20 @@ function attach() {
   el("saved-sheet").addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) closeSheet();
   });
+
+  // Options sheet: generation inputs + preferences. Its controls are wired
+  // above exactly as before — the sheet only changes where they live.
+  el("open-options").addEventListener("click", () => {
+    el("options-sheet").hidden = false;
+  });
+  el("options-sheet").addEventListener("click", (e) => {
+    if (e.target.closest("[data-close]")) el("options-sheet").hidden = true;
+  });
+
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !el("saved-sheet").hidden) closeSheet();
+    if (e.key !== "Escape") return;
+    if (!el("saved-sheet").hidden) closeSheet();
+    else el("options-sheet").hidden = true;
   });
 }
 

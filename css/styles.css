@@ -39,21 +39,11 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* ---- app bar ---- */
-.app-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  padding-top: max(12px, env(safe-area-inset-top));
-}
-.app-bar h1 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  white-space: nowrap; /* never let the indicator wrap the title */
-}
+/* There is deliberately no app bar. A title tells you nothing you don't know
+   (the home-screen icon already says what this is) and its two preference
+   selects belong in the Options sheet — on a small phone the 53px it cost was
+   the difference between the 4-bar grid fitting and not. */
+
 .type-indicator {
   font-size: 12px;
   color: var(--muted);
@@ -65,22 +55,18 @@ body {
 .type-indicator.absolute,
 .type-indicator.mixed { color: var(--active); }
 
-/* compact selects in the app bar: note labels + theme, kept together */
-.bar-select {
-  appearance: none;
-  background: var(--control);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 6px 9px;
-  font-size: 13px;
-  min-width: 0;
-}
-#label-mode { margin-left: auto; }
-
 /* ---- main / grid area ---- */
-main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
-.grid { width: 100%; }
+main {
+  flex: 1;
+  overflow: auto;
+  padding: max(6px, env(safe-area-inset-top)) 12px 10px;
+  display: flex;
+  flex-direction: column;
+}
+/* Cells are square and sized from screen WIDTH, so on a tall phone the grid
+   can't grow to fill the leftover height — centre it instead of leaving a dead
+   band under it. On a short phone the margins collapse to nothing. */
+.grid { width: 100%; margin: auto 0; }
 
 /* slim bar above the grid: pattern info on the left, its actions on the right */
 .grid-bar {
@@ -211,25 +197,35 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 .tick { text-align: center; font-size: 11px; color: var(--muted); }
 .tick.beat { color: var(--text); font-weight: 700; }
 
-/* ---- transport (metronome) ---- */
+/* ---- transport: the whole permanent control strip ---- */
 .transport {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line);
+  gap: 8px;
 }
-.btn-play {
+/* 44px square is Apple's minimum tap target; don't shrink these to buy slider
+   width, they're used one-handed with a guitar in the way. */
+.btn-icon {
   flex: 0 0 auto;
-  min-width: 96px;
-  padding: 12px 14px;
-  font-size: 15px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text);
   background: var(--control);
   border: 1px solid var(--line);
   border-radius: 10px;
   cursor: pointer;
+  font-variant-numeric: tabular-nums; /* count-in digits mustn't jiggle */
+}
+.btn-icon:active { transform: translateY(1px); }
+.btn-roll {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 .btn-play[aria-pressed="true"] {
   background: var(--active);
@@ -246,7 +242,7 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 }
 .bpm-value {
   flex: 0 0 auto;
-  min-width: 46px;
+  min-width: 30px;
   text-align: right;
   font-size: 14px;
   font-weight: 700;
@@ -265,11 +261,8 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 .controls {
   background: var(--surface);
   border-top: 1px solid var(--line);
-  padding: 10px 12px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 8px 12px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
 /* Fixed 3-slot rows. Only row 1's contents swap between chord modes, and the
    single-chord select spans 2 slots to fill the space Key+Progression use — so
@@ -362,6 +355,7 @@ main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
   flex-direction: column;
   gap: 10px;
 }
+.sheet-rule { width: 100%; height: 1px; margin: 2px 0; border: 0; background: var(--line); }
 .sheet-head { display: flex; align-items: center; gap: 10px; }
 .sheet-head h2 { margin: 0; font-size: 17px; font-weight: 700; }
 .sheet-close {
