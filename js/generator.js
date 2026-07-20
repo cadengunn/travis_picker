@@ -148,7 +148,10 @@ export function generatePattern(chordId, options = {}) {
   const preset = getBassPreset(bass);
   const flags = CHAOS_PRESETS[chaos] || CHAOS_PRESETS.tame;
 
-  const cellBars = loop === "through" ? phraseBars : loop === "2bar" ? 2 : 1;
+  // Never generate more distinct bars than the phrase shows (e.g. a 2-bar loop
+  // inside a 1-bar phrase collapses to 1).
+  const wanted = loop === "through" ? phraseBars : loop === "2bar" ? 2 : 1;
+  const cellBars = Math.min(wanted, phraseBars);
   const bars = [];
   for (let i = 0; i < cellBars; i++) {
     bars.push(generateBar(chordId, preset, flags, rng));

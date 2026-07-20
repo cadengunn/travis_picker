@@ -1,19 +1,26 @@
 /* styles.css — mobile-first. Phone portrait is the target; desktop is an
-   afterthought widened via a min-width query at the bottom. */
+   afterthought widened via a min-width query at the bottom.
+
+   Colors come from themes.json via js/theme.js, which sets these custom
+   properties on :root. The values below are the "merle" defaults so the app
+   still renders correctly if the theme fetch fails. */
 
 :root {
-  --bg: #1b1b1f;
-  --panel: #26262c;
-  --panel-2: #2f2f37;
-  --line: #3a3a44;
-  --text: #ecedf1;
-  --muted: #9a9aa6;
-  --accent: #f0a44a;      /* thumb / primary */
-  --finger: #6fb3ff;      /* finger notes */
-  --beat-col: #22222a;    /* downbeat column tint */
-  --thumb-domain: #201f24;
-  --finger-domain: #1d2126;
-  --cell: 34px;           /* base cell size, comfortably tappable */
+  --bg: #33241a;        /* app background */
+  --surface: #4d382a;   /* empty grid cells / panels */
+  --accent: #e8dcc0;    /* beat highlights, buttons, headers, text */
+  --active: #e0a458;    /* filled note circles (thumb) */
+  --label: #2a1c12;     /* text inside note circles */
+
+  /* derived by theme.js (blends); these fallbacks match merle */
+  --text: #e8dcc0;
+  --muted: #9c8a70;
+  --line: #695442;
+  --beat-tint: #57422f;
+  --row-thumb: #503c2d;
+  --control: #453224;
+
+  --cell: 34px;         /* base cell size, comfortably tappable */
 }
 
 * { box-sizing: border-box; }
@@ -21,10 +28,7 @@
 /* must beat .field's display:flex so hidden controls actually hide */
 [hidden] { display: none !important; }
 
-html, body {
-  margin: 0;
-  height: 100%;
-}
+html, body { margin: 0; height: 100%; }
 
 body {
   background: var(--bg);
@@ -39,9 +43,9 @@ body {
 /* ---- app bar ---- */
 .app-bar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
-  padding: 12px 16px calc(12px + env(safe-area-inset-top));
+  padding: 12px 16px;
   padding-top: max(12px, env(safe-area-inset-top));
 }
 .app-bar h1 {
@@ -50,19 +54,22 @@ body {
   font-weight: 700;
   letter-spacing: 0.2px;
 }
-.type-indicator {
-  font-size: 12px;
-  color: var(--muted);
+.type-indicator { font-size: 12px; color: var(--muted); }
+.type-indicator.absolute { color: var(--active); }
+
+.theme-select {
+  margin-left: auto;
+  appearance: none;
+  background: var(--control);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
 }
-.type-indicator.absolute { color: var(--accent); }
 
 /* ---- main / grid area ---- */
-main {
-  flex: 1;
-  overflow: auto;
-  padding: 4px 12px 12px;
-}
-
+main { flex: 1; overflow: auto; padding: 4px 12px 12px; }
 .grid { width: 100%; }
 
 .grid-track {
@@ -77,29 +84,24 @@ main {
 .bar {
   scroll-snap-align: start;
   flex: 0 0 auto;
-  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 6px;
 }
 
 /* chord label / picker above each bar */
-.bar-header {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 5px;
-}
+.bar-header { display: flex; justify-content: center; margin-bottom: 5px; }
 .bar-header.static {
   font-size: 12px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--active);
   letter-spacing: 0.3px;
 }
 .bar-chord {
   width: 100%;
   appearance: none;
-  background: var(--panel-2);
-  color: var(--accent);
+  background: var(--control);
+  color: var(--active);
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 5px 4px;
@@ -109,14 +111,10 @@ main {
   text-align-last: center;
 }
 
-.row {
-  display: grid;
-  grid-template-columns: repeat(8, var(--cell));
-}
-.row.domain-thumb  { background: var(--thumb-domain); }
-.row.domain-finger { background: var(--finger-domain); }
+.row { display: grid; grid-template-columns: repeat(8, var(--cell)); }
+.row.domain-thumb .cell { background: var(--row-thumb); }
+.row.domain-thumb .cell.beat { background: var(--beat-tint); }
 .row.domain-divider { border-bottom: 2px solid var(--line); }
-.row:first-child { border-top-left-radius: 6px; border-top-right-radius: 6px; }
 
 .cell {
   width: var(--cell);
@@ -124,11 +122,11 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--surface);
   border-right: 1px solid var(--line);
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--line);
 }
-.cell.beat { background: rgba(255,255,255,0.035); } /* downbeat columns stand out */
-.cell:first-child { border-left: 1px solid transparent; }
+.cell.beat { background: var(--beat-tint); } /* downbeat columns stand out */
 
 .note {
   width: calc(var(--cell) - 8px);
@@ -139,40 +137,30 @@ main {
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
-  color: #17171b;
 }
-.note-thumb  { background: var(--accent); }
-.note-finger { background: var(--finger); }
+.note-thumb  { background: var(--active); color: var(--label); }
+.note-finger { background: var(--accent); color: var(--bg); }
 
 /* beat-number ruler under each bar */
-.ruler {
-  display: grid;
-  grid-template-columns: repeat(8, var(--cell));
-  margin-top: 4px;
-}
-.tick {
-  text-align: center;
-  font-size: 11px;
-  color: var(--muted);
-}
+.ruler { display: grid; grid-template-columns: repeat(8, var(--cell)); margin-top: 4px; }
+.tick { text-align: center; font-size: 11px; color: var(--muted); }
 .tick.beat { color: var(--text); font-weight: 700; }
 
 /* ---- controls ---- */
 .controls {
-  background: var(--panel);
+  background: var(--surface);
   border-top: 1px solid var(--line);
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  padding: 10px 12px;
   padding-bottom: max(10px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.control-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
+/* wrapping layout: hidden fields simply take no space */
+.control-fields { display: flex; flex-wrap: wrap; gap: 8px; }
 .field {
+  flex: 1 1 calc(33.333% - 8px);
+  min-width: 96px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -183,7 +171,7 @@ main {
 }
 .field select {
   appearance: none;
-  background: var(--panel-2);
+  background: var(--control);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -201,30 +189,21 @@ main {
 }
 .segmented button {
   flex: 1;
-  background: var(--panel-2);
+  background: var(--control);
   color: var(--muted);
   border: none;
   padding: 10px 0;
   font-size: 14px;
   font-weight: 600;
 }
-.segmented button.active {
-  background: var(--accent);
-  color: #17171b;
-}
-
-/* last row pairs the label toggle with the primary action */
-.control-row.two {
-  grid-template-columns: 1fr 1.5fr;
-  align-items: end;
-}
+.segmented button.active { background: var(--accent); color: var(--bg); }
 
 .btn-primary {
   width: 100%;
   padding: 15px;
   font-size: 17px;
   font-weight: 700;
-  color: #17171b;
+  color: var(--bg);
   background: var(--accent);
   border: none;
   border-radius: 12px;
@@ -237,4 +216,5 @@ main {
   :root { --cell: 40px; }
   body { max-width: 900px; margin: 0 auto; }
   .grid-track { flex-wrap: wrap; }
+  .field { flex: 0 1 140px; }
 }

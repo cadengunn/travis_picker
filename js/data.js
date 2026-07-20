@@ -37,15 +37,26 @@ export function getBassPreset(id) {
 // ----- Chord library (role resolution) -----
 // Each role points at a string; `fifthFret` overrides the shape fret for the
 // fifth when the open shape doesn't cover it (spec: C's fifth = string 6 fret 3).
+// Bass roles per chord. Barre chords assume a full barre, so the low string is
+// available as a bass note even where the "textbook" voicing mutes it (the same
+// convention C already uses: its fifth is string 6 fret 3).
 export const CHORDS = {
-  C:  { name: "C",  root: 5, alt: 4, fifth: 6, fifthFret: 3 },
-  G:  { name: "G",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
-  D:  { name: "D",  root: 4, alt: 3, fifth: 5, fifthFret: 0 },
-  E:  { name: "E",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
-  A:  { name: "A",  root: 5, alt: 4, fifth: 6, fifthFret: 0 },
-  Em: { name: "Em", root: 6, alt: 4, fifth: 5, fifthFret: 2 },
-  Am: { name: "Am", root: 5, alt: 4, fifth: 6, fifthFret: 0 },
-  F:  { name: "F",  root: 6, alt: 4, fifth: 5, fifthFret: 3 },
+  // --- majors ---
+  C:    { name: "C",   root: 5, alt: 4, fifth: 6, fifthFret: 3 },
+  G:    { name: "G",   root: 6, alt: 4, fifth: 5, fifthFret: 2 },
+  D:    { name: "D",   root: 4, alt: 3, fifth: 5, fifthFret: 0 },
+  A:    { name: "A",   root: 5, alt: 4, fifth: 6, fifthFret: 0 },
+  E:    { name: "E",   root: 6, alt: 4, fifth: 5, fifthFret: 2 },
+  F:    { name: "F",   root: 6, alt: 4, fifth: 5, fifthFret: 3 },
+  B:    { name: "B",   root: 5, alt: 4, fifth: 6, fifthFret: 2 },
+  // --- minors ---
+  Am:   { name: "Am",  root: 5, alt: 4, fifth: 6, fifthFret: 0 },
+  Em:   { name: "Em",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
+  Bm:   { name: "Bm",  root: 5, alt: 4, fifth: 6, fifthFret: 2 },
+  Dm:   { name: "Dm",  root: 4, alt: 3, fifth: 5, fifthFret: 0 },
+  "F#m": { name: "F#m", root: 6, alt: 4, fifth: 5, fifthFret: 4 },
+  "C#m": { name: "C#m", root: 5, alt: 4, fifth: 6, fifthFret: 4 },
+  "G#m": { name: "G#m", root: 6, alt: 4, fifth: 5, fifthFret: 6 },
 };
 
 export const CHORD_IDS = Object.keys(CHORDS);
@@ -70,15 +81,21 @@ export function thumbLegalStrings(chordId) {
 // ----- Open chord shapes: string(6..1) -> fret. null = string not fretted in
 // this shape (still playable open; Fret mode shows 0). -----
 export const CHORD_SHAPES = {
-  //        6     5     4     3     2     1
-  C:  { 6: 3, 5: 3, 4: 2, 3: 0, 2: 1, 1: 0 },
-  G:  { 6: 3, 5: 2, 4: 0, 3: 0, 2: 0, 1: 3 },
-  D:  { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 2 },
-  E:  { 6: 0, 5: 2, 4: 2, 3: 1, 2: 0, 1: 0 },
-  A:  { 6: null, 5: 0, 4: 2, 3: 2, 2: 2, 1: 0 },
-  Em: { 6: 0, 5: 2, 4: 2, 3: 0, 2: 0, 1: 0 },
-  Am: { 6: null, 5: 0, 4: 2, 3: 2, 2: 1, 1: 0 },
-  F:  { 6: 1, 5: 3, 4: 3, 3: 2, 2: 1, 1: 1 },
+  //          6        5     4     3     2     1
+  C:     { 6: 3,    5: 3, 4: 2, 3: 0, 2: 1, 1: 0 },
+  G:     { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 3 },
+  D:     { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 2 },
+  A:     { 6: null, 5: 0, 4: 2, 3: 2, 2: 2, 1: 0 },
+  E:     { 6: 0,    5: 2, 4: 2, 3: 1, 2: 0, 1: 0 },
+  F:     { 6: 1,    5: 3, 4: 3, 3: 2, 2: 1, 1: 1 },
+  B:     { 6: 2,    5: 2, 4: 4, 3: 4, 2: 4, 1: 2 }, // barre @2
+  Am:    { 6: null, 5: 0, 4: 2, 3: 2, 2: 1, 1: 0 },
+  Em:    { 6: 0,    5: 2, 4: 2, 3: 0, 2: 0, 1: 0 },
+  Bm:    { 6: 2,    5: 2, 4: 4, 3: 4, 2: 3, 1: 2 }, // barre @2
+  Dm:    { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 1 },
+  "F#m": { 6: 2,    5: 4, 4: 4, 3: 2, 2: 2, 1: 2 }, // barre @2
+  "C#m": { 6: 4,    5: 4, 4: 6, 3: 6, 2: 5, 1: 4 }, // barre @4
+  "G#m": { 6: 4,    5: 6, 4: 6, 3: 4, 2: 4, 1: 4 }, // barre @4
 };
 
 // Fret for a string in a chord shape. Falls back to 0 (open) when the shape
@@ -135,21 +152,70 @@ export const LOOP_OPTIONS = [
   { id: "through", name: "Through-composed" },
 ];
 
-export const PHRASE_LENGTHS = [4, 8];
+export const PHRASE_LENGTHS = [1, 2, 4];
+export const DEFAULT_PHRASE_BARS = 4;
 
-// Preset progressions (Progression mode). Any length — they cycle to fill the
-// phrase (a 3-chord progression over 8 bars repeats). All chords must exist in
-// CHORDS. Users can also hand-edit any bar's chord in the grid header.
+// ----- Nashville number system -----
+// Progressions are stored as scale degrees; the selected KEY resolves them to
+// actual chords. Degree 7 (diminished) is omitted — it isn't used in this style
+// and has no chord in the library.
+export const KEYS = {
+  C: { name: "C", degrees: { 1: "C", 2: "Dm",  3: "Em",  4: "F", 5: "G", 6: "Am" } },
+  G: { name: "G", degrees: { 1: "G", 2: "Am",  3: "Bm",  4: "C", 5: "D", 6: "Em" } },
+  D: { name: "D", degrees: { 1: "D", 2: "Em",  3: "F#m", 4: "G", 5: "A", 6: "Bm" } },
+  A: { name: "A", degrees: { 1: "A", 2: "Bm",  3: "C#m", 4: "D", 5: "E", 6: "F#m" } },
+  E: { name: "E", degrees: { 1: "E", 2: "F#m", 3: "G#m", 4: "A", 5: "B", 6: "C#m" } },
+};
+
+export const KEY_IDS = Object.keys(KEYS);
+export const DEFAULT_KEY = "C";
+
+// Preset progressions as degree sequences. Any length — they cycle to fill the
+// phrase. Users can hand-edit any bar; if the result stops matching a preset the
+// selector reads "Custom".
 export const PROGRESSIONS = [
-  { id: "c_am_f_g", name: "C–Am–F–G", chords: ["C", "Am", "F", "G"] },
-  { id: "g_em_c_d", name: "G–Em–C–D", chords: ["G", "Em", "C", "D"] },
-  { id: "c_g_am_f", name: "C–G–Am–F", chords: ["C", "G", "Am", "F"] },
-  { id: "am_f_c_g", name: "Am–F–C–G", chords: ["Am", "F", "C", "G"] },
-  { id: "g_c_d",    name: "G–C–D",    chords: ["G", "C", "D"] },
+  { id: "1_4_5",   name: "1–4–5",   degrees: [1, 4, 5] },
+  { id: "1_5_6_4", name: "1–5–6–4", degrees: [1, 5, 6, 4] },
+  { id: "1_6_4_5", name: "1–6–4–5", degrees: [1, 6, 4, 5] },
+  { id: "6_4_1_5", name: "6–4–1–5", degrees: [6, 4, 1, 5] },
+  { id: "1_4_1_5", name: "1–4–1–5", degrees: [1, 4, 1, 5] },
+  { id: "1_2_4_5", name: "1–2–4–5", degrees: [1, 2, 4, 5] },
+  { id: "1_6_2_5", name: "1–6–2–5", degrees: [1, 6, 2, 5] },
 ];
 
-// Cycle a chord list to exactly n bars (repeat if shorter, trim if longer).
+export const CUSTOM_PROGRESSION_ID = "custom";
+
+// Cycle a list to exactly n entries (repeat if shorter, trim if longer).
 export function fitProgression(chords, n, fallback = CHORD_IDS[0]) {
   const src = chords && chords.length ? chords : [fallback];
   return Array.from({ length: n }, (_, i) => src[i % src.length]);
+}
+
+// Resolve a progression's degrees to chord ids in the given key.
+export function progressionChords(progressionId, keyId) {
+  const p = PROGRESSIONS.find((x) => x.id === progressionId);
+  const key = KEYS[keyId] || KEYS[DEFAULT_KEY];
+  if (!p) return [];
+  return p.degrees.map((d) => key.degrees[d]).filter(Boolean);
+}
+
+// Which degree (if any) a chord occupies in a key — used to transpose custom
+// progressions when the key changes.
+export function degreeOf(chordId, keyId) {
+  const key = KEYS[keyId] || KEYS[DEFAULT_KEY];
+  const hit = Object.entries(key.degrees).find(([, c]) => c === chordId);
+  return hit ? Number(hit[0]) : null;
+}
+
+// Identify the current per-bar chords: a preset id if they cycle-match one in
+// this key, otherwise "custom".
+export function detectProgression(chords, keyId) {
+  if (!chords || !chords.length) return CUSTOM_PROGRESSION_ID;
+  for (const p of PROGRESSIONS) {
+    const resolved = progressionChords(p.id, keyId);
+    if (!resolved.length) continue;
+    const expanded = fitProgression(resolved, chords.length);
+    if (expanded.join("|") === chords.join("|")) return p.id;
+  }
+  return CUSTOM_PROGRESSION_ID;
 }

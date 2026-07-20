@@ -47,7 +47,7 @@ Implement each stylistic constraint as an independent flag internally; Tame/Loos
 ### Pattern structure (this is what makes it musical, not random)
 - Generate a **1-bar or 2-bar cell**, then repeat it across the phrase. Real Travis playing grooves on a repeating pattern.
 - Options: "1-bar loop", "2-bar loop", "through-composed" (fully random each bar — advanced mode).
-- Phrase length: 4 or 8 bars, user toggle.
+- Phrase length: 1, 2 or 4 bars, user toggle. (8 was tried and is too wide to read on a phone; revisit if the grid ever gets a zoom/wrap.) The loop cell is clamped to the phrase, so a 2-bar loop in a 1-bar phrase collapses to 1.
 
 ## Bass engine presets (data spec — ready to implement)
 
@@ -75,14 +75,28 @@ Notes for implementation:
 
 Used by role resolution (`root`, `alt`, `fifth`). Absolute and random entries ignore this table.
 
+Fourteen chords, enough for degrees 1–6 in the keys C, G, D, A and E.
+
 | Chord | Root string | Alt string | Fifth string (fret) |
 |-------|-------------|------------|---------------------|
 | C     | 5           | 4          | 6 (fret 3)          |
 | G     | 6           | 4          | 5 (fret 2)          |
 | D     | 4           | 3 (fret 2) | 5 (open)            |
-| E / Em| 6           | 4          | 5 (fret 2)          |
-| A / Am| 5           | 4          | 6 (open)            |
+| A     | 5           | 4          | 6 (open)            |
+| E     | 6           | 4          | 5 (fret 2)          |
 | F (small barre or Fmaj7 shape) | 6 (or 4 for Fmaj7) | 4 (or 3) | 5 (fret 3) |
+| B (barre @2)   | 5   | 4          | 6 (fret 2)          |
+| Am    | 5           | 4          | 6 (open)            |
+| Em    | 6           | 4          | 5 (fret 2)          |
+| Bm (barre @2)  | 5   | 4          | 6 (fret 2)          |
+| Dm    | 4           | 3 (fret 2) | 5 (open)            |
+| F#m (barre @2) | 6   | 4          | 5 (fret 4)          |
+| C#m (barre @4) | 5   | 4          | 6 (fret 4)          |
+| G#m (barre @4) | 6   | 4          | 5 (fret 6)          |
+
+Barre chords assume a **full** barre, so the low string is available as a bass
+note even where the textbook voicing mutes it — the same convention C already
+uses (its fifth is string 6 fret 3).
 
 Note G's fifth sits on string 5 (fret 2, the B in the open G shape), so its Travis bass walks strings 6–4–5–4 (G–D–B–D) rather than a two-string root/alt. This is the idiomatic Travis bass on G.
 
@@ -101,6 +115,26 @@ A step-sequencer / drum-machine style grid is the single display AND editor:
   - **Fret mode**: fret number from the current chord shape.
   - **PIMA mode**: p / i / m / a, chord-agnostic, for pure right-hand drilling.
 - The same grid component handles playback display, browsing favorites, and editing — edit mode simply enables tapping.
+
+## Theming
+
+UI themes live in `themes.json` — the source of truth, so adding one is a data
+edit and never touches CSS. Each theme is five roles:
+
+| Role | Used for |
+|------|----------|
+| `bg` | app background (carries the theme's identity) |
+| `surface` | empty grid cells, panels |
+| `accent` | beat-column highlights, buttons, headers, body text |
+| `active` | filled note circles (thumb) |
+| `label` | text inside note circles |
+
+`js/theme.js` applies these as CSS custom properties and **derives** the
+in-between shades (borders, muted text, beat tint, domain tint) by blending the
+hexes into opaque colors — so the stylesheet needs no alpha math. Note circles
+use `active` for the thumb and `accent` for fingers, preserving the hand-domain
+read in both light and dark themes. The selector shows names only (no
+descriptions); the choice persists in `localStorage`.
 
 ## Pattern data model: relative vs. absolute
 
@@ -127,7 +161,7 @@ Editing = the grid with tapping enabled:
 ## Modes (toggleable)
 
 1. **Single-chord drill**: pick one chord, generate a pattern, loop it. Pure right-hand focus.
-2. **Progression mode**: user selects a progression (presets like C–Am–F–G, G–Em–C–D, plus custom entry). The same right-hand cell is applied across the progression, with thumb strings re-mapped per chord — exactly how a real player moves a pattern through changes.
+2. **Progression mode**: chords are assigned **per bar**. Progressions use the **Nashville number system** — stored as scale degrees (`1–4–5`, `1–5–6–4`, `6–4–1–5`, …) and resolved through a **key** selector (C/G/D/A/E), so one progression works in any key. The same right-hand cell is applied across the progression, with thumb strings re-mapped per chord — exactly how a real player moves a pattern through changes. Any bar's chord can be hand-edited from its grid header; changing the key transposes by degree, and once the bars stop matching a preset the selector reads **Custom**.
 
 ## Feature priorities
 

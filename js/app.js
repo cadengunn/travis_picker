@@ -1,5 +1,6 @@
 // app.js — the only DOM-glue / stateful file. Reads controls, calls the pure
-// generator, resolves against the chord(s), renders the grid. No persistence yet.
+// generator, resolves against the chord(s), renders the grid. No persistence yet
+// (beyond the theme preference).
 
 import {
   CHORD_IDS,
@@ -10,19 +11,29 @@ import {
   CHAOS_PRESETS,
   LOOP_OPTIONS,
   PHRASE_LENGTHS,
+  DEFAULT_PHRASE_BARS,
+  KEY_IDS,
+  KEYS,
+  DEFAULT_KEY,
   PROGRESSIONS,
+  CUSTOM_PROGRESSION_ID,
   fitProgression,
+  progressionChords,
+  detectProgression,
+  degreeOf,
 } from "./data.js";
 import { generatePattern, resolvePhrase } from "./generator.js";
 import { renderGrid } from "./grid.js";
+import { initThemes, listThemes, applyTheme } from "./theme.js";
 
 const el = (id) => document.getElementById(id);
 
 const state = {
-  pattern: null,            // last generated (relative/absolute) pattern
+  pattern: null,        // last generated (relative/absolute) pattern
   labelMode: "fret",
-  chordMode: "single",      // "single" | "progression"
-  progression: [],          // chord id per phrase bar (progression mode)
+  chordMode: "single",  // "single" | "progression"
+  key: DEFAULT_KEY,
+  progression: [],      // chord id per phrase bar (progression mode)
 };
 
 // ----- populate controls from data -----
@@ -38,21 +49,24 @@ function fillSelect(select, items, getVal, getLabel) {
 
 function initControls() {
   fillSelect(el("chord"), CHORD_IDS, (c) => c, (c) => CHORDS[c].name);
-  fillSelect(el("progression"), PROGRESSIONS, (p) => p.id, (p) => p.name);
-  fillSelect(
-    el("bass"),
-    BASS_PRESETS.filter((p) => V1_BASS_IDS.includes(p.id)),
-    (p) => p.id,
-    (p) => p.name
-  );
+  fillSelect(el("key"), KEY_IDS, (k) => k, (k) => KEYS[k].name);
+  fillSelect(el("bass"), BASS_PRESETS.filter((p) => V1_BASS_IDS.includes(p.id)), (p) => p.id, (p) => p.name);
   fillSelect(el("chaos"), CHAOS_IDS, (c) => c, (c) => CHAOS_PRESETS[c].name);
   fillSelect(el("loop"), LOOP_OPTIONS, (o) => o.id, (o) => o.name);
-  fillSelect(el("phrase"), PHRASE_LENGTHS, (n) => n, (n) => `${n} bars`);
+  fillSelect(el("phrase"), PHRASE_LENGTHS, (n) => n, (n) => `${n} bar${n > 1 ? "s" : ""}`);
+
+  // Progression list + the "Custom" entry shown once bars stop matching a preset.
+  fillSelect(el("progression"), PROGRESSIONS, (p) => p.id, (p) => p.name);
+  const custom = document.createElement("option");
+  custom.value = CUSTOM_PROGRESSION_ID;
+  custom.textContent = "Custom";
+  el("progression").appendChild(custom);
+
+  el("key").value = state.key;
+  el("phrase").value = String(DEFAULT_PHRASE_BARS);
 }
 
-function phraseBars() {
-  return Number(el("phrase").value);
-}
+const phraseBars = () => Number(el("phrase").value);
 
 function readOptions() {
   return {
@@ -63,8 +77,7 @@ function readOptions() {
   };
 }
 
-// Chords for the current phrase: one per bar. Single mode fills every bar with
-// the single chord; progression mode uses the per-bar list (kept length-fit).
+// Chords for the current phrase: one per bar.
 function phraseChords() {
   const n = phraseBars();
   if (state.chordMode === "progression") {
@@ -72,6 +85,12 @@ function phraseChords() {
     return state.progression;
   }
   return Array.from({ length: n }, () => el("chord").value);
+}
+
+// Keep the progression dropdown honest: a preset id, or "Custom".
+function syncProgressionSelect() {
+  if (state.chordMode !== "progression") return;
+  el("progression").value = detectProgression(state.progression, state.key);
 }
 
 // ----- render -----
@@ -83,9 +102,8 @@ function render() {
     labelMode: state.labelMode,
     editableChords: state.chordMode === "progression",
   });
+  syncProgressionSelect();
 
-  // Absolute-pattern indicator (bass won't follow chords) — matters most in
-  // progression mode, but always shown so the model is visible.
   const t = state.pattern.type;
   el("type-indicator").textContent =
     t === "absolute" ? "absolute — bass won't follow chords" : "relative";
@@ -94,32 +112,43 @@ function render() {
 
 function generate() {
   // Reference chord only affects absolute (random) generation; relative
-  // patterns are re-resolved per bar anyway. Use the first phrase chord.
-  const ref = phraseChords()[0];
-  state.pattern = generatePattern(ref, readOptions());
+  // patterns are re-resolved per bar anyway.
+  state.pattern = generatePattern(phraseChords()[0], readOptions());
   render();
 }
 
-// ----- chord-mode switching -----
+// ----- chord mode / key / progression -----
 function setChordMode(mode) {
   state.chordMode = mode;
   const prog = mode === "progression";
   el("field-chord").hidden = prog;
+  el("field-key").hidden = !prog;
   el("field-prog").hidden = !prog;
   for (const b of el("chord-mode").querySelectorAll("[data-mode]")) {
     b.classList.toggle("active", b.dataset.mode === mode);
   }
   if (prog && state.progression.length === 0) {
-    // first entry into progression mode: seed from the selected preset
-    applyProgressionPreset(el("progression").value);
-    return; // applyProgressionPreset renders
+    applyProgressionPreset(PROGRESSIONS[0].id);
+    return;
   }
   render();
 }
 
 function applyProgressionPreset(presetId) {
-  const preset = PROGRESSIONS.find((p) => p.id === presetId) || PROGRESSIONS[0];
-  state.progression = fitProgression(preset.chords, phraseBars());
+  if (presetId === CUSTOM_PROGRESSION_ID) return; // "Custom" is a readout, not a choice
+  state.progression = fitProgression(progressionChords(presetId, state.key), phraseBars());
+  render();
+}
+
+// Changing key transposes by degree: preset progressions re-resolve, and custom
+// bars follow their degree where they have one (unknown chords stay put).
+function setKey(newKey) {
+  const oldKey = state.key;
+  state.key = newKey;
+  state.progression = state.progression.map((c) => {
+    const deg = degreeOf(c, oldKey);
+    return deg ? KEYS[newKey].degrees[deg] || c : c;
+  });
   render();
 }
 
@@ -127,38 +156,27 @@ function applyProgressionPreset(presetId) {
 function attach() {
   el("generate").addEventListener("click", generate);
 
-  // Regenerate when a generation input changes.
-  for (const id of ["bass", "chaos", "loop"]) {
+  for (const id of ["bass", "chaos", "loop", "phrase"]) {
     el(id).addEventListener("change", generate);
   }
-  // Phrase length changes the number of bars (and re-rolls so cell/phrase stay
-  // consistent); progression is re-fit to the new length inside phraseChords().
-  el("phrase").addEventListener("change", generate);
-
-  // Single-chord change: just re-resolve (relative patterns follow the chord).
   el("chord").addEventListener("change", render);
-
-  // Progression preset: fill the per-bar chords, then re-resolve.
+  el("key").addEventListener("change", (e) => setKey(e.target.value));
   el("progression").addEventListener("change", (e) => applyProgressionPreset(e.target.value));
 
-  // Chord-mode toggle.
   el("chord-mode").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-mode]");
     if (btn) setChordMode(btn.dataset.mode);
   });
 
-  // Per-bar chord edits are delegated on the grid container (survives
-  // re-renders). Changing one bar updates just that bar's chord.
+  // Per-bar chord edits, delegated so they survive re-renders.
   el("grid").addEventListener("change", (e) => {
     const sel = e.target.closest("select.bar-chord");
     if (!sel) return;
-    const i = Number(sel.dataset.bar);
     state.progression = fitProgression(state.progression, phraseBars());
-    state.progression[i] = sel.value;
+    state.progression[Number(sel.dataset.bar)] = sel.value;
     render();
   });
 
-  // Label toggle: pure re-render, no re-roll.
   el("label-mode").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-label]");
     if (!btn) return;
@@ -168,8 +186,25 @@ function attach() {
     }
     render();
   });
+
+  el("theme").addEventListener("change", (e) => applyTheme(e.target.value));
 }
 
-initControls();
-attach();
-generate(); // roll one on load
+// ----- boot -----
+async function boot() {
+  initControls();
+  attach();
+  generate(); // roll one immediately so the grid is never empty
+
+  // Themes load async; the app is usable before they land.
+  try {
+    const active = await initThemes();
+    fillSelect(el("theme"), listThemes(), (t) => t.id, (t) => t.name);
+    el("theme").value = active;
+  } catch (err) {
+    console.error("Theme load failed; using stylesheet fallback.", err);
+    el("theme").hidden = true;
+  }
+}
+
+boot();

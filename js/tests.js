@@ -12,6 +12,14 @@ import {
   BEAT_SLOTS,
   OFFBEAT_SLOTS,
   thumbLegalStrings,
+  KEYS,
+  KEY_IDS,
+  PROGRESSIONS,
+  CUSTOM_PROGRESSION_ID,
+  CHORD_SHAPES,
+  progressionChords,
+  detectProgression,
+  fitProgression,
 } from "./data.js";
 import { generatePattern, resolvePattern, resolvePhrase } from "./generator.js";
 
@@ -223,6 +231,72 @@ check("progression: absolute bass strings stay put across chords", () => {
   for (let i = 1; i < phrase.length; i++) {
     assert(bassOf(phrase[i].bar) === first,
       `absolute bass should not change on bar ${i}`);
+  }
+});
+
+// 6) Chord library integrity: every chord has a shape, and every role string
+//    is covered by that shape (so Fret mode never invents a note).
+check("chord library: every chord has a shape covering its role strings", () => {
+  for (const id of CHORD_IDS) {
+    const c = CHORDS[id];
+    const shape = CHORD_SHAPES[id];
+    assert(shape, `chord ${id} has no shape`);
+    for (const role of ["root", "alt", "fifth"]) {
+      const s = c[role];
+      assert(s >= 1 && s <= 6, `chord ${id} role ${role} has bad string ${s}`);
+      assert(shape[s] !== undefined, `chord ${id} shape missing string ${s} (${role})`);
+    }
+  }
+});
+
+// 7) Nashville: every key resolves degrees 1-6 to a real chord.
+check("keys: all degrees 1-6 resolve to chords in the library", () => {
+  for (const k of KEY_IDS) {
+    for (let d = 1; d <= 6; d++) {
+      const chord = KEYS[k].degrees[d];
+      assert(chord, `key ${k} has no chord for degree ${d}`);
+      assert(CHORDS[chord], `key ${k} degree ${d} -> "${chord}" not in CHORDS`);
+    }
+  }
+});
+
+// 7b) Every preset progression resolves in every key.
+check("progressions: every preset resolves in every key", () => {
+  for (const k of KEY_IDS) {
+    for (const p of PROGRESSIONS) {
+      const chords = progressionChords(p.id, k);
+      assert(chords.length === p.degrees.length,
+        `${p.name} in key ${k} resolved ${chords.length}/${p.degrees.length} chords`);
+      chords.forEach((c) => assert(CHORDS[c], `${p.name} in ${k} produced unknown chord ${c}`));
+    }
+  }
+});
+
+// 7c) detectProgression round-trips presets and reports custom edits.
+check("detectProgression: matches presets, falls back to Custom", () => {
+  for (const k of KEY_IDS) {
+    for (const p of PROGRESSIONS) {
+      const bars = fitProgression(progressionChords(p.id, k), 4);
+      assert(detectProgression(bars, k) === p.id,
+        `expected ${p.id} in key ${k}, got ${detectProgression(bars, k)}`);
+    }
+  }
+  // a hand-edited bar that breaks the pattern reads as custom
+  const bars = fitProgression(progressionChords("1_5_6_4", "C"), 4); // C G Am F
+  const edited = [...bars];
+  edited[1] = "F#m"; // not in key C at that position
+  assert(detectProgression(edited, "C") === CUSTOM_PROGRESSION_ID,
+    "edited progression should read as Custom");
+});
+
+// 8) Phrase length clamps the loop cell (2-bar loop inside a 1-bar phrase).
+check("loop cell never exceeds the phrase length", () => {
+  for (const phraseBars of [1, 2, 4]) {
+    for (const loop of ["1bar", "2bar", "through"]) {
+      const p = generatePattern("C", { loop, phraseBars, rng: seeded(2) });
+      assert(p.bars.length <= phraseBars,
+        `${loop} @ ${phraseBars} bars produced ${p.bars.length} distinct bars`);
+    }
   }
 });
 

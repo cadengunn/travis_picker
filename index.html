@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1b1b1f" />
+  <meta name="theme-color" content="#33241a" />
   <title>Travis Picker</title>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -11,6 +11,7 @@
   <header class="app-bar">
     <h1>Travis Picker</h1>
     <span id="type-indicator" class="type-indicator"></span>
+    <select id="theme" class="theme-select" aria-label="Theme"></select>
   </header>
 
   <main>
@@ -18,7 +19,7 @@
   </main>
 
   <div class="controls">
-    <div class="control-row">
+    <div class="control-fields">
       <div class="field">
         <span>Chords</span>
         <div id="chord-mode" class="segmented" role="group" aria-label="Chord mode">
@@ -26,21 +27,25 @@
           <button type="button" data-mode="progression">Prog.</button>
         </div>
       </div>
+
       <label class="field" id="field-chord">
         <span>Chord</span>
         <select id="chord"></select>
+      </label>
+
+      <label class="field" id="field-key" hidden>
+        <span>Key</span>
+        <select id="key"></select>
       </label>
       <label class="field" id="field-prog" hidden>
         <span>Progression</span>
         <select id="progression"></select>
       </label>
+
       <label class="field">
         <span>Thumb</span>
         <select id="bass"></select>
       </label>
-    </div>
-
-    <div class="control-row">
       <label class="field">
         <span>Chaos</span>
         <select id="chaos"></select>
@@ -53,9 +58,7 @@
         <span>Length</span>
         <select id="phrase"></select>
       </label>
-    </div>
 
-    <div class="control-row two">
       <div class="field">
         <span>Labels</span>
         <div id="label-mode" class="segmented" role="group" aria-label="Label mode">
@@ -63,8 +66,9 @@
           <button type="button" data-label="pima">PIMA</button>
         </div>
       </div>
-      <button id="generate" class="btn-primary" type="button">Generate</button>
     </div>
+
+    <button id="generate" class="btn-primary" type="button">Generate</button>
   </div>
 
   <script type="module" src="js/app.js"></script>

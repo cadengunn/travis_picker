@@ -1,0 +1,76 @@
+{
+  "comment": "Travis Picker UI themes. Roles: bg = app background (carries theme identity); surface = empty grid cells / panels; accent = beat-column highlights, buttons, headers; active = filled note circles; label = text inside note circles (p/i/m/a or fret numbers). Swap via data-theme attribute + CSS custom properties.",
+  "default": "merle",
+  "themes": [
+    {
+      "id": "chet",
+      "name": "Chet",
+      "desc": "Gretsch cherry — big, red, unapologetic",
+      "bg": "#7a1220",
+      "surface": "#9c2433",
+      "accent": "#f5e6c8",
+      "active": "#ffd9a0",
+      "label": "#5a0d16"
+    },
+    {
+      "id": "merle",
+      "name": "Merle",
+      "desc": "Tobacco & parchment — the neutral flagship (default)",
+      "bg": "#33241a",
+      "surface": "#4d382a",
+      "accent": "#e8dcc0",
+      "active": "#e0a458",
+      "label": "#2a1c12"
+    },
+    {
+      "id": "jerry",
+      "name": "Jerry",
+      "desc": "Swamp — green water, muddy bank, bronze glint",
+      "bg": "#1c3327",
+      "surface": "#4a3c28",
+      "accent": "#d4a94e",
+      "active": "#7dd4c0",
+      "label": "#12241a"
+    },
+    {
+      "id": "doc",
+      "name": "Doc",
+      "desc": "Blue Ridge — denim sky, muted hickory notes",
+      "bg": "#1e3a5c",
+      "surface": "#2f5580",
+      "accent": "#cfe0f0",
+      "active": "#d9c7a8",
+      "label": "#12253d"
+    },
+    {
+      "id": "elizabeth",
+      "name": "Elizabeth",
+      "desc": "Honey light-mode — warm, sunny, high contrast",
+      "bg": "#f7e9c8",
+      "surface": "#ffffff",
+      "accent": "#5c4530",
+      "active": "#e09420",
+      "label": "#3d2c18"
+    },
+    {
+      "id": "tommy",
+      "name": "Tommy",
+      "desc": "Stage dark-mode — ebony, spotlight",
+      "bg": "#141414",
+      "surface": "#262626",
+      "accent": "#ffe9a8",
+      "active": "#f0f2f5",
+      "label": "#111111"
+    },
+    {
+      "id": "buster",
+      "name": "Buster",
+      "desc": "Blue-violet stage curtain, guitar-wood glow",
+      "bg": "#2b1f66",
+      "surface": "#443394",
+      "accent": "#c8bff0",
+      "active": "#e8b45e",
+      "label": "#1c1445"
+    }
+  ]
+}
