@@ -210,6 +210,50 @@ check("Full Random is absolute and bass ignores chord changes", () => {
   assert(JSON.stringify(a) === JSON.stringify(b), "absolute bass strings must not change with chord");
 });
 
+// 4b-i) Dead Thumb: relative, root on all four beats; follows the chord.
+check("Dead Thumb: relative, root on every beat, follows the chord", () => {
+  const p = generatePattern("C", { bass: "dead_thumb", chaos: "tame", rng: seeded(5) });
+  assert(p.type === "relative", `Dead Thumb should be relative, got ${p.type}`);
+  const onC = resolvePattern(p, "C").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
+  assert(JSON.stringify(onC) === JSON.stringify([5, 5, 5, 5]),
+    `Dead Thumb on C should be root 5-5-5-5, got ${onC.join("-")}`);
+  const onG = resolvePattern(p, "G").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
+  assert(JSON.stringify(onG) === JSON.stringify([6, 6, 6, 6]),
+    `Dead Thumb should follow to G's root 6-6-6-6, got ${onG.join("-")}`);
+});
+
+// 4b-ii) Root–Fifth: relative, alternates root/fifth; fifth carries fifthFret.
+check("Root–Fifth: relative, alternates root and fifth per chord table", () => {
+  const p = generatePattern("C", { bass: "root_fifth", chaos: "tame", rng: seeded(6) });
+  assert(p.type === "relative", `Root–Fifth should be relative, got ${p.type}`);
+  const c = CHORDS.C;
+  const bar = resolvePattern(p, "C").bars[0].filter((e) => e.finger === "p");
+  const strings = bar.map((e) => e.string);
+  assert(JSON.stringify(strings) === JSON.stringify([c.root, c.fifth, c.root, c.fifth]),
+    `Root–Fifth on C should be ${[c.root, c.fifth, c.root, c.fifth].join("-")}, got ${strings.join("-")}`);
+  // C's fifth lives on string 6 fret 3 (the shape's open string doesn't cover it)
+  assert(bar[1].fret === c.fifthFret, `C's fifth should be fret ${c.fifthFret}, got ${bar[1].fret}`);
+});
+
+// 4b-iii) Climb / Descend: absolute string walks that ignore the chord.
+check("Climb: absolute, walks strings 6-5-4-5 regardless of chord", () => {
+  const p = generatePattern("C", { bass: "climb", chaos: "tame", rng: seeded(7) });
+  assert(p.type === "absolute", `Climb should be absolute, got ${p.type}`);
+  const onC = resolvePattern(p, "C").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
+  assert(JSON.stringify(onC) === JSON.stringify([6, 5, 4, 5]), `Climb should be 6-5-4-5, got ${onC.join("-")}`);
+  const onG = resolvePattern(p, "G").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
+  assert(JSON.stringify(onG) === JSON.stringify([6, 5, 4, 5]), `Climb must ignore the chord, got ${onG.join("-")} on G`);
+});
+
+check("Descend: absolute, walks strings 4-5-6-5 regardless of chord", () => {
+  const p = generatePattern("C", { bass: "descend", chaos: "tame", rng: seeded(8) });
+  assert(p.type === "absolute", `Descend should be absolute, got ${p.type}`);
+  const onC = resolvePattern(p, "C").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
+  assert(JSON.stringify(onC) === JSON.stringify([4, 5, 6, 5]), `Descend should be 4-5-6-5, got ${onC.join("-")}`);
+  const onA = resolvePattern(p, "A").bars[0].filter((e) => e.finger === "p").map((e) => e.string);
+  assert(JSON.stringify(onA) === JSON.stringify([4, 5, 6, 5]), `Descend must ignore the chord, got ${onA.join("-")} on A`);
+});
+
 // 4e) Progression mode: one relative cell, per-bar chords. The bass re-maps
 //     per bar while the right hand (fingers/slots) stays identical.
 check("progression: relative bass re-maps per bar, right hand unchanged", () => {

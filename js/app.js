@@ -6,7 +6,6 @@ import {
   CHORD_IDS,
   CHORDS,
   BASS_PRESETS,
-  V1_BASS_IDS,
   CHAOS_IDS,
   CHAOS_PRESETS,
   PATTERN_LENGTHS,
@@ -62,7 +61,7 @@ function fillSelect(select, items, getVal, getLabel) {
 function initControls() {
   fillSelect(el("chord"), CHORD_IDS, (c) => c, (c) => CHORDS[c].name);
   fillSelect(el("key"), KEY_IDS, (k) => k, (k) => KEYS[k].name);
-  fillSelect(el("bass"), BASS_PRESETS.filter((p) => V1_BASS_IDS.includes(p.id)), (p) => p.id, (p) => p.name);
+  fillSelect(el("bass"), BASS_PRESETS, (p) => p.id, (p) => p.name);
   fillSelect(el("chaos"), CHAOS_IDS, (c) => c, (c) => CHAOS_PRESETS[c].name);
   fillSelect(el("pattern"), PATTERN_LENGTHS, (n) => n, (n) => `${n} bar${n > 1 ? "s" : ""}`);
   fillSelect(el("label-mode"), LABEL_MODES, (m) => m.id, (m) => m.name);

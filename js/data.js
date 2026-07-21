@@ -26,10 +26,8 @@ export const BASS_PRESETS = [
   { id: "full_random", name: "Random",              beats: ["random", "random", "random", "random"] },
 ];
 
-// Presets surfaced in the UI this session; the rest ship as data for later.
-// Travis needs the fifth role, so it's in the v1 set alongside the others.
-export const V1_BASS_IDS = ["travis", "simple_alt", "full_random"];
-
+// All seven presets are surfaced in the Thumb selector (session 5). The two
+// absolute ones (Climb, Descend) ignore the chord by design — texture tools.
 export function getBassPreset(id) {
   return BASS_PRESETS.find((p) => p.id === id) || BASS_PRESETS[0];
 }
