@@ -65,8 +65,9 @@ function seeded(seed) {
 }
 
 const ALL_BASS = BASS_PRESETS.map((p) => p.id);
-const ALL_CHAOS = ["tame", "loose", "chaos"];
+const ALL_CHAOS = ["tame", "loose", "unruly", "chaos"];
 const ALL_PATTERN_BARS = [1, 2, 4];
+const ALL_SLOTS_T = [1, 2, 3, 4, 5, 6, 7, 8];
 
 function everyBar(cb) {
   let n = 0;
@@ -368,18 +369,28 @@ check("patternBars produces that many distinct bars and cycles across a phrase",
   assert(sig(phrase[1].bar) !== sig(phrase[0].bar), "a 2-bar pattern should have two different bars");
 });
 
-// 5) Tame constraints: 2-4 offbeats/bar, and NO string sounds on two adjacent
-//    8th slots — counting the thumb, since that re-strike is the awkward one.
-check("Tame: 2-4 offbeats per bar, no same string on adjacent 8th slots", () => {
+// 5) Tame constraints: 1-2 offbeats/bar, single notes only, and NO string sounds
+//    on two adjacent 8th slots — counting the thumb, since that re-strike is the
+//    awkward one. Loose shares the adjacency ceiling but is busier (2-3 offbeats,
+//    occasional doubles); Unruly/Chaos drop the ceiling.
+check("Tame: 1-2 single-note offbeats, no same string on adjacent 8th slots", () => {
   for (const chord of CHORD_IDS) {
     for (let seed = 1; seed <= 12; seed++) {
       for (const bass of ["travis", "simple_alt"]) {
         const p = generatePattern(chord, { bass, chaos: "tame", rng: seeded(seed * 31) });
         const bar = p.bars[0];
 
+        // Ceiling is hard (2); the floor is best-effort — hard adjacency can drop
+        // one rather than re-strike — so we only assert it doesn't exceed 2.
         const filled = OFFBEAT_SLOTS.filter((s) => bar.some((e) => e.slot === s && e.finger !== "p"));
-        assert(filled.length >= 2 && filled.length <= 4,
-          `Tame offbeats should be 2-4, got ${filled.length} (${chord}/${bass} seed ${seed})`);
+        assert(filled.length <= 2,
+          `Tame offbeats should be ≤2, got ${filled.length} (${chord}/${bass} seed ${seed})`);
+
+        // no double stops in Tame: at most one finger note per slot
+        for (const slot of ALL_SLOTS_T) {
+          const fingers = bar.filter((e) => e.slot === slot && e.finger !== "p").length;
+          assert(fingers <= 1, `Tame slot ${slot} has ${fingers} finger notes (${chord}/${bass} seed ${seed})`);
+        }
 
         // adjacency across ALL slots, thumb included
         const stringsAt = (slot) => new Set(bar.filter((e) => e.slot === slot).map((e) => e.string));
@@ -393,6 +404,83 @@ check("Tame: 2-4 offbeats per bar, no same string on adjacent 8th slots", () => 
       }
     }
   }
+});
+
+// 5b) Loose keeps the adjacency ceiling (the reframe) but is busier than Tame:
+//     2-3 offbeats, doubles allowed, still no triples, still no re-strikes.
+check("Loose: 2-3 offbeats, adjacency ceiling stays on, no triples", () => {
+  for (const chord of CHORD_IDS) {
+    for (let seed = 1; seed <= 12; seed++) {
+      const p = generatePattern(chord, { bass: "travis", chaos: "loose", rng: seeded(seed * 53) });
+      const bar = p.bars[0];
+
+      // Ceiling hard (3); floor best-effort under hard adjacency (see Tame note).
+      const filled = OFFBEAT_SLOTS.filter((s) => bar.some((e) => e.slot === s && e.finger !== "p"));
+      assert(filled.length >= 1 && filled.length <= 3,
+        `Loose offbeats should be 1-3, got ${filled.length} (${chord} seed ${seed})`);
+
+      for (const slot of ALL_SLOTS_T) {
+        const fingers = bar.filter((e) => e.slot === slot && e.finger !== "p").length;
+        assert(fingers <= 2, `Loose slot ${slot} has a triple (${chord} seed ${seed})`);
+      }
+
+      const stringsAt = (slot) => new Set(bar.filter((e) => e.slot === slot).map((e) => e.string));
+      for (let slot = 1; slot < 8; slot++) {
+        const a = stringsAt(slot), b = stringsAt(slot + 1);
+        for (const s of a) {
+          assert(!b.has(s), `Loose re-strikes string ${s} on ${slot}/${slot + 1} (${chord} seed ${seed})`);
+        }
+      }
+    }
+  }
+});
+
+// 5c) Unruly guarantees at least one double stop PER BAR (its whole point), and
+//     never produces a triple — triples are exclusive to Chaos.
+check("Unruly: ≥1 double stop per bar, never a triple", () => {
+  for (const chord of CHORD_IDS) {
+    for (let seed = 1; seed <= 12; seed++) {
+      const p = generatePattern(chord, { bass: "travis", chaos: "unruly", patternBars: 2, rng: seeded(seed * 71) });
+      for (let b = 0; b < p.bars.length; b++) {
+        const bar = p.bars[b];
+        let doubles = 0;
+        for (const slot of ALL_SLOTS_T) {
+          const fingers = bar.filter((e) => e.slot === slot && e.finger !== "p").length;
+          assert(fingers <= 2, `Unruly produced a triple on slot ${slot} (${chord} seed ${seed})`);
+          if (fingers >= 2) doubles++;
+        }
+        assert(doubles >= 1, `Unruly bar ${b} has no double stop (${chord} seed ${seed})`);
+      }
+    }
+  }
+});
+
+// 5d) Triples are a Chaos-only signature: no tame/loose/unruly bar ever stacks 3.
+check("triples appear only in Chaos", () => {
+  for (const chaos of ["tame", "loose", "unruly"]) {
+    for (const chord of CHORD_IDS) {
+      for (let seed = 1; seed <= 10; seed++) {
+        const p = generatePattern(chord, { chaos, patternBars: 4, rng: seeded(seed * 13 + 7) });
+        for (const bar of p.bars) {
+          for (const slot of ALL_SLOTS_T) {
+            const fingers = bar.filter((e) => e.slot === slot && e.finger !== "p").length;
+            assert(fingers <= 2, `${chaos} produced a triple on slot ${slot} (${chord} seed ${seed})`);
+          }
+        }
+      }
+    }
+  }
+  // and Chaos actually does produce a triple somewhere across a sweep
+  let sawTriple = false;
+  for (let seed = 1; seed <= 40 && !sawTriple; seed++) {
+    const p = generatePattern("C", { chaos: "chaos", patternBars: 4, rng: seeded(seed * 17) });
+    for (const bar of p.bars) {
+      for (const slot of ALL_SLOTS_T) {
+        if (bar.filter((e) => e.slot === slot && e.finger !== "p").length >= 3) sawTriple = true;
+      }
+    }
+  }
+  assert(sawTriple, "Chaos should produce at least one triple across a 40-seed sweep");
 });
 
 // 9) Layer independence: swapping the bass keeps the exact finger pattern, and

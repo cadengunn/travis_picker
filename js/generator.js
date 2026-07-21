@@ -80,40 +80,69 @@ function generateTrebleBar(flags, thumbEvents, rng) {
   const count = flags.minOffbeats + Math.floor(rng() * (span + 1));
   const offbeats = new Set(shuffled(OFFBEAT_SLOTS, rng).slice(0, count));
 
-  // Pinches: finger note(s) sounding together with the thumb on a downbeat.
-  const pinchChance = flags.pinchesDownbeatsOnly ? 0.35 : 0.25;
-  const pinches = new Set(thumbEvents.map((e) => e.slot).filter(() => rng() < pinchChance));
+  // Pinches: finger note(s) sounding together with the thumb on a downbeat. The
+  // per-tier frequency lives on the preset (pinchOdds), like all other density.
+  const pinches = new Set(thumbEvents.map((e) => e.slot).filter(() => rng() < flags.pinchOdds));
+
+  // Legal finger strings for a slot: not already sounding (hard rule) and — when
+  // noAdjacentSameString is on — not sounding on either neighbour 8th (the
+  // awkward same-string re-strike a beginner shouldn't have to fight).
+  //
+  // This is a HARD ceiling for the clean tiers (Tame, Loose): if avoiding a
+  // re-strike leaves nothing, we place nothing rather than re-strike anyway.
+  // A double stop plus the thumb can genuinely block all three finger strings on
+  // the next 8th (e.g. D's alt bass sits on string 3), and for "never spiky"
+  // tiers a quietly-dropped offbeat beats an audible same-string re-strike.
+  const legalAt = (slot) => {
+    let c = FINGER_STRINGS.filter((s) => !occupied.get(slot)?.has(s));
+    if (flags.noAdjacentSameString) {
+      const near = [occupied.get(slot - 1), occupied.get(slot + 1)];
+      c = c.filter((s) => !near.some((set) => set?.has(s)));
+    }
+    return c;
+  };
 
   const events = [];
+  const fingersAt = new Map(); // slot -> count of finger notes placed (double-stop bookkeeping)
   for (const slot of ALL_SLOTS) {
     if (!offbeats.has(slot) && !pinches.has(slot)) continue;
 
-    // Hard rule: never a string already sounding in this slot.
-    let candidates = FINGER_STRINGS.filter((s) => !occupied.get(slot)?.has(s));
-
-    // Tame: never the same string on an adjacent 8th (either side) — that's
-    // the awkward same-string re-strike a beginner shouldn't have to fight.
-    if (flags.noAdjacentSameString) {
-      const near = [occupied.get(slot - 1), occupied.get(slot + 1)];
-      const filtered = candidates.filter((s) => !near.some((set) => set?.has(s)));
-      if (filtered.length) candidates = filtered;
-    }
+    const candidates = legalAt(slot);
     if (!candidates.length) continue;
 
-    // How many notes in this slot: single, or a double/triple stop if allowed.
+    // How many notes in this slot: single, or a double/triple stop by the
+    // preset's odds. Roll once: triple, else double, else single.
     let notesHere = 1;
-    if (flags.allowDoubleStops && !flags.favorSingleOffbeats) {
+    if (flags.allowDoubleStops) {
+      const { double = 0, triple = 0 } = flags.doubleStopOdds || {};
       const r = rng();
-      if (r > 0.9) notesHere = 3;
-      else if (r > 0.55) notesHere = 2;
-    } else if (flags.allowDoubleStops && flags.favorSingleOffbeats) {
-      if (rng() > 0.85) notesHere = 2; // rare double stop
+      if (r < triple) notesHere = 3;
+      else if (r < triple + double) notesHere = 2;
     }
     notesHere = Math.min(notesHere, candidates.length);
 
     for (const string of shuffled(candidates, rng).slice(0, notesHere)) {
       events.push({ slot, finger: STRING_FINGER[string], string });
       add(slot, string);
+    }
+    fingersAt.set(slot, notesHere);
+  }
+
+  // Per-bar double-stop floor (Unruly): odds alone can roll a whole bar of
+  // singles, making it read like Loose. Guarantee at least `minDoubleStops` by
+  // promoting single-note slots to doubles until the floor is met.
+  if (flags.minDoubleStops > 0) {
+    let doubles = [...fingersAt.values()].filter((n) => n >= 2).length;
+    const singles = shuffled([...fingersAt.keys()].filter((s) => fingersAt.get(s) === 1), rng);
+    for (const slot of singles) {
+      if (doubles >= flags.minDoubleStops) break;
+      const pool = legalAt(slot); // excludes the string already placed here
+      if (!pool.length) continue;
+      const string = pick(pool, rng);
+      events.push({ slot, finger: STRING_FINGER[string], string });
+      add(slot, string);
+      fingersAt.set(slot, 2);
+      doubles++;
     }
   }
 

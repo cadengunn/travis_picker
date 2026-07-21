@@ -104,45 +104,76 @@ export function fretFor(chordId, string) {
   return f == null ? 0 : f;
 }
 
-// ----- Chaos presets: independent constraint flags. Tame/Loose/Chaos are just
-// presets over these flags (leaves room for a future custom panel). -----
+// ----- Chaos presets: independent constraint flags. The four tiers are just
+// presets over these flags (leaves room for a future custom panel). They sit on
+// one monotonic difficulty curve: Tame → Loose → Unruly → Chaos.
+//
+// ALL density lives here, not in the generator: offbeat count (min/maxOffbeats),
+// stack thickness (doubleStopOdds — per-offbeat-slot chance of a 2- or 3-note
+// double/triple stop), a per-BAR double-stop floor (minDoubleStops), and pinch
+// frequency (pinchOdds — chance a beat gets a finger note plucked with the
+// thumb). The generator reads these numbers; it never branches on preset name.
+//
+// The reframe from the old 3-tier set: the *new* Loose keeps
+// `noAdjacentSameString` ON — it's a busier-but-still-clean ceiling, not just a
+// raised floor. The old "Loose" (adjacency off, ~45% doubles) is now Unruly.
 export const CHAOS_PRESETS = {
   tame: {
     id: "tame",
     name: "Tame",
     noAdjacentSameString: true, // no string sounds on two adjacent 8th slots (incl. thumb)
-    minOffbeats: 2,
-    maxOffbeats: 4,
-    pinchesDownbeatsOnly: true, // pinches only land with the thumb on beats
-    favorSingleOffbeats: true,  // single-note offbeats favored over double stops
+    minOffbeats: 1,
+    maxOffbeats: 2,
     allowDoubleStops: false,
+    doubleStopOdds: { double: 0.0, triple: 0.0 }, // clean single notes only
+    minDoubleStops: 0,
+    pinchOdds: 0.15,
     domainCrossing: false,
   },
   loose: {
     id: "loose",
     name: "Loose",
-    noAdjacentSameString: false,
-    minOffbeats: 1,
+    noAdjacentSameString: true, // the reframe: Loose keeps the ceiling
+    minOffbeats: 2,
+    maxOffbeats: 3,
+    allowDoubleStops: true,
+    doubleStopOdds: { double: 0.20, triple: 0.0 }, // occasional doubles, no triples
+    minDoubleStops: 0,
+    pinchOdds: 0.22,
+    domainCrossing: false,
+  },
+  unruly: {
+    id: "unruly",
+    name: "Unruly",
+    noAdjacentSameString: false, // adjacency ceiling comes off here
+    minOffbeats: 2,
     maxOffbeats: 4,
-    pinchesDownbeatsOnly: false, // pinches anywhere
-    favorSingleOffbeats: false,
-    allowDoubleStops: true,      // double stops occasionally
+    allowDoubleStops: true,
+    doubleStopOdds: { double: 0.45, triple: 0.0 }, // busy; triples stay a Chaos signature
+    minDoubleStops: 1, // per BAR: force at least one double so it never rolls back to Loose
+    pinchOdds: 0.30,
     domainCrossing: false,
   },
   chaos: {
     id: "chaos",
     name: "Chaos",
     noAdjacentSameString: false,
-    minOffbeats: 0,
+    minOffbeats: 0, // can go bare-thumb sparse...
     maxOffbeats: 4,
-    pinchesDownbeatsOnly: false,
-    favorSingleOffbeats: false,
     allowDoubleStops: true,
+    doubleStopOdds: { double: 0.50, triple: 0.25 }, // ...but stacks thickly and unpredictably
+    minDoubleStops: 0,
+    pinchOdds: 0.35,
     domainCrossing: false, // stays off even in Chaos, per spec
   },
 };
 
-export const CHAOS_IDS = ["tame", "loose", "chaos"];
+export const CHAOS_IDS = ["tame", "loose", "unruly", "chaos"];
+
+// `pinchesDownbeatsOnly` is intentionally NOT a per-tier flag: with the standard
+// Travis thumb striking only beats 1-4, a pinch can only land on a downbeat
+// anyway, so it would never shape preset output. It only matters if the thumb is
+// hand-edited onto an offbeat, so it's left out until an editor path needs it.
 
 // What's printed inside each note circle. All three are pure transforms of the
 // same events (fret = event.fret, pima = event.finger, none = dot only).
