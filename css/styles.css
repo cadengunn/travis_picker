@@ -24,6 +24,11 @@
 
 * { box-sizing: border-box; }
 
+/* Kill the ~300ms double-tap-to-zoom delay on tap targets, so a fast double-tap
+   on 🎲 fires two generates instead of triggering Safari's zoom gesture. Scoped
+   to the interactive controls, NOT the viewport — pinch-zoom stays enabled. */
+button, select, input, .cell { touch-action: manipulation; }
+
 /* must beat .field's display:flex so hidden controls actually hide */
 [hidden] { display: none !important; }
 
@@ -75,6 +80,16 @@ main {
   gap: 8px;
   padding: 0 2px 6px;
   min-height: 36px;
+}
+/* Version tag — top-left, deliberately low-profile so it doesn't compete with
+   the pattern name or cost any of the tight vertical budget (rides the existing
+   36px row). Bump it by hand at release points. */
+.app-version {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--muted);
 }
 .grid-bar-info { min-width: 0; display: flex; flex-direction: column; }
 .grid-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
