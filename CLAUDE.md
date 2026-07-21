@@ -210,8 +210,38 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - **Thumb skeleton:** one quarter-note thumb on each beat (slots 1,3,5,7); never on offbeats.
 - **Hand domains:** fingers own strings 3/2/1 (i→3, m→2, a→1). **Chord-aware thumb domain:** thumb-legal = `{6,5,4}` ∪ the current chord's role strings. This is why D's alt-bass legitimately lands on string 3 — see `thumbLegalStrings()` in `data.js`.
 - **Two independent layers.** `thumbBars` and `trebleBars` are generated and stored separately; `bars` is their merge (`mergeBar` → `enforceHardRule`). `regenerateBass()` re-rolls the thumb keeping the exact finger part, `regenerateTreble()` does the reverse — so the Thumb and Chaos controls each disturb only their own layer, and you can audition bass patterns under one right-hand part. Only Pattern-length and **Generate** re-roll everything.
-- **Chaos** (Tame/Loose/Chaos) is **presets over independent constraint flags** (`CHAOS_PRESETS`), not branching code — leaves room for a future custom panel. Tame's `noAdjacentSameString` forbids a string sounding on two **adjacent** 8th slots, thumb included — same-string re-strikes are the hardest thing for a beginner. Treble generation walks slots 1→8 in order (checking both neighbours) so this is enforced during generation, not by pruning after.
-- **Bass presets** are data (`BASS_PRESETS`). Default is `travis` (root-alt-fifth-alt, the standard Travis pattern). `simple_alt` and `full_random` are the other v1-surfaced presets (`V1_BASS_IDS`); the rest ship as data for later.
+- **Chaos** is a **monotonic 4-tier curve — Tame → Loose → Unruly → Chaos** —
+  built as **presets over independent flags** (`CHAOS_PRESETS`), not branching
+  code. **ALL density lives in the preset object**, never hard-coded in the
+  generator: offbeat range (`min/maxOffbeats`), stack odds
+  (`doubleStopOdds.{double,triple}` per offbeat slot), a per-**bar** double-stop
+  floor (`minDoubleStops`), and pinch frequency (`pinchOdds`). The generator
+  reads these numbers and **never branches on preset name** — tune feel by
+  editing `CHAOS_PRESETS` only.
+  - The tiers: **Tame** (beginner: 1–2 single-note offbeats, no stacks),
+    **Loose** (medium, *keeps* `noAdjacentSameString` — a busier-but-clean
+    ceiling, ~20% doubles, no triples), **Unruly** (hard: adjacency off, ~45%
+    doubles, `minDoubleStops:1` so it never rolls back to Loose), **Chaos**
+    (full random; **triples are Chaos-exclusive**).
+  - `noAdjacentSameString` (a string sounding on two adjacent 8ths, thumb
+    included) is a **HARD** ceiling for the clean tiers: if avoiding a re-strike
+    leaves no legal finger string (a double stop + the thumb can block all three,
+    e.g. D's alt bass on string 3), it **drops the offbeat rather than
+    re-strike** — so the offbeat count is a best-effort floor, a hard ceiling.
+  - Treble is generated for the **whole loop as one circular N = 8×bars slot
+    sequence** (`generateTrebleLoop`), not bar-by-bar: interior bar seams are
+    ordinary adjacencies and the single wrap is last-8th→first, so a re-strike
+    straddling the **loop point** is caught like any interior pair (a per-bar
+    generator couldn't see it). Walking in order suffices — the later of any
+    adjacent pair, and the last slot for the wrap, sees the other.
+  - Latent flags kept but unread: `pinchesDownbeatsOnly` (moot while the thumb
+    only strikes beats; matters only if the thumb is hand-edited onto an
+    offbeat) and `domainCrossing` (no generator path consumes it).
+- **Bass presets** are data (`BASS_PRESETS`), and **all seven are surfaced** in
+  the Thumb selector (session 5): `travis` (default, root-alt-fifth-alt),
+  `simple_alt`, `dead_thumb`, `root_fifth` (relative, follow the chord), `climb`
+  and `descend` (absolute integer walks that ignore the chord — texture tools,
+  show the "absolute bass" indicator), and `full_random`.
 - **Chord library** is 14 chords covering degrees 1–6 in the keys C/G/D/A/E. Barre chords assume a *full* barre, so the low string is available as a bass note even where the textbook voicing mutes it — the same convention C already used (its fifth is string 6 fret 3). A test asserts every chord's role strings are covered by its shape.
 - **Pattern length** (`PATTERN_LENGTHS`, 1/2/4) is the *only* length dial: how many **distinct** bars of picking. Bars on screen are derived — single mode shows exactly that many; progression mode shows the progression's bars and cycles the pattern across them. Changing it **extends** rather than re-rolls (`setPatternBars`): growing duplicates the existing bars so hand-drawn work survives, and the copies are independent from then on; shrinking keeps the first n. Only **Generate** re-rolls. This replaced a separate Loop + Phrase-length pair whose only useful combinations were "displayed == distinct"; the rest just redrew the same bar. Don't reintroduce a display-length control without that reasoning changing.
 
@@ -232,8 +262,10 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 **v1 is complete and shipped.** PWA packaging (manifest, icons, service worker)
 is **DONE** and the app is hosted + installed on a phone (session 4, below).
-v2+: remaining bass presets in the UI + custom 4-slot builder; pattern audio
-playback; syncopation/16ths.
+Session 5 added the **remaining bass presets in the UI** and a **chaos redesign**
+(4 tiers + density-in-presets + circular generation) — see session 5 below.
+v2+ remaining: custom 4-slot bass builder; pattern audio playback;
+syncopation/16ths; the deferred **theme colour pass**.
 
 ## Where things stand (end of session 4, 2026-07-20)
 
@@ -338,12 +370,46 @@ works in **airplane mode**, saved patterns persist offline. 32/32 checks green.
 - The **localStorage ~7-day eviction risk** (open thread above) is now mitigated
   by the home-screen install, its main defence.
 
-**NEXT SESSION — the theme colour pass** (deliberately deferred behind
-functionality, now unblocked). All seven themes are a reasonable first cut, none
-finished; they read differently on the phone than the laptop. Do it **against a
-real phone screen**, and **`themes.json` is the only file that should change.**
-After that, v2 musical work: remaining bass presets in the UI + the custom 4-slot
-builder, pattern audio playback, syncopation/16ths.
+## Where things stand (end of session 5, 2026-07-21)
+
+Session 5 shipped four things, all deployed to Pages (`CACHE` now at **v5**) and
+**40/40 checks green**. Everything below is deployed but **only the iOS zoom fix
+is confirmed on the phone** — the bass presets and the whole chaos redesign are
+**pending the user's guitar test that night**. Expect tuning feedback.
+
+1. **iOS double-tap-zoom fix** *(confirmed on hardware)* — fast double-taps on 🎲
+   were triggering Safari's double-tap-to-zoom. Fix: `touch-action: manipulation`
+   on `button, select, input, .cell` in `styles.css`. Scoped to controls, not the
+   viewport, so pinch-zoom still works.
+2. **`v1.0` version tag**, top-left of the grid-bar (`.app-version`) — low-profile
+   muted label riding the existing 36px row (no vertical cost). Bump by hand at
+   release points.
+3. **All seven bass presets surfaced** (see the Bass-presets note above). Dropped
+   the `V1_BASS_IDS` filter. Absolute Climb/Descend correctly ignore the chord.
+4. **Chaos redesign** (see the expanded Chaos note under "Key rules") — the big
+   one. Was a user-authored spec brought in from another session; done in two
+   deploys: **step 1** = 4 tiers (Tame/Loose/**Unruly**/Chaos) + all density
+   moved into `CHAOS_PRESETS`; **step 2** = circular whole-loop generation
+   (`generateTrebleLoop`) fixing the loop-point re-strike. Measured density curve
+   (finger notes/bar): Tame ~2.1, Loose ~4.2, Unruly ~6.0, Chaos ~7.7.
+
+**Decisions worth knowing before you tune:**
+- Tier feel is **all in `CHAOS_PRESETS`** — numbers only, no generator changes
+  needed. That's where any "too busy / too sparse / wrong gap" feedback goes.
+- **Hard adjacency for Tame/Loose** was a deliberate spec-alignment call: the
+  clean tiers now genuinely never re-strike, at the cost of occasionally dropping
+  an offbeat below the target count. If the user finds Tame/Loose too thin, that
+  tradeoff (or the offbeat range) is the first knob.
+- Naming: **"Unruly"** was the user's pick (candidates were Rowdy/Frayed/Feral).
+- `favorSingleOffbeats` was removed (redundant once odds are explicit).
+
+**NEXT SESSION — first, act on the guitar-test feedback for the chaos tiers /
+bass presets** (tune `CHAOS_PRESETS`). Then the **theme colour pass** (deferred
+behind functionality; all seven themes are a first cut, read differently on phone
+vs laptop — do it **against a real phone screen**, `themes.json` the only file
+that changes). Then v2 musical work: the **custom 4-slot bass builder** (the
+preset format and the density model are both ready for it), pattern audio
+playback, syncopation/16ths.
 
 ## Working with this user
 
