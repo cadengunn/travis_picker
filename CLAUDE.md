@@ -270,10 +270,12 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
   a whole session on colour and legibility, deliberately deferred behind
   functionality. Do it against a real phone screen; `themes.json` is the only
   file that should change.
-- **Save/Load persistence across a full app-quit is unverified on the phone.**
-  Round-trips fine in-session on both laptop and phone, but "close Safari,
-  reopen, favourites still there" — the actual practice-tool promise — hasn't
-  been checked on hardware. Worth a look; more so once it's a PWA.
+- **iOS may evict `localStorage` after ~7 days of not opening the app** (Safari's
+  storage cap on script-writable data). Save/Load persistence across a full
+  Safari quit-and-reopen is now **verified on hardware** — favourites survive.
+  But the 7-day eviction is a real risk for a tool used intermittently;
+  installing as a home-screen PWA is the main mitigation, another reason Phase 3
+  matters. If saved patterns ever vanish for a user, this is the first suspect.
 - **Grid bar crowding.** The slim bar above the grid holds the pattern name, the
   type indicator and three pills (Edit/Save/Load). Fits at 375px, but a long
   saved-pattern name will squeeze. Options if it bites: truncate harder, or drop
@@ -286,12 +288,27 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
   confirmed good. The G Travis bass walks 6–4–5–4 (G–D–B–D); string 5 fret 2 is
   the B from the open G shape, chosen for playability over the literal fifth.
 
-**Likely next steps** (user's call): PWA packaging — manifest, icons, service
-worker — to get it onto a phone home screen via GitHub Pages, which is what makes
-it genuinely practice-ready (this is Phase 3 of the workflow, and the user is
-lined up to do it next — will need a GitHub account). Then v2 musical work
-(remaining bass presets in the UI + the custom 4-slot builder, pattern audio
-playback, syncopation/16ths).
+**NEXT SESSION — Phase 3: PWA packaging + GitHub Pages.** This is decided, not a
+fork. The user has **created a GitHub account** (done at the end of session 3);
+hosting is the immediate goal. The work:
+- **PWA files:** a web app manifest (name, icons, `theme-color` already set in
+  `index.html`, `display: standalone`), app icons (generate from a simple mark —
+  no icons exist yet), and a service worker that precaches the app shell for
+  offline use. Keep it dependency-free and no-build like the rest.
+- **Cache-busting gotcha:** the service worker will now do the caching the
+  `serve.py` no-store header does in dev — bump a cache version on each deploy or
+  users get stale files. This is the classic PWA footgun; the workflow doc warns
+  "force-quit and reopen if changes don't appear."
+- **Host on GitHub Pages:** create the repo, push, enable Pages. The user will
+  need to do a one-time GitHub auth (browser/`gh` login) — hand them those steps,
+  don't guess their credentials. Ask **username** and **public vs private**
+  (private Pages needs a paid plan; public is expected) at the start.
+- **Then install on the phone:** open the Pages HTTPS URL in Safari → Share → Add
+  to Home Screen, and verify it launches standalone and works in airplane mode.
+
+Deferred behind that: the **theme colour pass** (its own session, phone-screen,
+`themes.json` only), then v2 musical work (remaining bass presets in the UI + the
+custom 4-slot builder, pattern audio playback, syncopation/16ths).
 
 ## Working with this user
 
