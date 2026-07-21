@@ -624,8 +624,68 @@ check(`metronome: bpm is clamped to the ${BPM_MIN}-${BPM_MAX} range`, () => {
   assert(m.running === false, "a fresh metronome should not be running");
 });
 
+// ---- async PWA checks ----
+// The sync `check()`s above run at import time; these need fetch(), so they run
+// (awaited) inside runTests before the report renders. Served by serve.py.
+const asyncChecks = [];
+function acheck(name, fn) {
+  asyncChecks.push({ name, fn });
+}
+
+acheck("pwa: manifest is valid and installable", async () => {
+  const res = await fetch("manifest.webmanifest");
+  assert(res.ok, "manifest.webmanifest should be served");
+  const m = await res.json();
+  assert(m.name, "manifest needs a name");
+  assert(m.start_url, "manifest needs a start_url");
+  assert(m.display === "standalone", "display should be standalone");
+  assert(Array.isArray(m.icons) && m.icons.length >= 1, "manifest needs icons");
+  assert(m.icons.some((i) => /512/.test(i.sizes)), "needs a 512 icon");
+  assert(m.icons.some((i) => (i.purpose || "").includes("maskable")), "needs a maskable icon");
+  for (const i of m.icons) {
+    const r = await fetch(i.src);
+    assert(r.ok, `icon ${i.src} should exist`);
+  }
+});
+
+acheck("pwa: service worker precaches every runtime module (offline stays complete)", async () => {
+  const swText = await (await fetch("sw.js")).text();
+  const block = swText.match(/PRECACHE\s*=\s*\[([\s\S]*?)\]/);
+  assert(block, "could not find the PRECACHE list in sw.js");
+  const listed = [...block[1].matchAll(/["']([^"']+)["']/g)].map((x) => x[1]);
+
+  // tests.js is dev-only; caching it would ship the test harness offline.
+  assert(!listed.includes("js/tests.js"), "tests.js must NOT be precached");
+
+  // Ground truth: every module under js/ (from the dir listing) except tests.js
+  // must be precached, or an added module silently breaks offline.
+  const dir = await (await fetch("js/")).text();
+  const modules = [...dir.matchAll(/href="([^"?]+\.js)"/g)]
+    .map((x) => "js/" + x[1].split("/").pop())
+    .filter((f) => f !== "js/tests.js");
+  assert(modules.length > 0, "expected a js/ directory listing to check against");
+  for (const f of modules) {
+    assert(listed.includes(f), `sw.js PRECACHE is missing ${f} — offline would break`);
+  }
+
+  // Every precached path must actually resolve (catches a typo'd entry).
+  for (const p of listed) {
+    const r = await fetch(p);
+    assert(r.ok, `precache entry "${p}" does not resolve (${r.status})`);
+  }
+});
+
 // ---- render report ----
-export function runTests(mount) {
+export async function runTests(mount) {
+  for (const { name, fn } of asyncChecks) {
+    try {
+      await fn();
+      results.push({ name, ok: true });
+    } catch (e) {
+      results.push({ name, ok: false, msg: e.message });
+    }
+  }
+
   const passed = results.filter((r) => r.ok).length;
   const total = results.length;
   const head = document.createElement("h2");

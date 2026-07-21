@@ -556,10 +556,25 @@ function attach() {
   });
 }
 
+// Register the offline service worker — but ONLY on the real HTTPS origin.
+// On localhost a cache-first SW would fight serve.py's no-store and feed you
+// stale code while developing; over `--lan` (plain http) the browser blocks SW
+// registration anyway. So it runs only where it should: the Pages deploy.
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  const host = location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch((err) =>
+      console.error("Service worker registration failed.", err));
+  });
+}
+
 // ----- boot -----
 async function boot() {
   initControls();
   attach();
+  registerServiceWorker();
   generate(); // roll one immediately so the grid is never empty
   refreshSavedCount();
 
