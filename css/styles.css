@@ -287,8 +287,6 @@ main {
   align-items: end;
 }
 .span-2 { grid-column: span 2; }
-.span-3 { grid-column: span 3; }
-.control-row.two { grid-template-columns: 1fr 1fr; }
 .field {
   min-width: 0;
   display: flex;
@@ -340,19 +338,6 @@ main {
   cursor: pointer;
 }
 .btn-primary:active { transform: translateY(1px); }
-
-.btn-secondary {
-  width: 100%;
-  padding: 15px 8px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-  background: var(--control);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  cursor: pointer;
-}
-.btn-secondary:active { transform: translateY(1px); }
 
 /* ---- saved sheet ---- */
 .sheet { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; }

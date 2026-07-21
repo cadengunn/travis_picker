@@ -232,34 +232,50 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 **v1 is complete.** v2+: remaining bass presets in the UI + custom 4-slot builder; pattern audio playback; syncopation/16ths; PWA packaging (manifest, icons, service worker) for phone install via GitHub Pages.
 
-## Where things stand (end of session 2, 2026-07-20)
+## Where things stand (end of session 3, 2026-07-20)
 
-**v1 is complete** — all four items built, 30/30 checks green in `tests.html`.
-Nothing is in progress; the tree is clean.
+**v1 is complete and has now run on real hardware** (iPhone XS Max, Safari, over
+`serve.py --lan`). 30/30 checks green; the tree is clean; nothing in progress.
 
-Verified in-browser this session: the no-scroll 2×2 grid at 375px, per-bar chord
-re-mapping, Save/Load round-trip, all 48 cells accepting a drawn note, pattern
-length extending rather than re-rolling, unsaved-edit warnings, and playhead
-timing against the audio clock.
+**First phone session — confirmed on hardware:**
+- **Metronome audio works** on iOS Safari, on every theme and across the tempo
+  range. The big unknown (was the AudioContext create/resume in the Play handler
+  enough for iOS?) is answered: yes.
+- **Tap targets** are big enough to hit in edit mode with all 4 bars showing.
+- The 2×2 grid is **legible at arm's length**; fret numbers are small but
+  readable at 4-bar size, fine at 1-bar. Themes render **differently on the phone
+  than the laptop** — still the deferred colour pass (below), not a regression.
+- One-handed operation is fine.
+
+**Fixed this session (all from the phone test):**
+- **Playhead didn't light the bass rows.** Two bugs. (1) A CSS specificity miss
+  let the thumb-row domain tint outrank `.cell.playing`. (2) Even fixed, a note
+  circle covers 82% of its cell, so on a beat the tint was hidden behind the
+  thumb note — the playhead looked like it skipped the bass. Now a sounding cell
+  also lifts + haloes its note (`--playhead-glow`); user likes the halo.
+- **Layout overflowed.** The 4-bar grid was clipped (5px on the XS Max, up to
+  142px on an SE-class screen) because chrome was 361px. Cut to ~101px: dropped
+  the app bar, moved generation inputs into an **⚙ Options sheet**, made Generate
+  a **🎲 button**. Permanent strip is now just Play / BPM / 🎲 / ⚙. See "Where
+  controls live" and "The height budget is the constraint" above — **re-measure
+  the two viewports in that table after any chrome change.**
+- **BPM ceiling 160 → 240** (160 was too slow for real fingerstyle). Widened the
+  scheduler lookahead to 0.2s so a fast 8th still schedules in time.
+- **"relative" type indicator hidden** — it now shows only as an absolute/mixed
+  "bass won't follow the chords" warning; the normal case was just noise.
 
 **Open threads — worth raising before building on top of them:**
-- **Themes need a dedicated pass.** They read differently on the phone than on
-  the laptop — all five are a reasonable first cut, none is finished. The user
-  wants a whole session on colour and legibility, deliberately deferred behind
-  functionality. Do it against a real phone screen, not the laptop; `themes.json`
-  is the only file that should change.
-- **Nothing has ever run on a phone.** Every session so far has been on the
-  laptop, so the whole mobile-first premise — tap targets, the 2×2 grid at real
-  phone size, one-handed reach — is still unverified on hardware. **Walking
-  through a phone test is the next session's first job.** Quickest route is
-  `python3 serve.py --lan` on the same Wi-Fi; GitHub Pages comes later with the
-  PWA work.
-- **The metronome has never been heard.** Timing, scheduling and the playhead
-  were verified programmatically, but audio output was not, and **iOS Safari was
-  never tested**. If it's silent on a phone, look first at the AudioContext
-  create/resume inside the Play handler. Confirm this before building more audio.
+- **Themes need a dedicated pass.** They read differently on the phone than the
+  laptop — all seven are a reasonable first cut, none is finished. The user wants
+  a whole session on colour and legibility, deliberately deferred behind
+  functionality. Do it against a real phone screen; `themes.json` is the only
+  file that should change.
+- **Save/Load persistence across a full app-quit is unverified on the phone.**
+  Round-trips fine in-session on both laptop and phone, but "close Safari,
+  reopen, favourites still there" — the actual practice-tool promise — hasn't
+  been checked on hardware. Worth a look; more so once it's a PWA.
 - **Grid bar crowding.** The slim bar above the grid holds the pattern name, the
-  type indicator and three pills (Edit/Save/Load). It fits at 375px, but a long
+  type indicator and three pills (Edit/Save/Load). Fits at 375px, but a long
   saved-pattern name will squeeze. Options if it bites: truncate harder, or drop
   "Edit" to just the pencil glyph.
 - **No save-time relative/absolute dialog.** The spec asked for one; drawing
@@ -272,8 +288,10 @@ timing against the audio clock.
 
 **Likely next steps** (user's call): PWA packaging — manifest, icons, service
 worker — to get it onto a phone home screen via GitHub Pages, which is what makes
-it genuinely practice-ready; or v2 musical work (remaining bass presets in the
-UI + the custom 4-slot builder, pattern audio playback, syncopation/16ths).
+it genuinely practice-ready (this is Phase 3 of the workflow, and the user is
+lined up to do it next — will need a GitHub account). Then v2 musical work
+(remaining bass presets in the UI + the custom 4-slot builder, pattern audio
+playback, syncopation/16ths).
 
 ## Working with this user
 
