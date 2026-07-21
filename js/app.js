@@ -152,15 +152,21 @@ function render() {
   metronome.setBars(chords.length);
 
   // Short label in the bar, full explanation on hover/long-press.
+  //
+  // `relative` is the normal case and the one where the bass just does what you
+  // expect, so saying so is noise. The indicator only earns its space as a
+  // warning: these bass notes will NOT follow the chords. (The spec asks for
+  // exactly that — "a small 'absolute — bass won't follow chords' indicator,
+  // never an error" — it was only ever the relative case that was gratuitous.)
   const t = state.pattern.type;
-  const LABEL = { relative: "relative", absolute: "absolute bass", mixed: "mixed bass" };
+  const LABEL = { absolute: "absolute bass", mixed: "mixed bass" };
   const DETAIL = {
-    relative: "Bass follows chord changes.",
     absolute: "Bass won't follow chord changes.",
     mixed: "Some bass notes won't follow chord changes.",
   };
   const ind = el("type-indicator");
-  ind.textContent = LABEL[t] ?? t;
+  ind.hidden = !LABEL[t];
+  ind.textContent = LABEL[t] ?? "";
   ind.title = DETAIL[t] ?? "";
   ind.className = "type-indicator " + t;
 }

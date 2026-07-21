@@ -9,11 +9,17 @@
 // hear, so highlighting there would run visibly early.
 
 const LOOKAHEAD_MS = 25;      // how often the scheduler wakes
-const SCHEDULE_AHEAD = 0.12;  // seconds of audio queued in advance
+// Seconds of audio queued in advance. Must stay comfortably longer than one
+// 8th note at the fastest tempo (0.125s at 240bpm) or a hiccup in setTimeout
+// lands a click late; the playhead reads the audio clock, so a wider window
+// costs nothing visually — only how fast a BPM change takes effect.
+const SCHEDULE_AHEAD = 0.2;
 const SLOTS_PER_BAR = 8;      // 8th notes
 
 export const BPM_MIN = 40;
-export const BPM_MAX = 160;
+// 240 because Travis/fingerstyle repertoire runs fast — 160 topped out well
+// short of the tunes this is for practising.
+export const BPM_MAX = 240;
 export const DEFAULT_BPM = 90;
 
 // --- pure helpers (unit-tested) ---

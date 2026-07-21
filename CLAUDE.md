@@ -160,7 +160,7 @@ only if v2's pattern playback actually needs a synth library.
   fires on stop, so the **first real step clears the count-in state** — that's
   why `onStep` calls `showCountIn(null)`.
 - `start()` creates/resumes the `AudioContext` **inside the click handler**, or
-  iOS Safari stays silent. BPM 40–160, clamped in `setBpm`.
+  iOS Safari stays silent. BPM 40–240, clamped in `setBpm`.
 
 **Saved library** (`storage.js`): a saved item is **musical content only** —
 `{ pattern, context: { chordMode, chord, key, progression } }` plus a name, id
@@ -228,7 +228,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 1b. **DONE** — progression mode (per-bar chords) with the Nashville number system + key selector; 14-chord library; UI themes from `themes.json`. Pulled forward ahead of favorites.
 2. **DONE** — **Saved patterns**: name + save to `localStorage`, list view, load, delete. See the Saved-library notes above.
 3. **DONE** — Manual editor (see the editor notes above). The spec's explicit relative/absolute *save dialog* was not built: drawing already keeps role-matching bass notes relative and marks off-role ones absolute, and the type indicator reports `relative`/`mixed`/`absolute` live. Revisit if a save-time choice ("snap to nearest role" vs "keep absolute") is actually wanted.
-4. **DONE** — Metronome: Web Audio click (not Tone.js — see above), BPM 40–160, one-bar count-in, and a playhead that lights the sounding column across all bars.
+4. **DONE** — Metronome: Web Audio click (not Tone.js — see above), BPM 40–240, one-bar count-in, and a playhead that lights the sounding column across all bars.
 
 **v1 is complete.** v2+: remaining bass presets in the UI + custom 4-slot builder; pattern audio playback; syncopation/16ths; PWA packaging (manifest, icons, service worker) for phone install via GitHub Pages.
 

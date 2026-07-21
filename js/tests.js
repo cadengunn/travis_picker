@@ -611,12 +611,16 @@ check("metronome: slot duration, beat slots and playhead position", () => {
   assert(JSON.stringify(stepToPosition(31)) === JSON.stringify({ bar: 3, slot: 8 }), "step 31 -> bar 3 slot 8");
 });
 
-check("metronome: bpm is clamped to the 40-160 range", () => {
+check(`metronome: bpm is clamped to the ${BPM_MIN}-${BPM_MAX} range`, () => {
   const m = createMetronome();
   assert(m.setBpm(90) === 90, "90 should pass through");
   assert(m.setBpm(10) === BPM_MIN, `below range should clamp to ${BPM_MIN}`);
   assert(m.setBpm(999) === BPM_MAX, `above range should clamp to ${BPM_MAX}`);
+  assert(m.setBpm(200) === 200, "200 should pass through — the fast end is usable");
   assert(m.setBpm(97.6) === 98, "fractional bpm should round");
+  // The scheduler must queue further ahead than one 8th at top speed, or a
+  // delayed setTimeout lands a click late.
+  assert(secondsPerSlot(BPM_MAX) < 0.2, "one 8th at max bpm must fit in the schedule-ahead window");
   assert(m.running === false, "a fresh metronome should not be running");
 });
 

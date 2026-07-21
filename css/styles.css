@@ -222,7 +222,12 @@ main {
   font-variant-numeric: tabular-nums; /* count-in digits mustn't jiggle */
 }
 .btn-icon:active { transform: translateY(1px); }
+/* Generate is the most-pressed button on the screen, so it gets more than the
+   44px minimum and the accent fill — it should be findable without looking. */
 .btn-roll {
+  width: 66px;
+  height: 54px;
+  font-size: 25px;
   color: var(--bg);
   background: var(--accent);
   border-color: var(--accent);
@@ -242,7 +247,7 @@ main {
 }
 .bpm-value {
   flex: 0 0 auto;
-  min-width: 30px;
+  min-width: 34px; /* fits three digits at the new 240 top end */
   text-align: right;
   font-size: 14px;
   font-weight: 700;
