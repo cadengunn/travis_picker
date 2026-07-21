@@ -4,7 +4,7 @@ Your step-by-step to-do list, from empty MacBook to app on your phone. Pair this
 
 ## Phase 0 — Setup (~10 min, one time)
 
-- [ ] Install the Claude Desktop app on the MacBook (claude.com/download) and sign in with your **personal Claude account**, not the firm's Team login.
+- [ ] Install the Claude Desktop app on the MacBook (claude.com/download) and sign in with your **personal Claude account**.
 - [ ] Click the **Code** tab (upper left). No terminal, Node.js, or CLI install needed — Claude Code is built in.
 - [ ] Make a project folder (Finder is fine): `~/Projects/travis-picker`, and drop `travis-picker-spec.md` and this file into it.
 - [ ] In the Code tab: new session → **Local** → Select folder → choose that folder.
