@@ -260,6 +260,14 @@ main {
    domain tint wins and the playhead lights only strings 3/2/1 — the bass half
    of the column stays dark. Found on a phone, not on the laptop. */
 .grid-track .row .cell.playing { background: var(--playhead); }
+/* On a beat the thumb note fills 82% of the cell, so the column tint alone
+   makes filled cells look un-lit — the note has to react too. Lift + glow reads
+   at a glance in any theme and whether or not the cell holds a note. */
+.grid-track .row .cell.playing { position: relative; z-index: 1; }
+.cell.playing .note {
+  transform: scale(1.14);
+  box-shadow: 0 0 0 2px var(--playhead-glow), 0 0 9px 1px var(--playhead-glow);
+}
 .grid-track.counting { opacity: 0.55; }
 
 /* ---- controls ---- */

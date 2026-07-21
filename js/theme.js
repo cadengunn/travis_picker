@@ -60,6 +60,10 @@ export function applyTheme(id) {
   r.setProperty("--control", mix(t.surface, t.bg, 0.25));
   // playhead column — reads clearly against `surface` in light and dark themes
   r.setProperty("--playhead", mix(t.surface, t.active, 0.4));
+  // a near-pure `active`, for the glow ring around a note whose column is
+  // sounding: on a beat the note circle covers the cell tint, so the note
+  // itself has to react or the playhead looks like it skips the bass.
+  r.setProperty("--playhead-glow", mix(t.surface, t.active, 0.9));
 
   document.documentElement.setAttribute("data-theme", t.id);
   try { localStorage.setItem(STORAGE_KEY, t.id); } catch {}
