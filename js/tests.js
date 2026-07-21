@@ -483,6 +483,36 @@ check("triples appear only in Chaos", () => {
   assert(sawTriple, "Chaos should produce at least one triple across a 40-seed sweep");
 });
 
+// 5e) Whole-loop generation: for the clean tiers the adjacency ceiling holds
+//     across the ENTIRE loop — interior bar seams AND the wrap from the last 8th
+//     back to the first. This is what circular generation buys over per-bar; a
+//     per-bar generator can't see the loop boundary and would trip there.
+check("clean tiers: no same-string re-strike across bar seams or the loop wrap", () => {
+  const stringsAtGlobal = (p, gi) => {
+    const bar = Math.floor(gi / 8), slot = (gi % 8) + 1;
+    return new Set(p.bars[bar].filter((e) => e.slot === slot).map((e) => e.string));
+  };
+  for (const chaos of ["tame", "loose"]) {
+    for (const chord of CHORD_IDS) {
+      for (const patternBars of [1, 2, 4]) {
+        for (let seed = 1; seed <= 6; seed++) {
+          const p = generatePattern(chord, { chaos, patternBars, rng: seeded(seed * 29 + patternBars) });
+          const N = 8 * patternBars;
+          for (let gi = 0; gi < N; gi++) {
+            const a = stringsAtGlobal(p, gi);
+            const b = stringsAtGlobal(p, (gi + 1) % N); // circular: wraps last -> first
+            for (const s of a) {
+              assert(!b.has(s),
+                `${chaos}: string ${s} re-strikes across global slots ${gi}->${(gi + 1) % N} ` +
+                `(${chord} ${patternBars}-bar seed ${seed})`);
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
 // 9) Layer independence: swapping the bass keeps the exact finger pattern, and
 //    re-rolling the fingers keeps the exact bass.
 check("regenerateBass keeps the right hand; regenerateTreble keeps the bass", () => {
