@@ -520,15 +520,34 @@ good for now on the generation tweaking"). All four tiers are guitar-approved.
 If feel ever drifts, everything is numbers in `CHAOS_PRESETS` — `maxRestrikes`
 1/3 for milder/spicier Unruly, etc.
 
-**NEXT SESSION — the theme colour pass** (long-deferred, now first in line: all
-seven themes are a first cut and read differently on phone vs laptop — do it
-**against a real phone screen**, `themes.json` the only file that changes).
-Then v2, suggested order: **pattern audio playback** (hear a pattern before
-drilling it — biggest practice win, and decides the raw-Web-Audio-vs-synth-lib
-question), the **custom 4-slot bass builder** (preset format ready for it),
-**syncopation/16ths**. Smaller candidates: JSON export/import of the Saved
-library (cheap insurance against iOS's ~7-day localStorage eviction), the
-grid-bar crowding fix if long saved names bite. Then the **theme colour pass** (deferred behind functionality; all
+**NEXT SESSION — the visual identity pass** (expanded from the old "theme
+colour pass" at the user's request): overall appearance — **fonts and general
+visual style, "make it feel more my own"** — with dialing in the seven themes
+as a subsection. Do it **against a real phone screen**. Note this relaxes the
+old "themes.json only" rule: fonts touch `styles.css`, and a bundled font file
+would need `sw.js` precache + a CACHE bump. Constraint: dependency-free +
+offline PWA → system font stacks or a bundled .woff2, no font CDN.
+
+Then v2, suggested order:
+- **Pattern audio playback** — hear a pattern before drilling it; biggest
+  practice win; decides the raw-Web-Audio-vs-synth-library question (try
+  Karplus-Strong plucks dependency-free first).
+- **Pre-loaded patterns** (user wants this): ship as *data* — a read-only
+  "Built-in" section in the Load sheet with "save a copy", NOT seeded into
+  localStorage (survives reinstalls, never pollutes the real library, updates
+  can add more). Fits the "favorites as a folder within Saved" design note.
+- **Custom 4-slot bass builder** — *pending a real need.* What it adds over the
+  manual editor: a custom bass is a reusable GENERATION input (re-roll fingers
+  over it endlessly via the layer system), relative-by-construction (follows
+  progressions), persistent in the Thumb selector. The open question posed to
+  the user: do they ever want a bass line outside the seven presets? If that
+  itch never comes, drop it like 16ths.
+- Smaller: JSON export/import of the Saved library (insurance against iOS's
+  ~7-day localStorage eviction), grid-bar crowding if long names bite.
+
+**DROPPED: syncopation/16ths** (user call, this session): at real Travis-picking
+tempos the 8-slot grid is already all you can fit — 16ths would generate
+patterns nobody drills. Don't resurrect without a musical reason. Then the **theme colour pass** (deferred behind functionality; all
 seven themes are a first cut, read differently on phone vs laptop — do it
 **against a real phone screen**, `themes.json` the only file that changes). Then
 v2 musical work: the **custom 4-slot bass builder** (the preset format and the
