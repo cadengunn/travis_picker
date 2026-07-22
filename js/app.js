@@ -20,6 +20,7 @@ import {
   progressionChords,
   detectProgression,
   degreeOf,
+  midiOf,
 } from "./data.js";
 import {
   generatePattern,
@@ -151,6 +152,9 @@ function render() {
   // Re-rendering drops the playhead's cells; keep the loop length in sync too.
   litCells = [];
   metronome.setBars(chords.length);
+  // Feed the resolved notes to the metronome so Play hears exactly what's on
+  // screen — rebuilt every render, so edits/re-rolls/chord changes carry over.
+  metronome.setNotes(noteTable(phrase));
 
   // Short label in the bar, full explanation on hover/long-press.
   //
@@ -231,6 +235,36 @@ function setKey(newKey) {
 }
 
 // ----- metronome -----
+// Resolved phrase -> step->notes table for playback. A step is the global 8th
+// index (bar*8 + slot-1), matching the metronome's own stepping. Thumb events
+// (finger "p") are flagged bass so the synth gives them more weight.
+function noteTable(phrase) {
+  const table = [];
+  phrase.forEach(({ bar }, barIdx) => {
+    for (const ev of bar) {
+      const step = barIdx * 8 + (ev.slot - 1);
+      (table[step] ||= []).push({ midi: midiOf(ev), bass: ev.finger === "p" });
+    }
+  });
+  return table;
+}
+
+// Play emits two independent layers — the click and the plucked pattern — each
+// an on/off preference (default on) persisted like the theme. localStorage may
+// throw in private mode; fall back to the defaults rather than break boot.
+const AUDIO_KEY = "tp-audio";
+const audioPrefs = { click: true, pattern: true };
+function loadAudioPrefs() {
+  try {
+    Object.assign(audioPrefs, JSON.parse(localStorage.getItem(AUDIO_KEY) || "{}"));
+  } catch {}
+}
+function saveAudioPrefs() {
+  try {
+    localStorage.setItem(AUDIO_KEY, JSON.stringify(audioPrefs));
+  } catch {}
+}
+
 // The playhead touches cells directly rather than re-rendering the grid — it
 // moves up to 8 times a bar and a full re-render would be wasteful (and would
 // fight edit mode).
@@ -504,6 +538,18 @@ function attach() {
     el("bpm-value").textContent = metronome.setBpm(Number(e.target.value));
   });
 
+  // What Play emits: independent Click and Pattern toggles (persisted).
+  el("click-toggle").addEventListener("change", (e) => {
+    audioPrefs.click = e.target.checked;
+    metronome.setClickEnabled(audioPrefs.click);
+    saveAudioPrefs();
+  });
+  el("pattern-toggle").addEventListener("change", (e) => {
+    audioPrefs.pattern = e.target.checked;
+    metronome.setPatternEnabled(audioPrefs.pattern);
+    saveAudioPrefs();
+  });
+
   // Manual editing — off by default so taps can't nudge a pattern mid-practice.
   el("edit-toggle").addEventListener("click", () => {
     state.editing = !state.editing;
@@ -574,6 +620,11 @@ function registerServiceWorker() {
 // ----- boot -----
 async function boot() {
   initControls();
+  loadAudioPrefs();
+  el("click-toggle").checked = audioPrefs.click;
+  el("pattern-toggle").checked = audioPrefs.pattern;
+  metronome.setClickEnabled(audioPrefs.click);
+  metronome.setPatternEnabled(audioPrefs.pattern);
   attach();
   registerServiceWorker();
   generate(); // roll one immediately so the grid is never empty

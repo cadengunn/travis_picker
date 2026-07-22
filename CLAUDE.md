@@ -50,7 +50,8 @@ js/grid.js        renderGrid() — resolved phrase -> DOM only
 js/theme.js       loads themes.json, applies a theme as CSS custom properties
 js/storage.js     the Saved library (localStorage); store is injectable for tests
 js/editor.js      pure tap-to-edit logic (toggleNote, hand inference) — no DOM
-js/metronome.js   Web Audio click + playhead scheduling (no dependencies)
+js/metronome.js   Web Audio click + pattern playback + playhead scheduling (no deps)
+js/synth.js       Karplus-Strong plucked-string voice (no deps) — pattern audio
 js/app.js         the ONLY stateful/DOM-glue file: controls -> generator -> grid
 js/tests.js       browser-run unit checks
 ```
@@ -161,6 +162,39 @@ only if v2's pattern playback actually needs a synth library.
   why `onStep` calls `showCountIn(null)`.
 - `start()` creates/resumes the `AudioContext` **inside the click handler**, or
   iOS Safari stays silent. BPM 40–240, clamped in `setBpm`.
+
+**Pattern playback** (`synth.js` + `metronome.js`, session 7): you can *hear* a
+generated pattern, not just see it and the click. It **rides the same lookahead
+scheduler** — no second clock. `app.js` builds a `step -> [{midi, bass}]` table
+in `render()` (beside `setBars`) via `noteTable()`, so edits/re-rolls/chord
+changes carry over for free; the scheduler schedules those notes at the same
+exact `AudioContext` times as the clicks. Stacked events (pinches/double stops)
+share a slot and so sound together. Pitch is `OPEN_STRING_MIDI[string] + fret`
+(standard EADGBe, `midiOf()` in `data.js`); a malformed event yields `NaN` and
+the synth skips it.
+- **Click and Pattern are independent on/off toggles** (`setClickEnabled` /
+  `setPatternEnabled`, Options sheet, both default on, persisted in
+  `localStorage` under `tp-audio`). The **count-in always clicks** regardless, so
+  you get an audible 1-2-3-4 even in pattern-only mode.
+- **Synth is Karplus-Strong, dependency-free** — this settled the roadmap's
+  raw-Web-Audio-vs-library question: a plucked-string voice is a noise burst
+  through a short delay line with an averaging low-pass in the feedback path, and
+  it sounds like a string, so **no library** (keeps the offline PWA clean). Each
+  pluck is rendered **offline into an `AudioBuffer`** (plain JS filling a
+  `Float32Array`) and played via a `BufferSource` — no `AudioWorklet`, no
+  deprecated `ScriptProcessor`, iOS-safe. Buffers are **cached per (pitch, voice)**
+  (~two dozen distinct pitches); all voices share one `DynamicsCompressor` bus so
+  a triple stop + thumb can't clip. A ~50ms tail fade prevents truncation clicks
+  (a fixed `seconds` can cut a low note mid-ring, since KS rings ~4× longer on a
+  low string than a high one — the low delay line cycles fewer times/sec).
+- **Two voices, all knobs in `synth.js` (`BASS_VOICE`/`TREBLE_VOICE`).** Bass is
+  **palm-muted** — the classic Travis thumb sound: a short dark thump, not a
+  ringing note. The `brightness` knob (1 = open/canonical KS; lower = darker) is
+  the mute: an in-loop one-pole low-pass leaves the fundamental but eats the
+  harmonics, and below ~0.375 the excitation is pre-smoothed an extra pass for a
+  duller attack. Guitar-tuned to `brightness: 0.37` (session 7). Treble stays
+  bright (`brightness` defaults to 1). Tune by ear on a phone: `brightness` for
+  mute amount, `decay`/`seconds` for length, `gain` for level.
 
 **Saved library** (`storage.js`): a saved item is **musical content only** —
 `{ pattern, context: { chordMode, chord, key, progression } }` plus a name, id
@@ -296,8 +330,10 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 is **DONE** and the app is hosted + installed on a phone (session 4, below).
 Session 5 added the **remaining bass presets in the UI** and a **chaos redesign**
 (4 tiers + density-in-presets + circular generation) — see session 5 below.
-v2+ remaining: custom 4-slot bass builder; pattern audio playback;
-syncopation/16ths; the deferred **theme colour pass**.
+Session 6 signed off the generation-difficulty tuning; **session 7 shipped
+pattern audio playback** (Karplus-Strong, palm-muted bass — see below), tagged
+**v2.0**. v2+ remaining: custom 4-slot bass builder; syncopation/16ths (dropped);
+the deferred **visual identity / theme pass**; pre-loaded patterns.
 
 ## Where things stand (end of session 4, 2026-07-20)
 
@@ -520,17 +556,35 @@ good for now on the generation tweaking"). All four tiers are guitar-approved.
 If feel ever drifts, everything is numbers in `CHAOS_PRESETS` — `maxRestrikes`
 1/3 for milder/spicier Unruly, etc.
 
-**NEXT SESSION — pattern audio playback** (user reordered this ahead of the
-visual pass): *hear* a generated pattern, not just see it + the metronome.
-Biggest remaining practice win, and it settles the deferred raw-Web-Audio-vs-
-synth-library question — **try Karplus-Strong plucked strings dependency-free
-first.** Reuse `metronome.js`'s lookahead scheduler (schedule note events beside
-the clicks; don't build a second clock). Pitch is derivable from each event's
-`string` + `fret` (standard tuning EADGBe); a slot's stacked events must sound
-together. Keep the iOS gesture rule (AudioContext created/resumed in the Play
-handler). Open UX question for the user: Play = click, pattern, or both?
+## Where things stand (end of session 7, 2026-07-22)
 
-Then, in suggested order:
+**Session 7 shipped pattern audio playback and tagged v2.0** (`CACHE` v12).
+You can now *hear* a generated pattern, not just see it + the metronome. The
+raw-Web-Audio-vs-synth-library question is **settled: dependency-free
+Karplus-Strong** sounds like a string, so no library (see the Pattern-playback
+note under the Metronome section for the full design). Deployed to Pages, 43/43
+checks green.
+
+- **Rides the existing scheduler**, no second clock (as planned). Two independent
+  **Click / Pattern** toggles in Options, both default on, persisted; count-in
+  always clicks. Play stays a plain start/stop transport.
+- **Bass is palm-muted** — this was the guitar-test feedback loop this session:
+  first pass rang out too long (KS rings ~4× longer on low strings), shortened
+  the tail, then the user wanted the classic palm-muted thumb *thump*. Added a
+  `brightness` knob (in-loop low-pass + pre-smoothed attack) and tuned by ear to
+  **`brightness: 0.37`**. All voice knobs are numbers in `synth.js`.
+- **UX answers from the user:** Play output = **independent Click + Pattern
+  toggles** (not one combined button); bass **slightly louder** than fingers.
+- **Verified in-browser** (couldn't hear it from the dev box): plucks schedule
+  through the synth, toggles gate correctly, offline render confirmed the muted
+  bass is measurably darker + shorter than the bright voice. **Sound quality was
+  the user's call on the phone** — that's what drove the brightness tuning.
+- Open thread: pattern playback and the metronome click can mask each other at
+  some tempos; fine so far, but the per-note `gain`s in `synth.js` are where to
+  balance if the pattern gets lost under the click.
+
+**NEXT SESSION — visual identity pass** (now that audio is done). In suggested
+order:
 - **Visual identity pass** (expanded from the old "theme colour pass" at the
   user's request): overall appearance — **fonts and general visual style, "make
   it feel more my own"** — with dialing in the seven themes as a subsection. Do

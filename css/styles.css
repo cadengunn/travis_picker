@@ -324,6 +324,36 @@ main {
   letter-spacing: 0;
 }
 
+/* Row label for a control-row that isn't a labelled <select> (the Play-sound
+   toggles). Matches the .field caption look and sits on the row baseline. */
+.field-label {
+  align-self: center;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+/* Click / Pattern on-off toggles — a tappable pill, native checkbox tinted. */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--control);
+  color: var(--text);
+  font-size: 14px;
+}
+.toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+  flex: none;
+}
+
 .segmented {
   display: flex;
   border: 1px solid var(--line);

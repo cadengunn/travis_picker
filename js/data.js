@@ -13,6 +13,19 @@ export const STRING_FINGER = { 3: "i", 2: "m", 1: "a" };
 export const BEAT_SLOTS = [1, 3, 5, 7]; // quarter-note downbeats
 export const OFFBEAT_SLOTS = [2, 4, 6, 8]; // the "&"s
 
+// ----- Tuning: open-string MIDI note for each string, standard EADGBe -----
+// String 6 (low E) = E2 = 40, up to string 1 (high e) = E4 = 64. A fretted
+// note is just the open note plus the fret, so pitch is derivable from any
+// resolved event's { string, fret } — this is what the audio synth plays.
+export const OPEN_STRING_MIDI = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
+
+// Pure: resolved event -> MIDI note number. Undefined string yields NaN, which
+// the synth skips (a malformed event never makes a sound rather than a wrong one).
+export function midiOf({ string, fret = 0 }) {
+  const open = OPEN_STRING_MIDI[string];
+  return open == null ? NaN : open + fret;
+}
+
 // ----- Bass engine presets (verbatim from the spec) -----
 // An entry is a role ("root"|"alt"|"fifth"), an absolute string (6/5/4), or
 // "random". A preset of only roles is fully relative/portable.

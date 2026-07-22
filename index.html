@@ -22,7 +22,7 @@
 <body>
   <main>
     <div class="grid-bar">
-      <span class="app-version" aria-label="App version">v1.6</span>
+      <span class="app-version" aria-label="App version">v2.0</span>
       <div class="grid-bar-info">
         <div id="loaded-name" class="loaded-name" hidden></div>
         <span id="type-indicator" class="type-indicator"></span>
@@ -105,6 +105,19 @@
       </div>
 
       <hr class="sheet-rule" />
+
+      <!-- What Play emits: the click and the plucked pattern, independently. -->
+      <div class="control-row">
+        <span class="field-label">Play sound</span>
+        <label class="toggle">
+          <input id="click-toggle" type="checkbox" checked />
+          <span>Click</span>
+        </label>
+        <label class="toggle">
+          <input id="pattern-toggle" type="checkbox" checked />
+          <span>Pattern</span>
+        </label>
+      </div>
 
       <div class="control-row">
         <label class="field span-2">

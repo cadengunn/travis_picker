@@ -20,7 +20,10 @@ import {
   progressionChords,
   detectProgression,
   fitProgression,
+  midiOf,
+  OPEN_STRING_MIDI,
 } from "./data.js";
+import { midiToFreq } from "./synth.js";
 import {
   generatePattern,
   resolvePattern,
@@ -829,6 +832,24 @@ check(`metronome: bpm is clamped to the ${BPM_MIN}-${BPM_MAX} range`, () => {
   // delayed setTimeout lands a click late.
   assert(secondsPerSlot(BPM_MAX) < 0.2, "one 8th at max bpm must fit in the schedule-ahead window");
   assert(m.running === false, "a fresh metronome should not be running");
+});
+
+check("audio: pitch derives from string+fret in standard tuning", () => {
+  // Open strings, low E (6) to high e (1).
+  assert(OPEN_STRING_MIDI[6] === 40, "string 6 open is E2 (40)");
+  assert(OPEN_STRING_MIDI[1] === 64, "string 1 open is E4 (64)");
+  assert(midiOf({ string: 6, fret: 0 }) === 40, "6/0 -> 40");
+  assert(midiOf({ string: 5, fret: 3 }) === 48, "5/3 (C) -> 48");
+  assert(midiOf({ string: 1, fret: 12 }) === 76, "1/12 is an octave up -> 76");
+  assert(midiOf({ string: 4 }) === 50, "missing fret defaults to open (0)");
+  // A malformed event (no known string) yields NaN, which the synth skips —
+  // better a silent note than a wrong pitch.
+  assert(Number.isNaN(midiOf({ string: 9, fret: 0 })), "unknown string -> NaN");
+
+  // Equal temperament: A4 (MIDI 69) is 440Hz, and an octave doubles frequency.
+  assert(Math.abs(midiToFreq(69) - 440) < 1e-6, "MIDI 69 -> 440Hz");
+  assert(Math.abs(midiToFreq(81) - 880) < 1e-6, "an octave up doubles to 880Hz");
+  assert(midiToFreq(64) > 0, "a real note has a positive frequency");
 });
 
 // ---- async PWA checks ----
