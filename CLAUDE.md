@@ -237,21 +237,29 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     only — keeps genuinely simple all-singles rolls a real species; suppresses
     `minDoubleStops`), `doubleStopOdds.{double,triple}` (per-column thickness on
     non-singles rolls), `minDoubleStops` (per-bar stack floor, Unruly's texture
-    guarantee).
-  - **Tier numbers** (measured over 500 seeds/tier, round 4): **Tame** 2–3
-    strikes, ~57% all-singles, ~3% all-pinch bars, clean adjacency; **Loose**
-    4–5 strikes, still clean; **Unruly** a TRUE 5–6 (the round-3 budget
-    shortfall is gone), ~4% all-singles, re-strikes allowed, ≥1 stack per bar
-    on stacked rolls; **Chaos** genuinely uniform 1–8 strikes, uniform column
-    shapes (single/double/triple each ⅓), no constraints. (Unruly's floor was
-    raised from 4/10% in round 3 — occasional rolls read too easy for the
-    tier.)
+    guarantee), `maxRestrikes` (per-BAR budget of same-string re-strikes on
+    adjacent 8ths, thumb included — replaced the old `noAdjacentSameString`
+    boolean in round 5: 0 = clean, 2 = Unruly's rationed spice, Infinity =
+    Chaos).
+  - **Tier numbers** (measured over 500 seeds/tier, round 5): **Tame** 2–3
+    strikes, ~57% all-singles, ~3% all-pinch bars, clean; **Loose** 4–5
+    strikes, still clean; **Unruly** 5–6 strikes (~7% of bars drop to 4 when
+    the re-strike budget blocks a column), re-strikes 0–2/bar avg ~1.9 (was
+    ~3.5 unlimited with a tail to 11 — round 5's "too much"), ~4% all-singles,
+    ≥1 stack per bar on stacked rolls; **Chaos** genuinely uniform 1–8 strikes,
+    uniform column shapes (single/double/triple each ⅓), unlimited re-strikes.
+    (Unruly's strike floor was raised from 4/10% in round 3.)
   - **Hard no-blank rule:** every bar gets **≥1 finger note** — the generator
     forces a legal offbeat rather than ship a bare-thumb bar. Asserted in tests.
-  - `noAdjacentSameString` (a string sounding on two adjacent 8ths, thumb
-    included) is a **HARD** ceiling for the clean tiers (Tame, Loose): if avoiding
-    a re-strike leaves no legal finger string, it **drops the column rather than
-    re-strike** — so the strike-time count is a best-effort floor, a hard ceiling.
+  - **Re-strikes are rationed, not binary** (round 5): `maxRestrikes` charges
+    each audible adjacent same-string pair against its bar's budget (a string
+    colliding with BOTH neighbours costs 2), so total pairs never exceed
+    bars × maxRestrikes — asserted in tests. At budget 0 (Tame/Loose) this is
+    the old hard ceiling: if avoiding a re-strike leaves no legal finger
+    string, the generator **drops the column rather than re-strike** — so the
+    strike-time count is a best-effort floor, a hard ceiling. The same drop now
+    applies to Unruly once its budget is spent (~7% of its bars land on 4
+    strikes for this reason).
   - Treble is generated for the **whole loop as one circular N = 8×bars slot
     sequence** (`generateTrebleLoop`), not bar-by-bar: interior bar seams are
     ordinary adjacencies and the single wrap is last-8th→first, so a re-strike
@@ -496,9 +504,20 @@ true 5–6, Chaos's strike spread is genuinely uniform 1–8 (the old cap starve
 7–8), and pinch counts in busy tiers rose to their natural rate (Unruly ~2.2/bar
 from ~1.4).
 
-**NEXT SESSION — guitar-confirm round 4**: Unruly's true 5–6 floor, the richer
-pinch rates in Loose/Unruly, and all-pinch-bar frequency. Tune `CHAOS_PRESETS`
-if anything drifts (all feel lives there). Then the **theme colour pass** (deferred behind functionality; all
+**Round 5 (2026-07-22, deployed as v1.6, `CACHE` v11) — re-strikes rationed.**
+Round 4 verdict: offbeat preference gone (good), but Unruly "a little too much"
+— the user proposed capping adjacency rather than lowering density, which is
+the right call (re-strikes are the spec's "hardest thing", and unlimited
+adjacency + the true strike floor averaged ~3.5 pairs/bar, tail to 11). The
+`noAdjacentSameString` boolean became **`maxRestrikes`** — a per-bar re-strike
+budget (0 clean / 2 Unruly / Infinity Chaos), each audible adjacent pair
+charged to the bar placing it. Unruly now rolls 0–2 pairs/bar (avg ~1.9);
+Tame/Loose/Chaos measurably unchanged. New test asserts the loop-wide cap.
+
+**NEXT SESSION — guitar-confirm round 5**: does Unruly at ≤2 re-strikes/bar sit
+right (the knob is `maxRestrikes`; 1 = milder, 3 = spicier)? Also still fresh
+from round 4: pinch rates and all-pinch-bar frequency. Tune `CHAOS_PRESETS` if
+anything drifts (all feel lives there). Then the **theme colour pass** (deferred behind functionality; all
 seven themes are a first cut, read differently on phone vs laptop — do it
 **against a real phone screen**, `themes.json` the only file that changes). Then
 v2 musical work: the **custom 4-slot bass builder** (the preset format and the

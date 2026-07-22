@@ -475,6 +475,40 @@ check("triples are not Chaos-exclusive: every tier can stack three", () => {
   }
 });
 
+// 5e2) Re-strikes are RATIONED, not binary (round 5): `maxRestrikes` is a
+//      per-bar budget, so total same-string adjacent pairs across the circular
+//      loop never exceed bars × maxRestrikes (Unruly: 2/bar — spice, not a
+//      wall; unlimited adjacency averaged ~3.5 pairs/bar with a tail to 11).
+//      And the budget is real: Unruly still re-strikes somewhere in a sweep.
+check("Unruly: re-strike pairs capped at maxRestrikes per bar, but present", () => {
+  const pairsInLoop = (p) => {
+    const N = p.bars.length * 8;
+    const at = (gi) => {
+      const bar = Math.floor(gi / 8), slot = (gi % 8) + 1;
+      return new Set(p.bars[bar].filter((e) => e.slot === slot).map((e) => e.string));
+    };
+    let pairs = 0;
+    for (let gi = 0; gi < N; gi++) {
+      const a = at(gi), b = at((gi + 1) % N);
+      for (const s of a) if (b.has(s)) pairs++;
+    }
+    return pairs;
+  };
+  let sawRestrike = false;
+  for (const chord of CHORD_IDS) {
+    for (const patternBars of [1, 2]) {
+      for (let seed = 1; seed <= 10; seed++) {
+        const p = generatePattern(chord, { chaos: "unruly", patternBars, rng: seeded(seed * 43 + patternBars) });
+        const pairs = pairsInLoop(p);
+        assert(pairs <= 2 * patternBars,
+          `Unruly rolled ${pairs} re-strike pairs, cap is ${2 * patternBars} (${chord} ${patternBars}-bar seed ${seed})`);
+        if (pairs > 0) sawRestrike = true;
+      }
+    }
+  }
+  assert(sawRestrike, "Unruly should still produce re-strikes across the sweep");
+});
+
 // 5f) Hard no-blank rule (session 6): every bar has at least one finger note.
 //     Chaos used to be able to roll a bare-thumb bar; the generator now forces a
 //     legal offbeat rather than ship one.

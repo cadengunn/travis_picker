@@ -63,7 +63,7 @@ const SLOTS_PER_BAR = 8;
 // ---- treble (finger) layer for the WHOLE loop -------------------------------
 // The pattern is always a loop, so the finger layer is generated as ONE circular
 // sequence of N = 8 × bars 8th-note slots rather than bar-by-bar. Adjacency
-// (`noAdjacentSameString`) treats it as continuous: every slot checks its two
+// (the `maxRestrikes` budget) treats it as continuous: every slot checks its two
 // neighbours, interior bar seams (slot 8↔9 …) are ordinary adjacencies, and the
 // single wrap is the last 8th back to the first. That's what closes the
 // loop-point re-strike a per-bar generator can't see.
@@ -120,19 +120,41 @@ function generateTrebleLoop(flags, thumbBars, rng) {
     }
   }
 
-  // Legal finger strings at a global slot: not already sounding (hard rule) and,
-  // when noAdjacentSameString is on, not on either circular neighbour. HARD for
-  // the clean tiers (Tame, Loose): a double stop plus the thumb can block all
-  // three finger strings on the next 8th (e.g. D's alt bass on string 3), and a
-  // quietly-dropped offbeat beats an audible same-string re-strike.
+  // Re-strikes (a string sounding on two adjacent 8ths, thumb included) are
+  // rationed by a per-BAR budget, `maxRestrikes`: 0 is the clean tiers' hard
+  // ceiling — if avoiding a re-strike leaves no legal finger string (a double
+  // stop plus the thumb can block all three, e.g. D's alt bass on string 3),
+  // the column is dropped rather than re-struck — while Unruly affords a couple
+  // per bar and Chaos is unlimited. Each audible adjacent pair costs 1 from the
+  // budget of the bar placing it (a string colliding with BOTH neighbours costs
+  // 2), so total pairs across the loop never exceed bars × maxRestrikes.
+  const restrikesLeft = Array.from({ length: bars }, () => flags.maxRestrikes ?? 0);
+  const restrikeCost = (gi) => {
+    const prev = occupied.get((gi - 1 + N) % N);
+    const next = occupied.get((gi + 1) % N);
+    return (s) => (prev?.has(s) ? 1 : 0) + (next?.has(s) ? 1 : 0);
+  };
+  // Candidates at a global slot: `legalAt` enforces only the hard rule (not
+  // already sounding here) when the bar still has re-strike budget, and also
+  // excludes both circular neighbours' strings once it doesn't.
   const legalAt = (gi) => {
-    let c = FINGER_STRINGS.filter((s) => !occupied.get(gi)?.has(s));
-    if (flags.noAdjacentSameString) {
-      const prev = occupied.get((gi - 1 + N) % N);
-      const next = occupied.get((gi + 1) % N);
-      c = c.filter((s) => !(prev?.has(s) || next?.has(s)));
+    const cost = restrikeCost(gi);
+    const budget = restrikesLeft[barOf(gi)];
+    return FINGER_STRINGS.filter((s) => !occupied.get(gi)?.has(s) && cost(s) <= budget);
+  };
+  // Take up to n strings at gi from a shuffled candidate pool, charging the
+  // bar's re-strike budget as it goes (clean strings are always free).
+  const takeStrings = (gi, pool, n, rng) => {
+    const cost = restrikeCost(gi);
+    const out = [];
+    for (const s of shuffled(pool, rng)) {
+      if (out.length >= n) break;
+      const c = cost(s);
+      if (c > restrikesLeft[barOf(gi)]) continue;
+      restrikesLeft[barOf(gi)] -= c;
+      out.push(s);
     }
-    return c;
+    return out;
   };
 
   // One roll up front: an all-singles generation. The whole loop uses single
@@ -154,9 +176,9 @@ function generateTrebleLoop(flags, thumbBars, rng) {
       if (r < triple) notesHere = 3;
       else if (r < triple + double) notesHere = 2;
     }
-    notesHere = Math.min(notesHere, candidates.length);
 
-    const strings = shuffled(candidates, rng).slice(0, notesHere);
+    const strings = takeStrings(gi, candidates, notesHere, rng);
+    if (!strings.length) continue;
     for (const s of strings) add(gi, s);
     placed.set(gi, strings);
   }
@@ -173,8 +195,8 @@ function generateTrebleLoop(flags, thumbBars, rng) {
       for (const gi of singles) {
         if (doubles >= flags.minDoubleStops) break;
         const pool = legalAt(gi); // excludes the string already placed here
-        if (!pool.length) continue;
-        const s = pick(pool, rng);
+        const [s] = takeStrings(gi, pool, 1, rng); // charges any re-strike cost
+        if (s == null) continue;
         add(gi, s);
         placed.get(gi).push(s);
         doubles++;
@@ -190,9 +212,8 @@ function generateTrebleLoop(flags, thumbBars, rng) {
     if (slots.some((gi) => placed.get(gi)?.length)) continue;
     for (const slot of shuffled(OFFBEAT_SLOTS, rng)) {
       const gi = b * SLOTS_PER_BAR + (slot - 1);
-      const pool = legalAt(gi);
-      if (!pool.length) continue;
-      const s = pick(pool, rng);
+      const [s] = takeStrings(gi, legalAt(gi), 1, rng); // charges any re-strike cost
+      if (s == null) continue;
       add(gi, s);
       placed.set(gi, [s]);
       break;

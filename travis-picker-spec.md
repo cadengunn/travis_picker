@@ -60,8 +60,10 @@ species.
   two adjacent 8th slots (thumb included) — the same-string re-strike is the hardest
   thing for a beginner.
 - **Loose** — 4–5 strike-times, finger-sets varying freely; still no re-strikes.
-- **Unruly** — 4–6 strike-times, denser stacks; the adjacency ceiling comes off
-  (re-strikes allowed); a per-bar stack floor so non-singles rolls don't read Loose.
+- **Unruly** — 5–6 strike-times, denser stacks; re-strikes are **rationed, not
+  unlimited** — a small per-bar budget (`maxRestrikes`, currently 2) of same-string
+  adjacent pairs, so they're a spice, not a wall; a per-bar stack floor so
+  non-singles rolls don't read Loose.
 - **Chaos** — **fully random, not "hardest"**: uniform 1–8 strike-times, uniform
   column shape (single/double/triple), coin-flip pinches, no stylistic constraints.
   Novelty over playability; the point is discovering patterns.

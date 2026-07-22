@@ -138,6 +138,11 @@ export function fretFor(chordId, string) {
 //     simple all-singles rolls a real species on the lower tiers.
 //   - doubleStopOdds   — per-column 2-/3-note odds on non-singles rolls.
 //   - minDoubleStops   — per-BAR stack floor (Unruly's texture guarantee).
+//   - maxRestrikes     — per-BAR budget of same-string re-strikes on adjacent
+//     8ths (thumb included), replacing the old noAdjacentSameString boolean:
+//     0 = clean (drop the column rather than re-strike), a small number =
+//     rationed spice (Unruly), Infinity = anything goes (Chaos). Each audible
+//     adjacent pair costs 1 from the budget of the bar placing it.
 // The generator reads these numbers and never branches on preset name. Two hard
 // rules live in the generator: no same-(slot,string) collision, and no blank
 // bars (every bar gets ≥1 finger note).
@@ -145,7 +150,7 @@ export const CHAOS_PRESETS = {
   tame: {
     id: "tame",
     name: "Tame",
-    noAdjacentSameString: true, // clean: no string sounds on two adjacent 8th slots
+    maxRestrikes: 0, // clean: no string sounds on two adjacent 8th slots
     minStrikes: 2, // few strike-times — the tier's defining trait
     maxStrikes: 3,
     allSinglesOdds: 0.45, // near half the rolls: wandering single notes only
@@ -157,7 +162,7 @@ export const CHAOS_PRESETS = {
   loose: {
     id: "loose",
     name: "Loose",
-    noAdjacentSameString: true, // still clean (no re-strikes)
+    maxRestrikes: 0, // still clean (no re-strikes)
     minStrikes: 4, // more strike-times than Tame — the actual difficulty jump
     maxStrikes: 5,
     allSinglesOdds: 0.30,
@@ -169,7 +174,9 @@ export const CHAOS_PRESETS = {
   unruly: {
     id: "unruly",
     name: "Unruly",
-    noAdjacentSameString: false, // re-strikes allowed — the top of the curve
+    maxRestrikes: 2, // re-strikes rationed, not unlimited: a couple of spicy
+    // moments per bar (unlimited adjacency averaged ~3.5 pairs/bar with a tail
+    // to 11 once the strike floor became real — round 5's "too much")
     minStrikes: 5, // floor raised from 4 (round 3): 4-strike rolls read too easy for the tier
     maxStrikes: 6,
     allSinglesOdds: 0.05, // rare — an easy all-singles roll undercuts "unruly"
@@ -181,7 +188,7 @@ export const CHAOS_PRESETS = {
   chaos: {
     id: "chaos",
     name: "Chaos",
-    noAdjacentSameString: false,
+    maxRestrikes: Infinity, // fully random: anything goes
     minStrikes: 1, // fully random: uniform 1–8 total strike-times
     maxStrikes: 8,
     allSinglesOdds: 0,
