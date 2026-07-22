@@ -228,20 +228,24 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     strikes. Stack thickness is a side effect, not an axis; **triples are legal
     in every tier**.
   - **The knobs** (all in the preset): `min/maxStrikes` (the per-bar TOTAL
-    strike-time budget — offbeats + pinched beats), `pinchOdds` (chance a beat
-    also gets a finger note, capped by the budget), `allSinglesOdds` (per-PATTERN
-    chance the whole generation is single notes only — keeps genuinely simple
-    all-singles rolls a real species; suppresses `minDoubleStops`),
-    `doubleStopOdds.{double,triple}` (per-column thickness on non-singles
-    rolls), `minDoubleStops` (per-bar stack floor, Unruly's texture guarantee).
-  - **Tier numbers** (measured over 400 seeds/tier): **Tame** 2–3 strikes, ~57%
-    all-singles, clean adjacency; **Loose** 4–5 strikes, ~39% all-singles, still
-    clean; **Unruly** budget 5–6 (mode 5; ~21% of bars land on 4 via budget
-    shortfall — a 5-budget bar with no pinch tops out at the 4 offbeat columns),
-    ~4% all-singles, re-strikes allowed, ≥1 stack per bar on stacked rolls;
-    **Chaos** uniform 1–8 strikes, uniform column shapes (single/double/triple
-    each ⅓), coin-flip pinches, no constraints. (Unruly's floor was raised from
-    4/10% in round 3 — occasional rolls read too easy for the tier.)
+    strike-time budget), `pinchOdds` (per-STRIKE placement weight: the chance a
+    budgeted strike lands on a beat — a pinch, fingers riding the thumb's
+    existing attack moment — vs an offbeat, a NEW attack moment, i.e. the
+    syncopation skill; a full side falls back to the other so the budget is a
+    true floor, and all-pinch bars are possible but rare, ~`pinchOdds^budget`),
+    `allSinglesOdds` (per-PATTERN chance the whole generation is single notes
+    only — keeps genuinely simple all-singles rolls a real species; suppresses
+    `minDoubleStops`), `doubleStopOdds.{double,triple}` (per-column thickness on
+    non-singles rolls), `minDoubleStops` (per-bar stack floor, Unruly's texture
+    guarantee).
+  - **Tier numbers** (measured over 500 seeds/tier, round 4): **Tame** 2–3
+    strikes, ~57% all-singles, ~3% all-pinch bars, clean adjacency; **Loose**
+    4–5 strikes, still clean; **Unruly** a TRUE 5–6 (the round-3 budget
+    shortfall is gone), ~4% all-singles, re-strikes allowed, ≥1 stack per bar
+    on stacked rolls; **Chaos** genuinely uniform 1–8 strikes, uniform column
+    shapes (single/double/triple each ⅓), no constraints. (Unruly's floor was
+    raised from 4/10% in round 3 — occasional rolls read too easy for the
+    tier.)
   - **Hard no-blank rule:** every bar gets **≥1 finger note** — the generator
     forces a legal offbeat rather than ship a bare-thumb bar. Asserted in tests.
   - `noAdjacentSameString` (a string sounding on two adjacent 8ths, thumb
@@ -478,9 +482,23 @@ very good" — two tweaks only: **Unruly's floor raised** (`minStrikes` 4→5,
 **startup chord is now E** (`DEFAULT_CHORD` in `data.js` — what the user actually
 drills; taste, not musical logic).
 
-**NEXT SESSION — confirm Unruly's raised floor on guitar**; Tame/Loose/Chaos are
-signed off. Tune `CHAOS_PRESETS` numbers if anything drifts (all feel lives
-there). Then the **theme colour pass** (deferred behind functionality; all
+**Round 4 (2026-07-22, deployed as v1.5, `CACHE` v10) — pinch allocation
+unified.** The user asked why pinches were a separate mechanism at all; answer:
+mostly vestigial (the old offbeats-are-the-dial model), except for one musical
+fact worth keeping — a pinch rides the thumb's existing attack moment while an
+offbeat strike creates a new one (the syncopation skill). So the two-phase
+allocator (roll pinches, spend the rest on offbeats — which structurally
+preferred offbeats and caused Unruly's budget shortfall) became **one weighted
+roll per budgeted strike**: `pinchOdds` is now the per-strike chance of landing
+on a beat, with fallback to whichever side has room. User calls: all-pinch bars
+**rare but possible** (measured: Tame ~3%, Loose ~0.6%). Results: Unruly is a
+true 5–6, Chaos's strike spread is genuinely uniform 1–8 (the old cap starved
+7–8), and pinch counts in busy tiers rose to their natural rate (Unruly ~2.2/bar
+from ~1.4).
+
+**NEXT SESSION — guitar-confirm round 4**: Unruly's true 5–6 floor, the richer
+pinch rates in Loose/Unruly, and all-pinch-bar frequency. Tune `CHAOS_PRESETS`
+if anything drifts (all feel lives there). Then the **theme colour pass** (deferred behind functionality; all
 seven themes are a first cut, read differently on phone vs laptop — do it
 **against a real phone screen**, `themes.json` the only file that changes). Then
 v2 musical work: the **custom 4-slot bass builder** (the preset format and the

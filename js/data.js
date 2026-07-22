@@ -128,7 +128,11 @@ export function fretFor(chordId, string) {
 //   - min/maxStrikes   — the strike-time budget per bar: the TOTAL number of
 //     columns the fingers attack in, pinched beats included (they count
 //     against the budget, not on top of it).
-//   - pinchOdds        — chance a beat also gets a finger note (a pinch).
+//   - pinchOdds        — per-STRIKE placement weight: the chance a budgeted
+//     strike lands on a beat (a pinch, fingers riding the thumb's timing)
+//     rather than an offbeat (a new attack moment — the syncopation skill).
+//     A full side falls back to the other, so the budget is a true floor;
+//     all-pinch bars are possible but rare (~pinchOdds^budget).
 //   - allSinglesOdds   — per-PATTERN chance the whole generation uses single
 //     finger notes only (no stacks; suppresses minDoubleStops). Keeps genuinely
 //     simple all-singles rolls a real species on the lower tiers.

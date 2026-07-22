@@ -98,19 +98,24 @@ function generateTrebleLoop(flags, thumbBars, rng) {
   }
 
   // Which global slots want a finger note. Strike-times are THE difficulty
-  // dial, so the budget is the TOTAL finger columns per bar — pinched beats
-  // count against it, not on top of it (six attack columns is not "Tame" no
-  // matter how they're split). Roll the budget, take pinches by odds capped to
-  // the budget, and spend the remainder on offbeat columns.
+  // dial, so the budget is the TOTAL finger columns per bar — and placement is
+  // ONE weighted roll per strike, not separate pinch/offbeat phases (the old
+  // two-phase allocator preferred offbeats structurally and could fall short
+  // of the budget when few pinches rolled). `pinchOdds` is the chance a strike
+  // lands on a beat — a pinch, fingers riding the thumb's existing attack
+  // moment — rather than an offbeat, which creates a NEW attack moment between
+  // thumb hits (the syncopation skill). A full side falls back to the other,
+  // so the budget is a true floor. All-pinch bars are possible but rare
+  // (~pinchOdds^budget).
   const active = new Set();
   for (let b = 0; b < bars; b++) {
     const span = flags.maxStrikes - flags.minStrikes;
     const budget = flags.minStrikes + Math.floor(rng() * (span + 1));
-    let pinched = thumbBars[b].filter(() => rng() < flags.pinchOdds).map((ev) => ev.slot);
-    if (pinched.length > budget) pinched = shuffled(pinched, rng).slice(0, budget);
-    for (const slot of pinched) active.add(globalIndex(b, slot));
-    const offCount = Math.min(budget - pinched.length, OFFBEAT_SLOTS.length);
-    for (const slot of shuffled(OFFBEAT_SLOTS, rng).slice(0, offCount)) {
+    const beats = shuffled(BEAT_SLOTS, rng);
+    const offs = shuffled(OFFBEAT_SLOTS, rng);
+    for (let k = 0; k < budget && (beats.length || offs.length); k++) {
+      const onBeat = rng() < flags.pinchOdds;
+      const slot = (onBeat ? beats : offs).pop() ?? (onBeat ? offs : beats).pop();
       active.add(globalIndex(b, slot));
     }
   }
