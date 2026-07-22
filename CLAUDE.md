@@ -514,10 +514,21 @@ budget (0 clean / 2 Unruly / Infinity Chaos), each audible adjacent pair
 charged to the bar placing it. Unruly now rolls 0–2 pairs/bar (avg ~1.9);
 Tame/Loose/Chaos measurably unchanged. New test asserts the loop-wide cap.
 
-**NEXT SESSION — guitar-confirm round 5**: does Unruly at ≤2 re-strikes/bar sit
-right (the knob is `maxRestrikes`; 1 = milder, 3 = spicier)? Also still fresh
-from round 4: pinch rates and all-pinch-bar frequency. Tune `CHAOS_PRESETS` if
-anything drifts (all feel lives there). Then the **theme colour pass** (deferred behind functionality; all
+**Round 5 CONFIRMED on guitar — generation tuning is SIGNED OFF** (user:
+"more playable while still clearly the most challenging tier"; "we'll call this
+good for now on the generation tweaking"). All four tiers are guitar-approved.
+If feel ever drifts, everything is numbers in `CHAOS_PRESETS` — `maxRestrikes`
+1/3 for milder/spicier Unruly, etc.
+
+**NEXT SESSION — the theme colour pass** (long-deferred, now first in line: all
+seven themes are a first cut and read differently on phone vs laptop — do it
+**against a real phone screen**, `themes.json` the only file that changes).
+Then v2, suggested order: **pattern audio playback** (hear a pattern before
+drilling it — biggest practice win, and decides the raw-Web-Audio-vs-synth-lib
+question), the **custom 4-slot bass builder** (preset format ready for it),
+**syncopation/16ths**. Smaller candidates: JSON export/import of the Saved
+library (cheap insurance against iOS's ~7-day localStorage eviction), the
+grid-bar crowding fix if long saved names bite. Then the **theme colour pass** (deferred behind functionality; all
 seven themes are a first cut, read differently on phone vs laptop — do it
 **against a real phone screen**, `themes.json` the only file that changes). Then
 v2 musical work: the **custom 4-slot bass builder** (the preset format and the
