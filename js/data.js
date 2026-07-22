@@ -104,43 +104,44 @@ export function fretFor(chordId, string) {
   return f == null ? 0 : f;
 }
 
-// ----- Chaos presets: independent constraint flags. The four tiers are just
-// presets over these flags (leaves room for a future custom panel). They sit on
-// one monotonic difficulty curve: Tame → Loose → Unruly → Chaos.
+// ----- Chaos presets: independent constraint flags. The tiers are just presets
+// over these flags (leaves room for a future custom panel). Difficulty runs
+// Tame → Loose → Unruly; **Chaos sits OFF that curve** — it's the fully random
+// discovery setting ("novelty over playability", per the spec), not "harder
+// than Unruly" (session 6 round 2 decision).
 //
-// DIFFICULTY MODEL (session 6 redesign, from a guitar test with worked examples).
-// The hard part of a right-hand pattern is NOT how many notes are on the board —
-// a full three-finger pinch is easy. It's two things:
-//   1. STRIKE-TIMES — how many distinct columns the fingers attack in. Three
-//      rake-strikes is tame; five scattered attacks is not. (Thumb aside.)
-//   2. FINGER INDEPENDENCE — do the fingers fire together as one consistent
-//      group (easy, rake-like) or on independent schedules, a lone finger here
-//      and a different pair there (hard). `syncFingers` is this axis.
-// So stack *thickness* is no longer a difficulty knob — it's a side effect
-// (synchronized → thick, independent → mixed). This replaces the old model where
-// triples were a Chaos-only signature and Tame was single-notes-only.
+// DIFFICULTY MODEL (session 6, refined round 2 against worked examples).
+// The hard part of a pattern is NOT how many notes are on the board — a full
+// three-finger pinch is easy. It's STRIKE-TIMES: how many distinct columns the
+// fingers attack in. Finger independence (varied finger-sets) matters, but it
+// emerges from density — at 2–3 strike-times even wandering singles or a lone
+// finger followed by a rake stays easy, so it isn't enforced separately. (A
+// strict one-group synchronization rule for Tame was tried and dropped: real
+// Tame examples from the guitar test mix a lone finger with a repeated pair,
+// or three different finger-sets in three strikes.)
 //
-// ALL density still lives here, not in the generator. The knobs:
-//   - min/maxOffbeats  — how many offbeat columns the fingers attack (the main
-//     strike-time dial; pinched beats add to it).
+// ALL density lives here, not in the generator. The knobs:
+//   - min/maxStrikes   — the strike-time budget per bar: the TOTAL number of
+//     columns the fingers attack in, pinched beats included (they count
+//     against the budget, not on top of it).
 //   - pinchOdds        — chance a beat also gets a finger note (a pinch).
-//   - syncFingers      — true: pick ONE finger group and strike it at every
-//     column (synchronized, tame). false: roll the finger-set per column
-//     (independent) using doubleStopOdds for thickness.
-//   - groupSizeOdds    — for syncFingers, the size (1–3) of that one group.
-//   - doubleStopOdds   — for independent tiers, per-column 2-/3-note odds.
-//   - minDoubleStops   — per-BAR thickness floor (independent tiers only).
-// The generator reads these numbers; it never branches on preset name. There is
-// a hard no-blank guard in the generator (every bar gets ≥1 finger note).
+//   - allSinglesOdds   — per-PATTERN chance the whole generation uses single
+//     finger notes only (no stacks; suppresses minDoubleStops). Keeps genuinely
+//     simple all-singles rolls a real species on the lower tiers.
+//   - doubleStopOdds   — per-column 2-/3-note odds on non-singles rolls.
+//   - minDoubleStops   — per-BAR stack floor (Unruly's texture guarantee).
+// The generator reads these numbers and never branches on preset name. Two hard
+// rules live in the generator: no same-(slot,string) collision, and no blank
+// bars (every bar gets ≥1 finger note).
 export const CHAOS_PRESETS = {
   tame: {
     id: "tame",
     name: "Tame",
-    syncFingers: true, // fingers strike as ONE consistent group — synchronized, easy
-    groupSizeOdds: { 1: 0.25, 2: 0.45, 3: 0.30 }, // any size, just kept consistent
     noAdjacentSameString: true, // clean: no string sounds on two adjacent 8th slots
-    minOffbeats: 2, // few strike-times...
-    maxOffbeats: 3,
+    minStrikes: 2, // few strike-times — the tier's defining trait
+    maxStrikes: 3,
+    allSinglesOdds: 0.45, // near half the rolls: wandering single notes only
+    doubleStopOdds: { double: 0.30, triple: 0.15 }, // otherwise mixed, rakes included
     minDoubleStops: 0,
     pinchOdds: 0.18,
     domainCrossing: false,
@@ -148,11 +149,11 @@ export const CHAOS_PRESETS = {
   loose: {
     id: "loose",
     name: "Loose",
-    syncFingers: false, // fingers on independent schedules — the real jump from Tame
     noAdjacentSameString: true, // still clean (no re-strikes)
-    minOffbeats: 3, // ...more strike-times than Tame
-    maxOffbeats: 4,
-    doubleStopOdds: { double: 0.35, triple: 0.10 }, // mix of singles and stacks per column
+    minStrikes: 4, // more strike-times than Tame — the actual difficulty jump
+    maxStrikes: 5,
+    allSinglesOdds: 0.30,
+    doubleStopOdds: { double: 0.30, triple: 0.10 },
     minDoubleStops: 0,
     pinchOdds: 0.30,
     domainCrossing: false,
@@ -160,26 +161,26 @@ export const CHAOS_PRESETS = {
   unruly: {
     id: "unruly",
     name: "Unruly",
-    syncFingers: false,
-    noAdjacentSameString: false, // adjacency/re-strikes allowed here
-    minOffbeats: 3,
-    maxOffbeats: 4,
+    noAdjacentSameString: false, // re-strikes allowed — the top of the curve
+    minStrikes: 4,
+    maxStrikes: 6,
+    allSinglesOdds: 0.10,
     doubleStopOdds: { double: 0.50, triple: 0.18 },
-    minDoubleStops: 1, // per BAR: keep at least one stack so it doesn't read like Loose
+    minDoubleStops: 1, // per BAR on non-singles rolls: keep some stacked texture
     pinchOdds: 0.35,
     domainCrossing: false,
   },
   chaos: {
     id: "chaos",
     name: "Chaos",
-    syncFingers: false,
     noAdjacentSameString: false,
-    minOffbeats: 1, // never blank (hard floor 1), up to full...
-    maxOffbeats: 4,
-    doubleStopOdds: { double: 0.55, triple: 0.35 }, // ...and stacks thickly, unpredictably
+    minStrikes: 1, // fully random: uniform 1–8 total strike-times
+    maxStrikes: 8,
+    allSinglesOdds: 0,
+    doubleStopOdds: { double: 1 / 3, triple: 1 / 3 }, // column shape uniform over 1/2/3 notes
     minDoubleStops: 0,
-    pinchOdds: 0.40,
-    domainCrossing: false,
+    pinchOdds: 0.5, // coin-flip pinches
+    domainCrossing: false, // stays off even here, per spec
   },
 };
 

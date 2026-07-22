@@ -369,26 +369,30 @@ check("patternBars produces that many distinct bars and cycles across a phrase",
   assert(sig(phrase[1].bar) !== sig(phrase[0].bar), "a 2-bar pattern should have two different bars");
 });
 
-// DIFFICULTY MODEL (session 6): difficulty is strike-times + finger independence,
-// NOT note count. A full multi-finger rake is easy. So Tame strikes ONE consistent
-// finger group across the loop (synchronized, few attacks); Loose+ vary the set
-// per column (independent). Triples are no longer Chaos-only — Tame's rake is a
-// legit triple. Adjacency stays clean for Tame/Loose; Unruly/Chaos drop it.
+// DIFFICULTY MODEL (session 6, round 2): difficulty is STRIKE-TIMES — how many
+// columns the fingers attack in — not note count. A full three-finger rake is
+// easy; independence emerges from density, so finger-sets may vary freely even
+// in Tame. Triples are legal in every tier. `allSinglesOdds` makes genuinely
+// all-singles generations a real species on the lower tiers. Adjacency stays
+// clean for Tame/Loose; Unruly drops it. Chaos is OFF the difficulty curve —
+// fully random discovery (uniform column shapes, coin-flip pinches).
 
-// 5) Tame: few offbeat strike-times and no adjacent re-strike. (Thickness is NOT
-//    capped — a synchronized 3-finger rake is exactly what Tame should allow.)
-check("Tame: ≤3 offbeat strike-times, no same string on adjacent 8th slots", () => {
+// 5) Tame: few TOTAL finger strike-times — pinched beats count against the
+//    budget, not on top of it — and no adjacent re-strike. (Thickness is NOT
+//    capped — a 3-finger rake is exactly what Tame should allow.)
+check("Tame: ≤3 total finger strike-times, no same string on adjacent 8th slots", () => {
   for (const chord of CHORD_IDS) {
     for (let seed = 1; seed <= 12; seed++) {
       for (const bass of ["travis", "simple_alt"]) {
         const p = generatePattern(chord, { bass, chaos: "tame", rng: seeded(seed * 31) });
         const bar = p.bars[0];
 
-        // maxOffbeats is a hard ceiling (3); the floor is best-effort (adjacency
-        // can drop one rather than re-strike), so we only assert it doesn't exceed.
-        const filled = OFFBEAT_SLOTS.filter((s) => bar.some((e) => e.slot === s && e.finger !== "p"));
-        assert(filled.length <= 3,
-          `Tame offbeats should be ≤3, got ${filled.length} (${chord}/${bass} seed ${seed})`);
+        // maxStrikes is a hard ceiling (3) on ALL columns with a finger note —
+        // offbeats AND pinched beats; the floor is best-effort (adjacency can
+        // drop a column rather than re-strike), so we only assert the ceiling.
+        const filled = new Set(bar.filter((e) => e.finger !== "p").map((e) => e.slot));
+        assert(filled.size <= 3,
+          `Tame strike-times should be ≤3, got ${filled.size} (${chord}/${bass} seed ${seed})`);
 
         // adjacency across ALL slots, thumb included
         const stringsAt = (slot) => new Set(bar.filter((e) => e.slot === slot).map((e) => e.string));
@@ -404,48 +408,54 @@ check("Tame: ≤3 offbeat strike-times, no same string on adjacent 8th slots", (
   }
 });
 
-// 5b) Tame stays SYNCHRONIZED: the fingers fire as one consistent group, so the
-//     vast majority of Tame loops show a single distinct finger-set across their
-//     attack columns. (Adjacency can clamp a column to a subset, so it's a strong
-//     majority, not 100%.) Independent tiers would scatter far past this.
-check("Tame fingers stay synchronized (mostly one finger-set)", () => {
-  let single = 0, total = 0;
-  for (const chord of CHORD_IDS) {
-    for (const bass of ["travis", "simple_alt", "dead_thumb"]) {
-      for (let seed = 1; seed <= 20; seed++) {
-        const p = generatePattern(chord, { chaos: "tame", bass, patternBars: 2, rng: seeded(seed * 17 + 3) });
-        const sets = new Set();
+// 5b) All-singles generations are a real species (`allSinglesOdds`): a decent
+//     share of lower-tier rolls use ONLY single finger notes, and stacked rolls
+//     still appear too — the mix is the point.
+check("lower tiers roll both all-singles and stacked patterns", () => {
+  for (const chaos of ["tame", "loose"]) {
+    let singles = 0, stacked = 0, n = 0;
+    for (const chord of ["C", "G", "D", "Am"]) {
+      for (let seed = 1; seed <= 50; seed++) {
+        const p = generatePattern(chord, { chaos, patternBars: 2, rng: seeded(seed * 17 + 3) });
+        let hasStack = false;
         for (const bar of p.bars) {
           const byCol = {};
           for (const e of bar) if (e.finger !== "p") (byCol[e.slot] ??= []).push(e.string);
-          for (const arr of Object.values(byCol)) sets.add(arr.sort((x, y) => x - y).join(","));
+          if (Object.values(byCol).some((a) => a.length >= 2)) hasStack = true;
         }
-        total++;
-        if (sets.size <= 1) single++;
+        n++;
+        if (hasStack) stacked++; else singles++;
       }
     }
+    assert(singles / n >= 0.2, `${chaos}: all-singles patterns too rare (${singles}/${n})`);
+    assert(stacked / n >= 0.2, `${chaos}: stacked patterns too rare (${stacked}/${n})`);
   }
-  assert(single / total >= 0.7,
-    `Tame should be mostly a single finger-set; only ${single}/${total} were`);
 });
 
 // 5c) Unruly keeps at least one stack (≥2 notes) per bar — its texture floor, so
-//     it doesn't read like Loose. Triples are allowed here now.
-check("Unruly: at least one stack (≥2) per bar", () => {
+//     it doesn't read like Loose — EXCEPT on an all-singles roll (allSinglesOdds),
+//     where zero stacks anywhere is the roll's whole point. So: if the pattern has
+//     any stack, every bar must have one; if none, it's a legitimate singles roll.
+check("Unruly: every bar stacked, unless it's an all-singles roll", () => {
+  let sawStackedPattern = false;
   for (const chord of CHORD_IDS) {
     for (let seed = 1; seed <= 12; seed++) {
       const p = generatePattern(chord, { bass: "travis", chaos: "unruly", patternBars: 2, rng: seeded(seed * 71) });
-      for (let b = 0; b < p.bars.length; b++) {
-        const bar = p.bars[b];
+      const stacksPerBar = p.bars.map((bar) => {
         let stacks = 0;
         for (const slot of ALL_SLOTS_T) {
-          const fingers = bar.filter((e) => e.slot === slot && e.finger !== "p").length;
-          if (fingers >= 2) stacks++;
+          if (bar.filter((e) => e.slot === slot && e.finger !== "p").length >= 2) stacks++;
         }
-        assert(stacks >= 1, `Unruly bar ${b} has no stack (${chord} seed ${seed})`);
+        return stacks;
+      });
+      if (stacksPerBar.some((s) => s > 0)) {
+        sawStackedPattern = true;
+        stacksPerBar.forEach((s, b) =>
+          assert(s >= 1, `Unruly bar ${b} has no stack in a stacked pattern (${chord} seed ${seed})`));
       }
     }
   }
+  assert(sawStackedPattern, "Unruly should produce stacked patterns across the sweep");
 });
 
 // 5d) Triples are no longer Chaos-exclusive: every tier can stack three across a

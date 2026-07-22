@@ -37,37 +37,40 @@ The right hand splits the guitar in half: **thumb (p) owns strings 6–5–4; fi
 ### Constraints — one hard rule, everything else is a dial
 **Hard rule (always enforced):** no two simultaneous notes on the same string. That's physics, not taste.
 
-Everything else is governed by a **Chaos** setting — now a **4-tier curve: Tame →
-Loose → Unruly → Chaos** (updated from the original 3 tiers; sessions 5–6).
+Everything else is governed by a **Chaos** setting — four settings, of which
+**three form the difficulty curve (Tame → Loose → Unruly) and Chaos sits off it**
+as the fully random discovery mode (sessions 5–6).
 
-**Difficulty model (session 6, from a guitar test with worked examples).** The hard
-part of a right-hand pattern is **not how many notes are on the board** — a full
-three-finger pinch is easy. It is two things: **(1) strike-times**, how many distinct
-columns the *fingers* attack in (three rake-strikes is tame; five scattered attacks
-is not; the thumb is counted separately), and **(2) finger independence**, whether the
-fingers fire together as one consistent group (easy, rake-like) or on independent
-schedules — a lone finger here, a different pair there (hard). Stack *thickness* is a
-side effect of these, not a difficulty axis of its own. This replaced the earlier idea
-that triples were a Chaos-only signature and Tame was single-notes-only.
+**Difficulty model (session 6, two rounds of guitar testing with worked examples).**
+The hard part of a right-hand pattern is **not how many notes are on the board** — a
+full three-finger pinch is easy. It is **strike-times**: how many distinct columns
+the *fingers* attack in (three rake-strikes is tame; five scattered attacks is not;
+the thumb is counted separately). **Pinched beats count against the strike budget,
+not on top of it.** Finger independence (how much the finger-set varies from strike
+to strike) matters, but it *emerges from density* rather than needing its own rule —
+at 2–3 strike-times even wandering lone fingers or a single-then-rake bar stays easy.
+(Round 1 tried enforcing one synchronized finger group for Tame; round 2's examples —
+a lone finger plus a repeated pair, or three different sets in three strikes, both
+Tame — killed it.) Stack *thickness* is a side effect, not an axis: triples are legal
+at every setting. A **decent share of lower-tier generations are all-single-notes**
+(`allSinglesOdds` — a per-pattern roll), keeping genuinely simple patterns a real
+species.
 
-- **Tame** — fingers **synchronized**: one consistent finger group (any size 1–3),
-  struck at every attack column; few strike-times (~2–3). No string sounds on two
-  adjacent 8th slots (thumb included) — the same-string re-strike is the hardest
+- **Tame** — 2–3 total strike-times; ~half of rolls all-singles; no string sounds on
+  two adjacent 8th slots (thumb included) — the same-string re-strike is the hardest
   thing for a beginner.
-- **Loose** — fingers **independent**: the finger-set varies column to column (lone
-  fingers interleaved with pinches); more strike-times (~4–5). Still no re-strikes.
-- **Unruly** — busier and independent; the adjacency ceiling comes off (re-strikes
-  allowed); a per-bar stack floor so it doesn't read like Loose.
-- **Chaos** — no stylistic constraints; any legal combination in any slot. Novelty
-  over playability. (One floor: never a fully blank bar.)
+- **Loose** — 4–5 strike-times, finger-sets varying freely; still no re-strikes.
+- **Unruly** — 4–6 strike-times, denser stacks; the adjacency ceiling comes off
+  (re-strikes allowed); a per-bar stack floor so non-singles rolls don't read Loose.
+- **Chaos** — **fully random, not "hardest"**: uniform 1–8 strike-times, uniform
+  column shape (single/double/triple), coin-flip pinches, no stylistic constraints.
+  Novelty over playability; the point is discovering patterns.
 
 **Hard rule 2 (added session 6):** every bar has at least one finger note — no
-bare-thumb bars.
+bare-thumb bars, at any setting.
 
 Implement each stylistic constraint as an independent flag internally; the tiers are
-just presets over those flags (leaves room for a future "custom" panel). Finger
-independence is the `syncFingers` flag; strike-time density is the offbeat range plus
-pinch odds.
+just presets over those flags (leaves room for a future "custom" panel).
 
 ### Pattern structure (this is what makes it musical, not random)
 - Generate a **1-bar or 2-bar cell**, then repeat it across the phrase. Real Travis playing grooves on a repeating pattern.

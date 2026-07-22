@@ -60,18 +60,6 @@ function generateThumbBar(chordId, preset, rng) {
 
 const SLOTS_PER_BAR = 8;
 
-// Weighted pick of a finger-group size (1..3) from a { size: odds } table.
-function pickGroupSize(odds, rng) {
-  const entries = Object.entries(odds || { 1: 1 });
-  const total = entries.reduce((s, [, w]) => s + w, 0) || 1;
-  let r = rng() * total;
-  for (const [size, w] of entries) {
-    r -= w;
-    if (r < 0) return Number(size);
-  }
-  return Number(entries[entries.length - 1][0]);
-}
-
 // ---- treble (finger) layer for the WHOLE loop -------------------------------
 // The pattern is always a loop, so the finger layer is generated as ONE circular
 // sequence of N = 8 × bars 8th-note slots rather than bar-by-bar. Adjacency
@@ -85,10 +73,11 @@ function pickGroupSize(odds, rng) {
 // the last slot (placed last) sees the first (placed first). Thumb strings are
 // seeded up front, so a slot also avoids re-striking the thumb on either side.
 //
-// Difficulty is driven by strike-times (how many columns get a finger note) and
-// finger independence. `syncFingers` tiers pick ONE finger group and strike it
-// at every active column (synchronized/rake-like — easy); other tiers roll the
-// finger-set per column (independent — hard), thickened by doubleStopOdds.
+// Difficulty is driven by strike-times: how many columns get a finger note
+// (min/maxOffbeats + pinchOdds). Column thickness comes from doubleStopOdds,
+// except on an all-singles roll (`allSinglesOdds`, decided once per pattern)
+// where the whole loop uses single finger notes — keeping genuinely simple
+// wandering-singles generations a real species on the lower tiers.
 //
 // Returns per-bar treble arrays, so the rest of the app keeps its bar structure.
 function generateTrebleLoop(flags, thumbBars, rng) {
@@ -108,17 +97,21 @@ function generateTrebleLoop(flags, thumbBars, rng) {
     for (const ev of thumbBars[b]) add(globalIndex(b, ev.slot), ev.string);
   }
 
-  // Which global slots want a finger note: a per-BAR offbeat count within
-  // [min,max], plus per-beat pinches (finger sounding with the thumb).
+  // Which global slots want a finger note. Strike-times are THE difficulty
+  // dial, so the budget is the TOTAL finger columns per bar — pinched beats
+  // count against it, not on top of it (six attack columns is not "Tame" no
+  // matter how they're split). Roll the budget, take pinches by odds capped to
+  // the budget, and spend the remainder on offbeat columns.
   const active = new Set();
   for (let b = 0; b < bars; b++) {
-    const span = flags.maxOffbeats - flags.minOffbeats;
-    const count = flags.minOffbeats + Math.floor(rng() * (span + 1));
-    for (const slot of shuffled(OFFBEAT_SLOTS, rng).slice(0, count)) {
+    const span = flags.maxStrikes - flags.minStrikes;
+    const budget = flags.minStrikes + Math.floor(rng() * (span + 1));
+    let pinched = thumbBars[b].filter(() => rng() < flags.pinchOdds).map((ev) => ev.slot);
+    if (pinched.length > budget) pinched = shuffled(pinched, rng).slice(0, budget);
+    for (const slot of pinched) active.add(globalIndex(b, slot));
+    const offCount = Math.min(budget - pinched.length, OFFBEAT_SLOTS.length);
+    for (const slot of shuffled(OFFBEAT_SLOTS, rng).slice(0, offCount)) {
       active.add(globalIndex(b, slot));
-    }
-    for (const ev of thumbBars[b]) {
-      if (rng() < flags.pinchOdds) active.add(globalIndex(b, ev.slot));
     }
   }
 
@@ -137,13 +130,9 @@ function generateTrebleLoop(flags, thumbBars, rng) {
     return c;
   };
 
-  // Synchronized tiers pick ONE finger group up front and reuse it at every
-  // column — same fingers firing together (the easy, rake-like case). It's
-  // clamped to what's legal at each column, so it stays clean; a column where
-  // the whole group is blocked is dropped rather than re-struck.
-  const syncGroup = flags.syncFingers
-    ? shuffled(FINGER_STRINGS, rng).slice(0, pickGroupSize(flags.groupSizeOdds, rng))
-    : null;
+  // One roll up front: an all-singles generation. The whole loop uses single
+  // finger notes only — no stacks, and the minDoubleStops floor is suppressed.
+  const singlesOnly = rng() < (flags.allSinglesOdds || 0);
 
   // Walk the whole loop in order and place notes.
   const placed = new Map(); // gi -> [strings]
@@ -152,29 +141,26 @@ function generateTrebleLoop(flags, thumbBars, rng) {
     const candidates = legalAt(gi);
     if (!candidates.length) continue;
 
-    let strings;
-    if (syncGroup) {
-      // Strike the consistent group, minus any string blocked here.
-      strings = syncGroup.filter((s) => candidates.includes(s));
-      if (!strings.length) continue;
-    } else {
-      // Independent: single, or a double/triple stop by the preset's odds.
-      let notesHere = 1;
+    // Single, or a double/triple stop by the preset's odds. Roll once.
+    let notesHere = 1;
+    if (!singlesOnly) {
       const { double = 0, triple = 0 } = flags.doubleStopOdds || {};
       const r = rng();
       if (r < triple) notesHere = 3;
       else if (r < triple + double) notesHere = 2;
-      notesHere = Math.min(notesHere, candidates.length);
-      strings = shuffled(candidates, rng).slice(0, notesHere);
     }
+    notesHere = Math.min(notesHere, candidates.length);
+
+    const strings = shuffled(candidates, rng).slice(0, notesHere);
     for (const s of strings) add(gi, s);
     placed.set(gi, strings);
   }
 
   // Per-BAR double-stop floor (Unruly): odds alone can roll a whole bar of
   // singles, making it read like Loose. Promote single-note slots to doubles
-  // until each bar hits `minDoubleStops`.
-  if (flags.minDoubleStops > 0) {
+  // until each bar hits `minDoubleStops`. Skipped on an all-singles roll —
+  // that roll's whole point is no stacks.
+  if (flags.minDoubleStops > 0 && !singlesOnly) {
     for (let b = 0; b < bars; b++) {
       const slots = Array.from({ length: SLOTS_PER_BAR }, (_, k) => b * SLOTS_PER_BAR + k);
       let doubles = slots.filter((gi) => (placed.get(gi)?.length || 0) >= 2).length;
@@ -193,8 +179,7 @@ function generateTrebleLoop(flags, thumbBars, rng) {
 
   // Hard no-blank rule: every bar must have at least one finger note. Adjacency
   // drops (or a low offbeat roll) can leave a bar bare — force one legal offbeat
-  // rather than ship an all-thumb bar. Uses the sync group's fingers when there
-  // is one, so the forced note still belongs to the pattern.
+  // rather than ship an all-thumb bar.
   for (let b = 0; b < bars; b++) {
     const slots = Array.from({ length: SLOTS_PER_BAR }, (_, k) => b * SLOTS_PER_BAR + k);
     if (slots.some((gi) => placed.get(gi)?.length)) continue;
@@ -202,7 +187,7 @@ function generateTrebleLoop(flags, thumbBars, rng) {
       const gi = b * SLOTS_PER_BAR + (slot - 1);
       const pool = legalAt(gi);
       if (!pool.length) continue;
-      const s = syncGroup?.find((x) => pool.includes(x)) ?? pick(pool, rng);
+      const s = pick(pool, rng);
       add(gi, s);
       placed.set(gi, [s]);
       break;

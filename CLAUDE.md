@@ -210,41 +210,41 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - **Thumb skeleton:** one quarter-note thumb on each beat (slots 1,3,5,7); never on offbeats.
 - **Hand domains:** fingers own strings 3/2/1 (i→3, m→2, a→1). **Chord-aware thumb domain:** thumb-legal = `{6,5,4}` ∪ the current chord's role strings. This is why D's alt-bass legitimately lands on string 3 — see `thumbLegalStrings()` in `data.js`.
 - **Two independent layers.** `thumbBars` and `trebleBars` are generated and stored separately; `bars` is their merge (`mergeBar` → `enforceHardRule`). `regenerateBass()` re-rolls the thumb keeping the exact finger part, `regenerateTreble()` does the reverse — so the Thumb and Chaos controls each disturb only their own layer, and you can audition bass patterns under one right-hand part. Only Pattern-length and **Generate** re-roll everything.
-- **Chaos** is a **monotonic 4-tier curve — Tame → Loose → Unruly → Chaos** —
-  built as **presets over independent flags** (`CHAOS_PRESETS`), not branching
-  code. The generator reads these numbers and **never branches on preset name** —
-  tune feel by editing `CHAOS_PRESETS` only.
-  - **Difficulty model (session 6 redesign, from a guitar test with worked
-    examples).** Difficulty is **NOT note count** — a full three-finger pinch is
-    easy. It's two axes: **(1) strike-times** — how many distinct columns the
-    *fingers* attack in (three rake-strikes is tame; five scattered attacks is
-    not; the thumb is separate), and **(2) finger independence** — do the fingers
-    fire together as one consistent group (easy, rake-like) or on independent
-    schedules, a lone finger here and a different pair there (hard). So stack
-    *thickness is no longer a difficulty knob* — it's a side effect (synchronized
-    → thick, independent → mixed). This **replaced** the old model where triples
-    were a Chaos-only signature and Tame was single-notes-only.
-  - The knob for independence is **`syncFingers`**. When true (**Tame**), the
-    generator picks **one finger group up front** (size from `groupSizeOdds`) and
-    strikes it at every active column — synchronized. When false (Loose+), it
-    rolls the finger-set per column via `doubleStopOdds`, which naturally varies
-    it → independence. Measured: Tame ~2.6 strike-times & ~100% one-finger-set;
-    Loose ~4.6 & ~1%; Unruly ~4.9 (adjacency off, denser); Chaos ranges
-    sparse→full, most unpredictable.
-  - **Density still lives entirely in the preset:** `min/maxOffbeats` (the
-    strike-time dial), `pinchOdds` (chance a beat also gets a finger note),
-    `doubleStopOdds.{double,triple}` (independent tiers' per-column thickness),
-    `minDoubleStops` (per-**bar** stack floor, Unruly), and `groupSizeOdds`
-    (Tame's synchronized-group size). **Triples are allowed in every tier now** —
-    Tame's is the synchronized 3-finger rake.
-  - **Hard no-blank rule:** every bar gets **≥1 finger note**. Chaos used to roll
-    a bare-thumb bar (`minOffbeats:0`); the generator now forces a legal offbeat
-    rather than ship one (and Chaos's floor is `minOffbeats:1`). Asserted in tests.
+- **Chaos** is built as **presets over independent flags** (`CHAOS_PRESETS`),
+  not branching code. The generator reads these numbers and **never branches on
+  preset name** — tune feel by editing `CHAOS_PRESETS` only. The **difficulty
+  curve is Tame → Loose → Unruly; Chaos sits OFF the curve** — it's the fully
+  random discovery setting ("novelty over playability", per the spec), not
+  "harder than Unruly" (session 6 round 2, user call).
+  - **Difficulty model (session 6, refined round 2 against worked examples).**
+    Difficulty is **STRIKE-TIMES** — how many distinct columns the *fingers*
+    attack in (thumb aside) — **not note count**: a full three-finger rake is
+    easy. **Pinched beats count against the strike budget, not on top of it**
+    (six attack columns is not Tame however they're split). Finger independence
+    (varied finger-sets) matters but **emerges from density**, so it isn't
+    enforced separately — a strict one-group synchronization rule for Tame was
+    tried in round 1 and **dropped in round 2**: the user's real Tame examples
+    mix a lone finger with a repeated pair, or three different sets in three
+    strikes. Stack thickness is a side effect, not an axis; **triples are legal
+    in every tier**.
+  - **The knobs** (all in the preset): `min/maxStrikes` (the per-bar TOTAL
+    strike-time budget — offbeats + pinched beats), `pinchOdds` (chance a beat
+    also gets a finger note, capped by the budget), `allSinglesOdds` (per-PATTERN
+    chance the whole generation is single notes only — keeps genuinely simple
+    all-singles rolls a real species; suppresses `minDoubleStops`),
+    `doubleStopOdds.{double,triple}` (per-column thickness on non-singles
+    rolls), `minDoubleStops` (per-bar stack floor, Unruly's texture guarantee).
+  - **Tier numbers** (measured over 400 seeds/tier): **Tame** 2–3 strikes, ~57%
+    all-singles, clean adjacency; **Loose** 4–5 strikes, ~39% all-singles, still
+    clean; **Unruly** 4–6 strikes, ~9% all-singles, re-strikes allowed, ≥1 stack
+    per bar on stacked rolls; **Chaos** uniform 1–8 strikes, uniform column
+    shapes (single/double/triple each ⅓), coin-flip pinches, no constraints.
+  - **Hard no-blank rule:** every bar gets **≥1 finger note** — the generator
+    forces a legal offbeat rather than ship a bare-thumb bar. Asserted in tests.
   - `noAdjacentSameString` (a string sounding on two adjacent 8ths, thumb
     included) is a **HARD** ceiling for the clean tiers (Tame, Loose): if avoiding
     a re-strike leaves no legal finger string, it **drops the column rather than
     re-strike** — so the strike-time count is a best-effort floor, a hard ceiling.
-    For sync tiers a column whose whole group is blocked is dropped too.
   - Treble is generated for the **whole loop as one circular N = 8×bars slot
     sequence** (`generateTrebleLoop`), not bar-by-bar: interior bar seams are
     ordinary adjacencies and the single wrap is last-8th→first, so a re-strike
@@ -252,8 +252,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     generator couldn't see it). Walking in order suffices — the later of any
     adjacent pair, and the last slot for the wrap, sees the other.
   - Latent flag kept but unread: `domainCrossing` (no generator path consumes
-    it). (`allowDoubleStops` and `favorSingleOffbeats` were removed — odds and
-    `syncFingers` carry that intent now.)
+    it). Removed along the way: `allowDoubleStops`, `favorSingleOffbeats`,
+    `syncFingers`/`groupSizeOdds` (round 1's synchronization mechanism).
 - **Bass presets** are data (`BASS_PRESETS`), and **all seven are surfaced** in
   the Thumb selector (session 5): `travis` (default, root-alt-fifth-alt),
   `simple_alt`, `dead_thumb`, `root_fifth` (relative, follow the chord), `climb`
@@ -425,8 +425,8 @@ is confirmed on the phone** — the bass presets and the whole chaos redesign ar
 Session 6 acted on the session-5 guitar test and **redesigned the chaos difficulty
 model** around what the user showed with two worked grid images: difficulty is
 **strike-times + finger independence, not note count**. See the rewritten Chaos
-note under "Key rules." 41/41 checks green; `sw.js` `CACHE` bumped to **v7**.
-**Not yet deployed or guitar-tested** — expect a round-2 tuning pass.
+note under "Key rules." Round 1 deployed as **v1.2** (`CACHE` v7); the user
+tested it on guitar the same day, which produced **round 2** below.
 
 - **The reframe, in the user's words:** a full three-finger pinch is *easy* (fingers
   move together); five scattered attacks with a lone finger here and a different
@@ -452,14 +452,31 @@ note under "Key rules." 41/41 checks green; `sw.js` `CACHE` bumped to **v7**.
   **any consistent size 1–3**, not fixed at three ("don't get hung up on the
   3-finger thing — strike-times is the key").
 
-**NEXT SESSION — first, deploy (push; Pages rebuilds; force-quit+reopen on phone)
-and get the round-2 guitar test on the new tiers**; tune `CHAOS_PRESETS` numbers
-from the feedback (all feel lives there). Then the **theme colour pass** (deferred
-behind functionality; all seven themes are a first cut, read differently on phone
-vs laptop — do it **against a real phone screen**, `themes.json` the only file
-that changes). Then v2 musical work: the **custom 4-slot bass builder** (the
-preset format and the density model are both ready for it — note `syncFingers` is
-now part of that model), pattern audio playback, syncopation/16ths.
+**Round 2 (same day, after the round-1 phone test).** The user sent two more Tame
+examples that round 1's strict synchronization could NOT generate (a lone finger +
+a repeated pair; three different sets in three strikes) — proving **independence
+emerges from density and shouldn't be enforced**. Changes, all deployed as v1.3
+(`CACHE` v8), 41/41 green:
+- **`syncFingers`/`groupSizeOdds` removed** (lived one round). All tiers roll
+  finger-sets per column; Tame is Tame because its strike budget is 2–3.
+- **Strike budget is now TOTAL columns** (`min/maxStrikes` replacing
+  `min/maxOffbeats`): pinches count against it, not on top — found empirically,
+  a "Tame" bar had rolled 6 attack columns via pinch stacking.
+- **`allSinglesOdds` added** (user: "decent percentage should be all single
+  fingers" — was too rare): per-pattern roll, Tame 0.45 / Loose 0.30 / Unruly
+  0.10; measured all-singles rates 57/39/9%.
+- **Chaos = fully random, off the difficulty curve** (user's call, matches the
+  original spec's "novelty over playability"): uniform 1–8 strikes, uniform
+  column shape, coin-flip pinches. Only the no-blank guard survives.
+
+**NEXT SESSION — get the round-3 guitar test** on: Tame's 2–3-strike budget,
+the Loose jump (4–5 strikes), the all-singles rates, and whether fully-random
+Chaos feels right; tune `CHAOS_PRESETS` numbers from the feedback (all feel
+lives there). Then the **theme colour pass** (deferred behind functionality; all
+seven themes are a first cut, read differently on phone vs laptop — do it
+**against a real phone screen**, `themes.json` the only file that changes). Then
+v2 musical work: the **custom 4-slot bass builder** (the preset format and the
+density model are both ready for it), pattern audio playback, syncopation/16ths.
 
 ## Working with this user
 
