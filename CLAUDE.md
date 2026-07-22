@@ -520,18 +520,24 @@ good for now on the generation tweaking"). All four tiers are guitar-approved.
 If feel ever drifts, everything is numbers in `CHAOS_PRESETS` — `maxRestrikes`
 1/3 for milder/spicier Unruly, etc.
 
-**NEXT SESSION — the visual identity pass** (expanded from the old "theme
-colour pass" at the user's request): overall appearance — **fonts and general
-visual style, "make it feel more my own"** — with dialing in the seven themes
-as a subsection. Do it **against a real phone screen**. Note this relaxes the
-old "themes.json only" rule: fonts touch `styles.css`, and a bundled font file
-would need `sw.js` precache + a CACHE bump. Constraint: dependency-free +
-offline PWA → system font stacks or a bundled .woff2, no font CDN.
+**NEXT SESSION — pattern audio playback** (user reordered this ahead of the
+visual pass): *hear* a generated pattern, not just see it + the metronome.
+Biggest remaining practice win, and it settles the deferred raw-Web-Audio-vs-
+synth-library question — **try Karplus-Strong plucked strings dependency-free
+first.** Reuse `metronome.js`'s lookahead scheduler (schedule note events beside
+the clicks; don't build a second clock). Pitch is derivable from each event's
+`string` + `fret` (standard tuning EADGBe); a slot's stacked events must sound
+together. Keep the iOS gesture rule (AudioContext created/resumed in the Play
+handler). Open UX question for the user: Play = click, pattern, or both?
 
-Then v2, suggested order:
-- **Pattern audio playback** — hear a pattern before drilling it; biggest
-  practice win; decides the raw-Web-Audio-vs-synth-library question (try
-  Karplus-Strong plucks dependency-free first).
+Then, in suggested order:
+- **Visual identity pass** (expanded from the old "theme colour pass" at the
+  user's request): overall appearance — **fonts and general visual style, "make
+  it feel more my own"** — with dialing in the seven themes as a subsection. Do
+  it **against a real phone screen**. Relaxes the old "themes.json only" rule:
+  fonts touch `styles.css`, and a bundled font file needs `sw.js` precache + a
+  CACHE bump. Dependency-free + offline PWA → system font stacks or a bundled
+  .woff2, no font CDN. (User may bring a visual reference.)
 - **Pre-loaded patterns** (user wants this): ship as *data* — a read-only
   "Built-in" section in the Load sheet with "save a copy", NOT seeded into
   localStorage (survives reinstalls, never pollutes the real library, updates
@@ -547,11 +553,7 @@ Then v2, suggested order:
 
 **DROPPED: syncopation/16ths** (user call, this session): at real Travis-picking
 tempos the 8-slot grid is already all you can fit — 16ths would generate
-patterns nobody drills. Don't resurrect without a musical reason. Then the **theme colour pass** (deferred behind functionality; all
-seven themes are a first cut, read differently on phone vs laptop — do it
-**against a real phone screen**, `themes.json` the only file that changes). Then
-v2 musical work: the **custom 4-slot bass builder** (the preset format and the
-density model are both ready for it), pattern audio playback, syncopation/16ths.
+patterns nobody drills. Don't resurrect without a musical reason.
 
 ## Working with this user
 
