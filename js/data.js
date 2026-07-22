@@ -108,63 +108,78 @@ export function fretFor(chordId, string) {
 // presets over these flags (leaves room for a future custom panel). They sit on
 // one monotonic difficulty curve: Tame → Loose → Unruly → Chaos.
 //
-// ALL density lives here, not in the generator: offbeat count (min/maxOffbeats),
-// stack thickness (doubleStopOdds — per-offbeat-slot chance of a 2- or 3-note
-// double/triple stop), a per-BAR double-stop floor (minDoubleStops), and pinch
-// frequency (pinchOdds — chance a beat gets a finger note plucked with the
-// thumb). The generator reads these numbers; it never branches on preset name.
+// DIFFICULTY MODEL (session 6 redesign, from a guitar test with worked examples).
+// The hard part of a right-hand pattern is NOT how many notes are on the board —
+// a full three-finger pinch is easy. It's two things:
+//   1. STRIKE-TIMES — how many distinct columns the fingers attack in. Three
+//      rake-strikes is tame; five scattered attacks is not. (Thumb aside.)
+//   2. FINGER INDEPENDENCE — do the fingers fire together as one consistent
+//      group (easy, rake-like) or on independent schedules, a lone finger here
+//      and a different pair there (hard). `syncFingers` is this axis.
+// So stack *thickness* is no longer a difficulty knob — it's a side effect
+// (synchronized → thick, independent → mixed). This replaces the old model where
+// triples were a Chaos-only signature and Tame was single-notes-only.
 //
-// The reframe from the old 3-tier set: the *new* Loose keeps
-// `noAdjacentSameString` ON — it's a busier-but-still-clean ceiling, not just a
-// raised floor. The old "Loose" (adjacency off, ~45% doubles) is now Unruly.
+// ALL density still lives here, not in the generator. The knobs:
+//   - min/maxOffbeats  — how many offbeat columns the fingers attack (the main
+//     strike-time dial; pinched beats add to it).
+//   - pinchOdds        — chance a beat also gets a finger note (a pinch).
+//   - syncFingers      — true: pick ONE finger group and strike it at every
+//     column (synchronized, tame). false: roll the finger-set per column
+//     (independent) using doubleStopOdds for thickness.
+//   - groupSizeOdds    — for syncFingers, the size (1–3) of that one group.
+//   - doubleStopOdds   — for independent tiers, per-column 2-/3-note odds.
+//   - minDoubleStops   — per-BAR thickness floor (independent tiers only).
+// The generator reads these numbers; it never branches on preset name. There is
+// a hard no-blank guard in the generator (every bar gets ≥1 finger note).
 export const CHAOS_PRESETS = {
   tame: {
     id: "tame",
     name: "Tame",
-    noAdjacentSameString: true, // no string sounds on two adjacent 8th slots (incl. thumb)
-    minOffbeats: 1,
-    maxOffbeats: 2,
-    allowDoubleStops: false,
-    doubleStopOdds: { double: 0.0, triple: 0.0 }, // clean single notes only
+    syncFingers: true, // fingers strike as ONE consistent group — synchronized, easy
+    groupSizeOdds: { 1: 0.25, 2: 0.45, 3: 0.30 }, // any size, just kept consistent
+    noAdjacentSameString: true, // clean: no string sounds on two adjacent 8th slots
+    minOffbeats: 2, // few strike-times...
+    maxOffbeats: 3,
     minDoubleStops: 0,
-    pinchOdds: 0.15,
+    pinchOdds: 0.18,
     domainCrossing: false,
   },
   loose: {
     id: "loose",
     name: "Loose",
-    noAdjacentSameString: true, // the reframe: Loose keeps the ceiling
-    minOffbeats: 2,
-    maxOffbeats: 3,
-    allowDoubleStops: true,
-    doubleStopOdds: { double: 0.20, triple: 0.0 }, // occasional doubles, no triples
+    syncFingers: false, // fingers on independent schedules — the real jump from Tame
+    noAdjacentSameString: true, // still clean (no re-strikes)
+    minOffbeats: 3, // ...more strike-times than Tame
+    maxOffbeats: 4,
+    doubleStopOdds: { double: 0.35, triple: 0.10 }, // mix of singles and stacks per column
     minDoubleStops: 0,
-    pinchOdds: 0.22,
+    pinchOdds: 0.30,
     domainCrossing: false,
   },
   unruly: {
     id: "unruly",
     name: "Unruly",
-    noAdjacentSameString: false, // adjacency ceiling comes off here
-    minOffbeats: 2,
+    syncFingers: false,
+    noAdjacentSameString: false, // adjacency/re-strikes allowed here
+    minOffbeats: 3,
     maxOffbeats: 4,
-    allowDoubleStops: true,
-    doubleStopOdds: { double: 0.45, triple: 0.0 }, // busy; triples stay a Chaos signature
-    minDoubleStops: 1, // per BAR: force at least one double so it never rolls back to Loose
-    pinchOdds: 0.30,
+    doubleStopOdds: { double: 0.50, triple: 0.18 },
+    minDoubleStops: 1, // per BAR: keep at least one stack so it doesn't read like Loose
+    pinchOdds: 0.35,
     domainCrossing: false,
   },
   chaos: {
     id: "chaos",
     name: "Chaos",
+    syncFingers: false,
     noAdjacentSameString: false,
-    minOffbeats: 0, // can go bare-thumb sparse...
+    minOffbeats: 1, // never blank (hard floor 1), up to full...
     maxOffbeats: 4,
-    allowDoubleStops: true,
-    doubleStopOdds: { double: 0.50, triple: 0.25 }, // ...but stacks thickly and unpredictably
+    doubleStopOdds: { double: 0.55, triple: 0.35 }, // ...and stacks thickly, unpredictably
     minDoubleStops: 0,
-    pinchOdds: 0.35,
-    domainCrossing: false, // stays off even in Chaos, per spec
+    pinchOdds: 0.40,
+    domainCrossing: false,
   },
 };
 

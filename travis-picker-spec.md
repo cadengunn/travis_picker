@@ -37,12 +37,37 @@ The right hand splits the guitar in half: **thumb (p) owns strings 6–5–4; fi
 ### Constraints — one hard rule, everything else is a dial
 **Hard rule (always enforced):** no two simultaneous notes on the same string. That's physics, not taste.
 
-Everything else is governed by a **Chaos** setting:
-- **Tame**: **no string sounds on two adjacent 8th slots** — counting the thumb, not just the fingers (e.g. a note on "1" and again on the following "&" of the same string is out). Same-string re-strikes at speed are the hardest thing for a beginner, and Tame is the beginner setting. Plus: 2–4 filled offbeats per bar; pinches on downbeats only; single-note offbeats favored.
-- **Loose**: repeat-string allowed; any density; pinches anywhere; double stops occasionally.
-- **Chaos**: no stylistic constraints at all — any legal combination of thumb + fingers in any slot. Novelty over playability; the point is discovering patterns.
+Everything else is governed by a **Chaos** setting — now a **4-tier curve: Tame →
+Loose → Unruly → Chaos** (updated from the original 3 tiers; sessions 5–6).
 
-Implement each stylistic constraint as an independent flag internally; Tame/Loose/Chaos are just presets over those flags (leaves room for a future "custom" panel).
+**Difficulty model (session 6, from a guitar test with worked examples).** The hard
+part of a right-hand pattern is **not how many notes are on the board** — a full
+three-finger pinch is easy. It is two things: **(1) strike-times**, how many distinct
+columns the *fingers* attack in (three rake-strikes is tame; five scattered attacks
+is not; the thumb is counted separately), and **(2) finger independence**, whether the
+fingers fire together as one consistent group (easy, rake-like) or on independent
+schedules — a lone finger here, a different pair there (hard). Stack *thickness* is a
+side effect of these, not a difficulty axis of its own. This replaced the earlier idea
+that triples were a Chaos-only signature and Tame was single-notes-only.
+
+- **Tame** — fingers **synchronized**: one consistent finger group (any size 1–3),
+  struck at every attack column; few strike-times (~2–3). No string sounds on two
+  adjacent 8th slots (thumb included) — the same-string re-strike is the hardest
+  thing for a beginner.
+- **Loose** — fingers **independent**: the finger-set varies column to column (lone
+  fingers interleaved with pinches); more strike-times (~4–5). Still no re-strikes.
+- **Unruly** — busier and independent; the adjacency ceiling comes off (re-strikes
+  allowed); a per-bar stack floor so it doesn't read like Loose.
+- **Chaos** — no stylistic constraints; any legal combination in any slot. Novelty
+  over playability. (One floor: never a fully blank bar.)
+
+**Hard rule 2 (added session 6):** every bar has at least one finger note — no
+bare-thumb bars.
+
+Implement each stylistic constraint as an independent flag internally; the tiers are
+just presets over those flags (leaves room for a future "custom" panel). Finger
+independence is the `syncFingers` flag; strike-time density is the offbeat range plus
+pinch odds.
 
 ### Pattern structure (this is what makes it musical, not random)
 - Generate a **1-bar or 2-bar cell**, then repeat it across the phrase. Real Travis playing grooves on a repeating pattern.
@@ -212,11 +237,11 @@ Editing = the grid with tapping enabled:
 6. Audio playback of the pattern itself (Tone.js, simple plucked synth or samples).
 7. Syncopation: allow held/tied treble notes across the beat.
 8. 16th-note fills, hammer-on/pull-off annotations.
-9. Custom constraint panel (individual toggles behind the Tame/Loose/Chaos presets).
+9. Custom constraint panel (individual toggles behind the Tame/Loose/Unruly/Chaos presets).
 
 ## UI sketch
 
-Phone-first, portrait. Controls in a bottom sheet or collapsible top bar: chord/progression, thumb mode, chaos level (Tame/Loose/Chaos), label mode (Fret/PIMA), phrase length (4/8), BPM.
+Phone-first, portrait. Controls in a bottom sheet or collapsible top bar: chord/progression, thumb mode, chaos level (Tame/Loose/Unruly/Chaos), label mode (Fret/PIMA), phrase length (4/8), BPM.
 Main area: the grid (bars side by side or swipeable).
 Primary actions as large tappable buttons: Generate • Draw • Save • Favorites.
 Keep it minimal — this is a practice tool, not a product.

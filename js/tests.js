@@ -369,28 +369,26 @@ check("patternBars produces that many distinct bars and cycles across a phrase",
   assert(sig(phrase[1].bar) !== sig(phrase[0].bar), "a 2-bar pattern should have two different bars");
 });
 
-// 5) Tame constraints: 1-2 offbeats/bar, single notes only, and NO string sounds
-//    on two adjacent 8th slots — counting the thumb, since that re-strike is the
-//    awkward one. Loose shares the adjacency ceiling but is busier (2-3 offbeats,
-//    occasional doubles); Unruly/Chaos drop the ceiling.
-check("Tame: 1-2 single-note offbeats, no same string on adjacent 8th slots", () => {
+// DIFFICULTY MODEL (session 6): difficulty is strike-times + finger independence,
+// NOT note count. A full multi-finger rake is easy. So Tame strikes ONE consistent
+// finger group across the loop (synchronized, few attacks); Loose+ vary the set
+// per column (independent). Triples are no longer Chaos-only — Tame's rake is a
+// legit triple. Adjacency stays clean for Tame/Loose; Unruly/Chaos drop it.
+
+// 5) Tame: few offbeat strike-times and no adjacent re-strike. (Thickness is NOT
+//    capped — a synchronized 3-finger rake is exactly what Tame should allow.)
+check("Tame: ≤3 offbeat strike-times, no same string on adjacent 8th slots", () => {
   for (const chord of CHORD_IDS) {
     for (let seed = 1; seed <= 12; seed++) {
       for (const bass of ["travis", "simple_alt"]) {
         const p = generatePattern(chord, { bass, chaos: "tame", rng: seeded(seed * 31) });
         const bar = p.bars[0];
 
-        // Ceiling is hard (2); the floor is best-effort — hard adjacency can drop
-        // one rather than re-strike — so we only assert it doesn't exceed 2.
+        // maxOffbeats is a hard ceiling (3); the floor is best-effort (adjacency
+        // can drop one rather than re-strike), so we only assert it doesn't exceed.
         const filled = OFFBEAT_SLOTS.filter((s) => bar.some((e) => e.slot === s && e.finger !== "p"));
-        assert(filled.length <= 2,
-          `Tame offbeats should be ≤2, got ${filled.length} (${chord}/${bass} seed ${seed})`);
-
-        // no double stops in Tame: at most one finger note per slot
-        for (const slot of ALL_SLOTS_T) {
-          const fingers = bar.filter((e) => e.slot === slot && e.finger !== "p").length;
-          assert(fingers <= 1, `Tame slot ${slot} has ${fingers} finger notes (${chord}/${bass} seed ${seed})`);
-        }
+        assert(filled.length <= 3,
+          `Tame offbeats should be ≤3, got ${filled.length} (${chord}/${bass} seed ${seed})`);
 
         // adjacency across ALL slots, thumb included
         const stringsAt = (slot) => new Set(bar.filter((e) => e.slot === slot).map((e) => e.string));
@@ -406,81 +404,75 @@ check("Tame: 1-2 single-note offbeats, no same string on adjacent 8th slots", ()
   }
 });
 
-// 5b) Loose keeps the adjacency ceiling (the reframe) but is busier than Tame:
-//     2-3 offbeats, doubles allowed, still no triples, still no re-strikes.
-check("Loose: 2-3 offbeats, adjacency ceiling stays on, no triples", () => {
+// 5b) Tame stays SYNCHRONIZED: the fingers fire as one consistent group, so the
+//     vast majority of Tame loops show a single distinct finger-set across their
+//     attack columns. (Adjacency can clamp a column to a subset, so it's a strong
+//     majority, not 100%.) Independent tiers would scatter far past this.
+check("Tame fingers stay synchronized (mostly one finger-set)", () => {
+  let single = 0, total = 0;
   for (const chord of CHORD_IDS) {
-    for (let seed = 1; seed <= 12; seed++) {
-      const p = generatePattern(chord, { bass: "travis", chaos: "loose", rng: seeded(seed * 53) });
-      const bar = p.bars[0];
-
-      // Ceiling hard (3); floor best-effort under hard adjacency (see Tame note).
-      const filled = OFFBEAT_SLOTS.filter((s) => bar.some((e) => e.slot === s && e.finger !== "p"));
-      assert(filled.length >= 1 && filled.length <= 3,
-        `Loose offbeats should be 1-3, got ${filled.length} (${chord} seed ${seed})`);
-
-      for (const slot of ALL_SLOTS_T) {
-        const fingers = bar.filter((e) => e.slot === slot && e.finger !== "p").length;
-        assert(fingers <= 2, `Loose slot ${slot} has a triple (${chord} seed ${seed})`);
-      }
-
-      const stringsAt = (slot) => new Set(bar.filter((e) => e.slot === slot).map((e) => e.string));
-      for (let slot = 1; slot < 8; slot++) {
-        const a = stringsAt(slot), b = stringsAt(slot + 1);
-        for (const s of a) {
-          assert(!b.has(s), `Loose re-strikes string ${s} on ${slot}/${slot + 1} (${chord} seed ${seed})`);
+    for (const bass of ["travis", "simple_alt", "dead_thumb"]) {
+      for (let seed = 1; seed <= 20; seed++) {
+        const p = generatePattern(chord, { chaos: "tame", bass, patternBars: 2, rng: seeded(seed * 17 + 3) });
+        const sets = new Set();
+        for (const bar of p.bars) {
+          const byCol = {};
+          for (const e of bar) if (e.finger !== "p") (byCol[e.slot] ??= []).push(e.string);
+          for (const arr of Object.values(byCol)) sets.add(arr.sort((x, y) => x - y).join(","));
         }
+        total++;
+        if (sets.size <= 1) single++;
       }
     }
   }
+  assert(single / total >= 0.7,
+    `Tame should be mostly a single finger-set; only ${single}/${total} were`);
 });
 
-// 5c) Unruly guarantees at least one double stop PER BAR (its whole point), and
-//     never produces a triple — triples are exclusive to Chaos.
-check("Unruly: ≥1 double stop per bar, never a triple", () => {
+// 5c) Unruly keeps at least one stack (≥2 notes) per bar — its texture floor, so
+//     it doesn't read like Loose. Triples are allowed here now.
+check("Unruly: at least one stack (≥2) per bar", () => {
   for (const chord of CHORD_IDS) {
     for (let seed = 1; seed <= 12; seed++) {
       const p = generatePattern(chord, { bass: "travis", chaos: "unruly", patternBars: 2, rng: seeded(seed * 71) });
       for (let b = 0; b < p.bars.length; b++) {
         const bar = p.bars[b];
-        let doubles = 0;
+        let stacks = 0;
         for (const slot of ALL_SLOTS_T) {
           const fingers = bar.filter((e) => e.slot === slot && e.finger !== "p").length;
-          assert(fingers <= 2, `Unruly produced a triple on slot ${slot} (${chord} seed ${seed})`);
-          if (fingers >= 2) doubles++;
+          if (fingers >= 2) stacks++;
         }
-        assert(doubles >= 1, `Unruly bar ${b} has no double stop (${chord} seed ${seed})`);
+        assert(stacks >= 1, `Unruly bar ${b} has no stack (${chord} seed ${seed})`);
       }
     }
   }
 });
 
-// 5d) Triples are a Chaos-only signature: no tame/loose/unruly bar ever stacks 3.
-check("triples appear only in Chaos", () => {
-  for (const chaos of ["tame", "loose", "unruly"]) {
-    for (const chord of CHORD_IDS) {
-      for (let seed = 1; seed <= 10; seed++) {
-        const p = generatePattern(chord, { chaos, patternBars: 4, rng: seeded(seed * 13 + 7) });
-        for (const bar of p.bars) {
-          for (const slot of ALL_SLOTS_T) {
-            const fingers = bar.filter((e) => e.slot === slot && e.finger !== "p").length;
-            assert(fingers <= 2, `${chaos} produced a triple on slot ${slot} (${chord} seed ${seed})`);
-          }
+// 5d) Triples are no longer Chaos-exclusive: every tier can stack three across a
+//     sweep — Tame via its synchronized rake (group of 3), the rest via odds.
+check("triples are not Chaos-exclusive: every tier can stack three", () => {
+  for (const chaos of ["tame", "loose", "unruly", "chaos"]) {
+    let sawTriple = false;
+    for (let seed = 1; seed <= 80 && !sawTriple; seed++) {
+      const p = generatePattern("C", { chaos, patternBars: 4, rng: seeded(seed * 17 + 1) });
+      for (const bar of p.bars) {
+        for (const slot of ALL_SLOTS_T) {
+          if (bar.filter((e) => e.slot === slot && e.finger !== "p").length >= 3) sawTriple = true;
         }
       }
     }
+    assert(sawTriple, `${chaos} should produce a 3-note column across a sweep`);
   }
-  // and Chaos actually does produce a triple somewhere across a sweep
-  let sawTriple = false;
-  for (let seed = 1; seed <= 40 && !sawTriple; seed++) {
-    const p = generatePattern("C", { chaos: "chaos", patternBars: 4, rng: seeded(seed * 17) });
-    for (const bar of p.bars) {
-      for (const slot of ALL_SLOTS_T) {
-        if (bar.filter((e) => e.slot === slot && e.finger !== "p").length >= 3) sawTriple = true;
-      }
-    }
-  }
-  assert(sawTriple, "Chaos should produce at least one triple across a 40-seed sweep");
+});
+
+// 5f) Hard no-blank rule (session 6): every bar has at least one finger note.
+//     Chaos used to be able to roll a bare-thumb bar; the generator now forces a
+//     legal offbeat rather than ship one.
+check("no blank bars: every bar has ≥1 finger note (all tiers)", () => {
+  everyBar((bar, ctx) => {
+    assert(bar.some((e) => e.finger !== "p"),
+      `blank bar — no finger notes (${JSON.stringify(ctx)})`);
+  });
 });
 
 // 5e) Whole-loop generation: for the clean tiers the adjacency ceiling holds
@@ -693,12 +685,21 @@ check("editor: editing a shared cell changes every repeat of it", () => {
   const before = resolvePhrase(p, chords);
   assert(before.length === 4, "phrase should be 4 bars");
 
+  // A shared cell renders identically in every bar it repeats into. (Whether the
+  // generator happened to seed a note here doesn't matter — toggling flips it.)
+  const noteIn = (bar) => bar.some((e) => e.slot === 6 && e.string === 1);
+  const beforeState = before.map(({ bar }) => noteIn(bar));
+  assert(beforeState.every((v) => v === beforeState[0]),
+    "the shared cell should render identically across all four bars before editing");
+
   // tap in the THIRD bar; cellIndex is 2 % 1 = 0, the one shared cell
   const edited = toggleNote(p, { cellIndex: 2 % p.bars.length, slot: 6, string: 1, chordId: "G" });
   const after = resolvePhrase(edited, chords);
-  const hasNote = (bar) => bar.some((e) => e.slot === 6 && e.string === 1);
-  const changedEverywhere = after.every(({ bar }) => hasNote(bar));
-  assert(changedEverywhere, "editing the shared cell should change all four bars");
+  const afterState = after.map(({ bar }) => noteIn(bar));
+  assert(afterState.every((v) => v === afterState[0]),
+    "editing the shared cell should change all four bars identically");
+  assert(afterState[0] !== beforeState[0],
+    "toggling the shared cell should flip it in every bar");
 });
 
 // 12) Two drawn bass notes can share a slot. Regression: relative thumb events

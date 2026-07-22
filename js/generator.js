@@ -60,6 +60,18 @@ function generateThumbBar(chordId, preset, rng) {
 
 const SLOTS_PER_BAR = 8;
 
+// Weighted pick of a finger-group size (1..3) from a { size: odds } table.
+function pickGroupSize(odds, rng) {
+  const entries = Object.entries(odds || { 1: 1 });
+  const total = entries.reduce((s, [, w]) => s + w, 0) || 1;
+  let r = rng() * total;
+  for (const [size, w] of entries) {
+    r -= w;
+    if (r < 0) return Number(size);
+  }
+  return Number(entries[entries.length - 1][0]);
+}
+
 // ---- treble (finger) layer for the WHOLE loop -------------------------------
 // The pattern is always a loop, so the finger layer is generated as ONE circular
 // sequence of N = 8 × bars 8th-note slots rather than bar-by-bar. Adjacency
@@ -72,6 +84,11 @@ const SLOTS_PER_BAR = 8;
 // two neighbours the later-placed one sees the earlier, and for the wrap pair
 // the last slot (placed last) sees the first (placed first). Thumb strings are
 // seeded up front, so a slot also avoids re-striking the thumb on either side.
+//
+// Difficulty is driven by strike-times (how many columns get a finger note) and
+// finger independence. `syncFingers` tiers pick ONE finger group and strike it
+// at every active column (synchronized/rake-like — easy); other tiers roll the
+// finger-set per column (independent — hard), thickened by doubleStopOdds.
 //
 // Returns per-bar treble arrays, so the rest of the app keeps its bar structure.
 function generateTrebleLoop(flags, thumbBars, rng) {
@@ -120,6 +137,14 @@ function generateTrebleLoop(flags, thumbBars, rng) {
     return c;
   };
 
+  // Synchronized tiers pick ONE finger group up front and reuse it at every
+  // column — same fingers firing together (the easy, rake-like case). It's
+  // clamped to what's legal at each column, so it stays clean; a column where
+  // the whole group is blocked is dropped rather than re-struck.
+  const syncGroup = flags.syncFingers
+    ? shuffled(FINGER_STRINGS, rng).slice(0, pickGroupSize(flags.groupSizeOdds, rng))
+    : null;
+
   // Walk the whole loop in order and place notes.
   const placed = new Map(); // gi -> [strings]
   for (let gi = 0; gi < N; gi++) {
@@ -127,17 +152,21 @@ function generateTrebleLoop(flags, thumbBars, rng) {
     const candidates = legalAt(gi);
     if (!candidates.length) continue;
 
-    // Single, or a double/triple stop by the preset's odds. Roll once.
-    let notesHere = 1;
-    if (flags.allowDoubleStops) {
+    let strings;
+    if (syncGroup) {
+      // Strike the consistent group, minus any string blocked here.
+      strings = syncGroup.filter((s) => candidates.includes(s));
+      if (!strings.length) continue;
+    } else {
+      // Independent: single, or a double/triple stop by the preset's odds.
+      let notesHere = 1;
       const { double = 0, triple = 0 } = flags.doubleStopOdds || {};
       const r = rng();
       if (r < triple) notesHere = 3;
       else if (r < triple + double) notesHere = 2;
+      notesHere = Math.min(notesHere, candidates.length);
+      strings = shuffled(candidates, rng).slice(0, notesHere);
     }
-    notesHere = Math.min(notesHere, candidates.length);
-
-    const strings = shuffled(candidates, rng).slice(0, notesHere);
     for (const s of strings) add(gi, s);
     placed.set(gi, strings);
   }
@@ -159,6 +188,24 @@ function generateTrebleLoop(flags, thumbBars, rng) {
         placed.get(gi).push(s);
         doubles++;
       }
+    }
+  }
+
+  // Hard no-blank rule: every bar must have at least one finger note. Adjacency
+  // drops (or a low offbeat roll) can leave a bar bare — force one legal offbeat
+  // rather than ship an all-thumb bar. Uses the sync group's fingers when there
+  // is one, so the forced note still belongs to the pattern.
+  for (let b = 0; b < bars; b++) {
+    const slots = Array.from({ length: SLOTS_PER_BAR }, (_, k) => b * SLOTS_PER_BAR + k);
+    if (slots.some((gi) => placed.get(gi)?.length)) continue;
+    for (const slot of shuffled(OFFBEAT_SLOTS, rng)) {
+      const gi = b * SLOTS_PER_BAR + (slot - 1);
+      const pool = legalAt(gi);
+      if (!pool.length) continue;
+      const s = syncGroup?.find((x) => pool.includes(x)) ?? pick(pool, rng);
+      add(gi, s);
+      placed.set(gi, [s]);
+      break;
     }
   }
 
