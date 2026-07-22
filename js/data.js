@@ -59,6 +59,10 @@ export const CHORDS = {
 
 export const CHORD_IDS = Object.keys(CHORDS);
 
+// Startup chord for single-chord mode. E because that's what the user actually
+// drills on — a taste default, not a musical constraint.
+export const DEFAULT_CHORD = "E";
+
 // Chord-aware thumb domain: {6,5,4} UNION the current chord's role strings.
 // (e.g. D's alt role sits on string 3, so 3 is thumb-legal on D specifically.)
 // Fingers always own 3/2/1; overlap strings are legal for both hands and the
@@ -162,9 +166,9 @@ export const CHAOS_PRESETS = {
     id: "unruly",
     name: "Unruly",
     noAdjacentSameString: false, // re-strikes allowed — the top of the curve
-    minStrikes: 4,
+    minStrikes: 5, // floor raised from 4 (round 3): 4-strike rolls read too easy for the tier
     maxStrikes: 6,
-    allSinglesOdds: 0.10,
+    allSinglesOdds: 0.05, // rare — an easy all-singles roll undercuts "unruly"
     doubleStopOdds: { double: 0.50, triple: 0.18 },
     minDoubleStops: 1, // per BAR on non-singles rolls: keep some stacked texture
     pinchOdds: 0.35,

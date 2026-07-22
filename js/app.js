@@ -5,6 +5,7 @@
 import {
   CHORD_IDS,
   CHORDS,
+  DEFAULT_CHORD,
   BASS_PRESETS,
   CHAOS_IDS,
   CHAOS_PRESETS,
@@ -73,6 +74,7 @@ function initControls() {
   custom.textContent = "Custom";
   el("progression").appendChild(custom);
 
+  el("chord").value = DEFAULT_CHORD;
   el("key").value = state.key;
   el("pattern").value = String(DEFAULT_PATTERN_BARS);
   el("bpm").value = String(DEFAULT_BPM);

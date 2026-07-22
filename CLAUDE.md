@@ -236,9 +236,12 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     rolls), `minDoubleStops` (per-bar stack floor, Unruly's texture guarantee).
   - **Tier numbers** (measured over 400 seeds/tier): **Tame** 2–3 strikes, ~57%
     all-singles, clean adjacency; **Loose** 4–5 strikes, ~39% all-singles, still
-    clean; **Unruly** 4–6 strikes, ~9% all-singles, re-strikes allowed, ≥1 stack
-    per bar on stacked rolls; **Chaos** uniform 1–8 strikes, uniform column
-    shapes (single/double/triple each ⅓), coin-flip pinches, no constraints.
+    clean; **Unruly** budget 5–6 (mode 5; ~21% of bars land on 4 via budget
+    shortfall — a 5-budget bar with no pinch tops out at the 4 offbeat columns),
+    ~4% all-singles, re-strikes allowed, ≥1 stack per bar on stacked rolls;
+    **Chaos** uniform 1–8 strikes, uniform column shapes (single/double/triple
+    each ⅓), coin-flip pinches, no constraints. (Unruly's floor was raised from
+    4/10% in round 3 — occasional rolls read too easy for the tier.)
   - **Hard no-blank rule:** every bar gets **≥1 finger note** — the generator
     forces a legal offbeat rather than ship a bare-thumb bar. Asserted in tests.
   - `noAdjacentSameString` (a string sounding on two adjacent 8ths, thumb
@@ -469,10 +472,15 @@ emerges from density and shouldn't be enforced**. Changes, all deployed as v1.3
   original spec's "novelty over playability"): uniform 1–8 strikes, uniform
   column shape, coin-flip pinches. Only the no-blank guard survives.
 
-**NEXT SESSION — get the round-3 guitar test** on: Tame's 2–3-strike budget,
-the Loose jump (4–5 strikes), the all-singles rates, and whether fully-random
-Chaos feels right; tune `CHAOS_PRESETS` numbers from the feedback (all feel
-lives there). Then the **theme colour pass** (deferred behind functionality; all
+**Round 3 (2026-07-22, deployed as v1.4, `CACHE` v9).** The round-2 build "feels
+very good" — two tweaks only: **Unruly's floor raised** (`minStrikes` 4→5,
+`allSinglesOdds` 0.10→0.05; occasional rolls read too easy for the tier) and the
+**startup chord is now E** (`DEFAULT_CHORD` in `data.js` — what the user actually
+drills; taste, not musical logic).
+
+**NEXT SESSION — confirm Unruly's raised floor on guitar**; Tame/Loose/Chaos are
+signed off. Tune `CHAOS_PRESETS` numbers if anything drifts (all feel lives
+there). Then the **theme colour pass** (deferred behind functionality; all
 seven themes are a first cut, read differently on phone vs laptop — do it
 **against a real phone screen**, `themes.json` the only file that changes). Then
 v2 musical work: the **custom 4-slot bass builder** (the preset format and the
