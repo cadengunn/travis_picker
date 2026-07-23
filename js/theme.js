@@ -6,9 +6,11 @@
 //   accent  beat-column highlights, buttons, headers (also the text color)
 //   active  filled note circles (thumb)
 //   label   text inside note circles
-// plus one OPTIONAL role:
+// plus two OPTIONAL roles:
 //   hardware  the metal fittings (sheet lip, die border, jewel rim);
 //             defaults to the house brass #c9a24a — override for e.g. nickel
+//   playhead  the sounding-column color; defaults to mix(surface, active, 0.4),
+//             override when that blend desaturates (complementary hue pairs)
 //
 // Everything else (borders, muted text, beat tint, domain tint) is DERIVED here
 // by blending those hexes into opaque colors, so the CSS needs no alpha math and
@@ -75,8 +77,11 @@ export function applyTheme(id) {
   // The weave/sheen/vignette overlays that make it "tweed" are fixed rgba in the
   // CSS, so this one blend is all a theme needs to define.
   r.setProperty("--faceplate", mix(t.bg, t.surface, 0.42));
-  // playhead column — reads clearly against `surface` in light and dark themes
-  r.setProperty("--playhead", mix(t.surface, t.active, 0.4));
+  // playhead column — reads clearly against `surface` in light and dark themes.
+  // Overridable per theme: the default blend toward `active` goes muddy when
+  // surface and active are complements (Doc's blue+amber cancels to gray), so
+  // those themes name their own column color in themes.json.
+  r.setProperty("--playhead", t.playhead || mix(t.surface, t.active, 0.4));
   // a near-pure `active`, for the glow ring around a note whose column is
   // sounding: on a beat the note circle covers the cell tint, so the note
   // itself has to react or the playhead looks like it skips the bass.
@@ -112,8 +117,11 @@ export function applyTheme(id) {
   r.setProperty("--jewel-off", mix(control, t.bg, 0.4));
 
   // the lit Play button's gradient tail — `active` pulled toward black, so a
-  // pressed transport reads as the same material in any hue.
+  // pressed transport reads as the same material in any hue. `accent-deep` is
+  // the same idea for the die's bottom edge (was a fixed tan smudge that
+  // fought the cool themes).
   r.setProperty("--active-deep", mix(t.active, "#000000", 0.22));
+  r.setProperty("--accent-deep", mix(t.accent, "#000000", 0.16));
 
   // light surfaces can't take a 45% black recess shadow — it reads as grime.
   r.setProperty("--recess-shadow", luma(t.surface) > 0.6 ? "rgba(0, 0, 0, 0.16)" : "rgba(0, 0, 0, 0.45)");

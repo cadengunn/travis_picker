@@ -50,6 +50,7 @@
   --jewel-off-hi: #62503c;
   --jewel-off: #3e2e20;
   --active-deep: #af8045;
+  --accent-deep: #c3b9a1;
   --recess-shadow: rgba(0, 0, 0, 0.45);
 
   /* fixed texture overlay (theme-independent bevel highlight) */
@@ -412,12 +413,14 @@ main {
   border-color: var(--hardware-deep);
   background:
     radial-gradient(120% 120% at 50% 30%, rgba(0, 0, 0, 0.10), transparent 60%),
-    linear-gradient(180deg, #f6ecd6, var(--accent) 58%, #d6c6a2);
+    linear-gradient(180deg, #f6ecd6, var(--accent) 58%, var(--accent-deep));
 }
+/* pips in `bg`: every theme gets its own die — navy pips on Doc's ivory,
+   cream on Elizabeth's chocolate (fixed brown pips went invisible there) */
 .btn-roll svg {
   width: 27px;
   height: 27px;
-  fill: #6e4d27;
+  fill: var(--bg);
   transform: rotate(-13deg);
   filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.28)) drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }

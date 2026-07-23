@@ -724,10 +724,22 @@ butter `#ffe9a8` to stage gold `#f5d67b` (value separation from the white
 spotlight thumb). Buster: bg/surface one step toward velvet (was reading
 synthwave against the tweed).
 
-**Known nit to revisit with the user:** Buster's beat-column stripes are still
-the most prominent of the seven (lavender accent drives the wash); if it still
-reads busy on the phone, the per-theme fix is lowering that theme's contrast —
-or making `--beat-wash` alpha a theme override.
+**Phone review + refinement round (same session, `CACHE` v16):** the user
+reviewed all seven on hardware — verdict "fantastic", no role changes asked.
+Two refinements from the review:
+- **Per-theme `playhead` override** (second optional role, like `hardware`):
+  the default `mix(surface, active, 0.4)` desaturates to gray when surface and
+  active are near-complements. Doc got lifted denim `#6f8dad` (blue+amber is
+  the worst case), Tommy warm brass gel `#7d6f4a` (a stage light, not a gray
+  pillar — note his playhead-GLOW stays white, so the note lights white inside
+  a warm column), Buster lit lavender `#7569b0` (was mauve mud). Merle, Chet
+  (burnished copper — the standout), Jerry (sage) and Elizabeth keep the
+  derived blend, which genuinely lands for them.
+- **The die is per-theme now:** pips fill `var(--bg)` (fixed brown went
+  invisible on Elizabeth's chocolate die; now navy pips on Doc's ivory, cherry
+  on Chet's cream, cream on Elizabeth's chocolate) and the bottom edge is
+  derived `--accent-deep` instead of a fixed tan smudge.
+Buster's beat-column stripes (previous nit) passed the phone review — leave.
 
 **Dev-environment note:** the Browser-pane preview server can't read
 `~/Desktop` (macOS TCC), so in-browser verification ran against an rsync mirror

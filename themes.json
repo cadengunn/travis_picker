@@ -1,5 +1,5 @@
 {
-  "comment": "Travis Picker UI themes. Roles: bg = app background (carries theme identity); surface = empty grid cells / panels; accent = beat-column highlights, buttons, headers (also finger notes + text); active = filled note circles (thumb); label = text inside note circles (p/i/m/a or fret numbers); hardware (OPTIONAL) = metal fittings (sheet lip, die border, jewel rim), defaults to house brass #c9a24a. Swap via data-theme attribute + CSS custom properties.",
+  "comment": "Travis Picker UI themes. Roles: bg = app background (carries theme identity); surface = empty grid cells / panels; accent = beat-column highlights, buttons, headers (also finger notes + text); active = filled note circles (thumb); label = text inside note circles (p/i/m/a or fret numbers); hardware (OPTIONAL) = metal fittings (sheet lip, die border, jewel rim), defaults to house brass #c9a24a; playhead (OPTIONAL) = sounding-column color, defaults to mix(surface, active, 0.4) - override when that blend desaturates. Swap via data-theme attribute + CSS custom properties.",
   "default": "merle",
   "themes": [
     {
@@ -42,7 +42,8 @@
       "accent": "#cfe0f0",
       "active": "#e4b268",
       "label": "#12253d",
-      "hardware": "#b6c2cc"
+      "hardware": "#b6c2cc",
+      "playhead": "#6f8dad"
     },
     {
       "id": "elizabeth",
@@ -63,7 +64,8 @@
       "surface": "#262626",
       "accent": "#f5d67b",
       "active": "#f0f2f5",
-      "label": "#111111"
+      "label": "#111111",
+      "playhead": "#7d6f4a"
     },
     {
       "id": "buster",
@@ -73,7 +75,8 @@
       "surface": "#3e2f86",
       "accent": "#c8bff0",
       "active": "#e8b45e",
-      "label": "#1c1445"
+      "label": "#1c1445",
+      "playhead": "#7569b0"
     }
   ]
 }
