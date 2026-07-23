@@ -75,6 +75,18 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
       return writeAll(next);
     },
 
+    // Rename in place; keeps everything else (pattern, context, savedAt, id). A
+    // blank/whitespace name is ignored so an item can't lose its name.
+    rename(id, name) {
+      const clean = (name || "").trim();
+      if (!clean) return false;
+      const items = readAll();
+      const item = items.find((i) => i.id === id);
+      if (!item) return false;
+      item.name = clean;
+      return writeAll(items);
+    },
+
     count() {
       return readAll().length;
     },

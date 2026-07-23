@@ -26,7 +26,7 @@
          name, which can be long, so it owns a full row of its own. -->
     <header class="app-head">
       <div class="ctx-row">
-        <span class="app-version" aria-label="App version">v2.4.4</span>
+        <span class="app-version" aria-label="App version">v2.4.5</span>
         <span id="context" class="context" hidden></span>
         <div class="grid-actions">
           <button id="edit-toggle" class="pill" type="button" aria-pressed="false"
@@ -37,7 +37,6 @@
       </div>
       <div class="name-row">
         <span id="loaded-name" class="loaded-name"></span>
-        <span id="type-indicator" class="type-indicator"></span>
       </div>
     </header>
 
@@ -53,6 +52,9 @@
   <!-- The only permanently-visible controls: the things you reach for with a
        guitar in your hands. Everything else lives in the Options sheet. -->
   <div class="controls">
+    <!-- Absolute/mixed-bass caution indicator: sits bottom-right, above the gear,
+         so the header name row is reserved for the pattern name. -->
+    <span id="type-indicator" class="type-indicator"></span>
     <div class="transport">
       <button id="play" class="btn-icon btn-play" type="button" aria-pressed="false"
               aria-label="Start metronome">&#x25B6;&#xFE0E;</button>

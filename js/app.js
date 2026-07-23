@@ -448,6 +448,21 @@ function renderSavedList() {
     load.textContent = "Load";
     load.addEventListener("click", () => loadSaved(item.id));
 
+    const rename = document.createElement("button");
+    rename.type = "button";
+    rename.textContent = "Rename";
+    rename.addEventListener("click", () => {
+      const next = prompt(`Rename "${item.name}"`, item.name);
+      if (next == null) return; // cancelled
+      if (!savedStore.rename(item.id, next)) return; // blank or write failed
+      // keep the on-screen name in sync if this is the loaded pattern
+      if (state.loaded && state.loaded.id === item.id) {
+        state.loaded.name = next.trim();
+        renderLoadedName();
+      }
+      renderSavedList();
+    });
+
     const del = document.createElement("button");
     del.type = "button";
     del.textContent = "Delete";
@@ -458,7 +473,7 @@ function renderSavedList() {
       refreshSavedCount();
     });
 
-    li.append(meta, load, del);
+    li.append(meta, load, rename, del);
     list.appendChild(li);
   }
 }

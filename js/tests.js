@@ -681,6 +681,23 @@ check("saved: lists newest first, deletes, and handles bad storage", () => {
     "save should return null when storage refuses the write");
 });
 
+check("saved: rename updates the name, keeps the pattern, ignores blanks", () => {
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("C", { rng: seeded(3) });
+  const ctx = { chordMode: "single", chord: "C", key: "C", progression: [] };
+  const a = store.save({ name: "old name", pattern, context: ctx });
+
+  assert(store.rename(a.id, "  new name  ") === true, "rename should report success");
+  const got = store.get(a.id);
+  assert(got.name === "new name", `rename should trim + update, got "${got.name}"`);
+  assert(JSON.stringify(got.pattern) === JSON.stringify(a.pattern), "rename must keep the pattern");
+  assert(got.id === a.id && got.savedAt === a.savedAt, "rename must keep id + savedAt");
+
+  assert(store.rename(a.id, "   ") === false, "a blank rename should be ignored");
+  assert(store.get(a.id).name === "new name", "name unchanged after a blank rename");
+  assert(store.rename("nope", "x") === false, "renaming an unknown id should report false");
+});
+
 // 11) Manual editor: tap inference, add/remove, shared-cell editing, and the
 //     relative/absolute consequences of drawing a bass note.
 check("editor: infers thumb vs finger, including the D string-3 overlap", () => {

@@ -228,7 +228,9 @@ quietly: corrupt JSON reads as an empty library, and a refused write (quota /
 private mode) returns `null` so the UI can report it instead of throwing. `list()`
 sorts newest-first with an insertion-order tie-break, so same-millisecond saves
 are still deterministic. Loading restores the pattern **and** its chord context,
-then re-renders — it never re-rolls.
+then re-renders — it never re-rolls. `rename(id, name)` (v2.4.5) updates the name
+in place (trims, ignores blanks, keeps pattern/id/savedAt); each Load-menu item is
+Load / Rename / Delete.
 
 **Themes:** `themes.json` is the source of truth — each theme is 5 roles
 (`bg`, `surface`, `accent`, `active`, `label`) plus an **optional `hardware`**
@@ -819,9 +821,26 @@ onStep/onCountIn never fire in-preview, so the beat lamp's blink (and playhead)
 can only be confirmed on a real foreground device. Static/aria-driven lamps
 (armed, caution) and one-shot CSS blinks (save) ARE verifiable in-preview.
 
-**Pending the user's phone test of the whole batch.** Still open on the list
+**v2.4.5 — refinements from the phone test + a rename feature.**
+- **Edit armed** dropped the accent ring — the pressed-in latch + red REC lamp
+  carry the state (user: "not sure it still needs the outline").
+- **Caution indicator moved** out of the header to **bottom-right, above the
+  gear** (`.type-indicator` is now `position:absolute` inside `.controls`, which
+  is `position:relative`). Frees the header's name row for the pattern name
+  alone. Verified it clears the grid even at 375×553 4-bar (13px gap).
+- **Descender clipping fixed** — `.loaded-name`/`.saved-name` had a too-tight
+  `line-height` under `overflow:hidden`, clipping g/j/q/p/y tails; bumped to 1.3
+  + 1px pad. SE budget still fits (measured).
+- **Rename in the Load menu** — each saved item is now Load / Rename / Delete.
+  New `store.rename(id, name)` (trims, ignores blanks, keeps pattern/id/savedAt);
+  the on-screen loaded name syncs if you rename the loaded pattern. Uses
+  `prompt()` (consistent with the existing `confirm()` UX). Test added → 44/44.
+  Tradeoff: three buttons narrow the name column, so long names ellipsize sooner.
+
+**Pending the user's phone test of v2.4.4 + v2.4.5.** Still open on the list
 (`NEXT_SESSION.md`): B1 (single-chord box height), C1–C3 (keys/progressions),
 E1 (Unruly density?), D3 (Help surface), G1/G2 (swing, pre-loaded patterns).
+Idea if names ellipsize too much: saved-item icon buttons or a two-row layout.
 
 ## Working with this user
 
