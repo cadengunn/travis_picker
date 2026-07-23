@@ -1,9 +1,27 @@
 /* styles.css — mobile-first. Phone portrait is the target; desktop is an
    afterthought widened via a min-width query at the bottom.
 
+   VISUAL LANGUAGE (v2.1 identity pass): the whole screen is one warm tweed
+   "faceplate" — a piece of gear. The pattern grid is RECESSED into it; the
+   transport buttons are RAISED and carved; the type voice is a serif (Fraunces).
+   The mood board was 60s/70s RCA country + Gretsch walnut-and-gold + tweed amps.
+
    Colors come from themes.json via js/theme.js, which sets these custom
    properties on :root. The values below are the "merle" defaults so the app
-   still renders correctly if the theme fetch fails. */
+   still renders correctly if the theme fetch fails. The tweed weave / sheen /
+   vignette overlays are fixed rgba (texture, not hue) so they ride every theme;
+   the color pass tunes the roles, not this file's structure. */
+
+/* Fraunces — the app's serif voice. Bundled + precached (no font CDN: the app
+   is an offline PWA). Latin subset, full variable axes (wght/opsz/SOFT/WONK).
+   OFL 1.1, see fonts/OFL.txt. Fret numerals inside note circles deliberately
+   stay geometric (--numeral) — high-contrast serif hairlines go mushy small. */
+@font-face {
+  font-family: "Fraunces";
+  src: url("../fonts/fraunces-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
 
 :root {
   --bg: #33241a;        /* app background */
@@ -20,90 +38,101 @@
   --row-thumb: #503c2d;
   --control: #453224;
   --playhead: #7a5f3f;
+  --faceplate: #3d2c20; /* the tweed base tone (blend of bg+surface) */
+
+  /* fixed texture overlays (theme-independent) */
+  --bevel-hi: rgba(255, 240, 215, 0.07);
+  --gold: #c9a24a;
+  --grid-line: rgba(233, 220, 192, 0.10);
+  --band-thumb: rgba(60, 42, 28, 0.35);
+
+  --serif: "Fraunces", "Iowan Old Style", "Charter", Georgia, serif;
+  --numeral: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
 
 /* Kill the ~300ms double-tap-to-zoom delay on tap targets, so a fast double-tap
-   on 🎲 fires two generates instead of triggering Safari's zoom gesture. Scoped
-   to the interactive controls, NOT the viewport — pinch-zoom stays enabled. */
+   on the die fires two generates instead of triggering Safari's zoom gesture.
+   Scoped to interactive controls, NOT the viewport — pinch-zoom stays enabled. */
 button, select, input, .cell { touch-action: manipulation; }
 
-/* must beat .field's display:flex so hidden controls actually hide */
+/* must beat display:flex etc so hidden controls actually hide */
 [hidden] { display: none !important; }
 
 html, body { margin: 0; height: 100%; }
 
 body {
-  background: var(--bg);
   color: var(--text);
-  font: 15px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font: 15px/1.3 var(--serif);
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
   -webkit-text-size-adjust: 100%;
+  /* the tweed faceplate: top sheen, edge vignette, woven crosshatch, base tone */
+  background:
+    radial-gradient(120% 52% at 50% -8%, rgba(255, 240, 215, 0.10), transparent 62%),
+    radial-gradient(150% 108% at 50% 44%, transparent 52%, rgba(0, 0, 0, 0.34)),
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.035) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, rgba(255, 245, 225, 0.018) 0 2px, transparent 2px 4px),
+    var(--faceplate);
+  background-attachment: fixed;
 }
 
-/* There is deliberately no app bar. A title tells you nothing you don't know
-   (the home-screen icon already says what this is) and its two preference
-   selects belong in the Options sheet — on a small phone the 53px it cost was
-   the difference between the 4-bar grid fitting and not. */
+/* ---- main / stage ---- */
+main {
+  flex: 1;
+  overflow: auto;
+  padding: max(8px, env(safe-area-inset-top)) 12px 4px;
+  display: flex;
+  flex-direction: column;
+}
 
-.type-indicator {
-  font-size: 12px;
+/* header: two rows (context + actions, then the name) */
+.app-head { flex: 0 0 auto; }
+
+.ctx-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 32px;
+}
+.app-version {
+  flex: 0 0 auto;
+  font-family: var(--numeral);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--muted);
+}
+/* progression + key, shown only in progression mode. Sized to sit quietly next
+   to the action pills (about their weight), not to shout. */
+.context {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  font-variation-settings: "opsz" 30, "SOFT" 30;
 }
-.type-indicator.absolute,
-.type-indicator.mixed { color: var(--active); }
-
-/* ---- main / grid area ---- */
-main {
-  flex: 1;
-  overflow: auto;
-  padding: max(6px, env(safe-area-inset-top)) 12px 10px;
-  display: flex;
-  flex-direction: column;
-}
-/* Cells are square and sized from screen WIDTH, so on a tall phone the grid
-   can't grow to fill the leftover height — centre it instead of leaving a dead
-   band under it. On a short phone the margins collapse to nothing. */
-.grid { width: 100%; margin: auto 0; }
-
-/* slim bar above the grid: pattern info on the left, its actions on the right */
-.grid-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 2px 6px;
-  min-height: 36px;
-}
-/* Version tag — top-left, deliberately low-profile so it doesn't compete with
-   the pattern name or cost any of the tight vertical budget (rides the existing
-   36px row). Bump it by hand at release points. */
-.app-version {
-  flex: 0 0 auto;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  color: var(--muted);
-}
-.grid-bar-info { min-width: 0; display: flex; flex-direction: column; }
+.context .key { color: var(--active); font-variation-settings: "opsz" 30, "wght" 560, "SOFT" 40; }
 .grid-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
 
 .pill {
+  font-family: var(--serif);
   background: var(--control);
   color: var(--text);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 11px;
+  border-radius: 9px;
+  padding: 6px 11px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: inset 0 1px 0 var(--bevel-hi);
 }
 .pill:active { transform: translateY(1px); }
 .pill[aria-pressed="true"] {
@@ -113,48 +142,124 @@ main {
 }
 .pill:disabled { opacity: 0.45; cursor: default; }
 
-/* name of the saved pattern currently on screen */
-.loaded-name {
+/* row 2: the pattern name (or "Untitled") + the absolute/mixed warning badge */
+.name-row {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--active);
+  gap: 8px;
+  margin-top: 5px;
+  min-height: 26px;
+  padding: 0 2px;
 }
-.loaded-name .modified {
-  font-size: 12px;
-  font-weight: 400;
+.loaded-name {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--serif);
+  font-size: 21px;
+  line-height: 1.1;
+  font-weight: 600;
+  color: var(--active);
+  font-variation-settings: "opsz" 44, "wght" 500, "SOFT" 30;
+}
+.loaded-name.untitled { color: var(--muted); font-style: italic; font-variation-settings: "opsz" 44, "wght" 400; }
+.loaded-name .modified { font-size: 12px; font-style: italic; font-weight: 400; color: var(--muted); margin-left: 5px; }
+
+.type-indicator {
+  flex: 0 0 auto;
+  font-family: var(--numeral);
+  font-size: 11px;
   color: var(--muted);
+  white-space: nowrap;
+}
+.type-indicator.absolute,
+.type-indicator.mixed { color: var(--active); }
+
+/* the grid sits in the leftover space, biased slightly UP: it looks intentional
+   (focal points want to be a touch above true centre) and keeps the top of the
+   pattern clear when the Options sheet slides up. On a short phone the bias
+   collapses to almost nothing — width sets grid height, so there's little slack. */
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  padding-bottom: 28px;
+  min-height: 0;
+}
+
+/* single-mode chord label — modest, above the grid (the grid is the hero) */
+.chord-head { text-align: center; flex: 0 0 auto; }
+.chord-head .c {
+  font-family: var(--serif);
+  font-size: 40px;
+  line-height: 1;
+  color: var(--active);
+  font-variation-settings: "opsz" 60, "wght" 480, "SOFT" 40;
 }
 
 /* Every bar is on screen at once — practice is hands-free, so nothing may
-   require scrolling. Cells are fractions of the available width (square via
-   aspect-ratio) instead of a fixed pixel size, and 4 bars wrap to a 2x2. */
+   require scrolling. Cells are fractions of available width (square via
+   aspect-ratio) not a fixed pixel size, and 4 bars wrap to a 2x2. The track is
+   also the RECESSED panel the whole grid sinks into. */
+.grid { width: 100%; flex: 0 0 auto; }
 .grid-track {
   display: grid;
   gap: 8px;
   grid-template-columns: 1fr;
-  --note-font: 14px;
+  --note-font: 15px;
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: inset 0 2px 7px var(--recess-shadow, rgba(0,0,0,0.45)),
+              inset 0 0 0 1px rgba(0, 0, 0, 0.16),
+              0 1px 0 var(--bevel-hi);
 }
-.grid-track[data-bars="2"] { grid-template-columns: repeat(2, 1fr); --note-font: 12px; }
-.grid-track[data-bars="4"] { grid-template-columns: repeat(2, 1fr); --note-font: 10px; }
+.grid-track[data-bars="2"] { grid-template-columns: repeat(2, 1fr); --note-font: 12px; gap: 6px; }
+.grid-track[data-bars="4"] { grid-template-columns: repeat(2, 1fr); --note-font: 10px; gap: 6px; }
 
-.bar {
-  min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 5px;
+.bar { min-width: 0; position: relative; }
+
+/* chord label / picker above each bar. In single mode the header is empty (the
+   big chord-head carries it); in progression mode it holds the numeral chip +
+   the chord <select>. */
+.bar-header {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 22px;
+  margin-bottom: 4px;
 }
-
-/* chord label / picker above each bar */
-.bar-header { display: flex; justify-content: center; margin-bottom: 5px; }
+.bar-header:empty { display: none; }
 .bar-header.static {
-  font-size: 12px;
-  font-weight: 700;
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 500;
   color: var(--active);
-  letter-spacing: 0.3px;
+  font-variation-settings: "opsz" 40, "wght" 460, "SOFT" 40;
+}
+/* numeral chip — the bar number gets its own little "home", top-left */
+.bar-num {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--numeral);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--control);
+  border: 1px solid var(--line);
 }
 .bar-chord {
   width: 100%;
@@ -163,16 +268,20 @@ main {
   color: var(--active);
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 5px 4px;
-  font-size: 13px;
-  font-weight: 700;
+  padding: 4px 4px;
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 600;
   text-align: center;
   text-align-last: center;
+  box-shadow: inset 0 1px 0 var(--bevel-hi);
 }
 
-.row { display: grid; grid-template-columns: repeat(8, 1fr); }
-.row.domain-thumb .cell { background: var(--row-thumb); }
-.row.domain-thumb .cell.beat { background: var(--beat-tint); }
+/* rows: quiet horizontal string lines; thumb rows (4/5/6, at the bottom) banded;
+   a stronger divider under string 3 splits fingers (top) from thumb (bottom). */
+.row { display: grid; grid-template-columns: repeat(8, 1fr); border-top: 1px solid var(--grid-line); }
+.row:first-child { border-top: 0; }
+.row.domain-thumb { background: var(--band-thumb); }
 .row.domain-divider { border-bottom: 2px solid var(--line); }
 
 .cell {
@@ -181,15 +290,20 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface);
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  position: relative;
 }
-.cell.beat { background: var(--beat-tint); } /* downbeat columns stand out */
+/* downbeat columns get a faint light wash (layered so it rides the banding) */
+.cell.beat::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--bevel-hi);
+  pointer-events: none;
+}
 
 /* edit mode: cells become tappable. Off by default so you can't nudge a
    pattern by accident while playing. */
-.grid-track.editable { outline: 2px dashed var(--active); outline-offset: 5px; border-radius: 6px; }
+.grid-track.editable { outline: 2px dashed var(--active); outline-offset: 5px; border-radius: 8px; }
 .grid-track.editable .cell { cursor: pointer; }
 .grid-track.editable .cell:active { filter: brightness(1.35); }
 
@@ -200,98 +314,169 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--numeral);
   font-size: var(--note-font);
   line-height: 1;
   font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 .note-thumb  { background: var(--active); color: var(--label); }
 .note-finger { background: var(--accent); color: var(--bg); }
 
 /* beat-number ruler under each bar */
 .ruler { display: grid; grid-template-columns: repeat(8, 1fr); margin-top: 3px; }
-.tick { text-align: center; font-size: 11px; color: var(--muted); }
+.tick { text-align: center; font-family: var(--numeral); font-size: 11px; color: var(--muted); }
 .tick.beat { color: var(--text); font-weight: 700; }
 
-/* ---- transport: the whole permanent control strip ---- */
-.transport {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-/* 44px square is Apple's minimum tap target; don't shrink these to buy slider
-   width, they're used one-handed with a guitar in the way. */
-.btn-icon {
-  flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  background: var(--control);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  cursor: pointer;
-  font-variant-numeric: tabular-nums; /* count-in digits mustn't jiggle */
-}
-.btn-icon:active { transform: translateY(1px); }
-/* Generate is the most-pressed button on the screen, so it gets more than the
-   44px minimum and the accent fill — it should be findable without looking. */
-.btn-roll {
-  width: 66px;
-  height: 54px;
-  font-size: 25px;
-  color: var(--bg);
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.btn-play[aria-pressed="true"] {
-  background: var(--active);
-  color: var(--label);
-  border-color: var(--active);
-}
-.btn-play:active { transform: translateY(1px); }
-
-.bpm-slider {
-  flex: 1 1 auto;
-  min-width: 0;
-  accent-color: var(--active);
-  height: 28px;
-}
-.bpm-value {
-  flex: 0 0 auto;
-  min-width: 34px; /* fits three digits at the new 240 top end */
-  text-align: right;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* playhead: the column currently sounding.
-   Specificity has to beat `.row.domain-thumb .cell` (0-3-0) or the thumb rows'
-   domain tint wins and the playhead lights only strings 3/2/1 — the bass half
-   of the column stays dark. Found on a phone, not on the laptop. */
-.grid-track .row .cell.playing { background: var(--playhead); }
-/* On a beat the thumb note fills 82% of the cell, so the column tint alone
-   makes filled cells look un-lit — the note has to react too. Lift + glow reads
-   at a glance in any theme and whether or not the cell holds a note. */
-.grid-track .row .cell.playing { position: relative; z-index: 1; }
+/* playhead: the column currently sounding. Banding now lives on the ROW, so a
+   `.cell.playing` (targeting the cell) always paints over it — the old
+   specificity fight with the thumb-row tint is gone. The note still lifts +
+   glows because on a beat the circle covers the column tint. */
+.grid-track .row .cell.playing { background: var(--playhead); position: relative; z-index: 1; }
 .cell.playing .note {
   transform: scale(1.14);
   box-shadow: 0 0 0 2px var(--playhead-glow), 0 0 9px 1px var(--playhead-glow);
 }
 .grid-track.counting { opacity: 0.55; }
 
-/* ---- controls ---- */
+/* ---- transport: raised, carved hardware buttons ---- */
 .controls {
-  background: var(--surface);
-  border-top: 1px solid var(--line);
-  padding: 8px 12px;
-  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  padding: 6px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
 }
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* 44px+ tap targets; used one-handed with a guitar in the way. Dished (concave
+   radial + inner shadow) with a raised chamfer + a carved-in glyph/icon. */
+.btn-icon {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums; /* count-in digits mustn't jiggle */
+  background:
+    radial-gradient(120% 120% at 50% 32%, rgba(0, 0, 0, 0.22), transparent 62%),
+    linear-gradient(180deg, rgba(255, 245, 225, 0.12), rgba(0, 0, 0, 0.16)),
+    var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.22),
+              inset 0 -3px 6px rgba(0, 0, 0, 0.30),
+              0 2px 3px rgba(0, 0, 0, 0.42);
+}
+.btn-icon:active { transform: translateY(1px); box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.5); }
+.btn-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.55)) drop-shadow(0 1px 0 rgba(255, 245, 225, 0.18));
+}
+.btn-play { color: #cdb894; }
+.btn-play[aria-pressed="true"] {
+  color: var(--label);
+  background:
+    radial-gradient(120% 120% at 50% 30%, rgba(0, 0, 0, 0.10), transparent 60%),
+    linear-gradient(180deg, #f6ecd6, var(--active) 60%, #d6c6a2);
+  border-color: #b98f3f;
+}
+/* Generate is the most-pressed button — bigger, and a cream Bakelite die that's
+   findable without looking. */
+.btn-roll {
+  width: 62px;
+  height: 50px;
+  border-color: #b98f3f;
+  background:
+    radial-gradient(120% 120% at 50% 30%, rgba(0, 0, 0, 0.10), transparent 60%),
+    linear-gradient(180deg, #f6ecd6, var(--accent) 58%, #d6c6a2);
+}
+.btn-roll svg {
+  width: 27px;
+  height: 27px;
+  fill: #6e4d27;
+  transform: rotate(-13deg);
+  filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.28)) drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
+}
+.btn-gear { color: #cdb894; }
+
+/* slider + BPM readout underneath (full-width slider = more precise) */
+.slider-wrap { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.bpm-slider {
+  width: 100%;
+  min-width: 0;
+  accent-color: var(--active);
+  height: 24px;
+}
+.bpm-readout {
+  text-align: center;
+  font-family: var(--numeral);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  color: var(--muted);
+}
+.bpm-value { color: var(--text); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---- Options / Saved sheets ---- */
+.sheet { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(10, 6, 3, 0.48); }
+/* the sheet is the same tweed object, lifted forward, with a gold hairline lip */
+.sheet-panel {
+  position: relative;
+  border-top: 1px solid var(--gold);
+  border-radius: 22px 22px 0 0;
+  padding: 14px 16px max(16px, env(safe-area-inset-bottom));
+  max-height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background:
+    radial-gradient(130% 40% at 50% 0%, rgba(255, 240, 215, 0.08), transparent 60%),
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.04) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, rgba(255, 245, 225, 0.02) 0 2px, transparent 2px 4px),
+    var(--faceplate);
+  box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 245, 225, 0.10);
+}
+.sheet-head { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.sheet-head h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--accent);
+  font-variation-settings: "opsz" 44, "wght" 520, "SOFT" 30;
+}
+.sheet-close {
+  margin-left: auto;
+  color: #cdb894;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.16)), var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.18), inset 0 -2px 4px rgba(0, 0, 0, 0.28);
+}
+/* section captions inside a sheet */
+.sheet-sec {
+  margin: 8px 2px 2px;
+  font-family: var(--numeral);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sheet-sec:first-of-type { margin-top: 0; }
+
 /* Fixed 3-slot rows. Only row 1's contents swap between chord modes, and the
    single-chord select spans 2 slots to fill the space Key+Progression use — so
    switching modes never moves the rows below. */
@@ -307,58 +492,35 @@ main {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 11px;
+  font-family: var(--numeral);
+  font-size: 10px;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.14em;
 }
+/* selects are recessed WELLS — carved into the panel (inverse of the raised
+   transport buttons) */
 .field select {
   appearance: none;
-  background: var(--control);
   color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px 8px;
-  font-size: 14px;
+  font-family: var(--serif);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 9px;
+  padding: 10px 9px;
+  font-size: 15px;
+  font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
-}
-
-/* Row label for a control-row that isn't a labelled <select> (the Play-sound
-   toggles). Matches the .field caption look and sits on the row baseline. */
-.field-label {
-  align-self: center;
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-/* Click / Pattern on-off toggles — a tappable pill, native checkbox tinted. */
-.toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding: 10px 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--control);
-  color: var(--text);
-  font-size: 14px;
-}
-.toggle input {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  accent-color: var(--accent);
-  flex: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 var(--bevel-hi);
 }
 
 .segmented {
   display: flex;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 9px;
   overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 .segmented button {
   flex: 1;
@@ -366,65 +528,83 @@ main {
   color: var(--muted);
   border: none;
   padding: 10px 0;
+  font-family: var(--serif);
   font-size: 14px;
   font-weight: 600;
 }
-.segmented button.active { background: var(--accent); color: var(--bg); }
+.segmented button.active {
+  color: var(--bg);
+  background: linear-gradient(180deg, #f6ecd6, var(--accent) 70%);
+}
+
+/* Click / Pattern — amp pilot lamps. Native checkbox drives a jewel that lights
+   when the layer is on; the checkbox itself is visually hidden but still the
+   control (keyboard + a11y intact). */
+.lamp-row { display: flex; gap: 8px; }
+.lamp {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.07), rgba(0, 0, 0, 0.12)), var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.10);
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.lamp input { position: absolute; opacity: 0; width: 0; height: 0; }
+.jewel {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex: none;
+  background: radial-gradient(circle at 38% 32%, #6b5843, #4a3a2b 60%);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.lamp input:checked ~ .jewel {
+  background: radial-gradient(circle at 38% 32%, #ffe9b8, var(--active) 55%, #8a5a20);
+  border-color: #8a5a20;
+  box-shadow: 0 0 8px 2px rgba(224, 164, 88, 0.55), inset 0 0 2px rgba(0, 0, 0, 0.4);
+}
+.lamp input:not(:checked) ~ .t { color: var(--muted); }
+.lamp input:focus-visible ~ .jewel { outline: 2px solid var(--active); outline-offset: 2px; }
 
 .btn-primary {
   width: 100%;
-  padding: 15px;
+  padding: 14px;
+  font-family: var(--serif);
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--bg);
-  background: var(--accent);
-  border: none;
+  background: linear-gradient(180deg, #f6ecd6, var(--accent) 65%);
+  border: 1px solid #b98f3f;
   border-radius: 12px;
   cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 .btn-primary:active { transform: translateY(1px); }
 
-/* ---- saved sheet ---- */
-.sheet { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; }
-.sheet-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); }
-.sheet-panel {
-  position: relative;
-  background: var(--surface);
-  border-top: 1px solid var(--line);
-  border-radius: 16px 16px 0 0;
-  padding: 14px 14px max(14px, env(safe-area-inset-bottom));
-  max-height: 85dvh;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.sheet-rule { width: 100%; height: 1px; margin: 2px 0; border: 0; background: var(--line); }
-.sheet-head { display: flex; align-items: center; gap: 10px; }
-.sheet-head h2 { margin: 0; font-size: 17px; font-weight: 700; }
-.sheet-close {
-  margin-left: auto;
-  background: var(--control);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  width: 34px;
-  height: 34px;
-  font-size: 15px;
-  cursor: pointer;
-}
-
+/* ---- saved list ---- */
 .save-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .save-row input {
-  background: var(--control);
   color: var(--text);
-  border: 1px solid var(--line);
+  border: 1px solid rgba(0, 0, 0, 0.4);
   border-radius: 10px;
   padding: 12px;
+  font-family: var(--serif);
   font-size: 15px;
   min-width: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
 }
 .save-row .btn-primary { width: auto; padding: 12px 18px; font-size: 15px; }
-.save-hint { margin: 0; font-size: 12px; color: var(--muted); min-height: 15px; }
+.save-hint { margin: 0; font-family: var(--numeral); font-size: 12px; color: var(--muted); min-height: 15px; }
 
 .saved-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .saved-item {
@@ -432,26 +612,32 @@ main {
   grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 8px;
-  background: var(--control);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px;
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.05), rgba(0, 0, 0, 0.10)), var(--control);
 }
 .saved-meta { min-width: 0; }
-.saved-name { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.saved-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.saved-name { font-family: var(--serif); font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved-sub { font-family: var(--numeral); font-size: 12px; color: var(--muted); margin-top: 2px; }
 .saved-item button {
-  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 9px 12px;
+  font-family: var(--serif);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.14)), var(--control);
+  box-shadow: inset 0 1px 0 var(--bevel-hi);
 }
-.saved-item button.load { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-.saved-empty { color: var(--muted); font-size: 14px; padding: 10px 2px; }
+.saved-item button.load {
+  color: var(--bg);
+  background: linear-gradient(180deg, #f6ecd6, var(--accent) 65%);
+  border-color: #b98f3f;
+}
+.saved-empty { color: var(--muted); font-family: var(--numeral); font-size: 14px; padding: 10px 2px; }
 
 /* ---- desktop afterthought ---- */
 @media (min-width: 720px) {

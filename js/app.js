@@ -120,13 +120,15 @@ function markDirty() {
 
 function renderLoadedName() {
   const box = el("loaded-name");
+  box.innerHTML = "";
+  // The name row is always present (it anchors the header). An unsaved pattern
+  // reads as a muted "Untitled" rather than a blank gap.
   if (!state.loaded) {
-    box.hidden = true;
-    box.textContent = "";
+    box.classList.add("untitled");
+    box.textContent = "Untitled";
     return;
   }
-  box.hidden = false;
-  box.innerHTML = "";
+  box.classList.remove("untitled");
   const name = document.createElement("span");
   name.textContent = state.loaded.name;
   box.appendChild(name);
@@ -135,6 +137,31 @@ function renderLoadedName() {
     mod.className = "modified";
     mod.textContent = "· modified";
     box.appendChild(mod);
+  }
+}
+
+// The musical-context readout. Progression mode shows the Nashville degrees +
+// key top-left (e.g. "1 – 5 – 6 – 4 · E"); single mode hides it and shows the
+// one chord big, above the grid (the grid is the hero, so it stays a label).
+function renderContext() {
+  const ctx = el("context");
+  const head = el("chord-head");
+  if (state.chordMode === "progression") {
+    head.hidden = true;
+    ctx.hidden = false;
+    ctx.innerHTML = "";
+    const degrees = state.progression.map((c) => degreeOf(c, state.key) ?? "?");
+    const nums = document.createElement("span");
+    nums.textContent = degrees.join(" – ");
+    const key = document.createElement("span");
+    key.className = "key";
+    key.textContent = state.key;
+    ctx.append(nums, document.createTextNode("  ·  "), key);
+  } else {
+    ctx.hidden = true;
+    const id = el("chord").value;
+    head.querySelector(".c").textContent = CHORDS[id]?.name ?? id;
+    head.hidden = false;
   }
 }
 
@@ -149,6 +176,7 @@ function render() {
     editable: state.editing,
   });
   syncProgressionSelect();
+  renderContext();
   // Re-rendering drops the playhead's cells; keep the loop length in sync too.
   litCells = [];
   metronome.setBars(chords.length);

@@ -58,6 +58,10 @@ export function applyTheme(id) {
   r.setProperty("--beat-tint", mix(t.surface, t.accent, 0.13));
   r.setProperty("--row-thumb", mix(t.surface, t.accent, 0.05));
   r.setProperty("--control", mix(t.surface, t.bg, 0.25));
+  // the tweed faceplate tone — the whole screen's surface, between bg & surface.
+  // The weave/sheen/vignette overlays that make it "tweed" are fixed rgba in the
+  // CSS, so this one blend is all a theme needs to define.
+  r.setProperty("--faceplate", mix(t.bg, t.surface, 0.42));
   // playhead column — reads clearly against `surface` in light and dark themes
   r.setProperty("--playhead", mix(t.surface, t.active, 0.4));
   // a near-pure `active`, for the glow ring around a note whose column is

@@ -43,7 +43,8 @@ index.html        app shell: controls + grid container
 tests.html        loads js/tests.js, renders pass/fail
 serve.py          no-store dev server (see above)
 themes.json       UI themes as data (5 color roles each) — edit here, not in CSS
-css/styles.css    mobile-first; colors are CSS vars set by js/theme.js
+fonts/            bundled Fraunces .woff2 (serif voice) + OFL license — precached
+css/styles.css    mobile-first "tweed faceplate" (v2.1); colors are CSS vars set by js/theme.js
 js/data.js        pure data tables + small pure helpers (no generation logic)
 js/generator.js   pure generatePattern() + resolveBar/resolvePattern/resolvePhrase
 js/grid.js        renderGrid() — resolved phrase -> DOM only
@@ -99,16 +100,23 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
 *width*, so grid height is fixed by how wide the phone is and can only be bought
 back from chrome. Measured with 4 bars on screen:
 
+Re-measured after the **v2.1 visual-identity pass** (session 8), 4 bars on screen:
+
 | viewport | grid needs | chrome | verdict |
 |---|---|---|---|
-| 414×719 (iPhone XS Max, Safari) | 403px | 101px | 255px spare |
-| 375×553 (SE-class, worst case)  | 374px | 101px | 118px spare |
+| 375×553 (SE-class, worst case) | 384px | 169px | fits, ~0 spare (no overflow) |
 
-Chrome was 361px before this pass and the grid was clipped — 5px on the XS Max,
-142px on an SE. `main` has `overflow: auto`, so the failure mode is silent: the
-grid scrolls inside its own box instead of anything visibly breaking. **Re-measure
-these two viewports after any chrome change** — the laptop will not show you the
-problem. `.grid { margin: auto 0 }` centres it when there's slack.
+The v2.1 chrome grew from ~101px to ~169px on purpose — a **two-row header**
+(context + actions, then the name) and the **BPM readout moved under the slider**
+— and the SE case still fits with `main` not overflowing (verified in-browser).
+That means the SE is now near the edge: **any further chrome must be measured at
+375×553 before shipping.** `main` has `overflow: auto`, so the failure mode is
+silent — the grid scrolls inside its own box rather than anything visibly
+breaking; the laptop will not show you the problem. The 1-bar single view is far
+smaller (~322px grid) and never the constraint. `.stage { justify-content:
+center; padding-bottom: 28px }` biases the grid slightly UP (focal points want to
+sit a touch above centre, and it keeps the top of the pattern clear when the
+Options sheet slides up).
 
 **Control layout:** the Options sheet's controls are fixed 3-slot rows. Only row
 1's contents swap between chord modes (single: Chord spanning 2 slots;
@@ -608,6 +616,77 @@ order:
 **DROPPED: syncopation/16ths** (user call, this session): at real Travis-picking
 tempos the 8-slot grid is already all you can fit — 16ths would generate
 patterns nobody drills. Don't resurrect without a musical reason.
+
+## Where things stand (end of session 8, 2026-07-22)
+
+**Session 8 shipped the visual-identity pass — v2.1** (`CACHE` v13), the first
+half of the deferred "visual identity" work. **Structure/"physical" design only;
+colour is still deferred** (all seven themes untouched — that's the next
+sub-session). Iterated entirely in a throwaway phone-frame mockup before touching
+the app; deployed to Pages, **43/43 checks green**, height budget re-measured (SE
+still fits, no overflow — see the height-budget note above).
+
+**The design language: the whole screen is one warm tweed "faceplate" — a piece
+of gear.** Mood board the user brought: 60s/70s RCA Victor country (Jerry Reed,
+Chet Atkins), Gretsch walnut-and-gold, tweed amp grille cloth, Arhoolie folk
+(Elizabeth Cotten). The governing rule the user set: **this is a practical
+workhorse practice tool — the right-hand pattern grid is ALWAYS the hero; the
+chord just labels it. Craftsmanship should surround the tool, never overshadow
+it.** (An early "chord as hero" pass with a giant watermark letter was explicitly
+rejected for hurting grid legibility.)
+
+- **Serif voice: Fraunces**, bundled at `fonts/fraunces-latin.woff2` (Latin
+  subset, full variable axes wght/opsz/SOFT/WONK, ~118KB, **OFL 1.1** — license at
+  `fonts/OFL.txt`). No font CDN (offline PWA), so it's precached in `sw.js` +
+  a CACHE bump. `--serif` is Fraunces (chords, name, buttons, headers, BPM);
+  **`--numeral` stays a geometric rounded stack for fret numbers inside note
+  circles** — high-contrast serif hairlines go mushy small. A deliberate
+  serif/geometric pairing reads more "designed" than serif everywhere.
+- **Faceplate = `body` background:** fixed tweed weave (two crosshatch
+  gradients) + a top sheen + an edge vignette, over a new **`--faceplate`** tone
+  (derived in `theme.js` as `mix(bg, surface, 0.42)`). The weave/sheen/vignette
+  are **fixed rgba (texture, not hue)** so they ride every theme; the colour pass
+  tunes the roles, not this. `main` + `.controls` are transparent so it's one
+  continuous surface.
+- **The grid is RECESSED into the faceplate** (`.grid-track` gets the inset
+  shadow + surface fill), the transport buttons are **RAISED + carved** (dished
+  radial + chamfer bevel + a debossed/intaglio glyph), and the Options selects
+  are **recessed wells** (inset, inverse of the buttons). One consistent
+  bevel language.
+- **Grid legibility:** killed every per-cell border; strings now read from quiet
+  **horizontal lines** (`--grid-line`) + **thumb-row banding** (`--band-thumb` on
+  `.domain-thumb`) + the stronger divider under string 3. Only downbeats get a
+  faint wash (`.cell.beat::before`). Notes dominate. **Row order confirmed against
+  `grid.js` (strings 1→6 top-to-bottom): fingers/cream on top, thumb/amber at the
+  bottom** — the mockups initially had this flipped; fixed.
+- **Header restructure (two rows):** row 1 = version + musical **context**
+  (`#context`: Nashville degrees + key, e.g. `1 – 5 – 6 – 4 · E`, sized to sit
+  quietly by the pills — **progression mode only**) + Edit/Save/Load pills; row 2
+  = the pattern **name**, which owns a full row so a long saved name can't stretch
+  the buttons (a real bug found mid-session). Name is **always visible** now —
+  unsaved reads a muted italic **"Untitled"** (`renderLoadedName`). Single mode
+  hides the context row and shows the one chord big above the grid
+  (`#chord-head`, modest — the grid is the hero). `renderContext()` in `app.js`
+  drives both.
+- **Numeral chips:** `grid.js` `buildHeader` now leads with a small numbered chip
+  when >1 bar is on screen (fixes 2×2 reading order); in single mode the per-bar
+  header is empty (the big chord-head carries it) and collapses via
+  `.bar-header:empty`.
+- **Hardware transport:** play kept as the standard glyph (it still shows
+  count-in digits, so it can't be pure SVG) but dished; **Generate is a tilted,
+  stamped cream Bakelite die** and **Options an engraved gear** (inline SVG). BPM
+  readout **moved under a full-width slider** (more travel = more precise).
+- **Options sheet = the same tweed object lifted forward**, gold hairline lip,
+  serif header, section captions. **Click/Pattern are amp "jewel lamps"** — a
+  native checkbox (visually hidden, still the control) drives a jewel that glows
+  amber when on (`.lamp input:checked ~ .jewel`); off-state is dark glass. User's
+  favourite moment.
+
+**Signed off as V2.1 pending the user's real-phone test.** The user expects
+possible **subtle refinements** after drilling on it. Everything is structure —
+when the colour sub-session happens, it's a `themes.json` edit plus tuning the
+fixed texture-overlay opacities if needed. **Still to do in the visual arc:** the
+seven-theme colour/legibility pass (deferred here), then pre-loaded patterns.
 
 ## Working with this user
 

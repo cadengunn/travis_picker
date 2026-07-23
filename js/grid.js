@@ -28,11 +28,23 @@ function labelFor(ev, labelMode) {
   return String(ev.fret ?? 0);             // fret mode
 }
 
-// Bar header: an editable chord <select> in progression mode, else a static
-// chord name. The select carries data-bar so app.js can delegate its change.
-function buildHeader(chordId, barIdx, editableChords) {
+// Bar header. When there's more than one bar on screen, it leads with a small
+// numeral chip (its own "home") so the 2x2 reading order is unambiguous. In
+// progression mode it also holds an editable chord <select> (data-bar lets
+// app.js delegate the change). In single mode it carries NO chord — the one
+// chord is shown once, big, above the whole grid (#chord-head), so a per-bar
+// header there would just repeat it; an empty header collapses via CSS.
+function buildHeader(chordId, barIdx, editableChords, showNumeral) {
   const header = document.createElement("div");
   header.className = "bar-header";
+
+  if (showNumeral) {
+    const num = document.createElement("span");
+    num.className = "bar-num";
+    num.textContent = String(barIdx + 1);
+    header.appendChild(num);
+  }
+
   if (editableChords) {
     const sel = document.createElement("select");
     sel.className = "bar-chord";
@@ -45,9 +57,6 @@ function buildHeader(chordId, barIdx, editableChords) {
       sel.appendChild(opt);
     }
     header.appendChild(sel);
-  } else {
-    header.textContent = CHORDS[chordId]?.name ?? chordId;
-    header.classList.add("static");
   }
   return header;
 }
@@ -66,6 +75,7 @@ export function renderGrid(container, phrase, opts = {}) {
   // scrolling while your hands are on the guitar), so CSS sizes cells from the
   // bar count rather than using a fixed cell width.
   track.dataset.bars = String(phrase.length);
+  const showNumeral = phrase.length > 1;
 
   phrase.forEach(({ chord, bar }, barIdx) => {
     const barEl = document.createElement("div");
@@ -73,7 +83,7 @@ export function renderGrid(container, phrase, opts = {}) {
     barEl.setAttribute("role", "group");
     barEl.setAttribute("aria-label", `Bar ${barIdx + 1}, chord ${chord}`);
 
-    barEl.appendChild(buildHeader(chord, barIdx, editableChords));
+    barEl.appendChild(buildHeader(chord, barIdx, editableChords, showNumeral));
 
     const idx = indexBar(bar);
 
