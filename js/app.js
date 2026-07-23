@@ -163,7 +163,9 @@ function renderContext() {
     const key = document.createElement("span");
     key.className = "key";
     key.textContent = state.key;
-    ctx.append(nums, document.createTextNode("  ·  "), key);
+    // nbsp, not plain spaces: HTML collapses "  ·  " to one space each
+    // side, which reads too tight against the numerals; nbsp holds the gap.
+    ctx.append(nums, document.createTextNode("  ·  "), key);
   } else {
     ctx.hidden = true;
     const id = el("chord").value;
