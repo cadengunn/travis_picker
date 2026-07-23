@@ -37,9 +37,16 @@ import { createMetronome, DEFAULT_BPM } from "./metronome.js";
 
 const el = (id) => document.getElementById(id);
 
+// Force TEXT (not emoji) presentation of the transport glyphs. iOS renders a
+// bare ▶ / ■ as a colour emoji — which ignores our font and colour and looked
+// wrong on the phone. U+FE0E (text variation selector) pins the monochrome
+// glyph so the button styling applies. The count-in digits need no selector.
+const GLYPH_PLAY = "▶︎";
+const GLYPH_STOP = "■︎";
+
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
-  labelMode: "fret",
+  labelMode: "none",
   chordMode: "single",  // "single" | "progression"
   key: DEFAULT_KEY,
   progression: [],      // chord id per phrase bar (progression mode)
@@ -76,6 +83,7 @@ function initControls() {
   el("progression").appendChild(custom);
 
   el("chord").value = DEFAULT_CHORD;
+  el("label-mode").value = state.labelMode;
   el("key").value = state.key;
   el("pattern").value = String(DEFAULT_PATTERN_BARS);
   el("bpm").value = String(DEFAULT_BPM);
@@ -121,14 +129,13 @@ function markDirty() {
 function renderLoadedName() {
   const box = el("loaded-name");
   box.innerHTML = "";
-  // The name row is always present (it anchors the header). An unsaved pattern
-  // reads as a muted "Untitled" rather than a blank gap.
+  // Only a SAVED pattern gets a name here. A fresh random generation shows
+  // nothing — no "Untitled" or other placeholder cluttering the header. The row
+  // keeps its height so the grid doesn't jump when you save/load.
   if (!state.loaded) {
-    box.classList.add("untitled");
-    box.textContent = "Untitled";
+    box.classList.remove("untitled");
     return;
   }
-  box.classList.remove("untitled");
   const name = document.createElement("span");
   name.textContent = state.loaded.name;
   box.appendChild(name);
@@ -313,7 +320,7 @@ function showCountIn(n) {
   // Glyph-only now that Play is a 44px square: the count-in shows the bare
   // digit, which is all you can read at arm's length anyway.
   const play = el("play");
-  play.textContent = n != null ? String(n) : metronome.running ? "■" : "▶";
+  play.textContent = n != null ? String(n) : metronome.running ? GLYPH_STOP : GLYPH_PLAY;
   play.setAttribute(
     "aria-label",
     n != null ? `Counting in, beat ${n}` : metronome.running ? "Stop metronome" : "Start metronome"
@@ -337,7 +344,7 @@ async function togglePlay() {
     return;
   }
   el("play").setAttribute("aria-pressed", "true");
-  el("play").textContent = "■";
+  el("play").textContent = GLYPH_STOP;
   // Started from the click handler so iOS Safari unlocks audio.
   await metronome.start(phraseChords().length);
 }
@@ -481,6 +488,23 @@ function loadSaved(id) {
   closeSheet();
 }
 
+// iOS Safari positions `position: fixed` against the LAYOUT viewport, so a
+// bottom-anchored sheet stays put behind the on-screen keyboard when a field in
+// it is focused (the Save name input) — the panel appeared to run off the screen
+// on the phone. Pin any OPEN sheet to the VISUAL viewport instead, so it rides
+// above the keyboard. With no keyboard the visual viewport equals the layout
+// viewport, so this is a no-op then.
+function syncSheetToViewport() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  for (const s of document.querySelectorAll(".sheet")) {
+    if (s.hidden) continue;
+    s.style.height = `${vv.height}px`;
+    s.style.top = `${vv.offsetTop}px`;
+    s.style.bottom = "auto";
+  }
+}
+
 // One sheet, two modes: Save shows the name field, Load shows the library.
 function openSheet(mode) {
   const saving = mode === "save";
@@ -496,6 +520,7 @@ function openSheet(mode) {
     renderSavedList();
   }
   el("saved-sheet").hidden = false;
+  syncSheetToViewport();
   if (saving) el("save-name").focus();
 }
 function closeSheet() {
@@ -619,7 +644,14 @@ function attach() {
   // above exactly as before — the sheet only changes where they live.
   el("open-options").addEventListener("click", () => {
     el("options-sheet").hidden = false;
+    syncSheetToViewport();
   });
+
+  // Keep any open sheet pinned to the visual viewport as the keyboard shows/hides.
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", syncSheetToViewport);
+    window.visualViewport.addEventListener("scroll", syncSheetToViewport);
+  }
   el("options-sheet").addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) el("options-sheet").hidden = true;
   });

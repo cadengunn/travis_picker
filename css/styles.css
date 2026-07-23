@@ -106,12 +106,15 @@ main {
   color: var(--muted);
 }
 /* progression + key, shown only in progression mode. Sized to sit quietly next
-   to the action pills (about their weight), not to shout. */
+   to the action pills (about their weight), not to shout. Takes the middle
+   space and centres in it, between the version tag and the action pills. */
 .context {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
   font-family: var(--serif);
   font-size: 14px;
   font-weight: 600;
@@ -242,10 +245,12 @@ main {
   color: var(--active);
   font-variation-settings: "opsz" 40, "wght" 460, "SOFT" 40;
 }
-/* numeral chip — the bar number gets its own little "home", top-left */
+/* numeral chip — the bar number gets its own little "home": a square sitting
+   INSIDE the chord's rectangle, inset from its left edge (not welded to the
+   shared border corner). */
 .bar-num {
   position: absolute;
-  left: 0;
+  left: 5px;
   top: 50%;
   transform: translateY(-50%);
   width: 16px;
