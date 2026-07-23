@@ -134,6 +134,8 @@ main {
   font-variation-settings: "opsz" 30, "SOFT" 30;
 }
 .context .key { color: var(--active); font-variation-settings: "opsz" 30, "wght" 560, "SOFT" 40; }
+/* the · between progression and key — the gap is deliberate breathing room */
+.context .sep { display: inline-block; margin: 0 10px; }
 .grid-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
 
 .pill {

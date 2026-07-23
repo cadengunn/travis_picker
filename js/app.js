@@ -163,9 +163,12 @@ function renderContext() {
     const key = document.createElement("span");
     key.className = "key";
     key.textContent = state.key;
-    // nbsp, not plain spaces: HTML collapses "  ·  " to one space each
-    // side, which reads too tight against the numerals; nbsp holds the gap.
-    ctx.append(nums, document.createTextNode("  ·  "), key);
+    // the divider gets its own span so the gap is set in px (.context .sep),
+    // not by counting nbsp characters — HTML collapses plain spaces.
+    const sep = document.createElement("span");
+    sep.className = "sep";
+    sep.textContent = "·";
+    ctx.append(nums, sep, key);
   } else {
     ctx.hidden = true;
     const id = el("chord").value;
