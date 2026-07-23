@@ -87,15 +87,20 @@ function generateTrebleLoop(flags, thumbBars, rng) {
   const localSlot = (gi) => (gi % SLOTS_PER_BAR) + 1; // 1..8
   const globalIndex = (bar, slot) => bar * SLOTS_PER_BAR + (slot - 1);
 
-  // gi -> Set(strings) already sounding. Seed with the thumb across the loop.
+  // gi -> Set(finger strings) already placed here. The thumb is deliberately NOT
+  // seeded: a re-strike is one FINGER re-plucking a string on adjacent 8ths, and
+  // each finger owns one string, so re-strikes are a finger-vs-finger property.
+  // The thumb sharing a string with a finger happens only on string 3 (D/Dm's
+  // alt bass) and is ordinary alternating picking, not a re-strike — so the
+  // finger layer is generated purely on strings 1/2/3, free of the thumb, and the
+  // bass wins any same-slot collision PER CHORD at merge time (resolveMergedBar).
+  // This is what keeps a shared treble cell's string-3 fingers in the bars whose
+  // chord leaves string 3 free, instead of a D reference chord starving them all.
   const occupied = new Map();
   const add = (gi, s) => {
     if (!occupied.has(gi)) occupied.set(gi, new Set());
     occupied.get(gi).add(s);
   };
-  for (let b = 0; b < bars; b++) {
-    for (const ev of thumbBars[b]) add(globalIndex(b, ev.slot), ev.string);
-  }
 
   // Which global slots want a finger note. Strike-times are THE difficulty
   // dial, so the budget is the TOTAL finger columns per bar — and placement is
@@ -367,19 +372,46 @@ export function resolveBar(bar, chordId) {
   });
 }
 
+// ---- per-chord merge --------------------------------------------------------
+// Re-merge the two layers against ONE chord, so the bass wins a same-slot
+// collision PER CHORD. The finger layer is generated free of the thumb (see
+// generateTrebleLoop), so a finger on string 3 survives in every bar whose chord
+// leaves string 3 open and is overwritten only where the chord's bass lands
+// there (D/Dm's alt bass). That's why resolving works from the LAYERS, not the
+// reference-merged `pattern.bars`: the collision is chord-specific.
+export function resolveMergedBar(thumbBar, trebleBar, chordId) {
+  const thumb = resolveBar(thumbBar, chordId);
+  const treble = resolveBar(trebleBar, chordId);
+  const merged = enforceHardRule([...thumb, ...treble]);
+  if (merged.some((e) => e.finger !== "p")) return merged;
+  // Every finger collided with the bass — only reachable when a bar's whole
+  // finger part was string-3 pinches on a D/Dm alt-bass beat. Rescue one onto a
+  // free finger string at its slot so no displayed bar is bare-thumb (invariant).
+  for (const t of treble) {
+    const taken = new Set(merged.filter((e) => e.slot === t.slot).map((e) => e.string));
+    const free = FINGER_STRINGS.find((s) => !taken.has(s));
+    if (free == null) continue;
+    const rescued = { slot: t.slot, finger: STRING_FINGER[free], string: free, fret: fretFor(chordId, free) };
+    return enforceHardRule([...merged, rescued]);
+  }
+  return merged;
+}
+
 // ---- public: resolvePattern (single chord for the whole pattern) ------------
 export function resolvePattern(pattern, chordId = pattern.chord) {
-  return { ...pattern, chord: chordId, bars: pattern.bars.map((bar) => resolveBar(bar, chordId)) };
+  const bars = pattern.thumbBars.map((thumb, i) =>
+    resolveMergedBar(thumb, pattern.trebleBars[i], chordId));
+  return { ...pattern, chord: chordId, bars };
 }
 
 // ---- public: resolvePhrase (per-bar chords) ---------------------------------
 // `chords` is an array of chord ids, one per bar on screen. The distinct
-// pattern bars cycle across them; each bar is resolved against its own chord.
+// pattern bars cycle across them; each bar is re-merged against its own chord.
 // Returns [{ chord, bar }, ...] ready for rendering.
 export function resolvePhrase(pattern, chords) {
-  const cell = pattern.bars;
+  const n = pattern.thumbBars.length;
   return chords.map((chordId, i) => ({
     chord: chordId,
-    bar: resolveBar(cell[i % cell.length], chordId),
+    bar: resolveMergedBar(pattern.thumbBars[i % n], pattern.trebleBars[i % n], chordId),
   }));
 }

@@ -109,13 +109,23 @@ main {
   gap: 9px;
   min-height: 32px;
 }
+/* Maker's-mark serial plate: a tiny stamped-brass tag riding the existing header
+   row (no vertical cost). Metal + glyph are theme-derived (--hardware family), so
+   it wears each theme's fittings; the glyph is debossed (dark, with a thin light
+   rule under it) like a real stamped plate. */
 .app-version {
   flex: 0 0 auto;
   font-family: var(--numeral);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+  letter-spacing: 0.03em;
+  color: var(--hardware-deep);
+  padding: 2px 6px 1px;
+  border-radius: 4px;
+  background: var(--hardware);
+  border: 1px solid var(--hardware-deep);
+  text-shadow: 0 1px 0 var(--bevel-hi);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 0 var(--bevel-hi);
 }
 /* progression + key, shown only in progression mode. Sized to sit quietly next
    to the action pills (about their weight), not to shout. Takes the middle
@@ -620,7 +630,7 @@ main {
   border-radius: 10px;
   padding: 12px;
   font-family: var(--serif);
-  font-size: 15px;
+  font-size: 16px; /* iOS zooms any focused input < 16px — keep at 16 to prevent it */
   min-width: 0;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);

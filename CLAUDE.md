@@ -58,10 +58,16 @@ js/tests.js       browser-run unit checks
 ```
 
 Data flow: `app.js` reads controls → `generatePattern(chord, options)` produces
-a relative/absolute Pattern → `resolvePhrase(pattern, chords)` expands the cell
-across the phrase and fills string+fret **per bar** → `renderGrid()` draws it.
-Changing a **chord** only re-resolves (relative patterns follow the chord);
-**Generate** and the generation inputs re-roll.
+a relative/absolute Pattern → `resolvePhrase(pattern, chords)` **re-merges the
+two layers per bar** (`resolveMergedBar`) and fills string+fret → `renderGrid()`
+draws it. Changing a **chord** only re-resolves (relative patterns follow the
+chord); **Generate** and the generation inputs re-roll. **Resolving works from
+the LAYERS (`thumbBars`/`trebleBars`), not the reference-merged `pattern.bars`**,
+because a same-slot bass/finger collision is chord-specific: the finger layer is
+generated free of the thumb, so a string-3 finger survives in every bar whose
+chord leaves string 3 open and is overwritten only where the chord's bass lands
+there (D/Dm's alt bass). `pattern.bars` is the reference-chord merge, now used
+only for its `.length`; the per-chord truth is `resolveMergedBar`.
 
 **Chord modes** (`state.chordMode`): `single` applies one chord to every bar;
 `progression` assigns a chord per bar. Per-bar edits are handled by one
@@ -252,14 +258,15 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - A slot may hold multiple events (pinches = thumb+finger; double stops = 2–3 fingers).
 - **Relative** thumb events store a `role` (`root`/`alt_bass`/`fifth`) and derive string; **absolute** events store the literal `string`.
 - All three label modes (Fret = `event.fret`, PIMA = `event.finger`, None = dot only) are pure transforms of the same events.
-- `resolvePhrase(pattern, chords)` cycles the distinct `bars` across however many bars are on screen (one chord per bar).
+- `resolvePhrase(pattern, chords)` cycles the distinct layers across however many bars are on screen and **re-merges each per its own chord** (`resolveMergedBar`) so the bass wins same-slot collisions per bar (one chord per bar).
 
 ## Key rules (from the spec — keep these invariants)
 
 - **Hard rule (physics):** never two events on the same string in the same slot. Enforced generically in `generator.js` (`enforceHardRule`) and asserted in tests.
 - **Thumb skeleton:** one quarter-note thumb on each beat (slots 1,3,5,7); never on offbeats.
 - **Hand domains:** fingers own strings 3/2/1 (i→3, m→2, a→1). **Chord-aware thumb domain:** thumb-legal = `{6,5,4}` ∪ the current chord's role strings. This is why D's alt-bass legitimately lands on string 3 — see `thumbLegalStrings()` in `data.js`.
-- **Two independent layers.** `thumbBars` and `trebleBars` are generated and stored separately; `bars` is their merge (`mergeBar` → `enforceHardRule`). `regenerateBass()` re-rolls the thumb keeping the exact finger part, `regenerateTreble()` does the reverse — so the Thumb and Chaos controls each disturb only their own layer, and you can audition bass patterns under one right-hand part. Only Pattern-length and **Generate** re-roll everything.
+- **Two independent layers.** `thumbBars` and `trebleBars` are generated and stored separately, and the **finger layer is generated free of the thumb** (strings 1/2/3 only — the thumb is NOT seeded into the treble generator). They merge **per chord at resolve time** (`resolveMergedBar` → `enforceHardRule`, bass added first so it wins a same-slot collision). `regenerateBass()` re-rolls the thumb keeping the exact finger part, `regenerateTreble()` does the reverse — so the Thumb and Chaos controls each disturb only their own layer, and you can audition bass patterns under one right-hand part. Only Pattern-length and **Generate** re-roll everything.
+  - **Fingers generate wherever they want; the bass overwrites string-3 collisions per chord** (session 10). A shared 1-bar cell over a D-key progression keeps its string-3 fingers in the G/A bars and lets D/Dm's alt bass overwrite only the D bars — before, a D reference chord seeded string 3 into the treble generator and starved every bar there. If a bar's whole finger part was string-3 pinches on a D/Dm alt-bass beat, `resolveMergedBar` rescues one finger onto a free string so no bar goes bare-thumb.
 - **Chaos** is built as **presets over independent flags** (`CHAOS_PRESETS`),
   not branching code. The generator reads these numbers and **never branches on
   preset name** — tune feel by editing `CHAOS_PRESETS` only. The **difficulty
@@ -287,10 +294,14 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     only — keeps genuinely simple all-singles rolls a real species; suppresses
     `minDoubleStops`), `doubleStopOdds.{double,triple}` (per-column thickness on
     non-singles rolls), `minDoubleStops` (per-bar stack floor, Unruly's texture
-    guarantee), `maxRestrikes` (per-BAR budget of same-string re-strikes on
-    adjacent 8ths, thumb included — replaced the old `noAdjacentSameString`
-    boolean in round 5: 0 = clean, 2 = Unruly's rationed spice, Infinity =
-    Chaos).
+    guarantee), `maxRestrikes` (per-BAR budget of same-FINGER re-strikes on
+    adjacent 8ths — replaced the old `noAdjacentSameString` boolean in round 5:
+    0 = clean, 2 = Unruly's rationed spice, Infinity = Chaos). **A re-strike is
+    one FINGER re-plucking a string on adjacent 8ths** (each finger owns one
+    string, so it's a finger-vs-finger property); the thumb riding a finger's
+    string — only string 3, on D/Dm's alt bass — is ordinary alternating picking,
+    NOT a re-strike (session 10, user call). So the treble is generated with no
+    thumb seeding and the budget counts finger pairs only.
   - **Tier numbers** (measured over 500 seeds/tier, round 5): **Tame** 2–3
     strikes, ~57% all-singles, ~3% all-pinch bars, clean; **Loose** 4–5
     strikes, still clean; **Unruly** 5–6 strikes (~7% of bars drop to 4 when
@@ -302,9 +313,11 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
   - **Hard no-blank rule:** every bar gets **≥1 finger note** — the generator
     forces a legal offbeat rather than ship a bare-thumb bar. Asserted in tests.
   - **Re-strikes are rationed, not binary** (round 5): `maxRestrikes` charges
-    each audible adjacent same-string pair against its bar's budget (a string
-    colliding with BOTH neighbours costs 2), so total pairs never exceed
-    bars × maxRestrikes — asserted in tests. At budget 0 (Tame/Loose) this is
+    each adjacent same-FINGER-string pair against its bar's budget (a string
+    colliding with BOTH neighbours costs 2), so total finger pairs never exceed
+    bars × maxRestrikes — asserted in tests (on `trebleBars`, the finger layer,
+    since the bass overwriting a finger is not a re-strike). At budget 0
+    (Tame/Loose) this is
     the old hard ceiling: if avoiding a re-strike leaves no legal finger
     string, the generator **drops the column rather than re-strike** — so the
     strike-time count is a best-effort floor, a hard ceiling. The same drop now

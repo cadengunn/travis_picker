@@ -260,12 +260,15 @@ check("Descend: absolute, walks strings 4-5-6-5 regardless of chord", () => {
 
 // 4e) Progression mode: one relative cell, per-bar chords. The bass re-maps
 //     per bar while the right hand (fingers/slots) stays identical.
-check("progression: relative bass re-maps per bar, right hand unchanged", () => {
+check("progression: relative bass re-maps per bar; fingers follow, bass overwrites string-3 collisions", () => {
   const p = generatePattern("C", { bass: "travis", chaos: "tame", patternBars: 1, rng: seeded(9) });
   const chords = ["C", "G", "D", "Am"];
   const phrase = resolvePhrase(p, chords);
 
   assert(phrase.length === 4, `expected 4 bars, got ${phrase.length}`);
+
+  // The finger layer is one shared cell (1-bar loop), reused for every bar.
+  const treble = p.trebleBars[0].map((e) => [e.slot, e.string]);
 
   phrase.forEach(({ chord, bar }, i) => {
     assert(chord === chords[i], `bar ${i} should carry chord ${chords[i]}`);
@@ -276,15 +279,23 @@ check("progression: relative bass re-maps per bar, right hand unchanged", () => 
     const got = thumbs.map((e) => e.string);
     assert(JSON.stringify(got) === JSON.stringify(expected),
       `bar ${i} (${chord}) bass should be ${expected.join("-")}, got ${got.join("-")}`);
-  });
 
-  // right hand identical across bars (same cell, 1-bar loop)
-  const fingerSig = (bar) =>
-    JSON.stringify(bar.filter((e) => e.finger !== "p").map((e) => [e.slot, e.finger]));
-  const sig0 = fingerSig(phrase[0].bar);
-  for (let i = 1; i < phrase.length; i++) {
-    assert(fingerSig(phrase[i].bar) === sig0, `bar ${i} right hand should match bar 0`);
-  }
+    // The fingers follow the shared cell EXCEPT where the chord's bass lands on a
+    // finger's string in that slot (D's alt bass on string 3): the bass wins, so
+    // that one finger is overwritten. Every non-colliding finger survives.
+    const bassAt = {};
+    thumbs.forEach((e) => (bassAt[e.slot] ??= new Set()).add(e.string));
+    const fingers = new Set(bar.filter((e) => e.finger !== "p").map((e) => `${e.slot}:${e.string}`));
+    for (const [slot, string] of treble) {
+      if (bassAt[slot]?.has(string)) {
+        assert(!fingers.has(`${slot}:${string}`),
+          `bar ${i} (${chord}): finger ${string}@${slot} should be overwritten by the bass`);
+      } else {
+        assert(fingers.has(`${slot}:${string}`),
+          `bar ${i} (${chord}): finger ${string}@${slot} should follow the shared cell`);
+      }
+    }
+  });
 });
 
 // 4f) Absolute patterns do NOT follow the progression (bass strings frozen).
@@ -383,27 +394,32 @@ check("patternBars produces that many distinct bars and cycles across a phrase",
 // 5) Tame: few TOTAL finger strike-times — pinched beats count against the
 //    budget, not on top of it — and no adjacent re-strike. (Thickness is NOT
 //    capped — a 3-finger rake is exactly what Tame should allow.)
-check("Tame: ≤3 total finger strike-times, no same string on adjacent 8th slots", () => {
+check("Tame: ≤3 total finger strike-times, no same finger re-struck on adjacent 8ths", () => {
   for (const chord of CHORD_IDS) {
     for (let seed = 1; seed <= 12; seed++) {
       for (const bass of ["travis", "simple_alt"]) {
         const p = generatePattern(chord, { bass, chaos: "tame", rng: seeded(seed * 31) });
-        const bar = p.bars[0];
+        // Right-hand texture is a property of the FINGER layer, independent of the
+        // chord's bass (which can legitimately overwrite a string-3 finger on
+        // D/Dm). Assert it on trebleBars, not the reference-merged bars.
+        const bar = p.trebleBars[0];
 
         // maxStrikes is a hard ceiling (3) on ALL columns with a finger note —
         // offbeats AND pinched beats; the floor is best-effort (adjacency can
         // drop a column rather than re-strike), so we only assert the ceiling.
-        const filled = new Set(bar.filter((e) => e.finger !== "p").map((e) => e.slot));
+        const filled = new Set(bar.map((e) => e.slot));
         assert(filled.size <= 3,
           `Tame strike-times should be ≤3, got ${filled.size} (${chord}/${bass} seed ${seed})`);
 
-        // adjacency across ALL slots, thumb included
+        // adjacency among FINGERS: a re-strike is the SAME finger on adjacent
+        // 8ths. The thumb riding a finger's string (string 3 on D/Dm) is ordinary
+        // alternating picking, not a re-strike, so it is not counted.
         const stringsAt = (slot) => new Set(bar.filter((e) => e.slot === slot).map((e) => e.string));
         for (let slot = 1; slot < 8; slot++) {
           const a = stringsAt(slot), b = stringsAt(slot + 1);
           for (const s of a) {
             assert(!b.has(s),
-              `Tame: string ${s} sounds on adjacent slots ${slot}/${slot + 1} (${chord}/${bass} seed ${seed})`);
+              `Tame: finger string ${s} re-struck on adjacent slots ${slot}/${slot + 1} (${chord}/${bass} seed ${seed})`);
           }
         }
       }
@@ -421,9 +437,9 @@ check("lower tiers roll both all-singles and stacked patterns", () => {
       for (let seed = 1; seed <= 50; seed++) {
         const p = generatePattern(chord, { chaos, patternBars: 2, rng: seeded(seed * 17 + 3) });
         let hasStack = false;
-        for (const bar of p.bars) {
+        for (const bar of p.trebleBars) {
           const byCol = {};
-          for (const e of bar) if (e.finger !== "p") (byCol[e.slot] ??= []).push(e.string);
+          for (const e of bar) (byCol[e.slot] ??= []).push(e.string);
           if (Object.values(byCol).some((a) => a.length >= 2)) hasStack = true;
         }
         n++;
@@ -444,10 +460,10 @@ check("Unruly: every bar stacked, unless it's an all-singles roll", () => {
   for (const chord of CHORD_IDS) {
     for (let seed = 1; seed <= 12; seed++) {
       const p = generatePattern(chord, { bass: "travis", chaos: "unruly", patternBars: 2, rng: seeded(seed * 71) });
-      const stacksPerBar = p.bars.map((bar) => {
+      const stacksPerBar = p.trebleBars.map((bar) => {
         let stacks = 0;
         for (const slot of ALL_SLOTS_T) {
-          if (bar.filter((e) => e.slot === slot && e.finger !== "p").length >= 2) stacks++;
+          if (bar.filter((e) => e.slot === slot).length >= 2) stacks++;
         }
         return stacks;
       });
@@ -485,10 +501,11 @@ check("triples are not Chaos-exclusive: every tier can stack three", () => {
 //      And the budget is real: Unruly still re-strikes somewhere in a sweep.
 check("Unruly: re-strike pairs capped at maxRestrikes per bar, but present", () => {
   const pairsInLoop = (p) => {
-    const N = p.bars.length * 8;
+    const N = p.trebleBars.length * 8;
     const at = (gi) => {
       const bar = Math.floor(gi / 8), slot = (gi % 8) + 1;
-      return new Set(p.bars[bar].filter((e) => e.slot === slot).map((e) => e.string));
+      // fingers only: a re-strike is the same finger on adjacent 8ths
+      return new Set(p.trebleBars[bar].filter((e) => e.slot === slot).map((e) => e.string));
     };
     let pairs = 0;
     for (let gi = 0; gi < N; gi++) {
@@ -529,7 +546,8 @@ check("no blank bars: every bar has ≥1 finger note (all tiers)", () => {
 check("clean tiers: no same-string re-strike across bar seams or the loop wrap", () => {
   const stringsAtGlobal = (p, gi) => {
     const bar = Math.floor(gi / 8), slot = (gi % 8) + 1;
-    return new Set(p.bars[bar].filter((e) => e.slot === slot).map((e) => e.string));
+    // fingers only: the clean-tier no-re-strike rule is same-finger, thumb aside
+    return new Set(p.trebleBars[bar].filter((e) => e.slot === slot).map((e) => e.string));
   };
   for (const chaos of ["tame", "loose"]) {
     for (const chord of CHORD_IDS) {
