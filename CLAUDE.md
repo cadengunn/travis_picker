@@ -747,6 +747,10 @@ Buster's beat-column stripes (previous nit) passed the phone review — leave.
   the lit Play are each ONE material, lighter where the light hits. Merle's
   ivory die is visually unchanged (its cream cap was already ~its accent+white).
 
+**Tagged v2.3** (`CACHE` v18) — the visual identity arc (v2.1 structure + this
+session's color pass) is complete and signed off on hardware. Version label
+bumped to v2.3; no code change from v2.2's last commit beyond the label + cache.
+
 **Dev-environment note:** the Browser-pane preview server can't read
 `~/Desktop` (macOS TCC), so in-browser verification ran against an rsync mirror
 of the repo in the session scratchpad (`.claude/launch.json` entry
