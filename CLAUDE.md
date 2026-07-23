@@ -171,6 +171,13 @@ only if v2's pattern playback actually needs a synth library.
   highlighting there would visibly lead the click. It touches cell classes
   directly instead of re-rendering (up to 8 updates/bar, and a re-render would
   fight edit mode); `render()` resets `litCells`.
+- The **beat lamp** (`#beat-lamp`, by the BPM readout) rides this SAME
+  `onStep`/`onCountIn` loop — no second clock. It blinks on beats (odd 1-based
+  slots; downbeat = slot 1, a bigger pulse), so it's a **silent visual metronome**
+  when the click is off. The count-in reports each digit twice (beat + offbeat
+  8th), so app.js pulses only when the count advances. NOTE: rAF is paused when
+  the preview tab is hidden, which freezes both the playhead and this lamp — so
+  the blink can only be verified on a real (foreground) device, not the dev box.
 - One bar of **count-in** (grid dims, button counts 1–4). `onCountIn(null)` only
   fires on stop, so the **first real step clears the count-in state** — that's
   why `onStep` calls `showCountIn(null)`.

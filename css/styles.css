@@ -109,23 +109,13 @@ main {
   gap: 9px;
   min-height: 32px;
 }
-/* Maker's-mark serial plate: a tiny stamped-brass tag riding the existing header
-   row (no vertical cost). Metal + glyph are theme-derived (--hardware family), so
-   it wears each theme's fittings; the glyph is debossed (dark, with a thin light
-   rule under it) like a real stamped plate. */
 .app-version {
   flex: 0 0 auto;
   font-family: var(--numeral);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--hardware-deep);
-  padding: 2px 6px 1px;
-  border-radius: 4px;
-  background: var(--hardware);
-  border: 1px solid var(--hardware-deep);
-  text-shadow: 0 1px 0 var(--bevel-hi);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 0 var(--bevel-hi);
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 /* progression + key, shown only in progression mode. Sized to sit quietly next
    to the action pills (about their weight), not to shout. Takes the middle
@@ -168,6 +158,33 @@ main {
   border-color: var(--active);
 }
 .pill:disabled { opacity: 0.45; cursor: default; }
+
+/* "Armed" REC lamp on the Edit pill: edit mode is the app's record-armed state,
+   so the pencil pill wears a pilot lamp that lights and slowly pulses when live
+   (pairs with the dashed grid outline). Idle = dark glass; armed = the theme's
+   hot lamp colour, glowing brighter than the amber fill it sits on. */
+.rec-lamp {
+  display: inline-block;
+  vertical-align: middle;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--jewel-off);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.pill[aria-pressed="true"] .rec-lamp {
+  background: var(--lamp-hot);
+  box-shadow: 0 0 6px 1px var(--lamp-glow);
+  animation: rec-pulse 1.25s ease-in-out infinite;
+}
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pill[aria-pressed="true"] .rec-lamp { animation: none; }
+}
 
 /* row 2: the pattern name (or "Untitled") + the absolute/mixed warning badge */
 .name-row {
@@ -456,6 +473,51 @@ main {
   color: var(--muted);
 }
 .bpm-value { color: var(--text); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Beat lamp: an amp pilot jewel by the BPM readout that blinks on each beat
+   (brighter on the downbeat). Driven off the same audio-clock rAF loop as the
+   playhead — no second clock — so it doubles as a SILENT visual metronome when
+   the click is toggled off. Idle glass matches the Click/Notes jewels; the blink
+   flashes the theme's lamp colour and decays before the next beat (short enough
+   to stay crisp at 240bpm, where beats are 0.25s apart). */
+.beat-lamp {
+  display: inline-block;
+  vertical-align: middle;
+  width: 11px;
+  height: 11px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.beat-lamp.lit { animation: beat-blink 0.22s ease-out; }
+.beat-lamp.lit.downbeat { animation: beat-blink-down 0.26s ease-out; }
+@keyframes beat-blink {
+  0% {
+    background: radial-gradient(circle at 38% 32%, var(--lamp-hot), var(--active) 55%, var(--lamp-rim));
+    box-shadow: 0 0 7px 2px var(--lamp-glow), inset 0 0 2px rgba(0, 0, 0, 0.4);
+  }
+  100% {
+    background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+}
+@keyframes beat-blink-down {
+  0% {
+    background: radial-gradient(circle at 38% 32%, var(--lamp-hot), var(--active) 50%, var(--lamp-rim));
+    box-shadow: 0 0 11px 3px var(--lamp-glow), inset 0 0 2px rgba(0, 0, 0, 0.4);
+    transform: scale(1.14);
+  }
+  100% {
+    background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .beat-lamp.lit, .beat-lamp.lit.downbeat { animation-duration: 0.12s; }
+}
 
 /* ---- Options / Saved sheets ---- */
 .sheet { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; }

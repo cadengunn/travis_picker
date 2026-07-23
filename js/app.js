@@ -332,13 +332,45 @@ function showCountIn(n) {
   );
 }
 
+// Beat lamp: pulse the amp jewel by the BPM readout on each beat, brighter on
+// the downbeat. Restart the CSS blink each time by clearing + reflowing so it
+// re-fires even faster than its own duration. Runs off onStep/onCountIn, which
+// are already driven by the audio clock — no second timer.
+function pulseBeatLamp(downbeat) {
+  const lamp = el("beat-lamp");
+  if (!lamp) return;
+  lamp.classList.remove("lit", "downbeat");
+  void lamp.offsetWidth; // reflow so the animation restarts on a repeat beat
+  lamp.classList.add("lit");
+  lamp.classList.toggle("downbeat", downbeat);
+}
+function clearBeatLamp() {
+  const lamp = el("beat-lamp");
+  if (lamp) lamp.classList.remove("lit", "downbeat");
+}
+
+// The count-in reports each digit twice (beat + its offbeat 8th carry the same
+// number), so pulse only when the count actually advances.
+let lastCountBeat = null;
+
 const metronome = createMetronome({
   onStep: (pos) => {
     // The first real step ends the count-in — nothing else reports that.
     if (pos) showCountIn(null);
     highlightColumn(pos);
+    // Beats are the odd 1-based slots (1,3,5,7); slot 1 is the bar's downbeat.
+    if (pos && pos.slot % 2 === 1) pulseBeatLamp(pos.slot === 1);
   },
-  onCountIn: showCountIn,
+  onCountIn: (n) => {
+    showCountIn(n);
+    if (n == null) {
+      lastCountBeat = null;
+      clearBeatLamp();
+    } else if (n !== lastCountBeat) {
+      lastCountBeat = n;
+      pulseBeatLamp(n === 1);
+    }
+  },
 });
 
 async function togglePlay() {

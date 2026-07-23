@@ -26,11 +26,11 @@
          name, which can be long, so it owns a full row of its own. -->
     <header class="app-head">
       <div class="ctx-row">
-        <span class="app-version" aria-label="App version">No. CSG-2.4.2</span>
+        <span class="app-version" aria-label="App version">v2.4.3</span>
         <span id="context" class="context" hidden></span>
         <div class="grid-actions">
           <button id="edit-toggle" class="pill" type="button" aria-pressed="false"
-                  title="Toggle manual editing">✎ Edit</button>
+                  title="Toggle manual editing"><span class="rec-lamp" aria-hidden="true"></span>✎ Edit</button>
           <button id="open-save" class="pill" type="button">Save</button>
           <button id="open-load" class="pill" type="button">Load</button>
         </div>
@@ -59,7 +59,7 @@
       <div class="slider-wrap">
         <input id="bpm" class="bpm-slider" type="range" min="40" max="240" step="1" value="90"
                aria-label="Tempo in beats per minute" />
-        <div class="bpm-readout"><output id="bpm-value" class="bpm-value" for="bpm">90</output> BPM</div>
+        <div class="bpm-readout"><span id="beat-lamp" class="beat-lamp" aria-hidden="true"></span><output id="bpm-value" class="bpm-value" for="bpm">90</output> BPM</div>
       </div>
       <button id="generate" class="btn-icon btn-roll" type="button"
               aria-label="Generate a new pattern" title="Generate">
