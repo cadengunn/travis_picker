@@ -51,6 +51,8 @@
   --jewel-off: #3e2e20;
   --active-deep: #af8045;
   --accent-deep: #c3b9a1;
+  --active-hi: #f3dbbc;
+  --accent-hi: #f6f1e6;
   --recess-shadow: rgba(0, 0, 0, 0.45);
 
   /* fixed texture overlay (theme-independent bevel highlight) */
@@ -402,7 +404,7 @@ main {
   color: var(--label);
   background:
     radial-gradient(120% 120% at 50% 30%, rgba(0, 0, 0, 0.10), transparent 60%),
-    linear-gradient(180deg, #f6ecd6, var(--active) 60%, var(--active-deep));
+    linear-gradient(180deg, var(--active-hi), var(--active) 60%, var(--active-deep));
   border-color: var(--hardware-deep);
 }
 /* Generate is the most-pressed button — bigger, and a cream Bakelite die that's
@@ -413,7 +415,7 @@ main {
   border-color: var(--hardware-deep);
   background:
     radial-gradient(120% 120% at 50% 30%, rgba(0, 0, 0, 0.10), transparent 60%),
-    linear-gradient(180deg, #f6ecd6, var(--accent) 58%, var(--accent-deep));
+    linear-gradient(180deg, var(--accent-hi), var(--accent) 58%, var(--accent-deep));
 }
 /* pips in `bg`: every theme gets its own die — navy pips on Doc's ivory,
    cream on Elizabeth's chocolate (fixed brown pips went invisible there) */
@@ -552,7 +554,7 @@ main {
 }
 .segmented button.active {
   color: var(--bg);
-  background: linear-gradient(180deg, #f6ecd6, var(--accent) 70%);
+  background: linear-gradient(180deg, var(--accent-hi), var(--accent) 70%);
 }
 
 /* Click / Pattern — amp pilot lamps. Native checkbox drives a jewel that lights
@@ -600,7 +602,7 @@ main {
   font-size: 17px;
   font-weight: 600;
   color: var(--bg);
-  background: linear-gradient(180deg, #f6ecd6, var(--accent) 65%);
+  background: linear-gradient(180deg, var(--accent-hi), var(--accent) 65%);
   border: 1px solid var(--hardware-deep);
   border-radius: 12px;
   cursor: pointer;
@@ -652,7 +654,7 @@ main {
 }
 .saved-item button.load {
   color: var(--bg);
-  background: linear-gradient(180deg, #f6ecd6, var(--accent) 65%);
+  background: linear-gradient(180deg, var(--accent-hi), var(--accent) 65%);
   border-color: var(--hardware-deep);
 }
 .saved-empty { color: var(--muted); font-family: var(--numeral); font-size: 14px; padding: 10px 2px; }

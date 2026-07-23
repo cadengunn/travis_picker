@@ -122,6 +122,11 @@ export function applyTheme(id) {
   // fought the cool themes).
   r.setProperty("--active-deep", mix(t.active, "#000000", 0.22));
   r.setProperty("--accent-deep", mix(t.accent, "#000000", 0.16));
+  // ...and the matching top highlights. These were a FIXED warm cream, which
+  // made cool-hued buttons read multicolored (a warm cap on a blue die); a
+  // lit face is the same material pulled toward white, not toward cream.
+  r.setProperty("--active-hi", mix(t.active, "#ffffff", 0.6));
+  r.setProperty("--accent-hi", mix(t.accent, "#ffffff", 0.6));
 
   // light surfaces can't take a 45% black recess shadow — it reads as grime.
   r.setProperty("--recess-shadow", luma(t.surface) > 0.6 ? "rgba(0, 0, 0, 0.16)" : "rgba(0, 0, 0, 0.45)");

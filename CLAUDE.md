@@ -740,6 +740,12 @@ Two refinements from the review:
   on Chet's cream, cream on Elizabeth's chocolate) and the bottom edge is
   derived `--accent-deep` instead of a fixed tan smudge.
 Buster's beat-column stripes (previous nit) passed the phone review — leave.
+- **Gradient caps derived** (`CACHE` v17, user nit: Doc/Buster dice "looked
+  multicolored"): the raised-button top highlight was still a fixed warm cream
+  `#f6ecd6`, i.e. a warm cap on a cool body. Now `--accent-hi`/`--active-hi` =
+  the hue pulled 60% toward white — the die/segmented/primary/load buttons and
+  the lit Play are each ONE material, lighter where the light hits. Merle's
+  ivory die is visually unchanged (its cream cap was already ~its accent+white).
 
 **Dev-environment note:** the Browser-pane preview server can't read
 `~/Desktop` (macOS TCC), so in-browser verification ran against an rsync mirror
