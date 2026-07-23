@@ -26,7 +26,7 @@
          name, which can be long, so it owns a full row of its own. -->
     <header class="app-head">
       <div class="ctx-row">
-        <span class="app-version" aria-label="App version">v2.4.3</span>
+        <span class="app-version" aria-label="App version">v2.4.4</span>
         <span id="context" class="context" hidden></span>
         <div class="grid-actions">
           <button id="edit-toggle" class="pill" type="button" aria-pressed="false"
@@ -170,7 +170,10 @@
           <input id="save-name" type="text" placeholder="Name this pattern" autocomplete="off" />
           <button id="save-btn" class="btn-primary" type="button">Save</button>
         </div>
-        <p id="save-hint" class="save-hint"></p>
+        <div class="save-hint-row">
+          <span id="save-lamp" class="save-lamp" aria-hidden="true"></span>
+          <p id="save-hint" class="save-hint"></p>
+        </div>
       </div>
 
       <ul id="saved-list" class="saved-list"></ul>

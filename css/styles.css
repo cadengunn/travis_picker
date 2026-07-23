@@ -138,9 +138,11 @@ main {
 .context .sep { display: inline-block; margin: 0 10px; }
 .grid-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
 
+/* Raised, carved hardware buttons — the transport's bevel language (top-lit face,
+   bright top edge, inner bottom shadow, drop shadow) scaled to pill size, so
+   Edit/Save/Load feel like real buttons instead of flat software chips. */
 .pill {
   font-family: var(--serif);
-  background: var(--control);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -149,15 +151,26 @@ main {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: inset 0 1px 0 var(--bevel-hi);
+  background:
+    linear-gradient(180deg, rgba(255, 245, 225, 0.14), rgba(0, 0, 0, 0.14)),
+    var(--control);
+  box-shadow: inset 0 1px 0 var(--bevel-hi),
+              inset 0 -2px 4px rgba(0, 0, 0, 0.22),
+              0 2px 3px rgba(0, 0, 0, 0.38);
 }
-.pill:active { transform: translateY(1px); }
+.pill:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
+/* Edit armed = a latching button pressed IN (engaged), ringed in the accent and
+   wearing the lit REC lamp — no flat colour fill to fight the red lamp. */
 .pill[aria-pressed="true"] {
-  background: var(--active);
-  color: var(--label);
+  color: var(--text);
   border-color: var(--active);
+  transform: translateY(1px);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(255, 245, 225, 0.05)),
+    var(--control);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--active);
 }
-.pill:disabled { opacity: 0.45; cursor: default; }
+.pill:disabled { opacity: 0.45; cursor: default; box-shadow: inset 0 1px 0 var(--bevel-hi); }
 
 /* "Armed" REC lamp on the Edit pill: edit mode is the app's record-armed state,
    so the pencil pill wears a pilot lamp that lights and slowly pulses when live
@@ -166,24 +179,32 @@ main {
 .rec-lamp {
   display: inline-block;
   vertical-align: middle;
-  width: 7px;
-  height: 7px;
-  margin-right: 5px;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
   border-radius: 50%;
-  background: var(--jewel-off);
+  /* same glassy jewel body as the Click/Notes lamps, so it reads as hardware */
+  background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
+  border: 1px solid rgba(0, 0, 0, 0.45);
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
 }
+/* Armed = lit RED in every theme (a real REC indicator is red, not the theme's
+   accent — the one deliberate fixed-hue lamp). The glow breathes so it reads as
+   a live light. */
 .pill[aria-pressed="true"] .rec-lamp {
-  background: var(--lamp-hot);
-  box-shadow: 0 0 6px 1px var(--lamp-glow);
-  animation: rec-pulse 1.25s ease-in-out infinite;
+  background: radial-gradient(circle at 38% 32%, #ff8472, #e02d2d 55%, #6d0f0f);
+  border-color: #5c0d0d;
+  animation: rec-pulse 1.15s ease-in-out infinite;
 }
 @keyframes rec-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% { box-shadow: 0 0 7px 2px rgba(228, 54, 42, 0.72), inset 0 0 2px rgba(0, 0, 0, 0.35); }
+  50%      { box-shadow: 0 0 2px 0 rgba(228, 54, 42, 0.30), inset 0 0 2px rgba(0, 0, 0, 0.35); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pill[aria-pressed="true"] .rec-lamp { animation: none; }
+  .pill[aria-pressed="true"] .rec-lamp {
+    animation: none;
+    box-shadow: 0 0 6px 1px rgba(228, 54, 42, 0.6), inset 0 0 2px rgba(0, 0, 0, 0.35);
+  }
 }
 
 /* row 2: the pattern name (or "Untitled") + the absolute/mixed warning badge */
@@ -213,10 +234,30 @@ main {
 
 .type-indicator {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: var(--numeral);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   color: var(--muted);
   white-space: nowrap;
+}
+/* absolute/mixed bass wears a fixed-amber CAUTION lamp (a warning light — like
+   the red REC lamp, a deliberate fixed-hue convention, not the theme accent) plus
+   a short label. Steady: it marks a persistent state, not an event. The full
+   "bass won't follow chords" explanation stays on the title (hover/long-press). */
+.type-indicator.absolute::before,
+.type-indicator.mixed::before {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #ffd98a, #f0a41e 55%, #7d4e0c);
+  border: 1px solid rgba(0, 0, 0, 0.42);
+  box-shadow: 0 0 5px 1px rgba(240, 164, 30, 0.6), inset 0 0 2px rgba(0, 0, 0, 0.35);
 }
 .type-indicator.absolute,
 .type-indicator.mixed { color: var(--active); }
@@ -491,28 +532,29 @@ main {
   border: 1px solid rgba(0, 0, 0, 0.4);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
 }
-.beat-lamp.lit { animation: beat-blink 0.22s ease-out; }
-.beat-lamp.lit.downbeat { animation: beat-blink-down 0.26s ease-out; }
+.beat-lamp.lit { animation: beat-blink 0.28s ease-out; }
+.beat-lamp.lit.downbeat { animation: beat-blink-down 0.32s ease-out; }
+/* Pure flash: the rim (inset) is CONSTANT and the size never changes — only the
+   glass brightens and an outer glow blooms then fades. No transform, no shifting
+   inset, so it reads as a lamp lighting, not a button pushing in and out. */
 @keyframes beat-blink {
   0% {
     background: radial-gradient(circle at 38% 32%, var(--lamp-hot), var(--active) 55%, var(--lamp-rim));
-    box-shadow: 0 0 7px 2px var(--lamp-glow), inset 0 0 2px rgba(0, 0, 0, 0.4);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 7px 2px var(--lamp-glow);
   }
   100% {
     background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(0, 0, 0, 0);
   }
 }
 @keyframes beat-blink-down {
   0% {
     background: radial-gradient(circle at 38% 32%, var(--lamp-hot), var(--active) 50%, var(--lamp-rim));
-    box-shadow: 0 0 11px 3px var(--lamp-glow), inset 0 0 2px rgba(0, 0, 0, 0.4);
-    transform: scale(1.14);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 11px 3px var(--lamp-glow);
   }
   100% {
     background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
-    transform: scale(1);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(0, 0, 0, 0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -698,7 +740,33 @@ main {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
 }
 .save-row .btn-primary { width: auto; padding: 12px 18px; font-size: 15px; }
-.save-hint { margin: 0; font-family: var(--numeral); font-size: 12px; color: var(--muted); min-height: 15px; }
+.save-hint-row { display: flex; align-items: center; gap: 7px; margin-top: 3px; min-height: 15px; }
+.save-hint { margin: 0; font-family: var(--numeral); font-size: 12px; color: var(--muted); }
+/* Save-confirmation lamp: idle dark glass; one warm-GREEN flash when a save lands
+   (green = success/acknowledged), the machine confirming it took the write. */
+.save-lamp {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.save-lamp.blink { animation: save-blink 0.9s ease-out; }
+@keyframes save-blink {
+  0% {
+    background: radial-gradient(circle at 38% 32%, #c7f0b6, #3fae4e 55%, #14571f);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5), 0 0 8px 2px rgba(74, 194, 96, 0.75);
+  }
+  100% {
+    background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .save-lamp.blink { animation-duration: 0.3s; }
+}
 
 .saved-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 .saved-item {

@@ -777,6 +777,52 @@ of the repo in the session scratchpad (`.claude/launch.json` entry
 `travis-picker-8141`). Re-sync the mirror after edits before re-checking; the
 phone workflow (`serve.py --lan`) is unaffected.
 
+## Where things stand (session 10, 2026-07-23)
+
+Two threads: a generation bug fix, then the **hardware-details pass** (functional
+lamps + button physicality — the user's favourite kind of work).
+
+**v2.4.2 — A3 fix + small polish.** Fingers now generate free of the thumb and
+the two layers re-merge PER CHORD (`resolveMergedBar`), so a shared cell keeps
+its string-3 fingers in every bar and only D/Dm's alt bass overwrites them — see
+the "Two independent layers" and re-strike notes above. Re-strike is redefined as
+**same-FINGER only** (thumb-then-finger on string 3 is legit picking, user call).
+Also A1 (save-name input 15→16px, kills iOS focus-zoom) and D1 (Play-sound toggle
+"Pattern"→"Notes").
+
+**v2.4.3 / v2.4.4 — hardware pass.** Every new lamp is the same glassy jewel body
+as the Click/Notes lamps (radial-gradient + rim + inset), so they read as one
+family. **Lamp-colour convention:** the beat lamp is theme-driven (`--lamp-*`);
+the others are **deliberate fixed hues** like real indicators — **red = REC/armed,
+amber = caution, green = save-OK** — NOT the theme accent. Shipped:
+- **F1 beat lamp** (`#beat-lamp`, by BPM) — see the metronome note above. Blinks
+  are a **pure flash**: constant size + rim, only the glass brightens and an outer
+  glow blooms/fades. NO `transform: scale()` (that read as a button moving
+  in/out — the user caught it).
+- **F2 armed Edit lamp** — a **red** REC jewel on the pencil pill; the pill itself
+  is now a **pressed-in latching button** (accent ring, no flat amber fill) when
+  armed, which also avoids red-on-amber clash.
+- **F3 absolute/mixed caution lamp** — replaced the wordy `type-indicator` text
+  with a fixed-**amber** caution jewel + short label (`ABS`/`MIX`); full
+  explanation stays on the `title`. Absorbs the old D2 "tag feels out of place".
+- **F4 save-confirmation lamp** (`#save-lamp` by the save hint) — one **green**
+  flash when a save lands (`blinkSaveLamp()`), the machine acknowledging the write.
+- **Button physicality:** Edit/Save/Load pills got the transport's raised/carved
+  bevel language (they were the last flat "software" chips).
+- **F5 serial plate REVERTED:** shipped an engraved "No. CSG-2.4.2" brass plate,
+  then reverted — the filled tag pulled the eye off the grid (grid stays hero).
+
+**Preview limitation (important for verifying):** the Browser-pane preview tab is
+`document.visibilityState === "hidden"`, so **`requestAnimationFrame` is paused** —
+which freezes BOTH the playhead and the beat lamp. Audio contexts still run, but
+onStep/onCountIn never fire in-preview, so the beat lamp's blink (and playhead)
+can only be confirmed on a real foreground device. Static/aria-driven lamps
+(armed, caution) and one-shot CSS blinks (save) ARE verifiable in-preview.
+
+**Pending the user's phone test of the whole batch.** Still open on the list
+(`NEXT_SESSION.md`): B1 (single-chord box height), C1–C3 (keys/progressions),
+E1 (Unruly density?), D3 (Help surface), G1/G2 (swing, pre-loaded patterns).
+
 ## Working with this user
 
 - **Ask before deviating from the spec** — it's a maintained document, and

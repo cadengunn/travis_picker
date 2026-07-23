@@ -204,7 +204,7 @@ function render() {
   // exactly that — "a small 'absolute — bass won't follow chords' indicator,
   // never an error" — it was only ever the relative case that was gratuitous.)
   const t = state.pattern.type;
-  const LABEL = { absolute: "absolute bass", mixed: "mixed bass" };
+  const LABEL = { absolute: "ABS", mixed: "MIX" };
   const DETAIL = {
     absolute: "Bass won't follow chord changes.",
     mixed: "Some bass notes won't follow chord changes.",
@@ -475,6 +475,16 @@ function summarize(item) {
   return [where, bassName, p.chaos, bars].filter(Boolean).join(" · ");
 }
 
+// One warm-green flash on the save-confirmation lamp. Restart the one-shot each
+// save by clearing + reflowing so repeated saves each blink.
+function blinkSaveLamp() {
+  const lamp = el("save-lamp");
+  if (!lamp) return;
+  lamp.classList.remove("blink");
+  void lamp.offsetWidth;
+  lamp.classList.add("blink");
+}
+
 function saveCurrent() {
   if (!state.pattern) return;
   const typed = el("save-name").value;
@@ -491,6 +501,7 @@ function saveCurrent() {
   }
   el("save-name").value = "";
   hint.textContent = `Saved "${item.name}".`;
+  blinkSaveLamp();
   // What's on screen IS this saved pattern now.
   state.loaded = { id: item.id, name: item.name };
   state.dirty = false;
