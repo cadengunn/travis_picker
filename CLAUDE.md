@@ -842,6 +842,71 @@ can only be confirmed on a real foreground device. Static/aria-driven lamps
 E1 (Unruly density?), D3 (Help surface), G1/G2 (swing, pre-loaded patterns).
 Idea if names ellipsize too much: saved-item icon buttons or a two-row layout.
 
+## Where things stand (session 11, 2026-07-23)
+
+**Session 11 shipped a UI-feel + design-language batch — v2.5.0** (`CACHE` v26).
+Four things, all deployed; **pending the user's phone test** (the two you can only
+judge on a device — button feel and the press sound — plus the modals/dropdowns).
+46/46 checks green (added 2). New files: `js/ui-sound.js`, `js/modal.js`,
+`js/dropdown.js` — all precached; the deploy footgun (bump `CACHE`) still applies.
+
+- **Press-in on every button** — the carved `translateY(1px)` + inset-shadow press
+  that Edit had is now on the segmented Single/Prog toggle, the sheet ✕, the
+  saved-item Load/Rename/Delete, `.btn-primary`, and the new dropdown
+  triggers/options. Transport + pills already had it.
+- **Button press sound** (`ui-sound.js`) — a short mechanical *thock* (low triangle
+  body + band-passed noise "tick"), dependency-free raw Web Audio like
+  synth/metronome (no library — keeps the offline PWA clean). Fires on
+  **pointerdown** (matches the push-in the instant the finger lands), via ONE
+  delegated listener in app.js over `button, .lamp, .dd-trigger, .dd-option`;
+  bigger controls (`.btn-roll`) thock a touch deeper. Slider / text inputs / grid
+  cells are excluded. Own on/off — **"Button clicks"** lamp in a new *Interface*
+  Options section, persisted in the `tp-audio` blob (`audioPrefs.ui`). iOS unlocks
+  audio inside the gesture, so the lazily-created AudioContext resumes on first
+  tap; muted never opens a context.
+- **Native iOS popups → our language.** Two components, both dependency-free:
+  - **`modal.js`** — Promise-based `confirmModal()` / `promptModal()` replacing
+    `confirm()`/`prompt()` (delete, rename, discard-edits). Tweed card, serif
+    title, recessed input, Cancel pill + primary confirm. Destructive actions wear
+    the app's **fixed red** confirm (`.tp-modal-danger`, same convention as the REC
+    lamp). Callers became `async` (generate/loadSaved/bass+chaos-change,
+    delete/rename); `confirmDiscardEdits` now returns a Promise; `boot()` awaits
+    the first `generate()`. Escape/backdrop cancel; capture-phase Escape +
+    stopPropagation so it doesn't also close the sheet underneath.
+  - **`dropdown.js`** — custom tweed dropdowns replacing the native `<select>` open
+    picker (iOS always draws that as the OS wheel, outside our language). **KEY
+    INVARIANT: the native `<select>` stays in the DOM (`display:none`) as the
+    source of truth** — value, options, and the `change` event are unchanged, so
+    every existing app.js wiring and the `#grid` change-delegation keep working
+    untouched. We overlay a `.dd-trigger` button + a body-level `.dd-panel`
+    listbox; a pick writes `select.value` and dispatches a bubbling `change`.
+    Programmatic value sets (loadSaved, key transpose, syncProgressionSelect, the
+    re-roll reverts) don't fire `change`, so `enhanceSelect` **wraps the element's
+    `value` setter** to also refresh the trigger label — no scattered refresh
+    calls. `enhanceAll()` runs after `initControls` (theme fills later and syncs
+    via its value-set) and again after each render for the per-bar `.bar-chord`
+    selects (idempotent per element via `data-dd`). Panel flips up near the bottom
+    edge, clamps into the viewport, closes on outside-tap (`.dd-catcher`) / Escape
+    / external scroll — but NOT on its own open-time `scrollIntoView` (the reflow
+    handler ignores scroll events originating inside the panel; that was a real
+    bug for a mid-list selection). Two contexts styled: `.field .dd-trigger`
+    (recessed well) and `.dd-trigger.bar-chord` (grid picker).
+- **B1 single-chord box height** — the grid is now PINNED to the same vertical
+  position in both chord modes (`.stage` top-aligned via a single capped-growth
+  `::before` gap that's the only shrinkable item, so it collapses on a short
+  screen and the grid never overflows). The big single-mode chord label
+  (`#chord-head`) FLOATS with zero flow height (`height:0; overflow:visible;
+  align-items:flex-end`), so showing/hiding it never moves the grid. Verified:
+  grid top identical single vs progression; SE (375×553) 4-bar has no overflow.
+  Known minor edge: SE + 4-bar **single** + a long loaded name can let the
+  floating label reach into the name row (default 1-bar/unsaved is clear).
+
+**Docs/tests:** two new checks — the dropdown source-of-truth contract (pick
+writes value + fires exactly one bubbling change; programmatic set syncs label
+without a change) and the modal resolve behaviour. Both run in `tests.html`
+(they use the DOM). The precache-coverage check now also guards the three new
+modules.
+
 ## Working with this user
 
 - **Ask before deviating from the spec** — it's a maintained document, and

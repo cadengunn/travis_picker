@@ -26,7 +26,7 @@
          name, which can be long, so it owns a full row of its own. -->
     <header class="app-head">
       <div class="ctx-row">
-        <span class="app-version" aria-label="App version">v2.4.5</span>
+        <span class="app-version" aria-label="App version">v2.5.0</span>
         <span id="context" class="context" hidden></span>
         <div class="grid-actions">
           <button id="edit-toggle" class="pill" type="button" aria-pressed="false"
@@ -140,6 +140,18 @@
           <input id="pattern-toggle" type="checkbox" checked />
           <span class="jewel"></span>
           <span class="t">Notes</span>
+        </label>
+      </div>
+
+      <p class="sheet-sec">Interface</p>
+
+      <!-- The satisfying press-click on the hardware buttons. Own on/off (UI
+           feedback, separate from what Play emits). -->
+      <div class="lamp-row">
+        <label class="lamp">
+          <input id="ui-sound-toggle" type="checkbox" checked />
+          <span class="jewel"></span>
+          <span class="t">Button clicks</span>
         </label>
       </div>
 

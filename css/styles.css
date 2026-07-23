@@ -270,27 +270,46 @@ main {
 .type-indicator.absolute,
 .type-indicator.mixed { color: var(--active); }
 
-/* the grid sits in the leftover space, biased slightly UP: it looks intentional
-   (focal points want to be a touch above true centre) and keeps the top of the
-   pattern clear when the Options sheet slides up. On a short phone the bias
-   collapses to almost nothing — width sets grid height, so there's little slack. */
+/* The grid is PINNED to a consistent upper position so it never moves when you
+   switch single<->progression (B1). A single top gap (::before) grows to a cap on
+   a tall phone — putting the grid where the progression grid sits — but it's the
+   only shrinkable item, so on a short screen it collapses to almost nothing and
+   the grid stays fully visible (width sets grid height; there's little slack). */
 .stage {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 9px;
+  justify-content: flex-start;
+  gap: 0;
   padding-bottom: 28px;
+  min-height: 0;
+  position: relative;
+}
+.stage::before {
+  content: "";
+  flex: 0 1 112px; /* upward-bias cap; the ONLY item that shrinks when tight */
   min-height: 0;
 }
 
-/* single-mode chord label — modest, above the grid (the grid is the hero) */
-.chord-head { text-align: center; flex: 0 0 auto; }
+/* single-mode chord label — modest, above the grid (the grid is the hero). It
+   FLOATS with zero flow height (height:0 + overflow:visible), dropped to just
+   above the grid via align-items:flex-end, so showing/hiding it never pushes the
+   grid down — the grid keeps the exact position it holds in progression mode. */
+.chord-head {
+  flex: 0 0 auto;
+  height: 0;
+  overflow: visible;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  text-align: center;
+}
 .chord-head .c {
   font-family: var(--serif);
   font-size: 40px;
   line-height: 1;
   color: var(--active);
+  transform: translateY(-9px); /* lift the glyph off the grid's top edge */
   font-variation-settings: "opsz" 60, "wght" 480, "SOFT" 40;
 }
 
@@ -611,6 +630,7 @@ main {
   background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.16)), var(--control);
   box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.18), inset 0 -2px 4px rgba(0, 0, 0, 0.28);
 }
+.sheet-close:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 /* section captions inside a sheet */
 .sheet-sec {
   margin: 8px 2px 2px;
@@ -681,6 +701,8 @@ main {
   color: var(--bg);
   background: linear-gradient(180deg, var(--accent-hi), var(--accent) 70%);
 }
+/* every button pushes IN when pressed — the same carved-tactile feel as Edit */
+.segmented button:active { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 
 /* Click / Pattern — amp pilot lamps. Native checkbox drives a jewel that lights
    when the layer is on; the checkbox itself is visually hidden but still the
@@ -733,7 +755,7 @@ main {
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
-.btn-primary:active { transform: translateY(1px); }
+.btn-primary:active { transform: translateY(1px); box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.4); }
 
 /* ---- saved list ---- */
 .save-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
@@ -804,12 +826,171 @@ main {
   background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.14)), var(--control);
   box-shadow: inset 0 1px 0 var(--bevel-hi);
 }
+.saved-item button:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 .saved-item button.load {
   color: var(--bg);
   background: linear-gradient(180deg, var(--accent-hi), var(--accent) 65%);
   border-color: var(--hardware-deep);
 }
 .saved-empty { color: var(--muted); font-family: var(--numeral); font-size: 14px; padding: 10px 2px; }
+
+/* ---- custom dropdowns (replace the native <select> open picker) ----
+   The native <select> stays in the DOM (display:none) as the value/source of
+   truth; a .dd-trigger button + a body-level .dd-panel listbox provide the UI in
+   our own language. See js/dropdown.js. */
+.dd { display: block; width: 100%; position: relative; }
+.dd-native { display: none; }
+
+.dd-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: var(--serif);
+  color: var(--text);
+}
+.dd-label { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the caret — a small triangle that flips when the panel is open */
+.dd-trigger::after {
+  content: "";
+  flex: none;
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--muted);
+  transition: transform 0.12s ease;
+}
+.dd-trigger[aria-expanded="true"]::after { transform: rotate(180deg); border-top-color: var(--active); }
+
+/* field context: the recessed well, matching the <select> it replaced */
+.field .dd-trigger {
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 9px;
+  padding: 10px 9px;
+  font-size: 15px;
+  font-weight: 600;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 var(--bevel-hi);
+}
+.field .dd-trigger:active { box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.5); }
+
+/* grid context: the per-bar chord picker */
+.dd-trigger.bar-chord {
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--active);
+  background: var(--control);
+  box-shadow: inset 0 1px 0 var(--bevel-hi);
+}
+.dd-trigger.bar-chord .dd-label { flex: 0 1 auto; text-align: center; }
+.dd-trigger.bar-chord::after { border-top-color: var(--active); }
+.dd-trigger.bar-chord:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4); }
+
+/* the open list — appended to <body>, positioned by JS, above any sheet */
+.dd-catcher { position: fixed; inset: 0; z-index: 39; }
+.dd-panel {
+  position: fixed;
+  z-index: 40;
+  max-height: 52vh;
+  overflow-y: auto;
+  min-width: 128px;
+  max-width: calc(100vw - 12px);
+  padding: 5px;
+  border-radius: 12px;
+  border: 1px solid var(--hardware);
+  background:
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.04) 0 2px, transparent 2px 4px),
+    var(--surface);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 245, 225, 0.10);
+  -webkit-overflow-scrolling: touch;
+}
+.dd-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 12px;
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dd-option:focus-visible { outline: none; }
+.dd-option:hover, .dd-option:focus-visible { background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.10)), var(--control); }
+.dd-option.selected {
+  color: var(--bg);
+  background: linear-gradient(180deg, var(--accent-hi), var(--accent) 70%);
+}
+.dd-option:active { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4); }
+.dd-option:disabled { opacity: 0.4; cursor: default; }
+
+/* ---- confirm / prompt modal (replaces native confirm()/prompt()) ---- */
+.tp-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+.tp-modal-backdrop { position: absolute; inset: 0; background: rgba(10, 6, 3, 0.55); }
+.tp-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  border-radius: 18px;
+  border-top: 1px solid var(--hardware);
+  padding: 18px 18px 16px;
+  background:
+    radial-gradient(130% 60% at 50% 0%, rgba(255, 240, 215, 0.08), transparent 60%),
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.04) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, rgba(255, 245, 225, 0.02) 0 2px, transparent 2px 4px),
+    var(--faceplate);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 245, 225, 0.10);
+  animation: tp-modal-pop 0.16s ease-out;
+}
+@keyframes tp-modal-pop { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tp-modal-card { animation: none; } }
+.tp-modal-title {
+  margin: 0 0 6px;
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--accent);
+  font-variation-settings: "opsz" 40, "wght" 540, "SOFT" 30;
+}
+.tp-modal-msg { margin: 0 0 14px; font-family: var(--serif); font-size: 15px; line-height: 1.4; color: var(--text); }
+.tp-modal-input {
+  width: 100%;
+  margin: 0 0 14px;
+  color: var(--text);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  padding: 12px;
+  font-family: var(--serif);
+  font-size: 16px; /* keep >=16 so iOS doesn't zoom on focus */
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+.tp-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.tp-modal-actions .pill { padding: 11px 16px; font-size: 15px; }
+.tp-modal-actions .btn-primary { width: auto; padding: 11px 18px; font-size: 15px; }
+/* destructive confirm wears the app's fixed red (same convention as the REC lamp) */
+.tp-modal-danger {
+  color: #fff5f2;
+  background: linear-gradient(180deg, #cc6152, #a5301f 72%);
+  border-color: #6d0f0f;
+}
 
 /* ---- desktop afterthought ---- */
 @media (min-width: 720px) {

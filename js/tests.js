@@ -42,6 +42,8 @@ import {
   BPM_MIN,
   BPM_MAX,
 } from "./metronome.js";
+import { enhanceSelect } from "./dropdown.js";
+import { confirmModal, promptModal } from "./modal.js";
 
 const results = [];
 function check(name, fn) {
@@ -887,6 +889,47 @@ check("audio: pitch derives from string+fret in standard tuning", () => {
   assert(midiToFreq(64) > 0, "a real note has a positive frequency");
 });
 
+// ---- custom dropdown (DOM; runs at import time in the test page) ----
+// The invariant that makes the whole approach safe: the native <select> stays the
+// source of truth. Enhancing it must not change its value semantics, and a pick
+// must write select.value and fire exactly one bubbling `change` (so all the
+// existing app.js wiring keeps working). A programmatic value set must sync the
+// trigger label WITHOUT firing change — matching native behaviour.
+check("dropdown: enhances a <select> but keeps it the source of truth", () => {
+  const sel = document.createElement("select");
+  for (const v of ["a", "b", "c"]) {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = v.toUpperCase();
+    sel.appendChild(o);
+  }
+  sel.value = "a";
+  const host = document.createElement("div");
+  host.appendChild(sel);
+  document.body.appendChild(host);
+
+  enhanceSelect(sel);
+  const trigger = host.querySelector(".dd-trigger");
+  const labelText = () => host.querySelector(".dd-label").textContent;
+  assert(trigger, "a trigger is created");
+  assert(labelText() === "A", "trigger shows the selected option");
+
+  let changes = 0;
+  sel.addEventListener("change", () => { changes++; });
+  sel.value = "b";
+  assert(labelText() === "B", "programmatic value set syncs the label");
+  assert(changes === 0, "programmatic value set fires no change (like native)");
+
+  trigger.click();
+  const opts = [...document.querySelectorAll(".dd-panel .dd-option")];
+  assert(opts.length === 3, "panel lists every option");
+  opts.find((o) => o.textContent === "C").click();
+  assert(sel.value === "c", "choosing an option writes select.value");
+  assert(changes === 1, "choosing an option fires exactly one change");
+  assert(labelText() === "C", "trigger updates to the chosen option");
+  assert(!document.querySelector(".dd-panel"), "panel closes after a pick");
+  host.remove();
+});
+
 // ---- async PWA checks ----
 // The sync `check()`s above run at import time; these need fetch(), so they run
 // (awaited) inside runTests before the report renders. Served by serve.py.
@@ -894,6 +937,29 @@ const asyncChecks = [];
 function acheck(name, fn) {
   asyncChecks.push({ name, fn });
 }
+
+acheck("modal: confirm/prompt resolve to the pressed action", async () => {
+  const okP = confirmModal({ message: "ok?" });
+  document.querySelector(".tp-modal-ok").click();
+  assert((await okP) === true, "OK resolves true");
+
+  const cancelP = confirmModal({ message: "no?" });
+  document.querySelector(".tp-modal-cancel").click();
+  assert((await cancelP) === false, "Cancel resolves false");
+
+  const namedP = promptModal({ message: "name?", value: "old" });
+  const input = document.querySelector(".tp-modal-input");
+  assert(input.value === "old", "prompt pre-fills the given value");
+  input.value = "new";
+  document.querySelector(".tp-modal-ok").click();
+  assert((await namedP) === "new", "prompt returns the typed value");
+
+  const nullP = promptModal({ message: "name?" });
+  document.querySelector(".tp-modal-cancel").click();
+  assert((await nullP) === null, "prompt returns null on cancel");
+
+  assert(!document.querySelector(".tp-modal"), "no dialog left mounted");
+});
 
 acheck("pwa: manifest is valid and installable", async () => {
   const res = await fetch("manifest.webmanifest");

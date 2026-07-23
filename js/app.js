@@ -34,6 +34,9 @@ import { initThemes, listThemes, applyTheme } from "./theme.js";
 import { savedStore } from "./storage.js";
 import { toggleNote } from "./editor.js";
 import { createMetronome, DEFAULT_BPM } from "./metronome.js";
+import { setUiSoundEnabled, playClick } from "./ui-sound.js";
+import { confirmModal, promptModal } from "./modal.js";
+import { enhanceSelect, enhanceAll } from "./dropdown.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -187,6 +190,9 @@ function render() {
     editableChords: state.chordMode === "progression",
     editable: state.editing,
   });
+  // The per-bar chord <select>s are rebuilt every render; give them the same
+  // custom dropdown as the rest (idempotent per element).
+  enhanceAll(el("grid"));
   syncProgressionSelect();
   renderContext();
   // Re-rendering drops the playhead's cells; keep the loop length in sync too.
@@ -217,14 +223,20 @@ function render() {
 }
 
 // Hand-drawn work is the only thing here that can't be re-rolled back, so warn
-// before anything throws it away. Returns false if the user backs out.
+// before anything throws it away. Resolves false if the user backs out.
 function confirmDiscardEdits(what) {
-  if (!state.unsavedEdits) return true;
-  return confirm(`You have unsaved edits. ${what}\n\nContinue?`);
+  if (!state.unsavedEdits) return Promise.resolve(true);
+  return confirmModal({
+    title: "Unsaved edits",
+    message: `You have unsaved edits. ${what}`,
+    confirmText: "Discard & continue",
+    cancelText: "Keep editing",
+    danger: true,
+  });
 }
 
-function generate() {
-  if (!confirmDiscardEdits("Generating will replace the whole pattern.")) return;
+async function generate() {
+  if (!(await confirmDiscardEdits("Generating will replace the whole pattern."))) return;
   // Reference chord only affects absolute (random) generation; relative
   // patterns are re-resolved per bar anyway.
   state.pattern = generatePattern(phraseChords()[0], readOptions());
@@ -293,7 +305,7 @@ function noteTable(phrase) {
 // an on/off preference (default on) persisted like the theme. localStorage may
 // throw in private mode; fall back to the defaults rather than break boot.
 const AUDIO_KEY = "tp-audio";
-const audioPrefs = { click: true, pattern: true };
+const audioPrefs = { click: true, pattern: true, ui: true };
 function loadAudioPrefs() {
   try {
     Object.assign(audioPrefs, JSON.parse(localStorage.getItem(AUDIO_KEY) || "{}"));
@@ -451,8 +463,13 @@ function renderSavedList() {
     const rename = document.createElement("button");
     rename.type = "button";
     rename.textContent = "Rename";
-    rename.addEventListener("click", () => {
-      const next = prompt(`Rename "${item.name}"`, item.name);
+    rename.addEventListener("click", async () => {
+      const next = await promptModal({
+        title: "Rename pattern",
+        message: `New name for "${item.name}"`,
+        value: item.name,
+        confirmText: "Rename",
+      });
       if (next == null) return; // cancelled
       if (!savedStore.rename(item.id, next)) return; // blank or write failed
       // keep the on-screen name in sync if this is the loaded pattern
@@ -466,8 +483,15 @@ function renderSavedList() {
     const del = document.createElement("button");
     del.type = "button";
     del.textContent = "Delete";
-    del.addEventListener("click", () => {
-      if (!confirm(`Delete "${item.name}"? This can't be undone.`)) return;
+    del.addEventListener("click", async () => {
+      const ok = await confirmModal({
+        title: "Delete pattern",
+        message: `Delete "${item.name}"? This can't be undone.`,
+        confirmText: "Delete",
+        cancelText: "Cancel",
+        danger: true,
+      });
+      if (!ok) return;
       savedStore.remove(item.id);
       renderSavedList();
       refreshSavedCount();
@@ -526,10 +550,10 @@ function saveCurrent() {
   refreshSavedCount();
 }
 
-function loadSaved(id) {
+async function loadSaved(id) {
   const item = savedStore.get(id);
   if (!item) return;
-  if (!confirmDiscardEdits("Loading will replace the pattern on screen.")) return;
+  if (!(await confirmDiscardEdits("Loading will replace the pattern on screen."))) return;
   const ctx = item.context || {};
 
   // Restore musical content only — theme and label mode stay as the user has them.
@@ -605,8 +629,8 @@ function attach() {
 
   // Thumb and Chaos each re-roll only their own layer, so you can audition bass
   // patterns under one finger part (and vice versa) without losing the other.
-  el("bass").addEventListener("change", () => {
-    if (!confirmDiscardEdits("Re-rolling the bass will discard your edits to it.")) {
+  el("bass").addEventListener("change", async () => {
+    if (!(await confirmDiscardEdits("Re-rolling the bass will discard your edits to it."))) {
       el("bass").value = state.pattern.bass; // put the control back
       return;
     }
@@ -614,8 +638,8 @@ function attach() {
     markDirty();
     render();
   });
-  el("chaos").addEventListener("change", () => {
-    if (!confirmDiscardEdits("Re-rolling the fingers will discard your edits to them.")) {
+  el("chaos").addEventListener("change", async () => {
+    if (!(await confirmDiscardEdits("Re-rolling the fingers will discard your edits to them."))) {
       el("chaos").value = state.pattern.chaos;
       return;
     }
@@ -648,6 +672,20 @@ function attach() {
 
   el("theme").addEventListener("change", (e) => applyTheme(e.target.value));
 
+  // Hardware button click: fire on pointer-DOWN (matches the push-in the moment
+  // your finger lands, like a real switch). Delegated so it covers every button —
+  // including custom dropdown triggers/options built later — without per-button
+  // wiring. Bigger controls thock a touch deeper (a subtle size cue). The slider,
+  // text fields and grid cells are intentionally excluded.
+  document.addEventListener("pointerdown", (e) => {
+    const b = e.target.closest("button, .lamp, .dd-trigger, .dd-option");
+    if (!b || b.disabled || b.getAttribute("aria-disabled") === "true") return;
+    const strength = b.classList.contains("btn-roll") ? 1.15
+      : b.classList.contains("btn-icon") || b.classList.contains("btn-primary") ? 1.0
+      : 0.82;
+    playClick(strength);
+  });
+
   // Transport
   el("play").addEventListener("click", togglePlay);
   el("bpm").addEventListener("input", (e) => {
@@ -663,6 +701,12 @@ function attach() {
   el("pattern-toggle").addEventListener("change", (e) => {
     audioPrefs.pattern = e.target.checked;
     metronome.setPatternEnabled(audioPrefs.pattern);
+    saveAudioPrefs();
+  });
+  // Button-press click sound (UI feedback, independent of what Play emits).
+  el("ui-sound-toggle").addEventListener("change", (e) => {
+    audioPrefs.ui = e.target.checked;
+    setUiSoundEnabled(audioPrefs.ui);
     saveAudioPrefs();
   });
 
@@ -743,14 +787,17 @@ function registerServiceWorker() {
 // ----- boot -----
 async function boot() {
   initControls();
+  enhanceAll(); // custom dropdowns for every static <select> (theme fills later)
   loadAudioPrefs();
   el("click-toggle").checked = audioPrefs.click;
   el("pattern-toggle").checked = audioPrefs.pattern;
+  el("ui-sound-toggle").checked = audioPrefs.ui;
   metronome.setClickEnabled(audioPrefs.click);
   metronome.setPatternEnabled(audioPrefs.pattern);
+  setUiSoundEnabled(audioPrefs.ui);
   attach();
   registerServiceWorker();
-  generate(); // roll one immediately so the grid is never empty
+  await generate(); // roll one immediately so the grid is never empty
   refreshSavedCount();
 
   // Themes load async; the app is usable before they land.
