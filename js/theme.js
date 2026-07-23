@@ -6,6 +6,9 @@
 //   accent  beat-column highlights, buttons, headers (also the text color)
 //   active  filled note circles (thumb)
 //   label   text inside note circles
+// plus one OPTIONAL role:
+//   hardware  the metal fittings (sheet lip, die border, jewel rim);
+//             defaults to the house brass #c9a24a — override for e.g. nickel
 //
 // Everything else (borders, muted text, beat tint, domain tint) is DERIVED here
 // by blending those hexes into opaque colors, so the CSS needs no alpha math and
@@ -29,6 +32,17 @@ function toHex([r, g, b]) {
 function mix(a, b, t) {
   const A = parseHex(a), B = parseHex(b);
   return toHex(A.map((v, i) => v + (B[i] - v) * t));
+}
+// rgba(hex, a) — for the few derived colors that must stay translucent
+// (washes that ride on top of other derived fills, glows over arbitrary bgs)
+function rgba(hex, a) {
+  const [r, g, b] = parseHex(hex);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+// relative luminance, 0..1 — used to pick shadow weight on light themes
+function luma(hex) {
+  const [r, g, b] = parseHex(hex);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
 
 export function listThemes() {
@@ -56,7 +70,6 @@ export function applyTheme(id) {
   r.setProperty("--muted", mix(t.bg, t.accent, 0.6));
   r.setProperty("--line", mix(t.surface, t.accent, 0.3));
   r.setProperty("--beat-tint", mix(t.surface, t.accent, 0.13));
-  r.setProperty("--row-thumb", mix(t.surface, t.accent, 0.05));
   r.setProperty("--control", mix(t.surface, t.bg, 0.25));
   // the tweed faceplate tone — the whole screen's surface, between bg & surface.
   // The weave/sheen/vignette overlays that make it "tweed" are fixed rgba in the
@@ -68,6 +81,42 @@ export function applyTheme(id) {
   // sounding: on a beat the note circle covers the cell tint, so the note
   // itself has to react or the playhead looks like it skips the bass.
   r.setProperty("--playhead-glow", mix(t.surface, t.active, 0.9));
+
+  // grid furniture — derived toward `accent` (the text color), which by
+  // definition contrasts with `surface` in every theme, light or dark.
+  // These were fixed cream/brown rgba once, which flattered merle and turned
+  // elizabeth's white grid into invisible lines over a concrete band.
+  r.setProperty("--grid-line", mix(t.surface, t.accent, 0.14));
+  r.setProperty("--band-thumb", mix(t.surface, t.bg, 0.5));
+  // downbeat wash stays TRANSLUCENT: it layers over both plain cells and the
+  // thumb band, so an opaque blend would erase the band under beat columns.
+  r.setProperty("--beat-wash", rgba(t.accent, 0.07));
+
+  // hardware — the brass fittings (sheet lip, die/primary borders, jewel rim).
+  // Optional 6th role in themes.json; defaults to the house brass.
+  const hardware = t.hardware || "#c9a24a";
+  r.setProperty("--hardware", hardware);
+  r.setProperty("--hardware-deep", mix(hardware, "#000000", 0.3));
+
+  // idle transport glyphs (play/gear/close) — was fixed cream #cdb894, which
+  // vanished on light themes ("the play button looks disabled").
+  r.setProperty("--glyph", mix(t.bg, t.accent, 0.76));
+
+  // pilot-lamp jewel: hot centre / rim / glow all follow `active`, so a teal
+  // theme gets a teal lamp, not an amber one. Off-state is dark control glass.
+  r.setProperty("--lamp-hot", mix(t.active, "#ffffff", 0.62));
+  r.setProperty("--lamp-rim", mix(t.active, "#000000", 0.45));
+  r.setProperty("--lamp-glow", rgba(t.active, 0.55));
+  const control = mix(t.surface, t.bg, 0.25);
+  r.setProperty("--jewel-off-hi", mix(control, t.accent, 0.18));
+  r.setProperty("--jewel-off", mix(control, t.bg, 0.4));
+
+  // the lit Play button's gradient tail — `active` pulled toward black, so a
+  // pressed transport reads as the same material in any hue.
+  r.setProperty("--active-deep", mix(t.active, "#000000", 0.22));
+
+  // light surfaces can't take a 45% black recess shadow — it reads as grime.
+  r.setProperty("--recess-shadow", luma(t.surface) > 0.6 ? "rgba(0, 0, 0, 0.16)" : "rgba(0, 0, 0, 0.45)");
 
   document.documentElement.setAttribute("data-theme", t.id);
   try { localStorage.setItem(STORAGE_KEY, t.id); } catch {}

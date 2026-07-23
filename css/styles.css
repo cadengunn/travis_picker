@@ -35,16 +35,25 @@
   --muted: #9c8a70;
   --line: #695442;
   --beat-tint: #57422f;
-  --row-thumb: #503c2d;
   --control: #453224;
   --playhead: #7a5f3f;
   --faceplate: #3d2c20; /* the tweed base tone (blend of bg+surface) */
+  --grid-line: #634d3f;
+  --band-thumb: #402e22;
+  --beat-wash: rgba(232, 220, 192, 0.07);
+  --hardware: #c9a24a;
+  --hardware-deep: #8d7134;
+  --glyph: #bcb098;
+  --lamp-hot: #ecc99a;
+  --lamp-rim: #7b5a30;
+  --lamp-glow: rgba(224, 164, 88, 0.55);
+  --jewel-off-hi: #62503c;
+  --jewel-off: #3e2e20;
+  --active-deep: #af8045;
+  --recess-shadow: rgba(0, 0, 0, 0.45);
 
-  /* fixed texture overlays (theme-independent) */
+  /* fixed texture overlay (theme-independent bevel highlight) */
   --bevel-hi: rgba(255, 240, 215, 0.07);
-  --gold: #c9a24a;
-  --grid-line: rgba(233, 220, 192, 0.10);
-  --band-thumb: rgba(60, 42, 28, 0.35);
 
   --serif: "Fraunces", "Iowan Old Style", "Charter", Georgia, serif;
   --numeral: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
@@ -297,12 +306,13 @@ main {
   justify-content: center;
   position: relative;
 }
-/* downbeat columns get a faint light wash (layered so it rides the banding) */
+/* downbeat columns get a faint wash (layered so it rides the banding).
+   Translucent + derived toward `accent`: dims on light themes, lifts on dark. */
 .cell.beat::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--bevel-hi);
+  background: var(--beat-wash);
   pointer-events: none;
 }
 
@@ -386,20 +396,20 @@ main {
   fill: currentColor;
   filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.55)) drop-shadow(0 1px 0 rgba(255, 245, 225, 0.18));
 }
-.btn-play { color: #cdb894; }
+.btn-play { color: var(--glyph); }
 .btn-play[aria-pressed="true"] {
   color: var(--label);
   background:
     radial-gradient(120% 120% at 50% 30%, rgba(0, 0, 0, 0.10), transparent 60%),
-    linear-gradient(180deg, #f6ecd6, var(--active) 60%, #d6c6a2);
-  border-color: #b98f3f;
+    linear-gradient(180deg, #f6ecd6, var(--active) 60%, var(--active-deep));
+  border-color: var(--hardware-deep);
 }
 /* Generate is the most-pressed button — bigger, and a cream Bakelite die that's
    findable without looking. */
 .btn-roll {
   width: 62px;
   height: 50px;
-  border-color: #b98f3f;
+  border-color: var(--hardware-deep);
   background:
     radial-gradient(120% 120% at 50% 30%, rgba(0, 0, 0, 0.10), transparent 60%),
     linear-gradient(180deg, #f6ecd6, var(--accent) 58%, #d6c6a2);
@@ -411,7 +421,7 @@ main {
   transform: rotate(-13deg);
   filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.28)) drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
-.btn-gear { color: #cdb894; }
+.btn-gear { color: var(--glyph); }
 
 /* slider + BPM readout underneath (full-width slider = more precise) */
 .slider-wrap { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -433,10 +443,10 @@ main {
 /* ---- Options / Saved sheets ---- */
 .sheet { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; }
 .sheet-backdrop { position: absolute; inset: 0; background: rgba(10, 6, 3, 0.48); }
-/* the sheet is the same tweed object, lifted forward, with a gold hairline lip */
+/* the sheet is the same tweed object, lifted forward, with a hardware hairline lip */
 .sheet-panel {
   position: relative;
-  border-top: 1px solid var(--gold);
+  border-top: 1px solid var(--hardware);
   border-radius: 22px 22px 0 0;
   padding: 14px 16px max(16px, env(safe-area-inset-bottom));
   max-height: 88dvh;
@@ -461,7 +471,7 @@ main {
 }
 .sheet-close {
   margin-left: auto;
-  color: #cdb894;
+  color: var(--glyph);
   border: 1px solid var(--line);
   border-radius: 9px;
   width: 32px;
@@ -568,14 +578,14 @@ main {
   height: 13px;
   border-radius: 50%;
   flex: none;
-  background: radial-gradient(circle at 38% 32%, #6b5843, #4a3a2b 60%);
+  background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
   border: 1px solid rgba(0, 0, 0, 0.4);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .lamp input:checked ~ .jewel {
-  background: radial-gradient(circle at 38% 32%, #ffe9b8, var(--active) 55%, #8a5a20);
-  border-color: #8a5a20;
-  box-shadow: 0 0 8px 2px rgba(224, 164, 88, 0.55), inset 0 0 2px rgba(0, 0, 0, 0.4);
+  background: radial-gradient(circle at 38% 32%, var(--lamp-hot), var(--active) 55%, var(--lamp-rim));
+  border-color: var(--lamp-rim);
+  box-shadow: 0 0 8px 2px var(--lamp-glow), inset 0 0 2px rgba(0, 0, 0, 0.4);
 }
 .lamp input:not(:checked) ~ .t { color: var(--muted); }
 .lamp input:focus-visible ~ .jewel { outline: 2px solid var(--active); outline-offset: 2px; }
@@ -588,7 +598,7 @@ main {
   font-weight: 600;
   color: var(--bg);
   background: linear-gradient(180deg, #f6ecd6, var(--accent) 65%);
-  border: 1px solid #b98f3f;
+  border: 1px solid var(--hardware-deep);
   border-radius: 12px;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
@@ -640,7 +650,7 @@ main {
 .saved-item button.load {
   color: var(--bg);
   background: linear-gradient(180deg, #f6ecd6, var(--accent) 65%);
-  border-color: #b98f3f;
+  border-color: var(--hardware-deep);
 }
 .saved-empty { color: var(--muted); font-family: var(--numeral); font-size: 14px; padding: 10px 2px; }
 
