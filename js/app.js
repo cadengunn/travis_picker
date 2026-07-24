@@ -645,7 +645,7 @@ function renderHelp(body) {
   };
 
   h("The grid is your right hand");
-  p("Each column is an eighth-note; each row is a string. Amber notes along the bottom are the thumb (the alternating bass); cream notes on top are your fingers — i, m, a on strings 3, 2, 1. Read a bar left to right.");
+  p("Each column is an eighth-note; each row is a string. The notes along the bottom rows are the thumb (the alternating bass); those on the top rows are your fingers — i, m, a on strings 3, 2, 1. Read a bar left to right.");
 
   h("Roll a pattern");
   p("Tap the die to generate a fresh, playable pattern. In ⚙ Options, Thumb sets the bass style and the Chaos tier sets difficulty: Tame → Loose → Unruly get harder; Chaos is pure random discovery, off the curve.");
