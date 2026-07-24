@@ -919,8 +919,10 @@ modules.
   momentarily — fine.) Don't re-propose the chip; dome is the signed-off look.
 - **Options sheet reorganised into three clean groups — Generation / Sound /
   Appearance** (v2.5.2). The Sound section is a **2×2 lamp bank**
-  (`.lamp-row` = `grid` 2col): **Metronome** (was Click / `click-toggle`) ·
-  **Melody** (was Notes / `pattern-toggle`) · **Buttons** · **Count-in**. The
+  (`.lamp-row` = `grid` 2col), laid out `Metronome | Melody` over
+  `Count-in | Buttons` so the metronome pair shares the left column:
+  **Metronome** (was Click / `click-toggle`) · **Melody** (was Notes /
+  `pattern-toggle`) · **Count-in** · **Buttons**. The
   toggle **ids are unchanged**, only the visible labels — user's framing was that
   count-in is a musical sound like the rest, so all four sit together. The old
   separate "Playback"/"Interface" headers are gone; "Preferences" → **Appearance**
