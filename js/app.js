@@ -4,7 +4,7 @@
 
 import {
   CHORDS,
-  CHORD_GROUPS,
+  SINGLE_CHORD_GROUPS,
   DEFAULT_CHORD,
   BASS_PRESETS,
   CHAOS_IDS,
@@ -99,7 +99,7 @@ function fillSelectGrouped(select, groups, extra) {
 
 // Chord/key groups from data → the {value,label} shape fillSelectGrouped wants.
 const chordOptionGroups = () =>
-  CHORD_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((c) => ({ value: c, label: CHORDS[c].name })) }));
+  SINGLE_CHORD_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((c) => ({ value: c, label: CHORDS[c].name })) }));
 const keyOptionGroups = () =>
   KEY_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((k) => ({ value: k, label: KEYS[k].name })) }));
 

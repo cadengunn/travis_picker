@@ -15,6 +15,7 @@ import {
   KEYS,
   KEY_IDS,
   CHORD_GROUPS,
+  SINGLE_CHORD_GROUPS,
   PROGRESSIONS,
   CUSTOM_PROGRESSION_ID,
   CHORD_SHAPES,
@@ -332,12 +333,14 @@ check("chord library: every chord has a shape covering its role strings", () => 
 // 6b) The chord-family groups partition the library exactly (every id in one
 //     group, no strays) — the single-chord and per-bar pickers rely on this.
 check("chord groups partition the library exactly", () => {
-  const grouped = CHORD_GROUPS.flatMap((g) => g.ids);
-  assert(grouped.length === CHORD_IDS.length,
-    `groups list ${grouped.length} chords, library has ${CHORD_IDS.length}`);
-  assert(new Set(grouped).size === grouped.length, "a chord appears in two groups");
-  for (const id of grouped) assert(CHORDS[id], `group references unknown chord ${id}`);
-  for (const id of CHORD_IDS) assert(grouped.includes(id), `chord ${id} is in no group`);
+  for (const [name, groups] of [["CHORD_GROUPS", CHORD_GROUPS], ["SINGLE_CHORD_GROUPS", SINGLE_CHORD_GROUPS]]) {
+    const grouped = groups.flatMap((g) => g.ids);
+    assert(grouped.length === CHORD_IDS.length,
+      `${name} lists ${grouped.length} chords, library has ${CHORD_IDS.length}`);
+    assert(new Set(grouped).size === grouped.length, `${name}: a chord appears in two groups`);
+    for (const id of grouped) assert(CHORDS[id], `${name} references unknown chord ${id}`);
+    for (const id of CHORD_IDS) assert(grouped.includes(id), `${name}: chord ${id} is in no group`);
+  }
 });
 
 // 7) Nashville: every token in every key resolves to a real chord, and each key
@@ -369,12 +372,20 @@ check("progressions: every preset resolves fully in every key of its mode", () =
 
 // 7b-i) The chromatic tokens mean what they should: major II (not the diatonic
 //       minor ii), the flat-7 MAJOR, and a dominant-7th tonic.
+// (Every preset is padded to 4 bars — a 3-chord idea holds its last chord.)
 check("tokens: II is major, ♭VII is the flat-7 major, I7 is a dominant 7th", () => {
-  assert(progressionChords("maj_1_2_5", "C").join("-") === "C-D-G", "I–II–V in C should be C-D-G");
-  assert(progressionChords("maj_1_2_5", "E").join("-") === "E-F#-B", "I–II–V in E needs the new F# chord");
-  assert(progressionChords("maj_1_b7_4", "C").join("-") === "C-Bb-F", "I–♭VII–IV in C should be C-Bb-F");
-  assert(progressionChords("maj_1_b7_4", "G").join("-") === "G-F-C", "I–♭VII–IV in G should be G-F-C");
+  assert(progressionChords("maj_1_2_5", "C").join("-") === "C-D-G-G", "I–II–V in C should be C-D-G-G");
+  assert(progressionChords("maj_1_2_5", "E").join("-") === "E-F#-B-B", "I–II–V in E needs the new F# chord");
+  assert(progressionChords("maj_1_b7_4", "C").join("-") === "C-Bb-F-F", "I–♭VII–IV in C should be C-Bb-F-F");
+  assert(progressionChords("maj_1_b7_4", "G").join("-") === "G-F-C-C", "I–♭VII–IV in G should be G-F-C-C");
   assert(progressionChords("maj_1_7_4_1", "C").join("-") === "C-C7-F-C", "I–I7–IV–I in C uses the dom7 tonic");
+});
+
+// Every shipped progression is a 4-bar phrase (padded from shorter ideas).
+check("every progression is exactly four bars", () => {
+  for (const p of PROGRESSIONS) {
+    assert(p.tokens.length === 4, `${p.id} has ${p.tokens.length} bars, want 4`);
+  }
 });
 
 // 7b-ii) Minor keys resolve their own progressions and reject major presets.
@@ -400,7 +411,7 @@ check("progressionGroups: filters to a mode and labels by token sequence", () =>
   }
   // the label is the token sequence, e.g. I–♭VII–IV
   const folk = progressionGroups("major").flatMap((g) => g.items).find((i) => i.value === "maj_1_b7_4");
-  assert(folk && folk.label === "I–♭VII–IV", `expected "I–♭VII–IV", got "${folk && folk.label}"`);
+  assert(folk && folk.label === "I–♭VII–IV–IV", `expected "I–♭VII–IV–IV", got "${folk && folk.label}"`);
 });
 
 // 7c) detectProgression round-trips presets IN THEIR MODE and reports custom edits.

@@ -296,39 +296,52 @@ export const KEY_GROUPS = [
   { label: "Minor", ids: KEY_IDS.filter((k) => KEYS[k].mode === "minor") },
 ];
 
-// Chord selector, grouped by family — used by the single-chord picker and the
-// per-bar chord picker so both read the same way. Every CHORD_ID belongs to
-// exactly one group (a test asserts the partition).
+// Chord selector grouped by family — the per-bar picker in progression mode,
+// where you reach for a chord by its harmonic role. Every CHORD_ID is in exactly
+// one group (a test asserts the partition).
 export const CHORD_GROUPS = [
   { label: "Major",       ids: ["C", "G", "D", "A", "E", "F", "F#", "Bb", "B"] },
   { label: "Dominant 7",  ids: ["C7", "G7", "D7", "A7", "E7"] },
   { label: "Minor",       ids: ["Am", "Em", "Bm", "Dm", "F#m", "C#m", "G#m"] },
 ];
 
-// Preset progressions as token sequences. Curated by STYLE (the value a fingerstyle
-// player actually reaches for), so the dropdown groups them under those headers.
-// Any length — they cycle to fill the phrase. Hand-edit any bar; if the result
-// stops matching a preset the selector reads "Custom".
+// The SINGLE-chord picker leads with the core seven open-position "campfire"
+// chords — what you actually drill — and files the barre chords, dominant 7ths
+// and rarer minors below under a "more" section. Also a full partition of the
+// library.
+export const SINGLE_CHORD_GROUPS = [
+  { label: "Open chords", ids: ["C", "G", "D", "A", "E", "Am", "Em"] },
+  { label: "More majors", ids: ["F", "F#", "Bb", "B"] },
+  { label: "Dominant 7",  ids: ["C7", "G7", "D7", "A7", "E7"] },
+  { label: "More minors", ids: ["Dm", "Bm", "F#m", "C#m", "G#m"] },
+];
+
+// Preset progressions, curated by STYLE (the value a fingerstyle player actually
+// reaches for), so the dropdown groups them under those headers. EVERY preset is
+// four bars — a shorter idea is padded to fill the phrase: a 2-chord progression
+// repeats (I–V → I–V–I–V), a 3-chord one holds its last chord (I–IV–V → I–IV–V–V,
+// I–♭VII–IV → I–♭VII–IV–IV). Hand-edit any bar; if the result stops matching a
+// preset the selector reads "Custom".
 export const PROGRESSIONS = [
   // --- major ---
-  { id: "maj_1_5",      mode: "major", style: "Foundations",      tokens: ["I", "V"] },
-  { id: "maj_1_4",      mode: "major", style: "Foundations",      tokens: ["I", "IV"] },
-  { id: "maj_1_4_5",    mode: "major", style: "Foundations",      tokens: ["I", "IV", "V"] },
-  { id: "maj_1_4_1_5",  mode: "major", style: "Foundations",      tokens: ["I", "IV", "I", "V"] },
-  { id: "maj_1_7_4_1",  mode: "major", style: "Classic Country",  tokens: ["I", "I7", "IV", "I"] },
-  { id: "maj_1_2_5",    mode: "major", style: "Classic Country",  tokens: ["I", "II", "V"] },
-  { id: "maj_1_4_5_1",  mode: "major", style: "Classic Country",  tokens: ["I", "IV", "V", "I"] },
-  { id: "maj_1_b7_4",   mode: "major", style: "Traditional Folk", tokens: ["I", "♭VII", "IV"] },
-  { id: "maj_1_b7_1",   mode: "major", style: "Traditional Folk", tokens: ["I", "♭VII", "I"] },
-  { id: "maj_1_5_6_4",  mode: "major", style: "Modern Acoustic",  tokens: ["I", "V", "vi", "IV"] },
-  { id: "maj_1_6_4_5",  mode: "major", style: "Modern Acoustic",  tokens: ["I", "vi", "IV", "V"] },
-  { id: "maj_6_4_1_5",  mode: "major", style: "Modern Acoustic",  tokens: ["vi", "IV", "I", "V"] },
-  { id: "maj_1_4_2_5",  mode: "major", style: "Advanced",         tokens: ["I", "IV", "ii", "V"] },
-  { id: "maj_1_6_2_5",  mode: "major", style: "Advanced",         tokens: ["I", "vi", "ii", "V"] },
+  { id: "maj_1_5",      mode: "major", style: "Foundations",       tokens: ["I", "V", "I", "V"] },
+  { id: "maj_1_4",      mode: "major", style: "Foundations",       tokens: ["I", "IV", "I", "IV"] },
+  { id: "maj_1_4_5",    mode: "major", style: "Foundations",       tokens: ["I", "IV", "V", "V"] },
+  { id: "maj_1_4_1_5",  mode: "major", style: "Foundations",       tokens: ["I", "IV", "I", "V"] },
+  { id: "maj_1_7_4_1",  mode: "major", style: "Classic Country",   tokens: ["I", "I7", "IV", "I"] },
+  { id: "maj_1_2_5",    mode: "major", style: "Classic Country",   tokens: ["I", "II", "V", "V"] },
+  { id: "maj_1_4_5_1",  mode: "major", style: "Classic Country",   tokens: ["I", "IV", "V", "I"] },
+  { id: "maj_1_b7_4",   mode: "major", style: "Traditional Folk",  tokens: ["I", "♭VII", "IV", "IV"] },
+  { id: "maj_1_b7_1",   mode: "major", style: "Traditional Folk",  tokens: ["I", "♭VII", "I", "I"] },
+  { id: "maj_1_5_6_4",  mode: "major", style: "Modern Acoustic",   tokens: ["I", "V", "vi", "IV"] },
+  { id: "maj_1_6_4_5",  mode: "major", style: "Modern Acoustic",   tokens: ["I", "vi", "IV", "V"] },
+  { id: "maj_6_4_1_5",  mode: "major", style: "Modern Acoustic",   tokens: ["vi", "IV", "I", "V"] },
+  { id: "maj_1_4_2_5",  mode: "major", style: "Classic Standards", tokens: ["I", "IV", "ii", "V"] },
+  { id: "maj_1_6_2_5",  mode: "major", style: "Classic Standards", tokens: ["I", "vi", "ii", "V"] },
   // --- minor ---
-  { id: "min_1_7",      mode: "minor", style: "Minor",            tokens: ["i", "VII"] },
-  { id: "min_1_7_6",    mode: "minor", style: "Minor",            tokens: ["i", "VII", "VI"] },
-  { id: "min_1_7_6_5",  mode: "minor", style: "Minor",            tokens: ["i", "VII", "VI", "V"] },
+  { id: "min_1_7",      mode: "minor", style: "Minor",             tokens: ["i", "VII", "i", "VII"] },
+  { id: "min_1_7_6",    mode: "minor", style: "Minor",             tokens: ["i", "VII", "VI", "VI"] },
+  { id: "min_1_7_6_5",  mode: "minor", style: "Minor",             tokens: ["i", "VII", "VI", "V"] },
 ];
 
 export const CUSTOM_PROGRESSION_ID = "custom";
