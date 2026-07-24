@@ -119,18 +119,31 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   to buy slider width.
 - **Slim bar above the grid:** things acting on the pattern in front of you —
   Edit / Save / Load, its name, and the relative/mixed/absolute indicator.
-  **Two rows, and the order was swapped in v2.7.4:** row 1 = the pattern **name**
-  + the three pills; row 2 = the musical **context** (`#context`), which now owns
-  a FULL row. Reason: Roman numerals with accidentals (`i – ♯vi – I7 – VII · Am`)
-  need ~180px and only got ~112px sharing row 1 with the pills, so the readout
-  truncated. Swapping costs **zero height** (`.app-head` is still 63px = 32 + 5 +
-  26, measured) and gives the context 351px. The name truncates safely beside the
-  pills (`min-width:0` + ellipsis, so it can't stretch them — the session-8 bug).
-  **Both rows keep a reserved `min-height` even when empty**, so the grid never
-  moves between chord modes. The **version tag moved into the Options sheet
-  header** (beside the "Options" title, where it's free — it's shorter than the ✕)
-  — it was eating ~43px of the context's width for information you never read
-  mid-take.
+  **Two rows:** row 1 = the musical **context** (`#context`) top-LEFT + the three
+  pills; row 2 = the pattern **name**, which owns a full row so a long saved name
+  can't stretch the buttons (the session-8 bug). Both rows keep a reserved
+  `min-height` when empty, so the grid never moves between chord modes;
+  `.app-head` is **63px** (32 + 5 + 26) and any change here must re-measure it.
+- **The context AUTO-SHRINKS to fit** (`fitContext()` in `app.js`, v2.7.5). Roman
+  numerals with accidentals run long — `♯iii – ♯vi – I7 – ♭II · Am` needs ~180px
+  against the ~143px the pills leave — and ellipsizing hid the very information
+  the readout exists to give. So it scales instead: 14px base, **10.5px floor**,
+  one measure-and-set pass (the pills are `flex: 0 0 auto`, so the space the
+  context gets doesn't change when its font does). Measured at 375×553: presets
+  stay at 14px, a 4-accidental custom bar lands ~13.4px, the worst case ~11.7px.
+  Re-fits on `document.fonts.ready` (Fraunces loads async and is wider than the
+  fallback) and on resize. Two supporting trims: the **version tag moved into the
+  Options sheet header** (beside the title, free — it's shorter than the ✕; it was
+  eating ~43px for information you never read mid-take), and `.context .sep`
+  margins went 10px → 5px. *A third header row was considered and rejected — the
+  SE grid budget has ~0 spare.*
+- **Accidentals need a FIXED `line-height`** wherever they appear (`.context`,
+  `.dd-trigger`, `.dd-option`). `♭`/`♯` (U+266D/U+266F) aren't in Fraunces, so
+  they render from a fallback whose taller ascent/descent grows the line box:
+  picking a `♭VII` progression grew its dropdown trigger **+4px** and pushed the
+  bottom-anchored Options sheet up 3.75px (measured both ways). Pinning
+  `line-height` makes every inline box the same height whatever font serves the
+  glyph. Watch for this on any new text that can contain them.
 - **⚙ Options sheet:** *generation* inputs (chord mode, chord or key+progression,
   thumb, chaos, pattern length) and below a rule, app-wide *preferences* (note
   labels, theme). You set these sitting down, between takes.
@@ -724,8 +737,9 @@ rejected for hurting grid legibility.)
   faint wash (`.cell.beat::before`). Notes dominate. **Row order confirmed against
   `grid.js` (strings 1→6 top-to-bottom): fingers/cream on top, thumb/amber at the
   bottom** — the mockups initially had this flipped; fixed.
-- **Header restructure (two rows)** *(row order SUPERSEDED in v2.7.4 — see "Where
-  controls live" above: name and context swapped rows, version moved to Options)*
+- **Header restructure (two rows)** *(the version tag moved to the Options sheet
+  in v2.7.4, and the context auto-shrinks to fit since v2.7.5 — see "Where
+  controls live" above; row order is otherwise still as described here)*
   **:** row 1 = version + musical **context**
   (`#context`: Nashville degrees + key, e.g. `1 – 5 – 6 – 4 · E`, sized to sit
   quietly by the pills — **progression mode only**) + Edit/Save/Load pills; row 2
@@ -1073,7 +1087,7 @@ the v2.5.4 "sound on release only" note. Device-only to judge.
 ## Where things stand (session 13, 2026-07-24)
 
 **Session 13 shipped the musical-content pass — C1–C3, keys & progressions —
-v2.7.0 → v2.7.4** (`CACHE` v39). All data-driven; **generator untouched**. 56/56
+v2.7.0 → v2.7.5** (`CACHE` v40). All data-driven; **generator untouched**. 56/56
 green, verified in-browser (tests + the grouped menus, mode filter, dom7 frets).
 **Pending the user's weekend guitar/phone test.** The design was agreed up front
 against a written spec the user brought (see the discussion) before any code.
@@ -1103,11 +1117,19 @@ above. Progressions became harmonic **tokens** instead of bare 1–6 degrees so
   computed numeral (`♯iv`, `♭ii`, `VI7`) instead of `?` — `romanInKey`/`degreeLabel`
   in `data.js`; see the Nashville note. Tritone spells `♯IV` (user-approved
   convention). Contained follow-on the user asked for at end of session.
-- **Header re-layout + chord randomiser (v2.7.4).** The richer numerals overflowed
-  the header, so name/context **swapped rows** and the version moved into the
-  Options sheet — full reasoning + the measurements in "Where controls live". The
-  user offered "add a third row" as an option; rejected because the SE grid budget
-  has ~0 spare and the swap costs nothing. Also: a **chord randomiser** die
+- **Header fit + chord randomiser (v2.7.4 → v2.7.5).** The richer numerals
+  overflowed the header. v2.7.4 swapped name/context rows; the user then asked to
+  keep the context **top-left** and shrink the type instead, so **v2.7.5 restored
+  the original row order and added `fitContext()`** — full reasoning and the
+  measured numbers in "Where controls live". The version tag stays in the Options
+  sheet (that trim is what makes the fit work at 14px for most readouts). A third
+  header row was offered and rejected: the SE grid budget has ~0 spare.
+- **The ♭/♯ line-height bug (v2.7.5).** Picking a `♭VII` progression made the
+  Options sheet "expand slightly upward" — the glyph falls back off Fraunces to a
+  taller font, growing the trigger +4px. Fixed with fixed `line-height`; see
+  "Where controls live". **Reproduced and re-measured both ways in-browser**, not
+  theorised.
+- Also in v2.7.4: a **chord randomiser** die
   (`#randomize-chords`) on the Options **"Generation" section header line** —
   progression mode rolls a key + a progression of that key's mode, single mode
   rolls an open chord. It rides the header line rather than taking a control row

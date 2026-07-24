@@ -21,15 +21,15 @@
 </head>
 <body>
   <main>
-    <!-- Header, two rows. Row 1: the pattern's name + the pattern actions. Row 2:
-         the musical context (progression + key, progression mode only), which
-         owns a FULL row because Roman numerals with accidentals (I – ♯iv – ♭ii)
-         run long — sharing row 1 with the pills truncated it. The name truncates
-         safely beside the pills (min-width:0 + ellipsis), so it can't stretch
-         them. Both rows keep a reserved min-height, so the grid never moves. -->
+    <!-- Header, two rows. Row 1: the musical context, top-LEFT (progression + key,
+         progression mode only) + the pattern actions. Row 2: the pattern's name,
+         which owns a full row so a long saved name can't stretch the buttons.
+         The context auto-shrinks its font to fit (fitContext in app.js) — Roman
+         numerals with accidentals run long, and the version tag was moved into
+         the Options sheet to give this row back ~43px. -->
     <header class="app-head">
       <div class="ctx-row">
-        <span id="loaded-name" class="loaded-name"></span>
+        <span id="context" class="context" hidden></span>
         <div class="grid-actions">
           <button id="edit-toggle" class="pill" type="button" aria-pressed="false"
                   title="Toggle manual editing"><span class="rec-lamp" aria-hidden="true"></span>✎ Edit</button>
@@ -38,7 +38,7 @@
         </div>
       </div>
       <div class="name-row">
-        <span id="context" class="context" hidden></span>
+        <span id="loaded-name" class="loaded-name"></span>
       </div>
     </header>
 
@@ -84,7 +84,7 @@
         <h2 id="options-title">Options</h2>
         <!-- Version rides the sheet header: it's reference info you look up
              sitting down, and here it costs no height (shorter than the ✕). -->
-        <span class="app-version" aria-label="App version">v2.7.4</span>
+        <span class="app-version" aria-label="App version">v2.7.5</span>
         <button class="sheet-close" type="button" data-close aria-label="Close">✕</button>
       </header>
 

@@ -1,6 +1,6 @@
 # Carry-forward — Travis Picker (after session 13, 2026-07-24)
 
-## Shipped this session — keys & progressions (C1–C3), v2.7.0 → v2.7.4 (`CACHE` v39)
+## Shipped this session — keys & progressions (C1–C3), v2.7.0 → v2.7.5 (`CACHE` v40)
 The musical-content pass. **All data edits in `data.js`; generator untouched.**
 56/56 green, verified in-browser. **Pending the user's weekend guitar/phone test.**
 Full detail in CLAUDE.md "Where things stand (session 13)" + the rewritten
@@ -21,11 +21,18 @@ Full detail in CLAUDE.md "Where things stand (session 13)" + the rewritten
   leads with **Open chords** (incl. `Dm`, v2.7.2); per-bar picker by quality.
 - **Smart custom numerals (v2.7.3)** — a hand-edited non-diatonic bar reads as
   `♯iv` / `♭ii` / `VI7`, not `?` (`romanInKey`/`degreeLabel`).
-- **Header re-layout (v2.7.4)** — the richer numerals were truncating, so the
-  **name and context swapped rows** (context now owns a full row, 351px vs the
-  ~112px it had) and the **version tag moved into the Options sheet header**.
-  Zero height change; `.app-head` is still 63px, measured at 375×553. A third row
-  was considered and rejected (SE grid budget has ~0 spare).
+- **Header fit (v2.7.4 → v2.7.5)** — the richer numerals were truncating. v2.7.4
+  swapped the name/context rows; the user preferred the context stay **top-left**
+  with the type shrinking instead, so **v2.7.5 restored the original row order and
+  added `fitContext()`**: 14px base, 10.5px floor, scaled only when needed
+  (presets 14px, worst case ~11.7px, never truncated). The **version tag stays in
+  the Options sheet header** — that trim is what keeps most readouts at full size.
+  `.app-head` is still 63px. A third row was offered and rejected (SE budget).
+- **♭/♯ line-height fix (v2.7.5)** — picking a `♭VII` progression made the Options
+  sheet creep upward: the glyphs aren't in Fraunces and the fallback's taller
+  metrics grew the dropdown trigger **+4px** (reproduced and measured both ways).
+  `.context`, `.dd-trigger` and `.dd-option` now pin `line-height`. **Any new text
+  that can hold ♭/♯ needs the same.**
 - **Chord randomiser (v2.7.4)** — a die on the Options **"Generation" header
   line**: progression mode rolls key + progression, single mode rolls an open
   chord. Sheet had only ~45px headroom on SE, hence the header line rather than a
@@ -41,8 +48,9 @@ phone-only.
 
 ## What needs the user's hands
 Weekend test of v2.7.x on guitar/phone. Things to feel out:
-- The **re-laid-out header** — name beside the pills at 17px, full-width context
-  underneath. Check a long saved name still reads acceptably at ~150px.
+- The **auto-shrinking context readout** — is ~11.7px still readable at arm's
+  length on the worst-case custom progression? If not, the lever is the pills:
+  dropping "Edit" to just the pencil glyph frees ~30px and raises the floor.
 - The **randomiser die**'s placement on the "Generation" header line. It's scoped
   to key+progression (tooltip says so), but sitting on that header it *could* read
   as "randomise everything in Generation" — easy to move, rescope to also roll

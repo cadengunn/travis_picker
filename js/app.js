@@ -198,6 +198,32 @@ function renderLoadedName() {
   }
 }
 
+// Shrink the context readout just enough to fit its row, and no further.
+//
+// It sits top-left beside the action pills, so its width is fixed by what they
+// leave (~145px at 375px wide). Most readouts fit at the 14px base; the long ones
+// — four hand-edited bars with accidentals, "i – ♯vi – I7 – ♭II · Am" — need ~180px
+// and used to ellipsize away the very information they carry. So scale to fit
+// instead of truncating, down to a legible floor (below that, truncation is the
+// honest failure — you can't read 9px on a guitar stand anyway).
+//
+// One measure-and-set pass is enough: the pills are `flex: 0 0 auto`, so the
+// space the context gets does NOT change when its font does. Fonts load async,
+// so `document.fonts.ready` re-runs this once Fraunces is in (see boot).
+const CONTEXT_BASE_PX = 14;
+const CONTEXT_MIN_PX = 10.5;
+function fitContext(node) {
+  node.style.fontSize = `${CONTEXT_BASE_PX}px`;
+  const avail = node.clientWidth;
+  const needed = node.scrollWidth;
+  if (!avail || needed <= avail) return;
+  // Target one pixel inside the box: glyph advances don't scale perfectly
+  // linearly, so aiming at exactly `avail` can still round a hair over and
+  // ellipsize the last character.
+  const scaled = Math.floor((CONTEXT_BASE_PX * (avail - 1)) / needed * 10) / 10;
+  node.style.fontSize = `${Math.max(CONTEXT_MIN_PX, scaled)}px`;
+}
+
 // The musical-context readout. Progression mode shows the degrees as Roman
 // numerals + key top-left (e.g. "I – V – vi – IV · E"); single mode hides it and
 // shows the one chord big, above the grid (the grid is the hero, so it's a label).
@@ -225,6 +251,7 @@ function renderContext() {
     sep.className = "sep";
     sep.textContent = "·";
     ctx.append(nums, sep, key);
+    fitContext(ctx); // scale to fit rather than ellipsize the numerals away
   } else {
     ctx.hidden = true;
     const id = el("chord").value;
@@ -935,6 +962,13 @@ function attach() {
     infoModal({ title: "How to use", closeText: "Got it", render: renderHelp });
   });
 
+  // The context is scaled to the width it's given, so re-fit when that changes
+  // (rotation, split view). Cheap: two reads on an element that's usually short.
+  window.addEventListener("resize", () => {
+    const ctx = el("context");
+    if (!ctx.hidden) fitContext(ctx);
+  });
+
   // Keep any open sheet pinned to the visual viewport as the keyboard shows/hides.
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", syncSheetToViewport);
@@ -982,6 +1016,13 @@ async function boot() {
   registerServiceWorker();
   await generate(); // roll one immediately so the grid is never empty
   refreshSavedCount();
+
+  // The first fit measured whatever font was available; Fraunces arrives async
+  // and is wider than the fallback, so re-fit once it's actually in.
+  document.fonts?.ready.then(() => {
+    const ctx = el("context");
+    if (!ctx.hidden) fitContext(ctx);
+  });
 
   // Themes load async; the app is usable before they land.
   try {

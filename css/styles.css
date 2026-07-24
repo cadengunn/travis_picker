@@ -125,25 +125,30 @@ main {
   letter-spacing: 0.06em;
   color: var(--muted);
 }
-/* progression + key, shown only in progression mode. Owns a full row: Roman
-   numerals with accidentals (I – ♯iv – ♭ii – ♯IV · Am) need ~170px and only got
-   ~112px sharing row 1 with the pills, so it truncated. Left-aligned — it reads
-   as a caption under the name. */
+/* progression + key, top-LEFT of row 1, shown only in progression mode.
+   Roman numerals with accidentals (i – ♯vi – I7 – VII · Am) run longer than the
+   room beside the pills, so `fitContext()` in app.js scales the font down (14px
+   base, 10.5px floor) only when a readout would otherwise truncate. The fixed
+   line-height matters: ♭/♯ (U+266D/U+266F) aren't in Fraunces and the fallback
+   font's taller metrics would grow the line box — and with it the row. */
 .context {
-  display: block;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
   font-family: var(--serif);
   font-size: 14px;
+  line-height: 1.35;
   font-weight: 600;
   color: var(--text);
   font-variation-settings: "opsz" 30, "SOFT" 30;
 }
 .context .key { color: var(--active); font-variation-settings: "opsz" 30, "wght" 560, "SOFT" 40; }
-/* the · between progression and key — the gap is deliberate breathing room */
-.context .sep { display: inline-block; margin: 0 10px; }
+/* the · between progression and key — still breathing room, but 5px not 10px:
+   it's 12px of a row where every pixel goes to fitting the numerals unshrunk. */
+.context .sep { display: inline-block; margin: 0 5px; }
 .grid-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
 
 /* Raised, carved hardware buttons — the transport's bevel language (top-lit face,
@@ -214,9 +219,8 @@ main {
   }
 }
 
-/* row 2: the musical context, full width. Keeps its reserved min-height whether
-   or not it has content (single mode hides the context), so the grid below never
-   moves between chord modes. */
+/* row 2: the pattern name. Owns a full row so a long saved name can't stretch the
+   action pills. Keeps its reserved min-height when empty, so the grid never moves. */
 .name-row {
   display: flex;
   align-items: baseline;
@@ -232,20 +236,16 @@ main {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--serif);
-  /* 17px, not the old full-row 21px: it now shares row 1 with the 13px pills, so
-     this sits as their headline rather than towering over them. */
-  font-size: 17px;
+  font-size: 21px;
   /* room for descenders (g/j/q/p/y): with overflow:hidden a tight line-height
      clips the tails. 1.3 gives the serif's deep descenders space. */
   line-height: 1.3;
   padding-bottom: 1px;
   font-weight: 600;
   color: var(--active);
-  /* opsz tracks the rendered size — 26, not the old 21px row's 44: Fraunces'
-     display cut thins its hairlines, which goes fragile at 17px. */
-  font-variation-settings: "opsz" 26, "wght" 500, "SOFT" 30;
+  font-variation-settings: "opsz" 44, "wght" 500, "SOFT" 30;
 }
-.loaded-name.untitled { color: var(--muted); font-style: italic; font-variation-settings: "opsz" 26, "wght" 400; }
+.loaded-name.untitled { color: var(--muted); font-style: italic; font-variation-settings: "opsz" 44, "wght" 400; }
 .loaded-name .modified { font-size: 12px; font-style: italic; font-weight: 400; color: var(--muted); margin-left: 5px; }
 
 /* Caution indicator lives bottom-right, above the gear (positioned within
@@ -958,6 +958,12 @@ main {
   gap: 6px;
   cursor: pointer;
   font-family: var(--serif);
+  /* FIXED line-height, deliberately: ♭ and ♯ (U+266D/U+266F, in the ♭VII
+     progressions) aren't in Fraunces, so they render from a fallback font whose
+     taller ascent/descent grew the line box — which grew the trigger, the row,
+     and pushed the bottom-anchored Options sheet upward when you picked one.
+     Pinning it makes every inline box this height whatever font serves the glyph. */
+  line-height: 1.25;
   color: var(--text);
 }
 .dd-label { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1039,6 +1045,9 @@ main {
   padding: 11px 12px;
   font-family: var(--serif);
   font-size: 16px;
+  /* fixed for the same reason as .dd-trigger — a ♭/♯ option must not be taller
+     than its neighbours, or the open panel's rows jump */
+  line-height: 1.25;
   font-weight: 600;
   color: var(--text);
   background: transparent;
