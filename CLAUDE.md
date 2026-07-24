@@ -907,6 +907,32 @@ without a change) and the modal resolve behaviour. Both run in `tests.html`
 (they use the DOM). The precache-coverage check now also guards the three new
 modules.
 
+**Refinement round from the phone test — v2.5.1** (`CACHE` v27):
+- **Die press no longer "slides".** The tilted, light Bakelite die read the
+  generic 1px translate as lateral motion; `.btn-roll:active` now sinks straight
+  IN (inset shadow only, `transform:none`).
+- **Note tokens are 3D** — domed physical chips (top-lit radial fill from the
+  per-theme `hi`/`deep` derivations + inset rim-light/under-shadow). Fret numeral
+  stays centred/legible even at 4-bar size. (`.cell.playing .note` still swaps in
+  the glow, so a sounding note loses the dome momentarily — fine.)
+- **Options lamps consolidated.** `.lamp` is now `flex:0 1 auto` in a wrapping
+  row (compact switches, not stretched full-width — the complaint). Sections are
+  now **Sound** (Click / Notes / **Buttons** — the old "Button clicks", renamed to
+  fit) and **Playback** (Count-in).
+- **Count-in is a toggle** (`metronome.setCountInEnabled`, persisted in
+  `tp-audio.countIn`; off ⇒ `countRemaining=0`, loop starts immediately). And the
+  **Play button no longer flashes the count-in digits** — that fought the hardware
+  feel; the dimmed grid + the blinking beat lamp carry the count now, Play just
+  holds the stop glyph. `showCountIn` rewritten accordingly.
+- **Play latches IN when playing** — `.btn-play[aria-pressed="true"]` gained
+  `translateY(1px)` + inset, so it presses in like armed Edit (still lit).
+- **Lingering single-mode chord label** (stayed visible until the Options sheet
+  closed): an iOS repaint bug — content behind the sheet's translucent backdrop
+  isn't repainted on change, worsened by the label's `transform` compositing
+  layer. Fix: the label's lift is now `position:relative;top` (no layer), plus a
+  `forceRepaint()` opacity-blip on the stage after a mode switch. **Phone-only to
+  verify** (desktop repaints fine).
+
 ## Working with this user
 
 - **Ask before deviating from the spec** — it's a maintained document, and

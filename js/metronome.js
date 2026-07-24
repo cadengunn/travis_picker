@@ -57,6 +57,7 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
   let notes = [];          // step -> [{ midi, bass }] for pattern playback
   let clickOn = true;      // emit the metronome click on beats
   let patternOn = true;    // emit the plucked pattern notes
+  let countInOn = true;    // one bar of count-in before the loop starts
 
   const slotsTotal = () => bars * SLOTS_PER_BAR;
 
@@ -146,6 +147,9 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
     setPatternEnabled(on) {
       patternOn = !!on;
     },
+    setCountInEnabled(on) {
+      countInOn = !!on;
+    },
 
     async start(barCount) {
       if (running) return;
@@ -157,7 +161,7 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
 
       bars = Math.max(1, barCount);
       step = 0;
-      countRemaining = SLOTS_PER_BAR; // one bar of count-in
+      countRemaining = countInOn ? SLOTS_PER_BAR : 0; // one bar of count-in, if enabled
       queue.length = 0;
       nextSlotTime = ctx.currentTime + 0.08;
       running = true;

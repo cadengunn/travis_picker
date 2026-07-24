@@ -260,9 +260,22 @@ function setChordMode(mode) {
   }
   if (prog && state.progression.length === 0) {
     applyProgressionPreset(PROGRESSIONS[0].id);
-    return;
+  } else {
+    render();
   }
-  render();
+  // Mode is switched from inside the Options sheet, and iOS Safari won't always
+  // repaint content sitting behind the sheet's translucent backdrop when it
+  // changes — so the old single-mode chord label lingered until the sheet closed.
+  // Nudge the stage to force a repaint.
+  forceRepaint(el("grid").parentElement);
+}
+
+// iOS repaint kick: an imperceptible opacity blip forces the compositor to
+// recomposite a subtree whose content changed behind a fixed/translucent layer.
+function forceRepaint(node) {
+  if (!node) return;
+  node.style.opacity = "0.999";
+  requestAnimationFrame(() => { node.style.opacity = ""; });
 }
 
 function applyProgressionPreset(presetId) {
@@ -305,7 +318,7 @@ function noteTable(phrase) {
 // an on/off preference (default on) persisted like the theme. localStorage may
 // throw in private mode; fall back to the defaults rather than break boot.
 const AUDIO_KEY = "tp-audio";
-const audioPrefs = { click: true, pattern: true, ui: true };
+const audioPrefs = { click: true, pattern: true, ui: true, countIn: true };
 function loadAudioPrefs() {
   try {
     Object.assign(audioPrefs, JSON.parse(localStorage.getItem(AUDIO_KEY) || "{}"));
@@ -332,15 +345,17 @@ function highlightColumn(pos) {
 }
 
 function showCountIn(n) {
+  const counting = n != null;
   const track = el("grid").querySelector(".grid-track");
-  if (track) track.classList.toggle("counting", n != null);
-  // Glyph-only now that Play is a 44px square: the count-in shows the bare
-  // digit, which is all you can read at arm's length anyway.
+  if (track) track.classList.toggle("counting", counting);
+  // The Play button no longer flashes the count-in digits — that fought the
+  // hardware feel. The dimmed grid + the blinking beat lamp carry the count now,
+  // so Play just holds the running (stop) glyph through the count-in.
   const play = el("play");
-  play.textContent = n != null ? String(n) : metronome.running ? GLYPH_STOP : GLYPH_PLAY;
+  play.textContent = counting || metronome.running ? GLYPH_STOP : GLYPH_PLAY;
   play.setAttribute(
     "aria-label",
-    n != null ? `Counting in, beat ${n}` : metronome.running ? "Stop metronome" : "Start metronome"
+    counting ? "Counting in" : metronome.running ? "Stop metronome" : "Start metronome"
   );
 }
 
@@ -709,6 +724,12 @@ function attach() {
     setUiSoundEnabled(audioPrefs.ui);
     saveAudioPrefs();
   });
+  // One-bar count-in before the loop (off = start immediately).
+  el("count-in-toggle").addEventListener("change", (e) => {
+    audioPrefs.countIn = e.target.checked;
+    metronome.setCountInEnabled(audioPrefs.countIn);
+    saveAudioPrefs();
+  });
 
   // Manual editing — off by default so taps can't nudge a pattern mid-practice.
   el("edit-toggle").addEventListener("click", () => {
@@ -792,8 +813,10 @@ async function boot() {
   el("click-toggle").checked = audioPrefs.click;
   el("pattern-toggle").checked = audioPrefs.pattern;
   el("ui-sound-toggle").checked = audioPrefs.ui;
+  el("count-in-toggle").checked = audioPrefs.countIn;
   metronome.setClickEnabled(audioPrefs.click);
   metronome.setPatternEnabled(audioPrefs.pattern);
+  metronome.setCountInEnabled(audioPrefs.countIn);
   setUiSoundEnabled(audioPrefs.ui);
   attach();
   registerServiceWorker();
