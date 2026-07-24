@@ -26,7 +26,7 @@
          name, which can be long, so it owns a full row of its own. -->
     <header class="app-head">
       <div class="ctx-row">
-        <span class="app-version" aria-label="App version">v2.5.4</span>
+        <span class="app-version" aria-label="App version">v2.6.0</span>
         <span id="context" class="context" hidden></span>
         <div class="grid-actions">
           <button id="edit-toggle" class="pill" type="button" aria-pressed="false"
@@ -158,7 +158,7 @@
       <p class="sheet-sec">Appearance</p>
 
       <div class="control-row">
-        <label class="field span-2">
+        <label class="field">
           <span>Note labels</span>
           <select id="label-mode"></select>
         </label>
@@ -166,6 +166,11 @@
           <span>Theme</span>
           <select id="theme"></select>
         </label>
+        <div class="field field-help">
+          <span>Guide</span>
+          <button id="open-help" class="help-btn" type="button"
+                  aria-haspopup="dialog" aria-label="How to use Travis Picker">?</button>
+        </div>
       </div>
     </section>
   </div>

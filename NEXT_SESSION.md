@@ -1,5 +1,21 @@
 # Carry-forward — Travis Picker (after session 12, 2026-07-24)
 
+## Shipped this session (v2.6.0, `CACHE` v31) — D3 Help / guide surface
+A read-only guide in the app's own tweed language (built on `modal.js`).
+- **`infoModal()`** added to `modal.js` — scrollable info card, single close
+  button, no cancel/input; `render(bodyEl)` fills it (content stays in the
+  caller). `present()` now guards a null cancel.
+- **Entry:** a carved "?" key at the **bottom-right of the Options → Appearance
+  row** (Note labels shrank `span-2`→`span-1` to make room; row is now
+  Note labels · Theme · Guide "?"). Raised action button, not a well.
+- **Content (`renderHelp` in `app.js`):** short how-to (grid / roll / play & sound
+  / chords & keys / edit-save-load) + an **indicator legend** giving ABS/MIX
+  (amber chips), the red REC dot and the green save dot a real explanation.
+- 48/48 green (+1 info-modal test). Verified: Appearance row clean at 375px,
+  modal opens/scrolls/closes and leaves the Options sheet open under it.
+- PIMA stays lowercase (recommendation given; not changed).
+
+
 Everything shipped this session is live and **pending the user's guitar/phone
 test**. He tests between sessions, so start by asking how the batch felt.
 Deploy dance every push: bump `CACHE` in `sw.js`, bump the version label in
@@ -76,9 +92,6 @@ v2.5.1 → v2.5.3 refinements (from phone tests — see CLAUDE.md for details):
   easy to style now if wanted.
 - **E1 — Unruly density.** User once felt it's occasionally "too much." Reopen
   the `CHAOS_PRESETS` numbers, or leave it — his call. Generation was signed off.
-- **D3 — Help / manual surface. ← user's stated next pick.** A "?" that explains
-  ABS/MIX etc. Would host the caution-lamp explanation now on the `title`. Use the
-  themed `modal.js` (build a read-only info variant, no confirm/cancel).
 - **G1 — Swing.** Timing feel; touches the metronome/synth scheduler.
 - **G2 — Pre-loaded patterns.** Ship as read-only "Built-in" data in the Load
   sheet (NOT seeded into localStorage). Fits the "favorites as a folder" idea.

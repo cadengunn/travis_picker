@@ -64,6 +64,46 @@ function build({ title, message, value, confirmText, cancelText, danger, prompt 
   return { root, backdrop, card, input, cancel, ok };
 }
 
+// A read-only info card (Help): a scrollable body filled by `render(bodyEl)` and
+// a single close button — no cancel, no input. Same tweed shell + present() flow.
+function buildInfo({ title, closeText, render }) {
+  const root = document.createElement("div");
+  root.className = "tp-modal";
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "tp-modal-backdrop";
+
+  const card = document.createElement("div");
+  card.className = "tp-modal-card tp-modal-info";
+  card.setAttribute("role", "dialog");
+  card.setAttribute("aria-modal", "true");
+
+  if (title) {
+    const h = document.createElement("h2");
+    h.className = "tp-modal-title";
+    h.textContent = title;
+    card.appendChild(h);
+    card.setAttribute("aria-label", title);
+  }
+
+  const body = document.createElement("div");
+  body.className = "tp-modal-body";
+  if (typeof render === "function") render(body);
+  card.appendChild(body);
+
+  const actions = document.createElement("div");
+  actions.className = "tp-modal-actions";
+  const ok = document.createElement("button");
+  ok.type = "button";
+  ok.className = "btn-primary tp-modal-ok";
+  ok.textContent = closeText || "Got it";
+  actions.appendChild(ok);
+  card.appendChild(actions);
+
+  root.append(backdrop, card);
+  return { root, backdrop, card, input: null, cancel: null, ok };
+}
+
 function present(parts, resolveWith) {
   const prev = document.activeElement;
   document.body.appendChild(parts.root);
@@ -86,7 +126,7 @@ function present(parts, resolveWith) {
   document.addEventListener("keydown", onKey, true);
 
   parts.backdrop.addEventListener("click", () => close("cancel"));
-  parts.cancel.addEventListener("click", () => close("cancel"));
+  if (parts.cancel) parts.cancel.addEventListener("click", () => close("cancel"));
   parts.ok.addEventListener("click", () => close("ok"));
 
   // Focus the input (prompt) or the confirm button (alert), after paint.
@@ -109,6 +149,15 @@ export function promptModal(opts = {}) {
   return new Promise((resolve) => {
     const parts = build({ ...opts, prompt: true });
     present(parts, (r) => resolve(r === "ok" ? parts.input.value : null));
+  });
+}
+
+// A read-only Help/info dialog. Resolves (void) when closed by the button,
+// the backdrop or Escape. `render(bodyEl)` fills the scrollable content.
+export function infoModal(opts = {}) {
+  return new Promise((resolve) => {
+    const parts = buildInfo(opts);
+    present(parts, () => resolve());
   });
 }
 

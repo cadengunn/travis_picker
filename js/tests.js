@@ -43,7 +43,7 @@ import {
   BPM_MAX,
 } from "./metronome.js";
 import { enhanceSelect } from "./dropdown.js";
-import { confirmModal, promptModal } from "./modal.js";
+import { confirmModal, promptModal, infoModal } from "./modal.js";
 
 const results = [];
 function check(name, fn) {
@@ -977,6 +977,26 @@ acheck("modal: confirm/prompt resolve to the pressed action", async () => {
   document.querySelector(".tp-modal-cancel").click();
   assert((await nullP) === null, "prompt returns null on cancel");
 
+  assert(!document.querySelector(".tp-modal"), "no dialog left mounted");
+});
+
+acheck("modal: info dialog renders content and resolves on close", async () => {
+  let rendered = false;
+  const p = infoModal({
+    title: "Help",
+    render: (body) => {
+      rendered = true;
+      const h = document.createElement("h3");
+      h.textContent = "Section";
+      body.appendChild(h);
+    },
+  });
+  const card = document.querySelector(".tp-modal-info");
+  assert(card, "an info card is mounted");
+  assert(rendered && card.querySelector(".tp-modal-body h3"), "render() filled the body");
+  assert(!card.querySelector(".tp-modal-cancel"), "info dialog has no cancel button");
+  document.querySelector(".tp-modal-ok").click();
+  assert((await p) === undefined, "info resolves (void) on close");
   assert(!document.querySelector(".tp-modal"), "no dialog left mounted");
 });
 

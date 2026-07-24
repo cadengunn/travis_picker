@@ -35,7 +35,7 @@ import { savedStore } from "./storage.js";
 import { toggleNote } from "./editor.js";
 import { createMetronome, DEFAULT_BPM } from "./metronome.js";
 import { setUiSoundEnabled, playClick } from "./ui-sound.js";
-import { confirmModal, promptModal } from "./modal.js";
+import { confirmModal, promptModal, infoModal } from "./modal.js";
 import { enhanceSelect, enhanceAll } from "./dropdown.js";
 
 const el = (id) => document.getElementById(id);
@@ -629,6 +629,60 @@ function closeSheet() {
   el("saved-sheet").hidden = true;
 }
 
+// The Help / guide dialog (⚙ Options → "?"). A short how-to plus the indicator
+// legend the caution / REC / save lamps otherwise only explain on a hover title.
+function renderHelp(body) {
+  const h = (text) => {
+    const node = document.createElement("h3");
+    node.className = "tp-help-h";
+    node.textContent = text;
+    body.appendChild(node);
+  };
+  const p = (text) => {
+    const node = document.createElement("p");
+    node.textContent = text;
+    body.appendChild(node);
+  };
+
+  h("The grid is your right hand");
+  p("Each column is an eighth-note; each row is a string. Amber notes along the bottom are the thumb (the alternating bass); cream notes on top are your fingers — i, m, a on strings 3, 2, 1. Read a bar left to right.");
+
+  h("Roll a pattern");
+  p("Tap the die to generate a fresh, playable pattern. In ⚙ Options, Thumb sets the bass style and the Chaos tier sets difficulty: Tame → Loose → Unruly get harder; Chaos is pure random discovery, off the curve.");
+
+  h("Play & sound");
+  p("Play runs the loop after a one-bar count-in; the slider sets the tempo. Under Sound you can toggle the Metronome click, the Melody (hear the notes), the Count-in and the Button clicks — each on its own.");
+
+  h("Chords & keys");
+  p("Single mode drills one chord. Progression mode gives a chord per bar, written as Nashville numbers in the key you choose, so the same progression transposes to any key. Raise Pattern length to let bars differ.");
+
+  h("Edit, Save & Load");
+  p("The pencil arms Edit mode (the grid goes dashed) — tap cells to add or remove notes. Save names the pattern to your library; Load brings it back with its chords. Everything stays on your device.");
+
+  h("Indicators");
+  const legend = document.createElement("div");
+  legend.className = "tp-help-legend";
+  const item = (markerClass, markerText, text) => {
+    const row = document.createElement("div");
+    row.className = "tp-help-item";
+    const key = document.createElement("span");
+    key.className = "tp-help-key";
+    const marker = document.createElement("span");
+    marker.className = markerClass;
+    if (markerText) marker.textContent = markerText;
+    key.appendChild(marker);
+    const desc = document.createElement("p");
+    desc.textContent = text;
+    row.append(key, desc);
+    legend.appendChild(row);
+  };
+  item("tp-help-tag", "ABS", "Absolute bass — it won't follow chord changes (Full Random, Climb, Descend).");
+  item("tp-help-tag", "MIX", "Mixed bass — some notes follow the chords, some don't.");
+  item("tp-help-dot dot-rec", "", "Red dot on Edit: edit mode is armed, so a tap changes the pattern.");
+  item("tp-help-dot dot-save", "", "Green flash by Save: the pattern was saved.");
+  body.appendChild(legend);
+}
+
 // ----- wire up -----
 function attach() {
   el("generate").addEventListener("click", generate);
@@ -775,6 +829,11 @@ function attach() {
   el("open-options").addEventListener("click", () => {
     el("options-sheet").hidden = false;
     syncSheetToViewport();
+  });
+
+  // Help "?" (bottom-right of the Appearance row) opens the read-only guide.
+  el("open-help").addEventListener("click", () => {
+    infoModal({ title: "How to use", closeText: "Got it", render: renderHelp });
   });
 
   // Keep any open sheet pinned to the visual viewport as the keyboard shows/hides.

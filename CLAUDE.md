@@ -970,8 +970,27 @@ of the feel/sound items.
 - **Signed off from v2.5.3:** the chord-label repaint fix (#5) and dome
   legibility at 4-bar. **PIMA stays lowercase** (classical `p i m a` convention)
   unless the user asks for caps — recommendation given, not changed.
-- User's stated next pick: **D3 — the Help / manual surface** (host the ABS/MIX
-  explanation), built on the themed `modal.js`.
+**v2.6.0 — D3 Help / guide surface** (`CACHE` v31), same session. A read-only
+guide in the app's own tweed language, built on `modal.js`.
+- **`infoModal({ title, closeText, render })`** added to `modal.js` — a scrollable
+  info card with a single close button, no cancel/input. `render(bodyEl)` fills
+  the body (content lives in the caller, so `modal.js` stays generic). `present()`
+  now guards a null `cancel`. Resolves (void) on button / backdrop / Escape.
+- **Entry: a carved "?" key in the Options sheet**, bottom-right of the Appearance
+  row (user's placement call). Note labels dropped from `span-2` to `span-1` so
+  the row is Note labels · Theme · Guide "?" in the fixed 3-slot grid. The "?" is
+  RAISED (it's an action) not a recessed well. `#open-help` → `infoModal`.
+- **Content (`renderHelp` in `app.js`): short how-to + the indicator legend.**
+  Six headings (grid = your right hand / roll a pattern / play & sound / chords &
+  keys / edit-save-load / indicators). The legend gives the cryptic bits a real
+  explanation, not just a hover `title`: amber **ABS**/**MIX** chips (fixed-amber,
+  the caution-lamp convention), a red **REC** dot (armed Edit), a green **save**
+  dot — a fixed-width marker column aligns their text. All built as DOM (house
+  style), theme-styled `.tp-help-*` in `styles.css`, body scrolls inside the card.
+- Verified in-browser: 48/48 green (+1 info-modal test), Appearance row clean at
+  375px, modal opens/scrolls/closes and leaves the Options sheet open under it.
+- **PIMA still lowercase** — the caps question was answered "keep lowercase" as a
+  recommendation, not changed.
 
 ## Working with this user
 
