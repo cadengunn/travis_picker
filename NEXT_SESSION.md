@@ -102,20 +102,34 @@ v2.5.1 → v2.5.3 refinements (from phone tests — see CLAUDE.md for details):
 46/46 green.
 
 ## What still needs the user's hands
-- **The v2.5.4 press feel** — die pop-out flicker (softened with a release
-  transition; confirm it's gone) and the **sound-on-release** timing (does the
-  thock-on-lift feel more like a real switch?).
-- The **more-mechanical click sound** — dial the `ui-sound.js` numbers to taste.
-- The **modals + dropdowns** on a real phone (open/close ergonomics, panel over
-  the grid, per-bar chord picker under the thumb) — still un-verdicted on device.
-- B1 edge: SE + 4-bar **single** + long loaded name can let the floating label
-  reach into the name row. Default 1-bar/unsaved clear.
+**Nothing outstanding** — the whole v2.5.4 → v2.6.3 arc was drilled on-device and
+signed off: sounds, die-flicker gone, Play latch reads pressed-in, Help pane +
+legend, Roman numerals, unified sheet fonts, the Elizabeth tap-highlight halo
+fix, and the two-phase "ka-chunk" button sound ("really nice and satisfying").
+One known minor edge only: B1 — SE + 4-bar **single** + a long loaded name can
+let the floating chord label reach into the name row (default 1-bar/unsaved is
+clear). Not worth chasing unless it bites.
 
 ## Open list (carry-forward), roughly by size
-- **C1–C3 — musical content pass.** Add more keys; review which chord
-  progressions ship; sort/group the chord & progression menus. (Needs the user's
-  musical calls.) NOTE: menus are now custom dropdowns — grouping/ordering is
-  easy to style now if wanted.
+- **C1–C3 — musical content pass. ← NEXT SESSION'S FOCUS (keys & progressions).**
+  Three threads, all needing the user's musical calls first — open with the forks,
+  don't guess:
+  - **C1 more keys** — today's `KEYS` are C/G/D/A/E (all major, degrees 1–6). Which
+    to add? Likely candidates: D-flat-free flat keys (F, Bb?), and **minor keys**
+    (a real question — the whole degree model + `CHORDS` library assumes major:
+    1=I major, 6=vi minor; a minor key would need its own degree→chord map and
+    possibly new chords). Ask whether he wants minor keys or just more major keys.
+  - **C2 which progressions ship** — `PROGRESSIONS` in `data.js` (currently 7:
+    1451, 1564, 1645, 6415, 1415, 1245, 1625). Add/remove/reorder to what he
+    actually drills. Now displayed as Roman numerals (I–IV–V–I …).
+  - **C3 group/order the menus** — chord & progression dropdowns are now custom
+    (`dropdown.js`), so grouping (e.g. by family) or section headers are stylable
+    if wanted. Ask if he wants grouping or just a better sort order.
+  - **Implementation reminders:** progressions/keys are DATA (`data.js`) — adding
+    is a data edit, generator untouched. Barre-chord convention: full barre, low
+    string available as bass. A test asserts every chord's role strings are
+    covered by its shape and every degree resolves in every key — keep those green
+    (extend for new keys/chords). Degree 7 (dim) is intentionally absent.
 - **E1 — Unruly density.** User once felt it's occasionally "too much." Reopen
   the `CHAOS_PRESETS` numbers, or leave it — his call. Generation was signed off.
 - **G1 — Swing.** Timing feel; touches the metronome/synth scheduler.
