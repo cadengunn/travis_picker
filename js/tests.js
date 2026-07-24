@@ -399,8 +399,8 @@ check("minor keys: progressions resolve; major presets don't leak in", () => {
 });
 
 // 7b-iii) The progression menu groups exactly the presets of the requested mode,
-//         in order, labelled by their token sequence.
-check("progressionGroups: filters to a mode and labels by token sequence", () => {
+//         in order, labelled by their CONCISE idea (not the padded 4-bar tokens).
+check("progressionGroups: filters to a mode and labels by the concise idea", () => {
   for (const mode of ["major", "minor"]) {
     const groups = progressionGroups(mode);
     const ids = groups.flatMap((g) => g.items.map((i) => i.value));
@@ -409,9 +409,9 @@ check("progressionGroups: filters to a mode and labels by token sequence", () =>
       `${mode} groups should list exactly the ${mode} presets in order`);
     assert(groups.every((g) => g.label && g.items.length), `${mode} groups need labels + items`);
   }
-  // the label is the token sequence, e.g. I–♭VII–IV
+  // the menu shows the concise idea (I–♭VII–IV), not the 4-bar padding (…–IV–IV)
   const folk = progressionGroups("major").flatMap((g) => g.items).find((i) => i.value === "maj_1_b7_4");
-  assert(folk && folk.label === "I–♭VII–IV–IV", `expected "I–♭VII–IV–IV", got "${folk && folk.label}"`);
+  assert(folk && folk.label === "I–♭VII–IV", `expected "I–♭VII–IV", got "${folk && folk.label}"`);
 });
 
 // 7c) detectProgression round-trips presets IN THEIR MODE and reports custom edits.

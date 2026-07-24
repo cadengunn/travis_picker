@@ -22,7 +22,6 @@ import {
   detectProgression,
   degreeOf,
   romanize,
-  romanDegrees,
   midiOf,
 } from "./data.js";
 import {
@@ -207,9 +206,14 @@ function renderContext() {
     head.hidden = true;
     ctx.hidden = false;
     ctx.innerHTML = "";
-    const degrees = state.progression.map((c) => degreeOf(c, state.key) ?? "?");
+    // Concise idea when the bars match a preset (I–V, not I–V–I–V); the literal
+    // per-bar degrees when they've been hand-edited into something custom.
+    const detected = detectProgression(state.progression, state.key);
+    const preset = PROGRESSIONS.find((p) => p.id === detected);
     const nums = document.createElement("span");
-    nums.textContent = degrees.map(romanize).join(" – ");
+    nums.textContent = preset
+      ? preset.label
+      : state.progression.map((c) => romanize(degreeOf(c, state.key) ?? "?")).join(" – ");
     const key = document.createElement("span");
     key.className = "key";
     key.textContent = state.key;
@@ -492,7 +496,7 @@ function describeCurrent() {
   if (state.chordMode === "progression") {
     const id = detectProgression(state.progression, state.key);
     const prog = PROGRESSIONS.find((p) => p.id === id);
-    const label = prog ? romanDegrees(prog.tokens, "–") : "Custom";
+    const label = prog ? prog.label : "Custom";
     return `${label} in ${state.key} · ${bassName}`;
   }
   const n = patternBars();

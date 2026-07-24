@@ -310,10 +310,10 @@ export const CHORD_GROUPS = [
 // and rarer minors below under a "more" section. Also a full partition of the
 // library.
 export const SINGLE_CHORD_GROUPS = [
-  { label: "Open chords", ids: ["C", "G", "D", "A", "E", "Am", "Em"] },
+  { label: "Open chords", ids: ["C", "G", "D", "A", "E", "Am", "Em", "Dm"] },
   { label: "More majors", ids: ["F", "F#", "Bb", "B"] },
   { label: "Dominant 7",  ids: ["C7", "G7", "D7", "A7", "E7"] },
-  { label: "More minors", ids: ["Dm", "Bm", "F#m", "C#m", "G#m"] },
+  { label: "More minors", ids: ["Bm", "F#m", "C#m", "G#m"] },
 ];
 
 // Preset progressions, curated by STYLE (the value a fingerstyle player actually
@@ -321,27 +321,28 @@ export const SINGLE_CHORD_GROUPS = [
 // four bars — a shorter idea is padded to fill the phrase: a 2-chord progression
 // repeats (I–V → I–V–I–V), a 3-chord one holds its last chord (I–IV–V → I–IV–V–V,
 // I–♭VII–IV → I–♭VII–IV–IV). Hand-edit any bar; if the result stops matching a
-// preset the selector reads "Custom".
+// preset the selector reads "Custom". `label` is the concise idea shown in the
+// menu / readout (I–V, I–IV–V, I–♭VII–IV); `tokens` is its 4-bar realization.
 export const PROGRESSIONS = [
   // --- major ---
-  { id: "maj_1_5",      mode: "major", style: "Foundations",       tokens: ["I", "V", "I", "V"] },
-  { id: "maj_1_4",      mode: "major", style: "Foundations",       tokens: ["I", "IV", "I", "IV"] },
-  { id: "maj_1_4_5",    mode: "major", style: "Foundations",       tokens: ["I", "IV", "V", "V"] },
-  { id: "maj_1_4_1_5",  mode: "major", style: "Foundations",       tokens: ["I", "IV", "I", "V"] },
-  { id: "maj_1_7_4_1",  mode: "major", style: "Classic Country",   tokens: ["I", "I7", "IV", "I"] },
-  { id: "maj_1_2_5",    mode: "major", style: "Classic Country",   tokens: ["I", "II", "V", "V"] },
-  { id: "maj_1_4_5_1",  mode: "major", style: "Classic Country",   tokens: ["I", "IV", "V", "I"] },
-  { id: "maj_1_b7_4",   mode: "major", style: "Traditional Folk",  tokens: ["I", "♭VII", "IV", "IV"] },
-  { id: "maj_1_b7_1",   mode: "major", style: "Traditional Folk",  tokens: ["I", "♭VII", "I", "I"] },
-  { id: "maj_1_5_6_4",  mode: "major", style: "Modern Acoustic",   tokens: ["I", "V", "vi", "IV"] },
-  { id: "maj_1_6_4_5",  mode: "major", style: "Modern Acoustic",   tokens: ["I", "vi", "IV", "V"] },
-  { id: "maj_6_4_1_5",  mode: "major", style: "Modern Acoustic",   tokens: ["vi", "IV", "I", "V"] },
-  { id: "maj_1_4_2_5",  mode: "major", style: "Classic Standards", tokens: ["I", "IV", "ii", "V"] },
-  { id: "maj_1_6_2_5",  mode: "major", style: "Classic Standards", tokens: ["I", "vi", "ii", "V"] },
+  { id: "maj_1_5",      mode: "major", style: "Foundations",       label: "I–V",        tokens: ["I", "V", "I", "V"] },
+  { id: "maj_1_4",      mode: "major", style: "Foundations",       label: "I–IV",       tokens: ["I", "IV", "I", "IV"] },
+  { id: "maj_1_4_5",    mode: "major", style: "Foundations",       label: "I–IV–V",     tokens: ["I", "IV", "V", "V"] },
+  { id: "maj_1_4_1_5",  mode: "major", style: "Foundations",       label: "I–IV–I–V",   tokens: ["I", "IV", "I", "V"] },
+  { id: "maj_1_7_4_1",  mode: "major", style: "Classic Country",   label: "I–I7–IV–I",  tokens: ["I", "I7", "IV", "I"] },
+  { id: "maj_1_2_5",    mode: "major", style: "Classic Country",   label: "I–II–V",     tokens: ["I", "II", "V", "V"] },
+  { id: "maj_1_4_5_1",  mode: "major", style: "Classic Country",   label: "I–IV–V–I",   tokens: ["I", "IV", "V", "I"] },
+  { id: "maj_1_b7_4",   mode: "major", style: "Traditional Folk",  label: "I–♭VII–IV",  tokens: ["I", "♭VII", "IV", "IV"] },
+  { id: "maj_1_b7_1",   mode: "major", style: "Traditional Folk",  label: "I–♭VII–I",   tokens: ["I", "♭VII", "I", "I"] },
+  { id: "maj_1_5_6_4",  mode: "major", style: "Modern Acoustic",   label: "I–V–vi–IV",  tokens: ["I", "V", "vi", "IV"] },
+  { id: "maj_1_6_4_5",  mode: "major", style: "Modern Acoustic",   label: "I–vi–IV–V",  tokens: ["I", "vi", "IV", "V"] },
+  { id: "maj_6_4_1_5",  mode: "major", style: "Modern Acoustic",   label: "vi–IV–I–V",  tokens: ["vi", "IV", "I", "V"] },
+  { id: "maj_1_4_2_5",  mode: "major", style: "Classic Standards", label: "I–IV–ii–V",  tokens: ["I", "IV", "ii", "V"] },
+  { id: "maj_1_6_2_5",  mode: "major", style: "Classic Standards", label: "I–vi–ii–V",  tokens: ["I", "vi", "ii", "V"] },
   // --- minor ---
-  { id: "min_1_7",      mode: "minor", style: "Minor",             tokens: ["i", "VII", "i", "VII"] },
-  { id: "min_1_7_6",    mode: "minor", style: "Minor",             tokens: ["i", "VII", "VI", "VI"] },
-  { id: "min_1_7_6_5",  mode: "minor", style: "Minor",             tokens: ["i", "VII", "VI", "V"] },
+  { id: "min_1_7",      mode: "minor", style: "Minor",             label: "i–VII",      tokens: ["i", "VII", "i", "VII"] },
+  { id: "min_1_7_6",    mode: "minor", style: "Minor",             label: "i–VII–VI",   tokens: ["i", "VII", "VI", "VI"] },
+  { id: "min_1_7_6_5",  mode: "minor", style: "Minor",             label: "i–VII–VI–V", tokens: ["i", "VII", "VI", "V"] },
 ];
 
 export const CUSTOM_PROGRESSION_ID = "custom";
@@ -354,7 +355,7 @@ export function progressionGroups(mode) {
     if (p.mode !== mode) continue;
     let g = groups[groups.length - 1];
     if (!g || g.label !== p.style) { g = { label: p.style, items: [] }; groups.push(g); }
-    g.items.push({ value: p.id, label: romanDegrees(p.tokens, "–") });
+    g.items.push({ value: p.id, label: p.label });
   }
   return groups;
 }
