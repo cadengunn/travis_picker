@@ -75,13 +75,32 @@ delegated `change` listener on `#grid`, so they survive re-renders. Absolute
 patterns (Full Random) keep literal bass strings across the progression and
 show the "bass won't follow chords" indicator.
 
-**Nashville numbers:** progressions are stored as scale **degrees**
-(`PROGRESSIONS`, e.g. `[1,5,6,4]`), and the selected **key** (`KEYS`) resolves
-them to chords. So `1–5–6–4` is C-G-Am-F in C and E-B-C#m-A in E. Changing key
-transposes by degree — including hand-edited bars (`degreeOf`), with unknown
-chords left alone. `detectProgression()` re-identifies the current bars after
-any edit and the selector falls back to **Custom** when they stop matching a
-preset. Degree 7 (diminished) is intentionally absent.
+**Nashville numbers (token model, session 13):** progressions are stored as
+harmonic **tokens** (`PROGRESSIONS[].tokens`, e.g. `["I","V","vi","IV"]`), and
+the selected **key** (`KEYS`) maps each token to a chord (`KEYS[k].chords`). Tokens
+— not bare 1–6 scale numbers — because the curated set needs harmony a plain
+degree can't express: a **major `II`** (distinct from the diatonic minor `ii`),
+the flat-seven major **`♭VII`**, and a dominant-7th tonic **`I7`**. Each key also
+carries a **`mode`** (`major`/`minor`); a key's mode decides which progressions
+are offered (the app filters by it — there is **no separate Major/Minor toggle**,
+the key selector holds both). Changing key **within a mode** transposes by token
+(`degreeOf` → `KEYS[newKey].chords[token]`), hand-edited bars included, unknown
+chords left alone; changing key **across** the mode line resets to that mode's
+first preset (can't transpose — the token sets differ). `detectProgression()`
+re-identifies the bars after any edit (in-mode only, preferring an exact-length
+match so `I–IV–V–I` isn't read as the shorter `I–IV–V`) and falls back to
+**Custom**. Degree 7 (diminished) is still absent.
+
+**Every progression is a 4-bar phrase** (`tokens.length === 4`): a 2-chord idea
+repeats (`I–V` → `I–V–I–V`), a 3-chord idea holds its last chord
+(`I–IV–V` → `I–IV–V–V`). A separate **`label`** field carries the concise idea
+(`I–V`, `I–♭VII–IV`) shown in the menu and the header readout; `tokens` is the
+literal realization. A hand-edited (Custom) progression shows its per-bar degrees
+instead. Menus group by data: keys by `KEYS[].mode`, progressions by
+`PROGRESSIONS[].style` (Foundations / Classic Country / Traditional Folk /
+Modern Acoustic / Classic Standards / Minor), the single-chord picker by
+`SINGLE_CHORD_GROUPS` (Open chords first), the per-bar picker by `CHORD_GROUPS`.
+`dropdown.js` renders `<optgroup>` labels as section headers.
 
 **No scrolling, ever:** every bar must be visible at once — you're holding a
 guitar and can't swipe mid-pattern. `grid.js` sets `data-bars` on the track and
@@ -346,7 +365,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
   `simple_alt`, `dead_thumb`, `root_fifth` (relative, follow the chord), `climb`
   and `descend` (absolute integer walks that ignore the chord — texture tools,
   show the "absolute bass" indicator), and `full_random`.
-- **Chord library** is 14 chords covering degrees 1–6 in the keys C/G/D/A/E. Barre chords assume a *full* barre, so the low string is available as a bass note even where the textbook voicing mutes it — the same convention C already used (its fifth is string 6 fret 3). A test asserts every chord's role strings are covered by its shape.
+- **Chord library** is 21 chords (session 13): the 14 open/barre majors+minors, plus the dominant-7 family `C7/G7/D7/A7/E7`, `F#` (E's II), and `Bb` (C's ♭VII). Covers every token across the major keys C/G/D/A/E and the minor keys Am/Em. **Dominant 7ths keep the parent major's bass** — the ♭7 sits on a *finger* string in every shape (E7 uses the `020130` voicing precisely so its alt bass stays E rather than dropping to the ♭7), so `I7` alternates exactly like `I` with the 7th as a finger colour. Barre chords assume a *full* barre, so the low string is available as a bass note even where the textbook voicing mutes it — the same convention C already used (its fifth is string 6 fret 3). A test asserts every chord's role strings are covered by its shape, and that `CHORD_GROUPS`/`SINGLE_CHORD_GROUPS` each partition the library.
 - **Pattern length** (`PATTERN_LENGTHS`, 1/2/4) is the *only* length dial: how many **distinct** bars of picking. Bars on screen are derived — single mode shows exactly that many; progression mode shows the progression's bars and cycles the pattern across them. Changing it **extends** rather than re-rolls (`setPatternBars`): growing duplicates the existing bars so hand-drawn work survives, and the copies are independent from then on; shrinking keeps the first n. Only **Generate** re-rolls. This replaced a separate Loop + Phrase-length pair whose only useful combinations were "displayed == distinct"; the rest just redrew the same bar. Don't reintroduce a display-length control without that reasoning changing.
 
 ## Conventions
@@ -1032,6 +1051,52 @@ and exports **`playPress`** (ka: higher f0 ~250, thin/short, bright tick 3900 Hz
 Both halves share the `enabled` flag + lazy iOS-safe AudioContext. Tune by ear on
 the phone — all knobs are the two objects passed to `body`/`tick`. This supersedes
 the v2.5.4 "sound on release only" note. Device-only to judge.
+
+## Where things stand (session 13, 2026-07-24)
+
+**Session 13 shipped the musical-content pass — C1–C3, keys & progressions —
+v2.7.0 → v2.7.2** (`CACHE` v37). All data-driven; **generator untouched**. 54/54
+green, verified in-browser (tests + the grouped menus, mode filter, dom7 frets).
+**Pending the user's weekend guitar/phone test.** The design was agreed up front
+against a written spec the user brought (see the discussion) before any code.
+
+**The model rework** — see the rewritten "Nashville numbers (token model)" note
+above. Progressions became harmonic **tokens** instead of bare 1–6 degrees so
+`II`/`♭VII`/`I7` are expressible; each key gained a `mode` + token→chord map.
+
+**What shipped, by the user's three threads:**
+- **C1 keys.** Added minor keys **Am + Em** (natural-minor ladder, major-V
+  cadence — `i–VII–VI–V` = Am–G–F–E). Kept majors at C/G/D/A/E. **No Major/Minor
+  toggle** (user's call): both live in one key dropdown, and the *selected key's
+  mode filters the progression list*. Switching a key across the mode line lands
+  on that mode's first preset (agreed default).
+- **C1 chords.** 21 total now (was 14): dom7 `C7/G7/D7/A7/E7`, `F#` (E's II),
+  `Bb` (C's ♭VII). Dom7 bass = parent major (see the Chord-library note; E7 =
+  `020130`). **E7 voicing signed off** by the user. `Dm` was later moved into the
+  single-picker's Open chords group (v2.7.2).
+- **C2 progressions.** Replaced the old 7 with the user's curated set, grouped by
+  **style** (Foundations / Classic Country / Traditional Folk / Modern Acoustic /
+  **Classic Standards** / Minor). **All are 4-bar** (shorter ideas padded — 2-chord
+  repeats, 3-chord holds the last); a concise **`label`** drives the menu/readout.
+- **C3 menus.** `dropdown.js` now renders `<optgroup>` **section headers**. Keys
+  grouped Major/Minor, progressions by style, single-chord picker **Open chords
+  first** (`SINGLE_CHORD_GROUPS`), per-bar picker by quality (`CHORD_GROUPS`).
+
+**Decisions worth knowing:**
+- **Deferred (user's call):** the whole **capo system** (shape vs concert key) —
+  its own session; all-12-keys; sharp minor keys (Bm/F#m/C#m would pull in new
+  barre majors). "Curate first, expand later."
+- **Menu labels are the concise idea, not the 4-bar padding** (v2.7.2, user's
+  call) — `I–IV–V`, not `I–IV–V–V`. Custom (hand-edited) progressions still show
+  literal per-bar degrees.
+- Progression IDs (`maj_1_5`…) are opaque; saved items store resolved chord
+  arrays, so ID/label changes never break the library.
+- **Nothing tracked leaks the username** — checked when the user asked to scrub
+  it: `.claude/launch.json` (the local mirror path) is gitignored/untracked; the
+  only `CSG` in the repo is the reverted serial-plate line in this file.
+
+**Still open (see `NEXT_SESSION.md`):** E1 Unruly density, G1 swing, G2 pre-loaded
+patterns, the deferred capo system, JSON export/import.
 
 ## Working with this user
 
