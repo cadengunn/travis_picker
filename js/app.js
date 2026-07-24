@@ -20,6 +20,8 @@ import {
   progressionChords,
   detectProgression,
   degreeOf,
+  romanize,
+  romanDegrees,
   midiOf,
 } from "./data.js";
 import {
@@ -79,7 +81,8 @@ function initControls() {
   fillSelect(el("label-mode"), LABEL_MODES, (m) => m.id, (m) => m.name);
 
   // Progression list + the "Custom" entry shown once bars stop matching a preset.
-  fillSelect(el("progression"), PROGRESSIONS, (p) => p.id, (p) => p.name);
+  // Labels are Roman numerals derived from the degrees (single source of truth).
+  fillSelect(el("progression"), PROGRESSIONS, (p) => p.id, (p) => romanDegrees(p.degrees, "–"));
   const custom = document.createElement("option");
   custom.value = CUSTOM_PROGRESSION_ID;
   custom.textContent = "Custom";
@@ -150,9 +153,9 @@ function renderLoadedName() {
   }
 }
 
-// The musical-context readout. Progression mode shows the Nashville degrees +
-// key top-left (e.g. "1 – 5 – 6 – 4 · E"); single mode hides it and shows the
-// one chord big, above the grid (the grid is the hero, so it stays a label).
+// The musical-context readout. Progression mode shows the degrees as Roman
+// numerals + key top-left (e.g. "I – V – vi – IV · E"); single mode hides it and
+// shows the one chord big, above the grid (the grid is the hero, so it's a label).
 function renderContext() {
   const ctx = el("context");
   const head = el("chord-head");
@@ -162,7 +165,7 @@ function renderContext() {
     ctx.innerHTML = "";
     const degrees = state.progression.map((c) => degreeOf(c, state.key) ?? "?");
     const nums = document.createElement("span");
-    nums.textContent = degrees.join(" – ");
+    nums.textContent = degrees.map(romanize).join(" – ");
     const key = document.createElement("span");
     key.className = "key";
     key.textContent = state.key;
@@ -430,7 +433,8 @@ function describeCurrent() {
   if (state.chordMode === "progression") {
     const id = detectProgression(state.progression, state.key);
     const prog = PROGRESSIONS.find((p) => p.id === id);
-    return `${prog ? prog.name : "Custom"} in ${state.key} · ${bassName}`;
+    const label = prog ? romanDegrees(prog.degrees, "–") : "Custom";
+    return `${label} in ${state.key} · ${bassName}`;
   }
   const n = patternBars();
   return `${el("chord").value} · ${bassName} · ${n} bar${n > 1 ? "s" : ""}`;
@@ -523,7 +527,7 @@ function summarize(item) {
   const bassName = BASS_PRESETS.find((b) => b.id === p.bass)?.name ?? p.bass;
   const where =
     ctx.chordMode === "progression"
-      ? `${(ctx.progression || []).join("–")} (key ${ctx.key})`
+      ? `${(ctx.progression || []).map((c) => romanize(degreeOf(c, ctx.key) ?? "?")).join("–")} (key ${ctx.key})`
       : ctx.chord;
   const bars = p.patternBars ? `${p.patternBars} bar${p.patternBars > 1 ? "s" : ""}` : "";
   return [where, bassName, p.chaos, bars].filter(Boolean).join(" · ");

@@ -15,6 +15,19 @@ A read-only guide in the app's own tweed language (built on `modal.js`).
   modal opens/scrolls/closes and leaves the Options sheet open under it.
 - PIMA stays lowercase (recommendation given; not changed).
 
+**v2.6.1 (`CACHE` v32)** — phone-test fixes on the v2.6.0 pass:
+- Help copy describes note rows by **position** ("bottom/top rows"), not colour —
+  note colours are theme-driven. Fixed legend colours (ABS/MIX/REC/save) stay.
+- **Progression numbering → Roman numerals** (`romanize`/`romanDegrees` in
+  `data.js`; case = quality, I/IV/V major, ii/iii/vi minor). Context readout,
+  prog dropdown, save placeholder, saved-item line. Display-only. (All-caps? →
+  the `ROMAN` map.)
+- **Save/Load sheet text unified to Fraunces** (`--serif`), like the modals.
+- **Play latch strengthened** — darkest at top + deeper sink so the pressed-in
+  read beats the lit colour. Device-confirm the latch now reads while playing.
+- Confirmed good on device from this pass: sounds, die-flicker gone, "?" placement,
+  guide, legend, dupe names, empty-load text.
+
 
 Everything shipped this session is live and **pending the user's guitar/phone
 test**. He tests between sessions, so start by asking how the batch felt.

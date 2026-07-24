@@ -265,6 +265,17 @@ export const PROGRESSIONS = [
 
 export const CUSTOM_PROGRESSION_ID = "custom";
 
+// Roman-numeral display for a scale degree. Case encodes chord quality in a major
+// key — the standard analysis convention: major I/IV/V uppercase, minor ii/iii/vi
+// lowercase. Non-degree values (e.g. "?") pass through unchanged.
+const ROMAN = { 1: "I", 2: "ii", 3: "iii", 4: "IV", 5: "V", 6: "vi", 7: "vii°" };
+export function romanize(degree) {
+  return ROMAN[degree] ?? String(degree);
+}
+export function romanDegrees(degrees, sep = " – ") {
+  return degrees.map(romanize).join(sep);
+}
+
 // Cycle a list to exactly n entries (repeat if shorter, trim if longer).
 export function fitProgression(chords, n, fallback = CHORD_IDS[0]) {
   const src = chords && chords.length ? chords : [fallback];

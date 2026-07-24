@@ -992,6 +992,24 @@ guide in the app's own tweed language, built on `modal.js`.
 - **PIMA still lowercase** — the caps question was answered "keep lowercase" as a
   recommendation, not changed.
 
+**v2.6.1** (`CACHE` v32) — phone-test fixes on the v2.6.0 pass:
+- **Help copy: note rows by POSITION, not colour.** "amber/cream" only held on
+  Merle (note colours are theme-driven: thumb `--active`, fingers `--accent`);
+  now "bottom rows / top rows". The fixed ABS/MIX/REC/save legend colours stay.
+- **Progression numbering is Roman numerals** (was Arabic). `romanize()` /
+  `romanDegrees()` in `data.js` — case encodes quality in the major key
+  (I/IV/V major, ii/iii/vi minor). Applied to the context readout, the
+  progression dropdown labels, the save-name placeholder (`describeCurrent`) and
+  the saved-item metadata line (`summarize`). Pure display — degrees are still
+  the stored model. (If the user wants all-caps instead, it's the `ROMAN` map.)
+- **Save/Load sheet text unified to `--serif`** (Fraunces, like the modals) —
+  `.save-hint`, `.saved-sub`, `.saved-empty` were `--numeral`; bumped ~1px for
+  small-serif legibility.
+- **Play latch strengthened** — the lit colour was flattening the "pressed-in"
+  read. Now darkest at the top (rim shading the sunken face), deeper
+  `translateY(2px)` + a stronger inset shadow, so the sink beats the glow.
+- Play button still lit while playing; Edit-armed unchanged.
+
 ## Working with this user
 
 - **Ask before deviating from the spec** — it's a maintained document, and
