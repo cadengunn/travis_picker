@@ -1,8 +1,8 @@
 # Carry-forward — Travis Picker (after session 13, 2026-07-24)
 
-## Shipped this session — keys & progressions (C1–C3), v2.7.0 → v2.7.2 (`CACHE` v37)
+## Shipped this session — keys & progressions (C1–C3), v2.7.0 → v2.7.4 (`CACHE` v39)
 The musical-content pass. **All data edits in `data.js`; generator untouched.**
-54/54 green, verified in-browser. **Pending the user's weekend guitar/phone test.**
+56/56 green, verified in-browser. **Pending the user's weekend guitar/phone test.**
 Full detail in CLAUDE.md "Where things stand (session 13)" + the rewritten
 "Nashville numbers (token model)" and Chord-library notes.
 
@@ -19,6 +19,18 @@ Full detail in CLAUDE.md "Where things stand (session 13)" + the rewritten
   (shorter ideas padded); a concise `label` drives the menu/readout.
 - **Grouped menus** via `<optgroup>` headers in `dropdown.js`. Single-chord picker
   leads with **Open chords** (incl. `Dm`, v2.7.2); per-bar picker by quality.
+- **Smart custom numerals (v2.7.3)** — a hand-edited non-diatonic bar reads as
+  `♯iv` / `♭ii` / `VI7`, not `?` (`romanInKey`/`degreeLabel`).
+- **Header re-layout (v2.7.4)** — the richer numerals were truncating, so the
+  **name and context swapped rows** (context now owns a full row, 351px vs the
+  ~112px it had) and the **version tag moved into the Options sheet header**.
+  Zero height change; `.app-head` is still 63px, measured at 375×553. A third row
+  was considered and rejected (SE grid budget has ~0 spare).
+- **Chord randomiser (v2.7.4)** — a die on the Options **"Generation" header
+  line**: progression mode rolls key + progression, single mode rolls an open
+  chord. Sheet had only ~45px headroom on SE, hence the header line rather than a
+  control row. Pure `randomKeyProgression`/`randomChord` in `data.js`; **two-stage
+  sampling** (key first) so minor keys aren't buried at ~8% of rolls.
 
 **Deploy dance every push:** bump `CACHE` in `sw.js`, bump the version label in
 `index.html`, `git push` (Pages auto-deploys), force-quit + reopen on the phone.
@@ -29,6 +41,12 @@ phone-only.
 
 ## What needs the user's hands
 Weekend test of v2.7.x on guitar/phone. Things to feel out:
+- The **re-laid-out header** — name beside the pills at 17px, full-width context
+  underneath. Check a long saved name still reads acceptably at ~150px.
+- The **randomiser die**'s placement on the "Generation" header line. It's scoped
+  to key+progression (tooltip says so), but sitting on that header it *could* read
+  as "randomise everything in Generation" — easy to move, rescope to also roll
+  Thumb/Chaos/Pattern, or give its own row if the sheet is allowed to scroll.
 - The new **minor keys** (Am/Em) and their progressions.
 - **Barre chords** `F#` (E's `I–II–V`) and `Bb` (C's `I–♭VII` folk progressions) —
   playability.

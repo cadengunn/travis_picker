@@ -119,6 +119,18 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   to buy slider width.
 - **Slim bar above the grid:** things acting on the pattern in front of you —
   Edit / Save / Load, its name, and the relative/mixed/absolute indicator.
+  **Two rows, and the order was swapped in v2.7.4:** row 1 = the pattern **name**
+  + the three pills; row 2 = the musical **context** (`#context`), which now owns
+  a FULL row. Reason: Roman numerals with accidentals (`i – ♯vi – I7 – VII · Am`)
+  need ~180px and only got ~112px sharing row 1 with the pills, so the readout
+  truncated. Swapping costs **zero height** (`.app-head` is still 63px = 32 + 5 +
+  26, measured) and gives the context 351px. The name truncates safely beside the
+  pills (`min-width:0` + ellipsis, so it can't stretch them — the session-8 bug).
+  **Both rows keep a reserved `min-height` even when empty**, so the grid never
+  moves between chord modes. The **version tag moved into the Options sheet
+  header** (beside the "Options" title, where it's free — it's shorter than the ✕)
+  — it was eating ~43px of the context's width for information you never read
+  mid-take.
 - **⚙ Options sheet:** *generation* inputs (chord mode, chord or key+progression,
   thumb, chaos, pattern length) and below a rule, app-wide *preferences* (note
   labels, theme). You set these sitting down, between takes.
@@ -712,7 +724,9 @@ rejected for hurting grid legibility.)
   faint wash (`.cell.beat::before`). Notes dominate. **Row order confirmed against
   `grid.js` (strings 1→6 top-to-bottom): fingers/cream on top, thumb/amber at the
   bottom** — the mockups initially had this flipped; fixed.
-- **Header restructure (two rows):** row 1 = version + musical **context**
+- **Header restructure (two rows)** *(row order SUPERSEDED in v2.7.4 — see "Where
+  controls live" above: name and context swapped rows, version moved to Options)*
+  **:** row 1 = version + musical **context**
   (`#context`: Nashville degrees + key, e.g. `1 – 5 – 6 – 4 · E`, sized to sit
   quietly by the pills — **progression mode only**) + Edit/Save/Load pills; row 2
   = the pattern **name**, which owns a full row so a long saved name can't stretch
@@ -1059,7 +1073,7 @@ the v2.5.4 "sound on release only" note. Device-only to judge.
 ## Where things stand (session 13, 2026-07-24)
 
 **Session 13 shipped the musical-content pass — C1–C3, keys & progressions —
-v2.7.0 → v2.7.3** (`CACHE` v38). All data-driven; **generator untouched**. 55/55
+v2.7.0 → v2.7.4** (`CACHE` v39). All data-driven; **generator untouched**. 56/56
 green, verified in-browser (tests + the grouped menus, mode filter, dom7 frets).
 **Pending the user's weekend guitar/phone test.** The design was agreed up front
 against a written spec the user brought (see the discussion) before any code.
@@ -1089,6 +1103,22 @@ above. Progressions became harmonic **tokens** instead of bare 1–6 degrees so
   computed numeral (`♯iv`, `♭ii`, `VI7`) instead of `?` — `romanInKey`/`degreeLabel`
   in `data.js`; see the Nashville note. Tritone spells `♯IV` (user-approved
   convention). Contained follow-on the user asked for at end of session.
+- **Header re-layout + chord randomiser (v2.7.4).** The richer numerals overflowed
+  the header, so name/context **swapped rows** and the version moved into the
+  Options sheet — full reasoning + the measurements in "Where controls live". The
+  user offered "add a third row" as an option; rejected because the SE grid budget
+  has ~0 spare and the swap costs nothing. Also: a **chord randomiser** die
+  (`#randomize-chords`) on the Options **"Generation" section header line** —
+  progression mode rolls a key + a progression of that key's mode, single mode
+  rolls an open chord. It rides the header line rather than taking a control row
+  because the sheet only has **~45px headroom at 375×553** (a row is ~64px); after
+  the die it's 458/487. Pure helpers `randomKeyProgression`/`randomChord` in
+  `data.js`, rng injectable. **Two-stage sampling — key first, then a progression
+  within it** — because flat sampling over (key, progression) pairs would bury the
+  minor keys at ~8% of rolls (2 keys × 3 progressions against 5 × 14); a test
+  asserts the ~2/7 minor share. Neither roll ever returns what's already on
+  screen, and neither touches the pattern, so hand-drawn edits survive (no discard
+  confirm — unlike Generate).
 
 **Decisions worth knowing:**
 - **Deferred (user's call):** the whole **capo system** (shape vs concert key) —

@@ -25,6 +25,8 @@ import {
   degreeOf,
   degreeLabel,
   romanInKey,
+  randomKeyProgression,
+  randomChord,
   fitProgression,
   midiOf,
   OPEN_STRING_MIDI,
@@ -441,6 +443,53 @@ check("romanInKey: every library chord gets a numeral; diatonic bars match the k
   assert(romanInKey("G", "Am") === "VII", `G in Am should be VII, got ${romanInKey("G", "Am")}`);
   assert(romanInKey("F#m", "Am") === "♯vi", `F#m in Am should be ♯vi, got ${romanInKey("F#m", "Am")}`);
   assert(romanInKey("E", "Am") === "V", `E (dominant) in Am should be V, got ${romanInKey("E", "Am")}`);
+});
+
+// 7b-v) The ⚙ chord randomiser: always returns something valid and mode-matched,
+//       never repeats what's already on screen, and reaches the whole pool.
+check("randomisers: valid, mode-matched, and never a no-op roll", () => {
+  const seenKeys = new Set(), seenProgs = new Set();
+  for (let seed = 1; seed <= 200; seed++) {
+    const rng = seeded(seed * 13 + 5);
+    const roll = randomKeyProgression("C", "maj_1_5", rng);
+    assert(roll && KEYS[roll.key], `roll ${seed} produced an unknown key`);
+    const p = PROGRESSIONS.find((x) => x.id === roll.progression);
+    assert(p, `roll ${seed} produced an unknown progression`);
+    assert(p.mode === KEYS[roll.key].mode,
+      `roll ${seed}: ${p.id} (${p.mode}) doesn't match key ${roll.key} (${KEYS[roll.key].mode})`);
+    assert(progressionChords(p.id, roll.key).length === 4,
+      `roll ${seed}: ${p.id} should fully resolve in ${roll.key}`);
+    assert(!(roll.key === "C" && roll.progression === "maj_1_5"),
+      `roll ${seed} handed back the current key+progression`);
+    seenKeys.add(roll.key);
+    seenProgs.add(roll.progression);
+  }
+  assert(seenKeys.size === KEY_IDS.length, `randomiser reached ${seenKeys.size}/${KEY_IDS.length} keys`);
+  assert(seenProgs.size >= 12, `randomiser only reached ${seenProgs.size} progressions`);
+
+  // Keys are sampled uniformly (two-stage), NOT flat over (key, progression)
+  // pairs — flat sampling would bury the minor keys at ~8% of rolls because they
+  // carry fewer progressions. Expect roughly 2/7 ≈ 29% minor.
+  let minor = 0, n = 0;
+  for (let seed = 1; seed <= 700; seed++) {
+    const roll = randomKeyProgression(null, null, seeded(seed * 7 + 11));
+    if (KEYS[roll.key].mode === "minor") minor++;
+    n++;
+  }
+  const share = minor / n;
+  assert(share > 0.18 && share < 0.42,
+    `minor keys should be ~2/7 of rolls, got ${(share * 100).toFixed(1)}%`);
+
+  // single-chord roll: from the open-chord pool, and never the current chord
+  const open = SINGLE_CHORD_GROUPS[0].ids;
+  const rolled = new Set();
+  for (let seed = 1; seed <= 200; seed++) {
+    const c = randomChord("E", seeded(seed * 29 + 7));
+    assert(open.includes(c), `single roll produced "${c}", outside the open-chord pool`);
+    assert(c !== "E", "single roll handed back the current chord");
+    rolled.add(c);
+  }
+  assert(rolled.size === open.length - 1, `single roll reached ${rolled.size}/${open.length - 1} other open chords`);
 });
 
 // 7c) detectProgression round-trips presets IN THEIR MODE and reports custom edits.

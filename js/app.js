@@ -20,6 +20,8 @@ import {
   progressionGroups,
   progressionChords,
   detectProgression,
+  randomKeyProgression,
+  randomChord,
   degreeOf,
   degreeLabel,
   midiOf,
@@ -333,6 +335,27 @@ function forceRepaint(node) {
   if (!node) return;
   node.style.opacity = "0.999";
   requestAnimationFrame(() => { node.style.opacity = ""; });
+}
+
+// Re-roll the CHORD inputs (the ⚙ Generation die). Progression mode rolls a new
+// key + a progression valid in that key's mode; single mode rolls a new chord.
+// It never touches the right-hand pattern, so hand-drawn edits survive — no
+// discard confirmation needed (unlike Generate, which re-rolls the pattern).
+function randomizeChords() {
+  if (state.chordMode === "progression") {
+    const roll = randomKeyProgression(state.key, detectProgression(state.progression, state.key));
+    if (!roll) return;
+    state.key = roll.key;
+    el("key").value = roll.key;
+    syncProgressionOptions(); // the new key's mode decides what's on the menu
+    applyProgressionPreset(roll.progression); // sets bars, marks dirty, renders
+    return;
+  }
+  const chord = randomChord(el("chord").value);
+  if (!chord) return;
+  el("chord").value = chord;
+  markDirty();
+  render();
 }
 
 function applyProgressionPreset(presetId) {
@@ -784,6 +807,7 @@ function attach() {
     render();
   });
   el("chord").addEventListener("change", () => { markDirty(); render(); });
+  el("randomize-chords").addEventListener("click", randomizeChords);
   el("key").addEventListener("change", (e) => setKey(e.target.value));
   el("progression").addEventListener("change", (e) => applyProgressionPreset(e.target.value));
 

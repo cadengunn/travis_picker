@@ -21,13 +21,15 @@
 </head>
 <body>
   <main>
-    <!-- Header, two rows. Row 1: version + musical context (progression + key,
-         shown in progression mode) + the pattern actions. Row 2: the pattern's
-         name, which can be long, so it owns a full row of its own. -->
+    <!-- Header, two rows. Row 1: the pattern's name + the pattern actions. Row 2:
+         the musical context (progression + key, progression mode only), which
+         owns a FULL row because Roman numerals with accidentals (I – ♯iv – ♭ii)
+         run long — sharing row 1 with the pills truncated it. The name truncates
+         safely beside the pills (min-width:0 + ellipsis), so it can't stretch
+         them. Both rows keep a reserved min-height, so the grid never moves. -->
     <header class="app-head">
       <div class="ctx-row">
-        <span class="app-version" aria-label="App version">v2.7.3</span>
-        <span id="context" class="context" hidden></span>
+        <span id="loaded-name" class="loaded-name"></span>
         <div class="grid-actions">
           <button id="edit-toggle" class="pill" type="button" aria-pressed="false"
                   title="Toggle manual editing"><span class="rec-lamp" aria-hidden="true"></span>✎ Edit</button>
@@ -36,7 +38,7 @@
         </div>
       </div>
       <div class="name-row">
-        <span id="loaded-name" class="loaded-name"></span>
+        <span id="context" class="context" hidden></span>
       </div>
     </header>
 
@@ -80,10 +82,23 @@
     <section class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="options-title">
       <header class="sheet-head">
         <h2 id="options-title">Options</h2>
+        <!-- Version rides the sheet header: it's reference info you look up
+             sitting down, and here it costs no height (shorter than the ✕). -->
+        <span class="app-version" aria-label="App version">v2.7.4</span>
         <button class="sheet-close" type="button" data-close aria-label="Close">✕</button>
       </header>
 
-      <p class="sheet-sec">Generation</p>
+      <!-- The die re-rolls the CHORD inputs (progression mode: key + progression;
+           single mode: the chord). It rides the section header line so it costs
+           ~15px rather than a whole control row — the sheet has little headroom
+           on an SE. -->
+      <p class="sheet-sec">
+        Generation
+        <button id="randomize-chords" class="sec-btn" type="button"
+                aria-label="Random key and progression" title="Random key &amp; progression">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.4" cy="7.4" r="1.5"/><circle cx="8.4" cy="16.6" r="1.5"/><circle cx="15.6" cy="7.4" r="1.5"/><circle cx="15.6" cy="16.6" r="1.5"/><circle cx="12" cy="12" r="1.5"/></svg>
+        </button>
+      </p>
 
       <!-- Row 1 is the only row whose contents change between chord modes; it
            always fills 3 slots so nothing below it ever shifts. -->

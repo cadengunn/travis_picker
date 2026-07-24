@@ -436,6 +436,50 @@ export function degreeLabel(chordId, keyId) {
   return degreeOf(chordId, keyId) ?? romanInKey(chordId, keyId);
 }
 
+// ----- randomisers (pure; rng injectable so tests are deterministic) -----
+// "Give me something new to drill." Both avoid handing back what's already on
+// screen — a die that can roll the same face reads as broken — by resampling a
+// bounded number of times, then falling back to any valid answer.
+function pickDifferent(options, isSame, rng, tries = 24) {
+  if (!options.length) return null;
+  for (let i = 0; i < tries; i++) {
+    const choice = options[Math.floor(rng() * options.length)];
+    if (!isSame(choice)) return choice;
+  }
+  return options.find((o) => !isSame(o)) ?? options[0];
+}
+
+// A random key + a preset progression valid in that key's mode.
+// Sampled in TWO STAGES — key uniformly, then a progression within it — rather
+// than uniformly over all (key, progression) pairs. Flat pair-sampling would make
+// minor keys ~8% of rolls (2 keys × 3 progressions against 5 × 14), so you'd
+// almost never land in Am/Em; two-stage gives every key an equal 1-in-7 turn.
+export function randomKeyProgression(currentKey, currentProgId, rng = Math.random) {
+  const progsFor = (key) => PROGRESSIONS.filter((p) => p.mode === KEYS[key].mode);
+  const isCurrent = (x) => x.key === currentKey && x.progression === currentProgId;
+  for (let i = 0; i < 24; i++) {
+    const key = KEY_IDS[Math.floor(rng() * KEY_IDS.length)];
+    const progs = progsFor(key);
+    if (!progs.length) continue;
+    const roll = { key, progression: progs[Math.floor(rng() * progs.length)].id };
+    if (!isCurrent(roll)) return roll;
+  }
+  // Exhausted the retries (vanishingly unlikely): hand back any valid non-current pair.
+  for (const key of KEY_IDS) {
+    for (const p of progsFor(key)) {
+      const roll = { key, progression: p.id };
+      if (!isCurrent(roll)) return roll;
+    }
+  }
+  return null;
+}
+
+// A random single chord. Defaults to the open-position "campfire" chords — the
+// point is a playable drill, not a barre-chord lottery.
+export function randomChord(currentChord, rng = Math.random, pool = SINGLE_CHORD_GROUPS[0].ids) {
+  return pickDifferent(pool, (c) => c === currentChord, rng);
+}
+
 // Identify the current per-bar chords: a preset id if they cycle-match one in
 // this key (its own mode only), otherwise "custom".
 export function detectProgression(chords, keyId) {
