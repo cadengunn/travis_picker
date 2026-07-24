@@ -96,7 +96,11 @@ repeats (`I–V` → `I–V–I–V`), a 3-chord idea holds its last chord
 (`I–IV–V` → `I–IV–V–V`). A separate **`label`** field carries the concise idea
 (`I–V`, `I–♭VII–IV`) shown in the menu and the header readout; `tokens` is the
 literal realization. A hand-edited (Custom) progression shows its per-bar degrees
-instead. Menus group by data: keys by `KEYS[].mode`, progressions by
+instead — via **`degreeLabel(chord, key)`**, which prefers the curated key token
+and falls back to **`romanInKey`** (v2.7.3): the numeral computed from the chord
+root's interval to the tonic + its quality, so a non-diatonic bar reads as a real
+numeral (`♯iv`, `♭ii`, `VI7`) rather than `?`. The computed value reproduces the
+map token for diatonic chords, and the tritone spells `♯IV` by convention. Menus group by data: keys by `KEYS[].mode`, progressions by
 `PROGRESSIONS[].style` (Foundations / Classic Country / Traditional Folk /
 Modern Acoustic / Classic Standards / Minor), the single-chord picker by
 `SINGLE_CHORD_GROUPS` (Open chords first), the per-bar picker by `CHORD_GROUPS`.
@@ -1055,7 +1059,7 @@ the v2.5.4 "sound on release only" note. Device-only to judge.
 ## Where things stand (session 13, 2026-07-24)
 
 **Session 13 shipped the musical-content pass — C1–C3, keys & progressions —
-v2.7.0 → v2.7.2** (`CACHE` v37). All data-driven; **generator untouched**. 54/54
+v2.7.0 → v2.7.3** (`CACHE` v38). All data-driven; **generator untouched**. 55/55
 green, verified in-browser (tests + the grouped menus, mode filter, dom7 frets).
 **Pending the user's weekend guitar/phone test.** The design was agreed up front
 against a written spec the user brought (see the discussion) before any code.
@@ -1081,6 +1085,10 @@ above. Progressions became harmonic **tokens** instead of bare 1–6 degrees so
 - **C3 menus.** `dropdown.js` now renders `<optgroup>` **section headers**. Keys
   grouped Major/Minor, progressions by style, single-chord picker **Open chords
   first** (`SINGLE_CHORD_GROUPS`), per-bar picker by quality (`CHORD_GROUPS`).
+- **Smart custom readout (v2.7.3).** A hand-edited non-diatonic bar now reads as a
+  computed numeral (`♯iv`, `♭ii`, `VI7`) instead of `?` — `romanInKey`/`degreeLabel`
+  in `data.js`; see the Nashville note. Tritone spells `♯IV` (user-approved
+  convention). Contained follow-on the user asked for at end of session.
 
 **Decisions worth knowing:**
 - **Deferred (user's call):** the whole **capo system** (shape vs concert key) —

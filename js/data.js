@@ -396,6 +396,46 @@ export function degreeOf(chordId, keyId) {
   return hit ? hit[0] : null;
 }
 
+// Pitch class of every note name we can see in a chord id (0 = C … 11 = B).
+const NOTE_PC = {
+  C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6,
+  G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11,
+};
+
+// Root pitch class of a chord id (strip a dom7 "7" and a minor "m").
+function chordRootPc(chordId) {
+  return NOTE_PC[chordId.replace(/7$/, "").replace(/m$/, "")];
+}
+
+// Semitone-from-tonic → uppercase Roman numeral, spelled naturally for each mode
+// (a minor key's III/VI/VII are diatonic; a major key's are ♭III/♭VI/♭VII). The
+// tritone is ♯IV by convention. Case + a "7" suffix are applied per chord quality.
+const MAJOR_ROMAN = ["I", "♭II", "II", "♭III", "III", "IV", "♯IV", "V", "♭VI", "VI", "♭VII", "VII"];
+const MINOR_ROMAN = ["I", "♭II", "II", "III", "♯III", "IV", "♯IV", "V", "VI", "♯VI", "VII", "♯VII"];
+
+// Roman numeral for ANY library chord relative to a key, computed from the
+// interval + quality — so a hand-edited (non-diatonic) bar reads as e.g. "♯iv"
+// instead of "?". Reproduces the curated KEYS token for diatonic chords, so the
+// readout is consistent whether the chord is in the key's map or not.
+export function romanInKey(chordId, keyId) {
+  const key = KEYS[keyId];
+  if (!key) return "?";
+  const rootPc = chordRootPc(chordId);
+  const tonicPc = NOTE_PC[key.name.replace(/m$/, "")];
+  if (rootPc == null || tonicPc == null) return "?";
+  const interval = (rootPc - tonicPc + 12) % 12;
+  let num = (key.mode === "minor" ? MINOR_ROMAN : MAJOR_ROMAN)[interval];
+  if (/m$/.test(chordId)) num = num.toLowerCase(); // minor quality → lowercase
+  if (/7$/.test(chordId)) num += "7";              // dominant 7th
+  return num;
+}
+
+// Display numeral for a bar: the curated key token if the chord is in the key's
+// map, otherwise the computed numeral (never "?" for a library chord).
+export function degreeLabel(chordId, keyId) {
+  return degreeOf(chordId, keyId) ?? romanInKey(chordId, keyId);
+}
+
 // Identify the current per-bar chords: a preset id if they cycle-match one in
 // this key (its own mode only), otherwise "custom".
 export function detectProgression(chords, keyId) {

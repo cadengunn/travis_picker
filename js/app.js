@@ -21,7 +21,7 @@ import {
   progressionChords,
   detectProgression,
   degreeOf,
-  romanize,
+  degreeLabel,
   midiOf,
 } from "./data.js";
 import {
@@ -213,7 +213,7 @@ function renderContext() {
     const nums = document.createElement("span");
     nums.textContent = preset
       ? preset.label
-      : state.progression.map((c) => romanize(degreeOf(c, state.key) ?? "?")).join(" – ");
+      : state.progression.map((c) => degreeLabel(c, state.key)).join(" – ");
     const key = document.createElement("span");
     key.className = "key";
     key.textContent = state.key;
@@ -590,7 +590,7 @@ function summarize(item) {
   const bassName = BASS_PRESETS.find((b) => b.id === p.bass)?.name ?? p.bass;
   const where =
     ctx.chordMode === "progression"
-      ? `${(ctx.progression || []).map((c) => romanize(degreeOf(c, ctx.key) ?? "?")).join("–")} (key ${ctx.key})`
+      ? `${(ctx.progression || []).map((c) => degreeLabel(c, ctx.key)).join("–")} (key ${ctx.key})`
       : ctx.chord;
   const bars = p.patternBars ? `${p.patternBars} bar${p.patternBars > 1 ? "s" : ""}` : "";
   return [where, bassName, p.chaos, bars].filter(Boolean).join(" · ");

@@ -22,6 +22,9 @@ import {
   progressionGroups,
   progressionChords,
   detectProgression,
+  degreeOf,
+  degreeLabel,
+  romanInKey,
   fitProgression,
   midiOf,
   OPEN_STRING_MIDI,
@@ -412,6 +415,32 @@ check("progressionGroups: filters to a mode and labels by the concise idea", () 
   // the menu shows the concise idea (I–♭VII–IV), not the 4-bar padding (…–IV–IV)
   const folk = progressionGroups("major").flatMap((g) => g.items).find((i) => i.value === "maj_1_b7_4");
   assert(folk && folk.label === "I–♭VII–IV", `expected "I–♭VII–IV", got "${folk && folk.label}"`);
+});
+
+// 7b-iv) A hand-edited (non-diatonic) bar reads as a real numeral, not "?".
+//        romanInKey computes it from interval + quality; degreeLabel prefers the
+//        curated key token and falls back to it, and the two agree for diatonic chords.
+check("romanInKey: every library chord gets a numeral; diatonic bars match the key map", () => {
+  for (const k of KEY_IDS) {
+    for (const id of CHORD_IDS) {
+      const label = degreeLabel(id, k);
+      assert(label && label !== "?", `degreeLabel(${id}, ${k}) came back "${label}"`);
+      const tok = degreeOf(id, k);
+      if (tok != null) assert(label === tok, `${id} in ${k}: "${label}" should equal key token "${tok}"`);
+    }
+  }
+  // major key C — the non-diatonic cases the feature is for
+  assert(romanInKey("F#m", "C") === "♯iv", `F#m in C should be ♯iv, got ${romanInKey("F#m", "C")}`);
+  assert(romanInKey("F#", "C") === "♯IV", `F# in C should be ♯IV, got ${romanInKey("F#", "C")}`);
+  assert(romanInKey("E", "C") === "III", `E major in C should be III, got ${romanInKey("E", "C")}`);
+  assert(romanInKey("C#m", "C") === "♭ii", `C#m in C should be ♭ii, got ${romanInKey("C#m", "C")}`);
+  assert(romanInKey("G#m", "C") === "♭vi", `G#m in C should be ♭vi, got ${romanInKey("G#m", "C")}`);
+  assert(romanInKey("A7", "C") === "VI7", `A7 in C should be VI7, got ${romanInKey("A7", "C")}`);
+  // minor key Am — natural-minor spellings, major-V cadence
+  assert(romanInKey("C", "Am") === "III", `C in Am should be III, got ${romanInKey("C", "Am")}`);
+  assert(romanInKey("G", "Am") === "VII", `G in Am should be VII, got ${romanInKey("G", "Am")}`);
+  assert(romanInKey("F#m", "Am") === "♯vi", `F#m in Am should be ♯vi, got ${romanInKey("F#m", "Am")}`);
+  assert(romanInKey("E", "Am") === "V", `E (dominant) in Am should be V, got ${romanInKey("E", "Am")}`);
 });
 
 // 7c) detectProgression round-trips presets IN THEIR MODE and reports custom edits.
