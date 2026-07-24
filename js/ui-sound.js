@@ -1,11 +1,15 @@
-// ui-sound.js — a small, satisfying "click" when you press a hardware button, so
-// the controls feel like real switches to match their carved/push-in look.
+// ui-sound.js — the mechanical click of a hardware button, so the controls feel
+// like real switches to match their carved/push-in look.
+//
+// TWO-PHASE, like an old tape-deck transport key: a lighter, brighter "ka" as
+// the button travels in (playPress, on pointer-down) and a deeper "chunk" as the
+// spring seats on release (playRelease, on pointer-up). They're two halves of one
+// action — same materials, different weight — so a quick tap reads as "ka-chunk".
 //
 // Dependency-free raw Web Audio, same house style as synth.js/metronome.js (no
-// library — this is an offline PWA). A physical button click is two things: a
-// tight high "tick" (the contact) plus a short low "thock" (the body), each a
-// fast gain envelope. We render them live from an oscillator + a tiny noise
-// burst — no samples to precache.
+// library — this is an offline PWA). Each half is a short low triangle "body"
+// plus a band-passed noise "tick" (the contact), rendered live — no samples to
+// precache.
 //
 // iOS unlocks audio only inside a user gesture; a button press IS one, so the
 // lazily-created AudioContext resumes fine on the first tap. Off is honoured
@@ -36,44 +40,63 @@ export function setUiSoundEnabled(on) {
   enabled = !!on;
 }
 
-// A single press click. `strength` (0..1) lets a big button (Generate) thock a
-// touch deeper than a small pill — a subtle size cue, all one material.
-export function playClick(strength = 1) {
+// The low triangle "body" of a click — a fast-decaying pulse whose pitch drops
+// slightly for a woody, un-electronic knock.
+function body(ac, t, { f0, drop, level, attack, dur }) {
+  const osc = ac.createOscillator();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(f0 + drop, t);
+  osc.frequency.exponentialRampToValueAtTime(f0, t + dur * 0.6);
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(level, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g).connect(ac.destination);
+  osc.start(t);
+  osc.stop(t + dur + 0.01);
+}
+
+// The band-passed noise "tick" — the plastic-on-plastic contact riding the body.
+function tick(ac, t, { freq, q, level, dur }) {
+  const src = ac.createBufferSource();
+  src.buffer = noise(ac);
+  const bp = ac.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = freq;
+  bp.Q.value = q;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(level, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(bp).connect(g).connect(ac.destination);
+  src.start(t);
+  src.stop(t + dur + 0.005);
+}
+
+// `strength` (0..1) lets a big button (Generate) hit a touch harder than a small
+// pill — a subtle size cue, all one material.
+
+// "Ka" — the down-stroke. Light, bright and quick: the key breaking free and
+// starting to travel. Higher pitched and thinner than the release.
+export function playPress(strength = 1) {
   if (!enabled) return;
   const ac = ensureCtx();
   if (!ac) return;
   if (ac.state === "suspended") ac.resume();
   const t = ac.currentTime;
-  const level = 0.12 * strength; // quiet on purpose — a tick, not a beep
+  const s = 0.11 * strength;
+  body(ac, t, { f0: 250 - 40 * strength, drop: 140, level: s * 0.7, attack: 0.0015, dur: 0.026 });
+  tick(ac, t, { freq: 3900, q: 1.3, level: s * 0.95, dur: 0.011 });
+}
 
-  // Body "clack": a tight, fast-decaying pulse. Higher-pitched and SHORTER than
-  // the old woody thock, with a snappier attack — reads as a mechanical switch
-  // bottoming out rather than a soft knock.
-  const osc = ac.createOscillator();
-  osc.type = "triangle";
-  const f0 = 215 - 45 * strength;
-  osc.frequency.setValueAtTime(f0 + 120, t);
-  osc.frequency.exponentialRampToValueAtTime(f0, t + 0.016);
-  const og = ac.createGain();
-  og.gain.setValueAtTime(0.0001, t);
-  og.gain.exponentialRampToValueAtTime(level, t + 0.002);
-  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.036);
-  osc.connect(og).connect(ac.destination);
-  osc.start(t);
-  osc.stop(t + 0.05);
-
-  // Contact "tick": a crisp, bright band-passed noise snap — the plastic-on-
-  // plastic contact. Higher centre + a touch louder than before = more mechanical.
-  const src = ac.createBufferSource();
-  src.buffer = noise(ac);
-  const bp = ac.createBiquadFilter();
-  bp.type = "bandpass";
-  bp.frequency.value = 3400;
-  bp.Q.value = 1.1;
-  const ng = ac.createGain();
-  ng.gain.setValueAtTime(level * 0.85, t);
-  ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.014);
-  src.connect(bp).connect(ng).connect(ac.destination);
-  src.start(t);
-  src.stop(t + 0.02);
+// "Chunk" — the release. Deeper, fuller and a hair longer: the spring seating the
+// mechanism home. This is the satisfying half.
+export function playRelease(strength = 1) {
+  if (!enabled) return;
+  const ac = ensureCtx();
+  if (!ac) return;
+  if (ac.state === "suspended") ac.resume();
+  const t = ac.currentTime;
+  const s = 0.13 * strength;
+  body(ac, t, { f0: 150 - 30 * strength, drop: 90, level: s, attack: 0.003, dur: 0.05 });
+  tick(ac, t, { freq: 2200, q: 0.9, level: s * 0.55, dur: 0.02 });
 }

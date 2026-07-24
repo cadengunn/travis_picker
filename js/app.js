@@ -36,7 +36,7 @@ import { initThemes, listThemes, applyTheme } from "./theme.js";
 import { savedStore } from "./storage.js";
 import { toggleNote } from "./editor.js";
 import { createMetronome, DEFAULT_BPM } from "./metronome.js";
-import { setUiSoundEnabled, playClick } from "./ui-sound.js";
+import { setUiSoundEnabled, playPress, playRelease } from "./ui-sound.js";
 import { confirmModal, promptModal, infoModal } from "./modal.js";
 import { enhanceSelect, enhanceAll } from "./dropdown.js";
 
@@ -745,20 +745,28 @@ function attach() {
 
   el("theme").addEventListener("change", (e) => applyTheme(e.target.value));
 
-  // Hardware button click: fire on pointer-UP, i.e. on RELEASE (a real momentary
-  // switch actuates when you let go — you can press-and-hold silently, then it
-  // thocks when you lift; the actions themselves already fire on click/release,
-  // so the sound now lands with them). Delegated so it covers every button —
-  // including custom dropdown triggers/options built later — without per-button
-  // wiring. Bigger controls thock a touch deeper (a subtle size cue). The slider,
-  // text fields and grid cells are intentionally excluded.
-  document.addEventListener("pointerup", (e) => {
+  // Hardware button sound: two-phase like a tape-deck transport key — a light
+  // "ka" on pointer-DOWN (the key travelling in) and a deeper "chunk" on pointer-
+  // UP (the spring seating). Press-and-hold gives the ka, then the chunk when you
+  // lift; the actions themselves fire on click/release, so the chunk lands with
+  // them. Delegated so it covers every button — including custom dropdown
+  // triggers/options built later — without per-button wiring. Bigger controls
+  // hit a touch harder (a subtle size cue). The slider, text fields and grid
+  // cells are intentionally excluded.
+  const pressStrength = (e) => {
     const b = e.target.closest("button, .lamp, .dd-trigger, .dd-option");
-    if (!b || b.disabled || b.getAttribute("aria-disabled") === "true") return;
-    const strength = b.classList.contains("btn-roll") ? 1.15
+    if (!b || b.disabled || b.getAttribute("aria-disabled") === "true") return null;
+    return b.classList.contains("btn-roll") ? 1.15
       : b.classList.contains("btn-icon") || b.classList.contains("btn-primary") ? 1.0
       : 0.82;
-    playClick(strength);
+  };
+  document.addEventListener("pointerdown", (e) => {
+    const s = pressStrength(e);
+    if (s != null) playPress(s);
+  });
+  document.addEventListener("pointerup", (e) => {
+    const s = pressStrength(e);
+    if (s != null) playRelease(s);
   });
 
   // Transport

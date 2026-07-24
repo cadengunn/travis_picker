@@ -35,6 +35,12 @@ color` (blue), invisible on dark faceplates. Fixed with
 can't be seen with a desktop mouse; found via the computed property.** Confirm
 the halo's gone on Elizabeth on device.
 
+**v2.6.3 (`CACHE` v34)** — **two-phase "ka-chunk" button sound** (tape-deck
+transport feel): light **"ka"** on pointer-down, deeper **"chunk"** on pointer-up.
+`ui-sound.js` now exports `playPress`/`playRelease` (was `playClick`); `app.js`
+fires them on pointerdown/pointerup. **Device-only to judge** — tune the `body`/
+`tick` numbers to taste.
+
 
 Everything shipped this session is live and **pending the user's guitar/phone
 test**. He tests between sessions, so start by asking how the batch felt.

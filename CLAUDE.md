@@ -1021,6 +1021,18 @@ interactive controls (added to the existing `touch-action` rule, `.lamp` folded
 in), since we already draw our own push-in + click feedback. Affected every
 control, not just Play — Play was just the most-pressed on the lightest surface.
 
+**v2.6.3** (`CACHE` v34) — **two-phase "ka-chunk" button sound.** The single
+release thock became a tape-deck transport key: a light, bright **"ka"** on
+pointer-DOWN (the key travelling in) and a deeper, fuller **"chunk"** on pointer-
+UP (the spring seating). `ui-sound.js` refactored into `body()`/`tick()` helpers
+and exports **`playPress`** (ka: higher f0 ~250, thin/short, bright tick 3900 Hz)
++ **`playRelease`** (chunk: low f0 ~150, fuller, longer, duller tick 2200 Hz);
+`playClick` removed. `app.js` fires `playPress` on the delegated pointerdown and
+`playRelease` on pointerup (shared `pressStrength()` matcher, same excludes).
+Both halves share the `enabled` flag + lazy iOS-safe AudioContext. Tune by ear on
+the phone — all knobs are the two objects passed to `body`/`tick`. This supersedes
+the v2.5.4 "sound on release only" note. Device-only to judge.
+
 ## Working with this user
 
 - **Ask before deviating from the spec** — it's a maintained document, and
