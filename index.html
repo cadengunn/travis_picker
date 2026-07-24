@@ -26,7 +26,7 @@
          name, which can be long, so it owns a full row of its own. -->
     <header class="app-head">
       <div class="ctx-row">
-        <span class="app-version" aria-label="App version">v2.5.1</span>
+        <span class="app-version" aria-label="App version">v2.5.2</span>
         <span id="context" class="context" hidden></span>
         <div class="grid-actions">
           <button id="edit-toggle" class="pill" type="button" aria-pressed="false"
@@ -128,30 +128,26 @@
 
       <p class="sheet-sec">Sound</p>
 
-      <!-- Amp pilot lamps — the jewel lights when the layer is on. Click + Notes
-           are what Play emits; Buttons is the UI press-click (own on/off). -->
+      <!-- Amp pilot lamps in a 2x2 bank — the jewel lights when the layer is on.
+           Metronome / Melody / Count-in are what you hear during play; Buttons is
+           the UI press-click (its own on/off). ids are unchanged (click-toggle =
+           metronome, pattern-toggle = melody) so the app wiring is untouched. -->
       <div class="lamp-row">
         <label class="lamp">
           <input id="click-toggle" type="checkbox" checked />
           <span class="jewel"></span>
-          <span class="t">Click</span>
+          <span class="t">Metronome</span>
         </label>
         <label class="lamp">
           <input id="pattern-toggle" type="checkbox" checked />
           <span class="jewel"></span>
-          <span class="t">Notes</span>
+          <span class="t">Melody</span>
         </label>
         <label class="lamp">
           <input id="ui-sound-toggle" type="checkbox" checked />
           <span class="jewel"></span>
           <span class="t">Buttons</span>
         </label>
-      </div>
-
-      <p class="sheet-sec">Playback</p>
-
-      <!-- One bar of count-in before the loop; off starts immediately. -->
-      <div class="lamp-row">
         <label class="lamp">
           <input id="count-in-toggle" type="checkbox" checked />
           <span class="jewel"></span>
@@ -159,7 +155,7 @@
         </label>
       </div>
 
-      <p class="sheet-sec">Preferences</p>
+      <p class="sheet-sec">Appearance</p>
 
       <div class="control-row">
         <label class="field span-2">

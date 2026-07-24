@@ -907,18 +907,25 @@ without a change) and the modal resolve behaviour. Both run in `tests.html`
 (they use the DOM). The precache-coverage check now also guards the three new
 modules.
 
-**Refinement round from the phone test — v2.5.1** (`CACHE` v27):
+**Refinement rounds from the phone test — v2.5.1 → v2.5.2** (`CACHE` v28):
 - **Die press no longer "slides".** The tilted, light Bakelite die read the
   generic 1px translate as lateral motion; `.btn-roll:active` now sinks straight
   IN (inset shadow only, `transform:none`).
-- **Note tokens are 3D** — domed physical chips (top-lit radial fill from the
-  per-theme `hi`/`deep` derivations + inset rim-light/under-shadow). Fret numeral
-  stays centred/legible even at 4-bar size. (`.cell.playing .note` still swaps in
-  the glow, so a sounding note loses the dome momentarily — fine.)
-- **Options lamps consolidated.** `.lamp` is now `flex:0 1 auto` in a wrapping
-  row (compact switches, not stretched full-width — the complaint). Sections are
-  now **Sound** (Click / Notes / **Buttons** — the old "Button clicks", renamed to
-  fit) and **Playback** (Count-in).
+- **Note tokens are 3D DOMES.** A poker-chip (flat face + extruded edge) was
+  tried in v2.5.1 and the user preferred the dome, so v2.5.2 reverted to it:
+  top-lit radial fill from the per-theme `hi`/`deep` derivations + inset
+  rim-light/under-shadow. Fret numeral stays centred/legible even at 4-bar size.
+  (`.cell.playing .note` swaps in the glow, so a sounding note loses the dome
+  momentarily — fine.) Don't re-propose the chip; dome is the signed-off look.
+- **Options sheet reorganised into three clean groups — Generation / Sound /
+  Appearance** (v2.5.2). The Sound section is a **2×2 lamp bank**
+  (`.lamp-row` = `grid` 2col): **Metronome** (was Click / `click-toggle`) ·
+  **Melody** (was Notes / `pattern-toggle`) · **Buttons** · **Count-in**. The
+  toggle **ids are unchanged**, only the visible labels — user's framing was that
+  count-in is a musical sound like the rest, so all four sit together. The old
+  separate "Playback"/"Interface" headers are gone; "Preferences" → **Appearance**
+  (Note labels + Theme). (v2.5.1's interim compact-wrapping lamps were ragged /
+  unequal-width — the 2×2 grid fixed the alignment.)
 - **Count-in is a toggle** (`metronome.setCountInEnabled`, persisted in
   `tp-audio.countIn`; off ⇒ `countRemaining=0`, loop starts immediately). And the
   **Play button no longer flashes the count-in digits** — that fought the hardware

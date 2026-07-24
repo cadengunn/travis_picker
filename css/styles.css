@@ -427,12 +427,10 @@ main {
 .grid-track.editable .cell { cursor: pointer; }
 .grid-track.editable .cell:active { filter: brightness(1.35); }
 
-/* The notes are the hero, so they read as physical poker-chip tokens: a FLAT top
-   face (not a dome) sitting a couple px proud of the grid — a short extruded edge
-   in the token's own deep colour (`0 2px 0`) gives the disk thickness, a cast
-   shadow drops it onto the surface, and a thin top rim-light + bottom edge-shade
-   round the face. Flat face keeps the fret numeral legible. Colours are the
-   per-theme deep derivations, so every theme reads as a solid chip. */
+/* The notes are the hero, so they read as physical domed tokens: a top-lit radial
+   fill + an inset rim-light and under-shadow. The fret numeral sits centre, on the
+   mid-tone base, so it stays legible. Dome colours come from the per-theme
+   hi/deep derivations, so every theme domes. */
 .note {
   width: 82%;
   height: 82%;
@@ -444,24 +442,18 @@ main {
   font-size: var(--note-font);
   line-height: 1;
   font-weight: 700;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.42),
+    inset 0 1px 1px rgba(255, 255, 255, 0.42),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.24);
 }
 .note-thumb {
-  background: var(--active);
+  background: radial-gradient(circle at 42% 32%, var(--active-hi), var(--active) 56%, var(--active-deep));
   color: var(--label);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.38),
-    inset 0 -2px 1px rgba(0, 0, 0, 0.14),
-    0 2px 0 var(--active-deep),
-    0 4px 4px rgba(0, 0, 0, 0.36);
 }
 .note-finger {
-  background: var(--accent);
+  background: radial-gradient(circle at 42% 32%, var(--accent-hi), var(--accent) 56%, var(--accent-deep));
   color: var(--bg);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    inset 0 -2px 1px rgba(0, 0, 0, 0.10),
-    0 2px 0 var(--accent-deep),
-    0 4px 4px rgba(0, 0, 0, 0.36);
 }
 
 /* beat-number ruler under each bar */
@@ -743,10 +735,9 @@ main {
 /* Click / Pattern — amp pilot lamps. Native checkbox drives a jewel that lights
    when the layer is on; the checkbox itself is visually hidden but still the
    control (keyboard + a11y intact). */
-/* Lamps size to their content (a row of switches), not stretched full-width. */
-.lamp-row { display: flex; flex-wrap: wrap; gap: 8px; }
+/* A 2x2 bank of switches, on the panel's grid so it aligns with the rows above. */
+.lamp-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .lamp {
-  flex: 0 1 auto;
   display: flex;
   align-items: center;
   gap: 9px;
