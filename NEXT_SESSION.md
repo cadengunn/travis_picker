@@ -22,7 +22,7 @@ v2.5.0 batch:
 - **B1 single-chord box height** — grid PINNED to the same position in both modes;
   big chord label floats with zero flow height. SE-safe.
 
-v2.5.1 → v2.5.2 refinements (from phone tests — see CLAUDE.md for details):
+v2.5.1 → v2.5.3 refinements (from phone tests — see CLAUDE.md for details):
 - Die press sinks straight in (no "slide"); **count-in is now a toggle** and no
   longer flashes digits on Play; **Play latches in** when playing; single-mode
   chord-label lingering-behind-sheet bug fixed (iOS repaint — **phone-only to
@@ -30,8 +30,10 @@ v2.5.1 → v2.5.2 refinements (from phone tests — see CLAUDE.md for details):
 - **Note tokens are 3D DOMES** (a poker-chip was tried in v2.5.1 and rejected —
   dome is signed off, don't re-propose the chip).
 - **Options reorganised into Generation / Sound / Appearance.** Sound is a 2×2
-  lamp bank: **Metronome** (was Click) · **Melody** (was Notes) · **Buttons** ·
-  **Count-in** (ids unchanged, labels only). "Preferences" → "Appearance".
+  lamp bank laid out `Metronome | Melody` over `Count-in | Buttons` (metronome
+  pair in the left column): **Metronome** (was Click) · **Melody** (was Notes) ·
+  **Count-in** · **Buttons** — ids unchanged, labels only. "Preferences" →
+  "Appearance".
 
 46/46 green.
 
