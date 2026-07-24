@@ -67,7 +67,13 @@
 /* Kill the ~300ms double-tap-to-zoom delay on tap targets, so a fast double-tap
    on the die fires two generates instead of triggering Safari's zoom gesture.
    Scoped to interactive controls, NOT the viewport — pinch-zoom stays enabled. */
-button, select, input, .cell { touch-action: manipulation; }
+button, select, input, .cell, .lamp {
+  touch-action: manipulation;
+  /* Kill iOS's default blue tap-highlight overlay — it flashed as a "halo" on
+     the light Elizabeth faceplate (invisible on dark themes). We draw our own
+     press feedback (push-in + click), so the native flash is pure noise. */
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* must beat display:flex etc so hidden controls actually hide */
 [hidden] { display: none !important; }

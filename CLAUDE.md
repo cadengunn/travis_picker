@@ -1010,6 +1010,17 @@ guide in the app's own tweed language, built on `modal.js`.
   `translateY(2px)` + a stronger inset shadow, so the sink beats the glow.
 - Play button still lit while playing; Edit-armed unchanged.
 
+**v2.6.2** (`CACHE` v33) — **tap-highlight "halo" fix.** On Elizabeth (the one
+light theme) the Play button flashed a blue "halo" on press. Cause: WebKit's
+default `-webkit-tap-highlight-color` (`rgba(51,181,229,0.4)` — Android/WebKit
+blue) painting over the tapped shape; invisible on dark faceplates, obvious on
+Elizabeth's near-white one. **Touch-device only — never shows with a desktop
+mouse, so the dev box couldn't reveal it** (found by reading the computed
+property, not by eye). Fix: `-webkit-tap-highlight-color: transparent` on the
+interactive controls (added to the existing `touch-action` rule, `.lamp` folded
+in), since we already draw our own push-in + click feedback. Affected every
+control, not just Play — Play was just the most-pressed on the lightest surface.
+
 ## Working with this user
 
 - **Ask before deviating from the spec** — it's a maintained document, and

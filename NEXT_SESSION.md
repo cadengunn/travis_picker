@@ -28,6 +28,13 @@ A read-only guide in the app's own tweed language (built on `modal.js`).
 - Confirmed good on device from this pass: sounds, die-flicker gone, "?" placement,
   guide, legend, dupe names, empty-load text.
 
+**v2.6.2 (`CACHE` v33)** — **tap-highlight halo fix.** Elizabeth (light theme)
+flashed a blue "halo" on Play press = WebKit's default `-webkit-tap-highlight-
+color` (blue), invisible on dark faceplates. Fixed with
+`-webkit-tap-highlight-color: transparent` on the controls. **Touch-only —
+can't be seen with a desktop mouse; found via the computed property.** Confirm
+the halo's gone on Elizabeth on device.
+
 
 Everything shipped this session is live and **pending the user's guitar/phone
 test**. He tests between sessions, so start by asking how the batch felt.
