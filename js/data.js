@@ -59,7 +59,19 @@ export const CHORDS = {
   A:    { name: "A",   root: 5, alt: 4, fifth: 6, fifthFret: 0 },
   E:    { name: "E",   root: 6, alt: 4, fifth: 5, fifthFret: 2 },
   F:    { name: "F",   root: 6, alt: 4, fifth: 5, fifthFret: 3 },
+  "F#": { name: "F#",  root: 6, alt: 4, fifth: 5, fifthFret: 4 }, // E-shape barre @2 (the II of E)
+  Bb:   { name: "Bb",  root: 5, alt: 4, fifth: 6, fifthFret: 1 }, // A-shape barre @1 (the ♭VII of C)
   B:    { name: "B",   root: 5, alt: 4, fifth: 6, fifthFret: 2 },
+  // --- dominant 7ths (the I7 of each major key) ---
+  // Bass roles are identical to the parent major; the b7 lives on a FINGER string
+  // in every shape, so the alternating bass is unchanged and the 7th sounds as a
+  // finger colour. (E7 uses the 020130 voicing precisely to keep this true — the
+  // common 020100 shape would drop the b7 onto string 4, the alt-bass string.)
+  C7:   { name: "C7",  root: 5, alt: 4, fifth: 6, fifthFret: 3 },
+  G7:   { name: "G7",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
+  D7:   { name: "D7",  root: 4, alt: 3, fifth: 5, fifthFret: 0 },
+  A7:   { name: "A7",  root: 5, alt: 4, fifth: 6, fifthFret: 0 },
+  E7:   { name: "E7",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
   // --- minors ---
   Am:   { name: "Am",  root: 5, alt: 4, fifth: 6, fifthFret: 0 },
   Em:   { name: "Em",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
@@ -103,7 +115,15 @@ export const CHORD_SHAPES = {
   A:     { 6: null, 5: 0, 4: 2, 3: 2, 2: 2, 1: 0 },
   E:     { 6: 0,    5: 2, 4: 2, 3: 1, 2: 0, 1: 0 },
   F:     { 6: 1,    5: 3, 4: 3, 3: 2, 2: 1, 1: 1 },
+  "F#":  { 6: 2,    5: 4, 4: 4, 3: 3, 2: 2, 1: 2 }, // E-shape barre @2
+  Bb:    { 6: 1,    5: 1, 4: 3, 3: 3, 2: 3, 1: 1 }, // A-shape barre @1
   B:     { 6: 2,    5: 2, 4: 4, 3: 4, 2: 4, 1: 2 }, // barre @2
+  // dominant 7ths: b7 on a finger string, bass unchanged from the parent major
+  C7:    { 6: 3,    5: 3, 4: 2, 3: 3, 2: 1, 1: 0 }, // b7 (Bb) on string 3
+  G7:    { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 1 }, // b7 (F) on string 1
+  D7:    { 6: null, 5: 0, 4: 0, 3: 2, 2: 1, 1: 2 }, // b7 (C) on string 2
+  A7:    { 6: null, 5: 0, 4: 2, 3: 0, 2: 2, 1: 0 }, // b7 (G) on string 3
+  E7:    { 6: 0,    5: 2, 4: 2, 3: 1, 2: 3, 1: 0 }, // 020130 — b7 (D) on string 2, alt bass stays E
   Am:    { 6: null, 5: 0, 4: 2, 3: 2, 2: 1, 1: 0 },
   Em:    { 6: 0,    5: 2, 4: 2, 3: 0, 2: 0, 1: 0 },
   Bm:    { 6: 2,    5: 2, 4: 4, 3: 4, 2: 3, 1: 2 }, // barre @2
@@ -236,44 +256,105 @@ export const PATTERN_LENGTHS = [1, 2, 4];
 export const DEFAULT_PATTERN_BARS = 1;
 
 // ----- Nashville number system -----
-// Progressions are stored as scale degrees; the selected KEY resolves them to
-// actual chords. Degree 7 (diminished) is omitted — it isn't used in this style
-// and has no chord in the library.
+// Progressions are stored as HARMONIC TOKENS (Roman numerals), and the selected
+// KEY resolves each token to an actual chord. Tokens — not bare 1–6 scale numbers
+// — because the curated progressions need harmony a plain degree can't express:
+//   • II   — a MAJOR two chord (secondary-dominant colour), distinct from the
+//            diatonic minor ii. E.g. I–II–V is C–D–G, not C–Dm–G.
+//   • ♭VII — the flat-seven MAJOR (a chromatic, non-diatonic degree): C–Bb.
+//   • I7   — a dominant-7th tonic (the classic country/blues pull to IV).
+// A token is already its own display string, so romanize() is essentially the
+// identity here (the integer map below is only a legacy fallback).
+//
+// Each key carries a `mode` (major/minor) and a token→chord map. A key's mode
+// also decides which PROGRESSIONS are offered (major keys see the major styles,
+// minor keys the minor set) — the app filters by it, so there's no separate
+// Major/Minor toggle. Degree 7 (diminished) is intentionally absent throughout.
+//
+// Minor keys use the natural-minor ladder (i, III, iv, VI, VII) with a MAJOR V
+// for the dramatic cadence (harmonic minor) — i–VII–VI–V is Am–G–F–E. `v` (the
+// natural minor five) is defined too for hand-editing/transpose robustness even
+// though the shipped progressions use the major V.
 export const KEYS = {
-  C: { name: "C", degrees: { 1: "C", 2: "Dm",  3: "Em",  4: "F", 5: "G", 6: "Am" } },
-  G: { name: "G", degrees: { 1: "G", 2: "Am",  3: "Bm",  4: "C", 5: "D", 6: "Em" } },
-  D: { name: "D", degrees: { 1: "D", 2: "Em",  3: "F#m", 4: "G", 5: "A", 6: "Bm" } },
-  A: { name: "A", degrees: { 1: "A", 2: "Bm",  3: "C#m", 4: "D", 5: "E", 6: "F#m" } },
-  E: { name: "E", degrees: { 1: "E", 2: "F#m", 3: "G#m", 4: "A", 5: "B", 6: "C#m" } },
+  // --- major keys ---
+  C:  { name: "C",  mode: "major", chords: { I: "C",  ii: "Dm",  iii: "Em",  IV: "F", V: "G", vi: "Am",  II: "D",  "♭VII": "Bb", I7: "C7" } },
+  G:  { name: "G",  mode: "major", chords: { I: "G",  ii: "Am",  iii: "Bm",  IV: "C", V: "D", vi: "Em",  II: "A",  "♭VII": "F",  I7: "G7" } },
+  D:  { name: "D",  mode: "major", chords: { I: "D",  ii: "Em",  iii: "F#m", IV: "G", V: "A", vi: "Bm",  II: "E",  "♭VII": "C",  I7: "D7" } },
+  A:  { name: "A",  mode: "major", chords: { I: "A",  ii: "Bm",  iii: "C#m", IV: "D", V: "E", vi: "F#m", II: "B",  "♭VII": "G",  I7: "A7" } },
+  E:  { name: "E",  mode: "major", chords: { I: "E",  ii: "F#m", iii: "G#m", IV: "A", V: "B", vi: "C#m", II: "F#", "♭VII": "D",  I7: "E7" } },
+  // --- minor keys ---
+  Am: { name: "Am", mode: "minor", chords: { i: "Am", III: "C", iv: "Dm", v: "Em", V: "E", VI: "F", VII: "G" } },
+  Em: { name: "Em", mode: "minor", chords: { i: "Em", III: "G", iv: "Am", v: "Bm", V: "B", VI: "C", VII: "D" } },
 };
 
 export const KEY_IDS = Object.keys(KEYS);
 export const DEFAULT_KEY = "C";
 
-// Preset progressions as degree sequences. Any length — they cycle to fill the
-// phrase. Users can hand-edit any bar; if the result stops matching a preset the
-// selector reads "Custom".
+// Key selector, grouped by mode (Major then Minor) — the dropdown shows headers.
+export const KEY_GROUPS = [
+  { label: "Major", ids: KEY_IDS.filter((k) => KEYS[k].mode === "major") },
+  { label: "Minor", ids: KEY_IDS.filter((k) => KEYS[k].mode === "minor") },
+];
+
+// Chord selector, grouped by family — used by the single-chord picker and the
+// per-bar chord picker so both read the same way. Every CHORD_ID belongs to
+// exactly one group (a test asserts the partition).
+export const CHORD_GROUPS = [
+  { label: "Major",       ids: ["C", "G", "D", "A", "E", "F", "F#", "Bb", "B"] },
+  { label: "Dominant 7",  ids: ["C7", "G7", "D7", "A7", "E7"] },
+  { label: "Minor",       ids: ["Am", "Em", "Bm", "Dm", "F#m", "C#m", "G#m"] },
+];
+
+// Preset progressions as token sequences. Curated by STYLE (the value a fingerstyle
+// player actually reaches for), so the dropdown groups them under those headers.
+// Any length — they cycle to fill the phrase. Hand-edit any bar; if the result
+// stops matching a preset the selector reads "Custom".
 export const PROGRESSIONS = [
-  { id: "1_4_5_1", name: "1–4–5–1", degrees: [1, 4, 5, 1] },
-  { id: "1_5_6_4", name: "1–5–6–4", degrees: [1, 5, 6, 4] },
-  { id: "1_6_4_5", name: "1–6–4–5", degrees: [1, 6, 4, 5] },
-  { id: "6_4_1_5", name: "6–4–1–5", degrees: [6, 4, 1, 5] },
-  { id: "1_4_1_5", name: "1–4–1–5", degrees: [1, 4, 1, 5] },
-  { id: "1_2_4_5", name: "1–2–4–5", degrees: [1, 2, 4, 5] },
-  { id: "1_6_2_5", name: "1–6–2–5", degrees: [1, 6, 2, 5] },
+  // --- major ---
+  { id: "maj_1_5",      mode: "major", style: "Foundations",      tokens: ["I", "V"] },
+  { id: "maj_1_4",      mode: "major", style: "Foundations",      tokens: ["I", "IV"] },
+  { id: "maj_1_4_5",    mode: "major", style: "Foundations",      tokens: ["I", "IV", "V"] },
+  { id: "maj_1_4_1_5",  mode: "major", style: "Foundations",      tokens: ["I", "IV", "I", "V"] },
+  { id: "maj_1_7_4_1",  mode: "major", style: "Classic Country",  tokens: ["I", "I7", "IV", "I"] },
+  { id: "maj_1_2_5",    mode: "major", style: "Classic Country",  tokens: ["I", "II", "V"] },
+  { id: "maj_1_4_5_1",  mode: "major", style: "Classic Country",  tokens: ["I", "IV", "V", "I"] },
+  { id: "maj_1_b7_4",   mode: "major", style: "Traditional Folk", tokens: ["I", "♭VII", "IV"] },
+  { id: "maj_1_b7_1",   mode: "major", style: "Traditional Folk", tokens: ["I", "♭VII", "I"] },
+  { id: "maj_1_5_6_4",  mode: "major", style: "Modern Acoustic",  tokens: ["I", "V", "vi", "IV"] },
+  { id: "maj_1_6_4_5",  mode: "major", style: "Modern Acoustic",  tokens: ["I", "vi", "IV", "V"] },
+  { id: "maj_6_4_1_5",  mode: "major", style: "Modern Acoustic",  tokens: ["vi", "IV", "I", "V"] },
+  { id: "maj_1_4_2_5",  mode: "major", style: "Advanced",         tokens: ["I", "IV", "ii", "V"] },
+  { id: "maj_1_6_2_5",  mode: "major", style: "Advanced",         tokens: ["I", "vi", "ii", "V"] },
+  // --- minor ---
+  { id: "min_1_7",      mode: "minor", style: "Minor",            tokens: ["i", "VII"] },
+  { id: "min_1_7_6",    mode: "minor", style: "Minor",            tokens: ["i", "VII", "VI"] },
+  { id: "min_1_7_6_5",  mode: "minor", style: "Minor",            tokens: ["i", "VII", "VI", "V"] },
 ];
 
 export const CUSTOM_PROGRESSION_ID = "custom";
 
-// Roman-numeral display for a scale degree. Case encodes chord quality in a major
-// key — the standard analysis convention: major I/IV/V uppercase, minor ii/iii/vi
-// lowercase. Non-degree values (e.g. "?") pass through unchanged.
-const ROMAN = { 1: "I", 2: "ii", 3: "iii", 4: "IV", 5: "V", 6: "vi", 7: "vii°" };
-export function romanize(degree) {
-  return ROMAN[degree] ?? String(degree);
+// Progression options for a mode, grouped by style — [{ label, items:[{value,label}] }].
+// The label is the token sequence itself (I–IV–V, I–♭VII–IV, i–VII–VI–V …).
+export function progressionGroups(mode) {
+  const groups = [];
+  for (const p of PROGRESSIONS) {
+    if (p.mode !== mode) continue;
+    let g = groups[groups.length - 1];
+    if (!g || g.label !== p.style) { g = { label: p.style, items: [] }; groups.push(g); }
+    g.items.push({ value: p.id, label: romanDegrees(p.tokens, "–") });
+  }
+  return groups;
 }
-export function romanDegrees(degrees, sep = " – ") {
-  return degrees.map(romanize).join(sep);
+
+// Roman-numeral display. Tokens are already Roman numerals so this is the
+// identity for them; the integer map is a legacy fallback (nothing passes ints now).
+const ROMAN = { 1: "I", 2: "ii", 3: "iii", 4: "IV", 5: "V", 6: "vi", 7: "vii°" };
+export function romanize(token) {
+  if (token == null) return "?";
+  return ROMAN[token] ?? String(token);
+}
+export function romanDegrees(tokens, sep = " – ") {
+  return tokens.map(romanize).join(sep);
 }
 
 // Cycle a list to exactly n entries (repeat if shorter, trim if longer).
@@ -282,31 +363,41 @@ export function fitProgression(chords, n, fallback = CHORD_IDS[0]) {
   return Array.from({ length: n }, (_, i) => src[i % src.length]);
 }
 
-// Resolve a progression's degrees to chord ids in the given key.
+// Resolve a progression's tokens to chord ids in the given key. Returns [] if the
+// key's mode doesn't match the progression (its tokens won't be in the key map) —
+// callers only ever resolve progressions of the key's own mode.
 export function progressionChords(progressionId, keyId) {
   const p = PROGRESSIONS.find((x) => x.id === progressionId);
   const key = KEYS[keyId] || KEYS[DEFAULT_KEY];
   if (!p) return [];
-  return p.degrees.map((d) => key.degrees[d]).filter(Boolean);
+  return p.tokens.map((t) => key.chords[t]).filter(Boolean);
 }
 
-// Which degree (if any) a chord occupies in a key — used to transpose custom
-// progressions when the key changes.
+// Which token (if any) a chord occupies in a key — used to transpose custom
+// progressions when the key changes, and to label the per-bar context readout.
+// Each key maps every token to a distinct chord, so the inverse is unambiguous.
 export function degreeOf(chordId, keyId) {
   const key = KEYS[keyId] || KEYS[DEFAULT_KEY];
-  const hit = Object.entries(key.degrees).find(([, c]) => c === chordId);
-  return hit ? Number(hit[0]) : null;
+  const hit = Object.entries(key.chords).find(([, c]) => c === chordId);
+  return hit ? hit[0] : null;
 }
 
 // Identify the current per-bar chords: a preset id if they cycle-match one in
-// this key, otherwise "custom".
+// this key (its own mode only), otherwise "custom".
 export function detectProgression(chords, keyId) {
   if (!chords || !chords.length) return CUSTOM_PROGRESSION_ID;
+  const key = KEYS[keyId];
+  let cycled = null; // a match that only fits by repeating (shorter than the input)
   for (const p of PROGRESSIONS) {
+    if (key && p.mode !== key.mode) continue;
     const resolved = progressionChords(p.id, keyId);
     if (!resolved.length) continue;
     const expanded = fitProgression(resolved, chords.length);
-    if (expanded.join("|") === chords.join("|")) return p.id;
+    if (expanded.join("|") !== chords.join("|")) continue;
+    // Prefer a preset whose OWN length matches the bar count, so I–IV–V–I isn't
+    // read as the shorter I–IV–V (which cycles to the same four bars).
+    if (resolved.length === chords.length) return p.id;
+    if (cycled == null) cycled = p.id;
   }
-  return CUSTOM_PROGRESSION_ID;
+  return cycled ?? CUSTOM_PROGRESSION_ID;
 }

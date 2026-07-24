@@ -91,17 +91,19 @@ function open(select, trigger) {
   panel.className = "dd-panel";
   panel.setAttribute("role", "listbox");
 
-  const options = [...select.options];
   let active = select.selectedIndex;
 
-  options.forEach((opt, i) => {
+  // Walk the select's own structure (not the flat .options collection) so an
+  // <optgroup> renders as a non-selectable section header. The native select
+  // stays the source of truth; we mirror its groups.
+  const buildOption = (opt) => {
     const item = document.createElement("button");
     item.type = "button";
     item.className = "dd-option";
     item.setAttribute("role", "option");
     item.textContent = opt.textContent;
     if (opt.disabled) item.disabled = true;
-    if (i === select.selectedIndex) {
+    if (opt.selected) {
       item.classList.add("selected");
       item.setAttribute("aria-selected", "true");
     }
@@ -114,7 +116,19 @@ function open(select, trigger) {
       closePanel();
     });
     panel.appendChild(item);
-  });
+  };
+  for (const child of select.children) {
+    if (child.tagName === "OPTGROUP") {
+      const header = document.createElement("div");
+      header.className = "dd-group";
+      header.setAttribute("role", "presentation");
+      header.textContent = child.label;
+      panel.appendChild(header);
+      for (const opt of child.children) buildOption(opt);
+    } else if (child.tagName === "OPTION") {
+      buildOption(child);
+    }
+  }
 
   document.body.appendChild(panel);
   position(panel, trigger);

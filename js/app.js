@@ -3,8 +3,8 @@
 // (beyond the theme preference).
 
 import {
-  CHORD_IDS,
   CHORDS,
+  CHORD_GROUPS,
   DEFAULT_CHORD,
   BASS_PRESETS,
   CHAOS_IDS,
@@ -12,11 +12,12 @@ import {
   PATTERN_LENGTHS,
   DEFAULT_PATTERN_BARS,
   LABEL_MODES,
-  KEY_IDS,
+  KEY_GROUPS,
   KEYS,
   DEFAULT_KEY,
   PROGRESSIONS,
   CUSTOM_PROGRESSION_ID,
+  progressionGroups,
   progressionChords,
   detectProgression,
   degreeOf,
@@ -72,21 +73,50 @@ function fillSelect(select, items, getVal, getLabel) {
   }
 }
 
+// Fill a <select> with <optgroup> section headers. `groups` is
+// [{ label, items:[{ value, label }] }]; a trailing `extra` option (e.g. Custom)
+// is appended outside any group.
+function fillSelectGrouped(select, groups, extra) {
+  select.innerHTML = "";
+  for (const g of groups) {
+    const og = document.createElement("optgroup");
+    og.label = g.label;
+    for (const it of g.items) {
+      const opt = document.createElement("option");
+      opt.value = it.value;
+      opt.textContent = it.label;
+      og.appendChild(opt);
+    }
+    select.appendChild(og);
+  }
+  if (extra) {
+    const opt = document.createElement("option");
+    opt.value = extra.value;
+    opt.textContent = extra.label;
+    select.appendChild(opt);
+  }
+}
+
+// Chord/key groups from data → the {value,label} shape fillSelectGrouped wants.
+const chordOptionGroups = () =>
+  CHORD_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((c) => ({ value: c, label: CHORDS[c].name })) }));
+const keyOptionGroups = () =>
+  KEY_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((k) => ({ value: k, label: KEYS[k].name })) }));
+
+const keyMode = () => KEYS[state.key]?.mode || "major";
+const CUSTOM_OPTION = { value: CUSTOM_PROGRESSION_ID, label: "Custom" };
+
 function initControls() {
-  fillSelect(el("chord"), CHORD_IDS, (c) => c, (c) => CHORDS[c].name);
-  fillSelect(el("key"), KEY_IDS, (k) => k, (k) => KEYS[k].name);
+  fillSelectGrouped(el("chord"), chordOptionGroups());
+  fillSelectGrouped(el("key"), keyOptionGroups());
   fillSelect(el("bass"), BASS_PRESETS, (p) => p.id, (p) => p.name);
   fillSelect(el("chaos"), CHAOS_IDS, (c) => c, (c) => CHAOS_PRESETS[c].name);
   fillSelect(el("pattern"), PATTERN_LENGTHS, (n) => n, (n) => `${n} bar${n > 1 ? "s" : ""}`);
   fillSelect(el("label-mode"), LABEL_MODES, (m) => m.id, (m) => m.name);
 
-  // Progression list + the "Custom" entry shown once bars stop matching a preset.
-  // Labels are Roman numerals derived from the degrees (single source of truth).
-  fillSelect(el("progression"), PROGRESSIONS, (p) => p.id, (p) => romanDegrees(p.degrees, "–"));
-  const custom = document.createElement("option");
-  custom.value = CUSTOM_PROGRESSION_ID;
-  custom.textContent = "Custom";
-  el("progression").appendChild(custom);
+  // Progression list is filtered to the current key's mode and grouped by style,
+  // plus the "Custom" entry shown once bars stop matching a preset.
+  syncProgressionOptions();
 
   el("chord").value = DEFAULT_CHORD;
   el("label-mode").value = state.labelMode;
@@ -94,6 +124,20 @@ function initControls() {
   el("pattern").value = String(DEFAULT_PATTERN_BARS);
   el("bpm").value = String(DEFAULT_BPM);
   el("bpm-value").textContent = String(DEFAULT_BPM);
+}
+
+// The progression dropdown offers only the progressions matching the current
+// key's mode (major keys → the major styles; minor keys → the minor set),
+// grouped by style. There is no separate Major/Minor toggle: the key's mode is
+// the filter. Called on boot and whenever the key changes mode.
+function syncProgressionOptions() {
+  fillSelectGrouped(el("progression"), progressionGroups(keyMode()), CUSTOM_OPTION);
+}
+
+// The first preset progression of the current key's mode — the landing choice
+// when entering progression mode or switching a key across the major/minor line.
+function firstProgressionForKey() {
+  return PROGRESSIONS.find((p) => p.mode === keyMode())?.id;
 }
 
 // Distinct bars of right-hand pattern (the only length dial).
@@ -261,8 +305,14 @@ function setChordMode(mode) {
   for (const b of el("chord-mode").querySelectorAll("[data-mode]")) {
     b.classList.toggle("active", b.dataset.mode === mode);
   }
-  if (prog && state.progression.length === 0) {
-    applyProgressionPreset(PROGRESSIONS[0].id);
+  if (prog) {
+    // Make sure the dropdown offers this key's mode before we pick a default.
+    syncProgressionOptions();
+    if (state.progression.length === 0) {
+      applyProgressionPreset(firstProgressionForKey());
+    } else {
+      render();
+    }
   } else {
     render();
   }
@@ -289,14 +339,23 @@ function applyProgressionPreset(presetId) {
   render();
 }
 
-// Changing key transposes by degree: preset progressions re-resolve, and custom
-// bars follow their degree where they have one (unknown chords stay put).
+// Changing key within the SAME mode transposes by token: preset progressions
+// re-resolve, and custom bars follow their token where they have one (unknown
+// chords stay put). Crossing the major/minor line (e.g. E → Am) can't transpose —
+// the token sets differ — so the progression list is rebuilt for the new mode and
+// we land on that mode's first preset (the agreed default-on-mode-switch).
 function setKey(newKey) {
   const oldKey = state.key;
+  const modeChanged = KEYS[newKey].mode !== KEYS[oldKey].mode;
   state.key = newKey;
+  if (state.chordMode === "progression" && modeChanged) {
+    syncProgressionOptions();
+    applyProgressionPreset(firstProgressionForKey());
+    return;
+  }
   state.progression = state.progression.map((c) => {
-    const deg = degreeOf(c, oldKey);
-    return deg ? KEYS[newKey].degrees[deg] || c : c;
+    const tok = degreeOf(c, oldKey);
+    return tok ? KEYS[newKey].chords[tok] || c : c;
   });
   markDirty();
   render();
@@ -433,7 +492,7 @@ function describeCurrent() {
   if (state.chordMode === "progression") {
     const id = detectProgression(state.progression, state.key);
     const prog = PROGRESSIONS.find((p) => p.id === id);
-    const label = prog ? romanDegrees(prog.degrees, "–") : "Custom";
+    const label = prog ? romanDegrees(prog.tokens, "–") : "Custom";
     return `${label} in ${state.key} · ${bassName}`;
   }
   const n = patternBars();

@@ -6,7 +6,7 @@
 // already resolved (each event has string+fret). See generator.resolvePhrase /
 // resolvePattern+expandToPhrase.
 
-import { CHORD_IDS, CHORDS } from "./data.js";
+import { CHORDS, CHORD_GROUPS } from "./data.js";
 
 const STRING_ROWS = [1, 2, 3, 4, 5, 6]; // top->bottom: high E (1) ... low E (6)
 const SLOTS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -49,12 +49,17 @@ function buildHeader(chordId, barIdx, editableChords, showNumeral) {
     const sel = document.createElement("select");
     sel.className = "bar-chord";
     sel.dataset.bar = String(barIdx);
-    for (const c of CHORD_IDS) {
-      const opt = document.createElement("option");
-      opt.value = c;
-      opt.textContent = CHORDS[c].name;
-      if (c === chordId) opt.selected = true;
-      sel.appendChild(opt);
+    for (const group of CHORD_GROUPS) {
+      const og = document.createElement("optgroup");
+      og.label = group.label;
+      for (const c of group.ids) {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = CHORDS[c].name;
+        if (c === chordId) opt.selected = true;
+        og.appendChild(opt);
+      }
+      sel.appendChild(og);
     }
     header.appendChild(sel);
   }

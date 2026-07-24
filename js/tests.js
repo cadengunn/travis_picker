@@ -14,9 +14,11 @@ import {
   thumbLegalStrings,
   KEYS,
   KEY_IDS,
+  CHORD_GROUPS,
   PROGRESSIONS,
   CUSTOM_PROGRESSION_ID,
   CHORD_SHAPES,
+  progressionGroups,
   progressionChords,
   detectProgression,
   fitProgression,
@@ -327,40 +329,95 @@ check("chord library: every chord has a shape covering its role strings", () => 
   }
 });
 
-// 7) Nashville: every key resolves degrees 1-6 to a real chord.
-check("keys: all degrees 1-6 resolve to chords in the library", () => {
+// 6b) The chord-family groups partition the library exactly (every id in one
+//     group, no strays) — the single-chord and per-bar pickers rely on this.
+check("chord groups partition the library exactly", () => {
+  const grouped = CHORD_GROUPS.flatMap((g) => g.ids);
+  assert(grouped.length === CHORD_IDS.length,
+    `groups list ${grouped.length} chords, library has ${CHORD_IDS.length}`);
+  assert(new Set(grouped).size === grouped.length, "a chord appears in two groups");
+  for (const id of grouped) assert(CHORDS[id], `group references unknown chord ${id}`);
+  for (const id of CHORD_IDS) assert(grouped.includes(id), `chord ${id} is in no group`);
+});
+
+// 7) Nashville: every token in every key resolves to a real chord, and each key
+//    carries a mode. (Tokens replaced bare 1-6 degrees so II/♭VII/I7 are expressible.)
+check("keys: every token in every key resolves to a chord in the library", () => {
   for (const k of KEY_IDS) {
-    for (let d = 1; d <= 6; d++) {
-      const chord = KEYS[k].degrees[d];
-      assert(chord, `key ${k} has no chord for degree ${d}`);
-      assert(CHORDS[chord], `key ${k} degree ${d} -> "${chord}" not in CHORDS`);
+    const key = KEYS[k];
+    assert(key.mode === "major" || key.mode === "minor", `key ${k} needs a mode`);
+    for (const [token, chord] of Object.entries(key.chords)) {
+      assert(CHORDS[chord], `key ${k} token ${token} -> "${chord}" not in CHORDS`);
     }
   }
 });
 
-// 7b) Every preset progression resolves in every key.
-check("progressions: every preset resolves in every key", () => {
-  for (const k of KEY_IDS) {
-    for (const p of PROGRESSIONS) {
+// 7b) Every preset progression resolves fully in every key OF ITS MODE (major
+//     presets in major keys, minor presets in minor keys).
+check("progressions: every preset resolves fully in every key of its mode", () => {
+  for (const p of PROGRESSIONS) {
+    const keys = KEY_IDS.filter((k) => KEYS[k].mode === p.mode);
+    assert(keys.length, `no ${p.mode} keys for ${p.id}`);
+    for (const k of keys) {
       const chords = progressionChords(p.id, k);
-      assert(chords.length === p.degrees.length,
-        `${p.name} in key ${k} resolved ${chords.length}/${p.degrees.length} chords`);
-      chords.forEach((c) => assert(CHORDS[c], `${p.name} in ${k} produced unknown chord ${c}`));
+      assert(chords.length === p.tokens.length,
+        `${p.id} in ${k} resolved ${chords.length}/${p.tokens.length}`);
+      chords.forEach((c) => assert(CHORDS[c], `${p.id} in ${k} produced unknown chord ${c}`));
     }
   }
 });
 
-// 7c) detectProgression round-trips presets and reports custom edits.
-check("detectProgression: matches presets, falls back to Custom", () => {
-  for (const k of KEY_IDS) {
-    for (const p of PROGRESSIONS) {
-      const bars = fitProgression(progressionChords(p.id, k), 4);
+// 7b-i) The chromatic tokens mean what they should: major II (not the diatonic
+//       minor ii), the flat-7 MAJOR, and a dominant-7th tonic.
+check("tokens: II is major, ♭VII is the flat-7 major, I7 is a dominant 7th", () => {
+  assert(progressionChords("maj_1_2_5", "C").join("-") === "C-D-G", "I–II–V in C should be C-D-G");
+  assert(progressionChords("maj_1_2_5", "E").join("-") === "E-F#-B", "I–II–V in E needs the new F# chord");
+  assert(progressionChords("maj_1_b7_4", "C").join("-") === "C-Bb-F", "I–♭VII–IV in C should be C-Bb-F");
+  assert(progressionChords("maj_1_b7_4", "G").join("-") === "G-F-C", "I–♭VII–IV in G should be G-F-C");
+  assert(progressionChords("maj_1_7_4_1", "C").join("-") === "C-C7-F-C", "I–I7–IV–I in C uses the dom7 tonic");
+});
+
+// 7b-ii) Minor keys resolve their own progressions and reject major presets.
+check("minor keys: progressions resolve; major presets don't leak in", () => {
+  assert(progressionChords("min_1_7_6_5", "Am").join("-") === "Am-G-F-E", "i–VII–VI–V in Am should be Am-G-F-E");
+  assert(progressionChords("min_1_7_6_5", "Em").join("-") === "Em-D-C-B", "i–VII–VI–V in Em should be Em-D-C-B");
+  // A major preset whose tokens (I, ♭VII, IV) are none of the minor set won't
+  // resolve at all in a minor key — proving the modes don't cross-populate.
+  assert(progressionChords("maj_1_b7_4", "Am").length === 0,
+    "a major preset should not resolve in a minor key (tokens absent)");
+});
+
+// 7b-iii) The progression menu groups exactly the presets of the requested mode,
+//         in order, labelled by their token sequence.
+check("progressionGroups: filters to a mode and labels by token sequence", () => {
+  for (const mode of ["major", "minor"]) {
+    const groups = progressionGroups(mode);
+    const ids = groups.flatMap((g) => g.items.map((i) => i.value));
+    const expected = PROGRESSIONS.filter((p) => p.mode === mode).map((p) => p.id);
+    assert(JSON.stringify(ids) === JSON.stringify(expected),
+      `${mode} groups should list exactly the ${mode} presets in order`);
+    assert(groups.every((g) => g.label && g.items.length), `${mode} groups need labels + items`);
+  }
+  // the label is the token sequence, e.g. I–♭VII–IV
+  const folk = progressionGroups("major").flatMap((g) => g.items).find((i) => i.value === "maj_1_b7_4");
+  assert(folk && folk.label === "I–♭VII–IV", `expected "I–♭VII–IV", got "${folk && folk.label}"`);
+});
+
+// 7c) detectProgression round-trips presets IN THEIR MODE and reports custom edits.
+check("detectProgression: matches presets in-mode, falls back to Custom", () => {
+  for (const p of PROGRESSIONS) {
+    const keys = KEY_IDS.filter((k) => KEYS[k].mode === p.mode);
+    for (const k of keys) {
+      // Use the preset's OWN length — forcing everything to 4 bars makes the
+      // 3-chord I–IV–V cycle into the 4-chord I–IV–V–I (a real ambiguity that
+      // detectProgression resolves by preferring the exact-length match).
+      const bars = progressionChords(p.id, k);
       assert(detectProgression(bars, k) === p.id,
         `expected ${p.id} in key ${k}, got ${detectProgression(bars, k)}`);
     }
   }
   // a hand-edited bar that breaks the pattern reads as custom
-  const bars = fitProgression(progressionChords("1_5_6_4", "C"), 4); // C G Am F
+  const bars = fitProgression(progressionChords("maj_1_5_6_4", "C"), 4); // C G Am F
   const edited = [...bars];
   edited[1] = "F#m"; // not in key C at that position
   assert(detectProgression(edited, "C") === CUSTOM_PROGRESSION_ID,
@@ -946,6 +1003,34 @@ check("dropdown: enhances a <select> but keeps it the source of truth", () => {
   assert(changes === 1, "choosing an option fires exactly one change");
   assert(labelText() === "C", "trigger updates to the chosen option");
   assert(!document.querySelector(".dd-panel"), "panel closes after a pick");
+  host.remove();
+});
+
+// The grouped menus (keys, chords, progressions) rely on <optgroup> rendering as
+// a non-selectable section header in the custom panel.
+check("dropdown: renders optgroup section headers", () => {
+  const sel = document.createElement("select");
+  const og = document.createElement("optgroup");
+  og.label = "Group A";
+  for (const v of ["a", "b"]) {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = v.toUpperCase();
+    og.appendChild(o);
+  }
+  sel.appendChild(og);
+  sel.value = "a";
+  const host = document.createElement("div");
+  host.appendChild(sel);
+  document.body.appendChild(host);
+
+  enhanceSelect(sel);
+  host.querySelector(".dd-trigger").click();
+  const groups = [...document.querySelectorAll(".dd-panel .dd-group")];
+  assert(groups.length === 1 && groups[0].textContent === "Group A", "an optgroup renders one header");
+  assert(document.querySelectorAll(".dd-panel .dd-option").length === 2, "options under the group render");
+
+  document.querySelector(".dd-catcher").click(); // close for a clean DOM
+  assert(!document.querySelector(".dd-panel"), "panel closes");
   host.remove();
 });
 
