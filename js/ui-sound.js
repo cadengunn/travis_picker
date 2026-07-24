@@ -46,32 +46,34 @@ export function playClick(strength = 1) {
   const t = ac.currentTime;
   const level = 0.12 * strength; // quiet on purpose — a tick, not a beep
 
-  // Body "thock": a fast-decaying low triangle, pitch dropping slightly for a
-  // woody, un-electronic feel.
+  // Body "clack": a tight, fast-decaying pulse. Higher-pitched and SHORTER than
+  // the old woody thock, with a snappier attack — reads as a mechanical switch
+  // bottoming out rather than a soft knock.
   const osc = ac.createOscillator();
   osc.type = "triangle";
-  const f0 = 190 - 40 * strength;
-  osc.frequency.setValueAtTime(f0 + 90, t);
-  osc.frequency.exponentialRampToValueAtTime(f0, t + 0.03);
+  const f0 = 215 - 45 * strength;
+  osc.frequency.setValueAtTime(f0 + 120, t);
+  osc.frequency.exponentialRampToValueAtTime(f0, t + 0.016);
   const og = ac.createGain();
   og.gain.setValueAtTime(0.0001, t);
-  og.gain.exponentialRampToValueAtTime(level, t + 0.004);
-  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+  og.gain.exponentialRampToValueAtTime(level, t + 0.002);
+  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.036);
   osc.connect(og).connect(ac.destination);
   osc.start(t);
-  osc.stop(t + 0.07);
+  osc.stop(t + 0.05);
 
-  // Contact "tick": a very short band-passed noise burst on top of the thock.
+  // Contact "tick": a crisp, bright band-passed noise snap — the plastic-on-
+  // plastic contact. Higher centre + a touch louder than before = more mechanical.
   const src = ac.createBufferSource();
   src.buffer = noise(ac);
   const bp = ac.createBiquadFilter();
   bp.type = "bandpass";
-  bp.frequency.value = 2600;
-  bp.Q.value = 0.8;
+  bp.frequency.value = 3400;
+  bp.Q.value = 1.1;
   const ng = ac.createGain();
-  ng.gain.setValueAtTime(level * 0.6, t);
-  ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
+  ng.gain.setValueAtTime(level * 0.85, t);
+  ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.014);
   src.connect(bp).connect(ng).connect(ac.destination);
   src.start(t);
-  src.stop(t + 0.03);
+  src.stop(t + 0.02);
 }

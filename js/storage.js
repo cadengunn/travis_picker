@@ -15,6 +15,16 @@ function newId() {
   return `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Finder-style de-duplication: the original keeps its name, and a later save of
+// the same name becomes "Name (2)", "Name (3)", … so the Load list never shows
+// two identical labels you can't tell apart.
+function uniqueName(base, existingNames) {
+  if (!existingNames.includes(base)) return base;
+  let n = 2;
+  while (existingNames.includes(`${base} (${n})`)) n++;
+  return `${base} (${n})`;
+}
+
 // storage only needs getItem/setItem, so a plain object stub works in tests.
 export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) {
   function readAll() {
@@ -54,16 +64,17 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
 
     // { name, pattern, context, source } -> the stored item
     save({ name, pattern, context, source = "generated" }) {
+      const items = readAll();
+      const base = (name || "").trim() || "Untitled";
       const item = {
         v: SCHEMA_VERSION,
         id: newId(),
-        name: (name || "").trim() || "Untitled",
+        name: uniqueName(base, items.map((i) => i.name)),
         savedAt: new Date().toISOString(),
         source,
         pattern,
         context,
       };
-      const items = readAll();
       items.push(item);
       return writeAll(items) ? item : null;
     },

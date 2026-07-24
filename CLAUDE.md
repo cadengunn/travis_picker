@@ -942,6 +942,37 @@ modules.
   `forceRepaint()` opacity-blip on the stage after a mode switch. **Phone-only to
   verify** (desktop repaints fine).
 
+## Where things stand (session 12, 2026-07-24)
+
+**Session 12 — v2.5.4** (`CACHE` v30), a small refinement batch off the user's
+v2.5.3 phone notes. 47/47 green (+1 test). All deployed, pending his phone test
+of the feel/sound items.
+- **Button sound fires on RELEASE** — the delegated listener moved
+  `pointerdown` → `pointerup` (`app.js`). A real momentary switch actuates on
+  lift: press-and-hold is now silent, the thock lands on release, alongside the
+  action (which was already on click). The CSS push-in (`:active`) still shows on
+  press, so you see it go in and hear it let go.
+- **Click sound more mechanical** (`ui-sound.js`) — the body is a tighter,
+  shorter, higher "clack" (less woody glide) and the contact tick is brighter +
+  a touch louder (bandpass 2600→3400 Hz). Device-only to judge; user flagged it
+  as minor.
+- **Die pop-out flicker** — `.btn-roll` got a fast `box-shadow 0.07s ease` so the
+  raised shadow eases back instead of snapping (the snap read as a flicker on
+  release). The straight-in sink (no transform) from v2.5.1 is unchanged.
+- **Duplicate save names** — `storage.js` `save()` now de-dupes Finder-style via
+  `uniqueName()`: the original keeps its plain name, later saves of the same name
+  become `Name (2)`, `Name (3)`, … (blanks fall back to `Untitled`, then
+  `Untitled (2)`). Was the user's call ("should they get a (1)?"). Test added.
+- **Empty-Load copy** shortened to **"Saved patterns will appear here."** — the
+  old line wrapped "it" to a second row. Verified single-line at 375px. (Note:
+  the empty state only shows if you delete your last item with the Load sheet
+  open — the Load button is disabled at zero saves.)
+- **Signed off from v2.5.3:** the chord-label repaint fix (#5) and dome
+  legibility at 4-bar. **PIMA stays lowercase** (classical `p i m a` convention)
+  unless the user asks for caps — recommendation given, not changed.
+- User's stated next pick: **D3 — the Help / manual surface** (host the ABS/MIX
+  explanation), built on the themed `modal.js`.
+
 ## Working with this user
 
 - **Ask before deviating from the spec** — it's a maintained document, and

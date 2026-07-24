@@ -700,6 +700,25 @@ check("saved: rename updates the name, keeps the pattern, ignores blanks", () =>
   assert(store.rename("nope", "x") === false, "renaming an unknown id should report false");
 });
 
+check("saved: duplicate names get a Finder-style (n) suffix", () => {
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("C", { rng: seeded(4) });
+  const ctx = { chordMode: "single", chord: "C", key: "C", progression: [] };
+
+  const a = store.save({ name: "Lick", pattern, context: ctx });
+  const b = store.save({ name: "Lick", pattern, context: ctx });
+  const c = store.save({ name: "Lick", pattern, context: ctx });
+  assert(a.name === "Lick", `first keeps the plain name, got "${a.name}"`);
+  assert(b.name === "Lick (2)", `second becomes "(2)", got "${b.name}"`);
+  assert(c.name === "Lick (3)", `third becomes "(3)", got "${c.name}"`);
+
+  // Blank names fall back to Untitled and de-dupe the same way.
+  const u1 = store.save({ name: "  ", pattern, context: ctx });
+  const u2 = store.save({ name: "", pattern, context: ctx });
+  assert(u1.name === "Untitled", `blank -> "Untitled", got "${u1.name}"`);
+  assert(u2.name === "Untitled (2)", `second blank -> "Untitled (2)", got "${u2.name}"`);
+});
+
 // 11) Manual editor: tap inference, add/remove, shared-cell editing, and the
 //     relative/absolute consequences of drawing a bass note.
 check("editor: infers thumb vs finger, including the D string-3 overlap", () => {

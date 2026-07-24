@@ -450,7 +450,7 @@ function renderSavedList() {
   if (!items.length) {
     const li = document.createElement("li");
     li.className = "saved-empty";
-    li.textContent = "Nothing saved yet. Name the current pattern above to keep it.";
+    li.textContent = "Saved patterns will appear here.";
     list.appendChild(li);
     return;
   }
@@ -687,12 +687,14 @@ function attach() {
 
   el("theme").addEventListener("change", (e) => applyTheme(e.target.value));
 
-  // Hardware button click: fire on pointer-DOWN (matches the push-in the moment
-  // your finger lands, like a real switch). Delegated so it covers every button —
+  // Hardware button click: fire on pointer-UP, i.e. on RELEASE (a real momentary
+  // switch actuates when you let go — you can press-and-hold silently, then it
+  // thocks when you lift; the actions themselves already fire on click/release,
+  // so the sound now lands with them). Delegated so it covers every button —
   // including custom dropdown triggers/options built later — without per-button
   // wiring. Bigger controls thock a touch deeper (a subtle size cue). The slider,
   // text fields and grid cells are intentionally excluded.
-  document.addEventListener("pointerdown", (e) => {
+  document.addEventListener("pointerup", (e) => {
     const b = e.target.closest("button, .lamp, .dd-trigger, .dd-option");
     if (!b || b.disabled || b.getAttribute("aria-disabled") === "true") return;
     const strength = b.classList.contains("btn-roll") ? 1.15

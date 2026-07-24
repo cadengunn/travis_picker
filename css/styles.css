@@ -535,6 +535,9 @@ main {
   background:
     radial-gradient(120% 120% at 50% 30%, rgba(0, 0, 0, 0.10), transparent 60%),
     linear-gradient(180deg, var(--accent-hi), var(--accent) 58%, var(--accent-deep));
+  /* Ease the shadow so the raised state doesn't SNAP back on release — the snap
+     read as a flicker on pop-out. Fast enough (~70ms) to still feel instant. */
+  transition: box-shadow 0.07s ease;
 }
 /* pips in `bg`: every theme gets its own die — navy pips on Doc's ivory,
    cream on Elizabeth's chocolate (fixed brown pips went invisible there) */

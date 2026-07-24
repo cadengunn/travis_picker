@@ -1,14 +1,36 @@
-# Carry-forward — Travis Picker (after session 11, 2026-07-23)
+# Carry-forward — Travis Picker (after session 12, 2026-07-24)
 
 Everything shipped this session is live and **pending the user's guitar/phone
 test**. He tests between sessions, so start by asking how the batch felt.
 Deploy dance every push: bump `CACHE` in `sw.js`, bump the version label in
 `index.html`, `git push` (Pages auto-deploys), force-quit + reopen on the phone.
-In-browser verification runs against a scratchpad rsync mirror (`serve_dev.py`,
-reads `PORT` env; `.claude/launch.json` → `travis-picker-mirror`) because the
-preview can't read `~/Desktop`; re-sync after edits. **Preview caveat:** rAF is
+In-browser verification runs against a scratchpad rsync mirror (`serve.py` in a
+`scratchpad/mirror/` copy) because the preview can't read `~/Desktop`; re-sync
+(`rsync -a --delete --exclude .git`) after edits. **Preview caveat:** rAF is
 paused when the preview tab is hidden, so the beat lamp / playhead blink is
 phone-only.
+
+## Shipped this session (v2.5.4, `CACHE` v30) — v2.5.3 phone-test refinements
+Small batch off the user's v2.5.3 device notes; all deployed, 47/47 green (+1).
+- **Button sound now fires on RELEASE, not press** — delegated listener moved
+  `pointerdown` → `pointerup` in `app.js` (press-and-hold is silent, thock on
+  lift; actions were already on click/release, so the sound lands with them).
+  User wanted it to "feel more real."
+- **Click sound made more mechanical** (`ui-sound.js`) — tighter/shorter/higher
+  body "clack" + a brighter, slightly louder contact tick (bandpass 2600→3400).
+  Device-only to judge; user called it minor.
+- **Die pop-out flicker** — added a fast `box-shadow 0.07s ease` release
+  transition to `.btn-roll` so the raised shadow doesn't SNAP back (read as a
+  flicker). Straight-in sink (v2.5.1) kept. Phone-only to confirm.
+- **Duplicate save names** get a Finder-style `(2)`, `(3)` suffix
+  (`storage.js` `uniqueName`; original keeps its plain name). Test added.
+- **Empty-Load copy** shortened to "Saved patterns will appear here." (the old
+  line orphaned "it" onto a second row). Verified single-line at 375px.
+- **Confirmed by user from v2.5.3:** chord-label repaint fix (#5) is good; domes
+  legible at 4-bar. **Open question answered:** PIMA stays **lowercase** (the
+  classical p-i-m-a convention) unless he asks for caps.
+
+## Carry-forward from session 11 (v2.5.0 → v2.5.3, `CACHE` v29) — UI-feel batch
 
 ## Shipped this session (v2.5.0 → v2.5.1, `CACHE` v27) — UI-feel + design-language
 v2.5.0 batch:
@@ -38,13 +60,12 @@ v2.5.1 → v2.5.3 refinements (from phone tests — see CLAUDE.md for details):
 46/46 green.
 
 ## What still needs the user's hands
-- The **push-in/sink feel** and the **press sound** — device-only.
+- **The v2.5.4 press feel** — die pop-out flicker (softened with a release
+  transition; confirm it's gone) and the **sound-on-release** timing (does the
+  thock-on-lift feel more like a real switch?).
+- The **more-mechanical click sound** — dial the `ui-sound.js` numbers to taste.
 - The **modals + dropdowns** on a real phone (open/close ergonomics, panel over
-  the grid, per-bar chord picker under the thumb).
-- **The #5 chord-label repaint fix is phone-only verifiable** — confirm the label
-  vanishes immediately on Single→Prog with the Options sheet open.
-- The **3D note domes** — dial up/down to taste; and legibility of small fret
-  numbers on the domes at 4-bar on a real screen.
+  the grid, per-bar chord picker under the thumb) — still un-verdicted on device.
 - B1 edge: SE + 4-bar **single** + long loaded name can let the floating label
   reach into the name row. Default 1-bar/unsaved clear.
 
@@ -55,8 +76,9 @@ v2.5.1 → v2.5.3 refinements (from phone tests — see CLAUDE.md for details):
   easy to style now if wanted.
 - **E1 — Unruly density.** User once felt it's occasionally "too much." Reopen
   the `CHAOS_PRESETS` numbers, or leave it — his call. Generation was signed off.
-- **D3 — Help / manual surface.** A "?" that explains ABS/MIX etc. Would host the
-  caution-lamp explanation now on the `title`. (A themed modal is available now.)
+- **D3 — Help / manual surface. ← user's stated next pick.** A "?" that explains
+  ABS/MIX etc. Would host the caution-lamp explanation now on the `title`. Use the
+  themed `modal.js` (build a read-only info variant, no confirm/cancel).
 - **G1 — Swing.** Timing feel; touches the metronome/synth scheduler.
 - **G2 — Pre-loaded patterns.** Ship as read-only "Built-in" data in the Load
   sheet (NOT seeded into localStorage). Fits the "favorites as a folder" idea.
