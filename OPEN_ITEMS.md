@@ -23,12 +23,15 @@ so it isn't re-litigated.
   load), and icon-only save/load is less self-evident than words — the Guide
   explains them if needed.
 
-**Confirmed working on the phone (v2.8.0):** sound through the silent switch,
-screen staying awake.
+- **Buttons no longer click while the transport is running** (v2.8.2) — which is
+  what makes them silent on a silenced phone, since that was the only window where
+  they could override the switch. Worth feeling out: with the ringer on, you also
+  lose the click during a take. Intended, but you may have an opinion once you've
+  drilled with it.
 
-**Unproven by construction: auto-update.** The fix ships inside the update, so
-the *next* deploy is its first real test — reopen the app **without** visiting the
-GitHub site first and see whether it comes up new.
+**Confirmed working on the phone: all three v2.8.0 items** — sound through the
+silent switch, screen staying awake, and auto-update (v2.8.1 arrived without a
+trip to the site first).
 
 ## Still on the phone from v2.7.x
 
@@ -149,15 +152,20 @@ stops being redundant the moment the chord library grows unfamiliar shapes, and
 then it belongs in the **chord picker** (where you're choosing), never near the
 grid. So: revisit if and only if item 2 happens.
 
-### 9b. Button sounds in silent mode — DECIDED (2026-07-26)
-**Left always-on, exactly like playback**; the Options toggle is there for anyone
-who wants the app silent. The alternative — suppressing button sounds while the
-transport holds the playback category, which would have made them silent on a
-silenced phone without our being able to *detect* silent mode — was offered and
-declined. **Haptics can't substitute:** iOS Safari has never shipped the
-Vibration API (Android has), and the one reported workaround is a narrow iOS 17.4
-checkbox trick that can't reach an arbitrary button. Revisit this and haptics
-together **only if this ever becomes a real App Store app** — a much later road.
+### 9b. Button sounds in silent mode — DECIDED and shipped (v2.8.2)
+**Buttons never sound on a silenced phone.** Since the web can't read the ring
+switch, the rule is "no button sound while the transport is running" — playback is
+the only window where they could have punched through. Side effect with the ringer
+ON: buttons are also quiet during a take, which is arguably a bonus. The metronome
+and melody still ignore the switch, so you get the native split: requested audio
+plays, incidental feedback doesn't. The Options toggle is unchanged.
+Rejected: holding the playback category permanently (nothing respects silent
+mode) — that category doesn't mix with other apps, so a stray button tap would
+interrupt background music.
+**Haptics can't substitute:** iOS Safari has never shipped the Vibration API
+(Android has), and the one reported workaround is a narrow iOS 17.4 checkbox trick
+that can't reach an arbitrary button. Revisit this and haptics together **only if
+this ever becomes a real App Store app** — a much later road.
 
 ### 10. Saved-name crowding — OPEN, only if it bites
 Three buttons per saved item (Load/Rename/Delete) narrow the name column, so long

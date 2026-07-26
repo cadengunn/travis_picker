@@ -884,13 +884,30 @@ function attach() {
       : b.classList.contains("btn-icon") || b.classList.contains("btn-primary") ? 1.0
       : 0.82;
   };
+  //
+  // SILENT-SWITCH POLICY (v2.8.2): buttons go quiet while the transport is
+  // running. The web can't read the iOS ring switch, so this is the only way to
+  // honour it — playback is the one window where we hold the audio category that
+  // overrides the switch, so muting the buttons there means a silenced phone
+  // never hears them at all, while the metronome and melody (audio you asked
+  // for) still come through. With the ringer ON the side effect is that buttons
+  // don't click during a take either, which is no loss: thocks over your own
+  // picking are noise. The Options "Buttons" toggle is unchanged and independent.
+  //
+  // The decision is taken ONCE per press and held for the pair, so the button
+  // that starts or stops the transport gets a matched ka-chunk instead of half
+  // a press.
+  let pressSilenced = false;
   document.addEventListener("pointerdown", (e) => {
     const s = pressStrength(e);
-    if (s != null) playPress(s);
+    if (s == null) return;
+    pressSilenced = metronome.running;
+    if (!pressSilenced) playPress(s);
   });
   document.addEventListener("pointerup", (e) => {
     const s = pressStrength(e);
-    if (s != null) playRelease(s);
+    if (s == null) return;
+    if (!pressSilenced) playRelease(s);
   });
 
   // Transport

@@ -1239,18 +1239,42 @@ SW flow (registration is skipped on localhost on purpose).
 **v2.8.1 — icon-only pills** (`CACHE` v42), same session, after the user's phone
 test of v2.8.0. Details in "Where controls live" above. Two decisions recorded
 alongside it, both the user's:
-- **Button sounds stay always-on**, exactly like the transport — the Options
-  toggle is the escape hatch for anyone who wants the app silent. The alternative
-  (suppress UI sound while the playback category is held, which would have made
-  buttons silent on a silenced phone without being able to *detect* silent mode)
-  was offered and declined. **Haptics are not an option on iOS web at all**:
-  Safari has never shipped the Vibration API, and the only reported alternative is
-  a narrow iOS 17.4 `<input type="checkbox" switch>` trick that can't reach an
-  arbitrary button. Revisit both only if this ever becomes a native app.
-- **Phone-test verdicts on v2.8.0:** silent-mode audio **confirmed working**, wake
-  lock **confirmed working**. Auto-update is unproven by construction — the fix
-  ships inside the update, so the *next* deploy is its first real test (reopen the
-  app WITHOUT visiting the site first).
+- **Haptics are not an option on iOS web at all**: Safari has never shipped the
+  Vibration API, and the only reported alternative is a narrow iOS 17.4
+  `<input type="checkbox" switch>` trick that can't reach an arbitrary button.
+  Revisit only if this ever becomes a native app.
+- **Phone-test verdicts on v2.8.0: all three confirmed working** — silent-mode
+  audio, wake lock, and (after the v2.8.1 deploy) **auto-update**, which came up
+  new without a trip to the site first.
+
+**v2.8.2 — the silent-switch policy for BUTTON sounds** (`CACHE` v43). The user
+found the v2.8.0 behaviour inconsistent: buttons were silent on a silenced phone
+when stopped but audible *during* playback (the audio category is per-document,
+so holding "playback" for the transport swept the UI sounds along — an earlier
+theory that the UI context kept its birth category was **wrong**; the category
+does reach the already-created context). He wanted it one way or the other, and
+chose "buttons never sound in silent mode".
+- **The rule: no button sound while the transport is running** — implemented in
+  `app.js`'s delegated pointer listeners, not in `ui-sound.js`, because it's a
+  transport-dependent policy and `app.js` is the glue. **The web cannot read the
+  ring switch**, so this is the only way to honour it: playback is the sole window
+  in which we hold the category that overrides the switch, so muting buttons there
+  means a silenced phone never hears them at all, while the metronome and melody —
+  audio you explicitly asked for — still come through. Ringer-ON side effect,
+  accepted: buttons also stay quiet during a take (thocks over your own picking
+  are noise).
+- **The decision is taken once per press and held for the pair** (`pressSilenced`),
+  so the button that starts or stops the transport gets a matched ka-chunk rather
+  than half a press.
+- **Rejected alternative:** holding the playback category permanently so nothing
+  respects silent mode. Simpler model, but that category doesn't mix with other
+  apps — a stray button tap would then interrupt background music/podcasts, where
+  today the app only takes over the audio when you press Play.
+- **Verified empirically in-browser**, not theorised: patching `AudioContext` +
+  `OscillatorNode.start` to count sounds *per context* shows 2 UI-context starts
+  per press while stopped, **0** while running (metronome unaffected), and 2 again
+  after stopping. Note this is app.js glue, which `tests.js` doesn't import, so
+  there is no unit test for it — the probe is the evidence.
 
 **Also from this round of notes, not built:** the **open list moved to
 `OPEN_ITEMS.md`** — a standing quick-reference the user reads between sessions,
