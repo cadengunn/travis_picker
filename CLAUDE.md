@@ -53,6 +53,7 @@ js/storage.js     the Saved library (localStorage); store is injectable for test
 js/editor.js      pure tap-to-edit logic (toggleNote, hand inference) — no DOM
 js/metronome.js   Web Audio click + pattern playback + playhead scheduling (no deps)
 js/synth.js       Karplus-Strong plucked-string voice (no deps) — pattern audio
+js/platform.js    OS integrations: wake lock, iOS audio session, SW auto-update
 js/app.js         the ONLY stateful/DOM-glue file: controls -> generator -> grid
 js/tests.js       browser-run unit checks
 ```
@@ -1157,6 +1158,89 @@ above. Progressions became harmonic **tokens** instead of bare 1–6 degrees so
 
 **Still open (see `NEXT_SESSION.md`):** E1 Unruly density, G1 swing, G2 pre-loaded
 patterns, the deferred capo system, JSON export/import.
+
+## Where things stand (session 14, 2026-07-26)
+
+**Session 14 shipped the "behave like a native app" batch — v2.8.0** (`CACHE`
+v41), off the user's v2.7.5 guitar notes plus a friend's (Elliott's) feedback.
+59/59 green (+3). One new module, **`js/platform.js`**, holding three OS
+integrations that the musical model knows nothing about. **All three are
+device-only to judge** — see the verification note below.
+
+**The module's shape:** every integration is **feature-detected and degrades to a
+silent no-op** (these are young or WebKit-only APIs, and a practice tool must not
+break because a browser lacks one), and each takes injected **`nav`/`doc`** — the
+same trick `storage.js` uses for its store — so the *logic* is unit-tested with
+stubs and only the physical behaviour needs a phone.
+
+- **`createAppUpdater()` — the app now picks up a deploy on launch.** The user's
+  report was "the home-screen app doesn't update without opening the GitHub site
+  first", and the cause was in the registration: no `updateViaCache`, so **`sw.js`
+  itself came from the HTTP cache** and a standalone launch could never see a new
+  worker (visiting the site in Safari was what forced the revalidation). Three
+  parts, all needed: `updateViaCache: "none"`, an `update()` on load **and on
+  every return to foreground** (a standalone app is resumed far more often than
+  cold-launched), and a **reload when the new worker takes control** — sw.js
+  already calls `skipWaiting` + `clients.claim`, so the caches swap under a page
+  built from the OLD ones, which is exactly why the force-quit was needed. Two
+  guards on that reload: **never on first install** (no previous controller ⇒
+  nothing on screen is stale — without this, a first visit reloads itself), and
+  never when `canReload()` is false (`state.unsavedEdits` or a running transport;
+  reloading would destroy hand-drawn work or cut a take in half). Skipping is
+  safe — the worker is already active, so the next ordinary launch is current.
+  **⚠️ Bootstrap caveat: the deploy that ships this still needs the old
+  force-quit**, since the fix arrives inside the update.
+- **`createAudioSession()` — sound through the iOS silent switch.** Web Audio on
+  iOS obeys the ring switch by default, which is wrong for audio the user
+  explicitly asked for. `navigator.audioSession.type = "playback"` is the opt-out.
+  **The category is per-DOCUMENT, and that decides the policy:** iOS convention
+  splits on who asked for the sound — requested media (music, a metronome)
+  ignores the switch, incidental UI feedback (keyboard clicks) respects it. So the
+  app takes `playback` **only while the transport runs** and hands the previous
+  category back on stop. Silenced phone + not playing ⇒ a completely quiet app,
+  button thocks included; press play ⇒ music, and the thocks ride along for the
+  duration, as they would in a native app holding a playback session. Set
+  **before** `metronome.start()` so the AudioContext is created under it.
+  **Uncertain:** the API is WebKit-only and recent. If his iOS lacks it, the
+  fallback is the fragile `<audio>`/`MediaStreamAudioDestinationNode` hack —
+  discuss before taking that on rather than carrying it silently.
+- **`createWakeLock()` — the screen stays awake the whole time the app is up**
+  (the user's call: not just while playing — you read the grid between takes as
+  much as during them). No toggle; add one only if battery cost bites. Two things
+  make it actually work: the OS drops the lock whenever the page is hidden and
+  does NOT restore it, so re-acquiring on `visibilitychange` is mandatory; and on
+  hide we **forget the sentinel rather than trusting its `release` event**,
+  because a missing event would leave us holding a dead lock and never
+  re-acquiring — the exact failure the feature exists to prevent. Some browsers
+  also refuse the first request without transient activation, so there's a retry
+  on the first `pointerdown` (`acquire()` no-ops once held, making it cheap).
+
+**What was and wasn't verified.** In-browser (mirror at :8147): 59/59 green, clean
+boot with no console errors, transport start/stop unaffected with the audio-session
+calls in place, and the no-op paths genuinely exercised (Chrome has no
+`audioSession`; the hidden preview tab makes the wake-lock request decline without
+throwing). **Not verifiable off-device, by construction:** the wake lock (a hidden
+tab can't hold one), the silent switch (no such concept on the dev box), and the
+SW flow (registration is skipped on localhost on purpose).
+
+**Also from this round of notes, not built:** the **open list moved to
+`OPEN_ITEMS.md`** — a standing quick-reference the user reads between sessions,
+with each item's size, what's decided and what needs his call. New entries from
+Elliott: a **chord-library expansion + Root × Quality picker** (the framing
+question is "richer harmony to drill" vs "a chord dictionary"; the latter needs a
+movable-shape-template refactor of `data.js` — 12 roots × 7 qualities is 84
+hand-written entries otherwise), a **chord-shape diagram** (deferred; it stops
+being redundant with fret labels only if the library grows, and then it belongs in
+the *picker*, never near the grid), and **Chaos "stops sounding like Travis
+picking"** (accurate description of a deliberate design — Chaos is off the
+difficulty curve). One finding worth keeping: **closed jazz voicings need no
+generator change** — a chord declaring `root`/`alt`/`fifth` on the same
+string/fret makes the Travis preset alternate between identical notes, i.e. the
+thumb-on-root-only behaviour the user proposed, as pure data. Still open and
+unstarted: the **capo system** (forks were put to him: shape-first vs sound-first,
+audio transposition, control placement given ~29px of sheet headroom, and
+"invisible at capo 0"), and an **app-icon revamp** (a thumbpick, via the
+stdlib-only `tools/make_icons.py`).
 
 ## Working with this user
 
