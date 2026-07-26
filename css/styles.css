@@ -24,35 +24,37 @@
 }
 
 :root {
-  --bg: #33241a;        /* app background */
-  --surface: #4d382a;   /* empty grid cells / panels */
-  --accent: #e8dcc0;    /* beat highlights, buttons, headers, text */
-  --active: #e0a458;    /* filled note circles (thumb) */
-  --label: #2a1c12;     /* text inside note circles */
+  --bg: #17291e;        /* app background */
+  --surface: #4a3c28;   /* empty grid cells / panels */
+  --accent: #d4a94e;    /* beat highlights, buttons, headers, text */
+  --active: #7dd4c0;    /* filled note circles (thumb) */
+  --label: #12241a;     /* text inside note circles */
 
-  /* derived by theme.js (blends); these fallbacks match merle */
-  --text: #e8dcc0;
-  --muted: #9c8a70;
-  --line: #695442;
-  --beat-tint: #57422f;
-  --control: #453224;
-  --playhead: #7a5f3f;
-  --faceplate: #3d2c20; /* the tweed base tone (blend of bg+surface) */
-  --grid-line: #634d3f;
-  --band-thumb: #402e22;
-  --beat-wash: rgba(232, 220, 192, 0.07);
-  --hardware: #c9a24a;
-  --hardware-deep: #8d7134;
-  --glyph: #bcb098;
-  --lamp-hot: #ecc99a;
-  --lamp-rim: #7b5a30;
-  --lamp-glow: rgba(224, 164, 88, 0.55);
-  --jewel-off-hi: #62503c;
-  --jewel-off: #3e2e20;
-  --active-deep: #af8045;
-  --accent-deep: #c3b9a1;
-  --active-hi: #f3dbbc;
-  --accent-hi: #f6f1e6;
+  /* Derived by theme.js (blends); these fallbacks match JERRY, the default
+     since v2.9.2 — read out of the live app rather than hand-computed, so a
+     failed themes.json fetch lands on exactly what a successful one produces. */
+  --text: #d4a94e;
+  --muted: #88763b;
+  --line: #735d33;
+  --beat-tint: #5c4a2d;
+  --control: #3d3726;
+  --playhead: #5e7965;
+  --faceplate: #2c3122; /* the tweed base tone (blend of bg+surface) */
+  --grid-line: #5d4b2d;
+  --band-thumb: #313323;
+  --beat-wash: rgba(212, 169, 78, 0.07);
+  --hardware: #a3874a;
+  --hardware-deep: #725f34;
+  --glyph: #a78a42;
+  --lamp-hot: #ceefe7;
+  --lamp-rim: #45756a;
+  --lamp-glow: rgba(125, 212, 192, 0.55);
+  --jewel-off-hi: #584c2d;
+  --jewel-off: #2e3123;
+  --active-deep: #62a596;
+  --accent-deep: #b28e42;
+  --active-hi: #cbeee6;
+  --accent-hi: #eeddb8;
   --recess-shadow: rgba(0, 0, 0, 0.45);
 
   /* fixed texture overlay (theme-independent bevel highlight) */

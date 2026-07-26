@@ -294,7 +294,8 @@ then re-renders — it never re-rolls. `rename(id, name)` (v2.4.5) updates the n
 in place (trims, ignores blanks, keeps pattern/id/savedAt); each Load-menu item is
 Load / Rename / Delete.
 
-**Themes:** `themes.json` is the source of truth — each theme is 5 roles
+**Themes:** `themes.json` is the source of truth (**default: `jerry`** since
+v2.9.2 — the app icon is built from Jerry's roles, so the two match) — each theme is 5 roles
 (`bg`, `surface`, `accent`, `active`, `label`) plus an **optional `hardware`**
 role (the metal fittings: sheet lip, die/primary borders, jewel rim; defaults
 to the house brass `#c9a24a` — Doc overrides to nickel, Jerry to bronze,
@@ -1369,6 +1370,46 @@ measured at a **contrast of 1.08:1** — the pick body `#6d3e19` and the disc
   check (outer 27%, disc 42%, pick 2.15% — no leak). Recolouring preserves each
   pixel's luminance ratio to its region mean, so vignette and paper grain survive.
   Verified at 7× magnification: outlines and keylines intact, no fringing.
+**v2.9.2 — JERRY IS THE DEFAULT THEME, and the icon is built from its values**
+(`CACHE` v46). The user's call: Jerry has more character than Merle and is his
+favourite (player and theme), so the icon should correspond to the default rather
+than the other way round.
+- **The icon's every colour is now a Jerry role**, no invented hexes: ground =
+  `bg`, disc = `surface` (the muddy bank), hand = **`--accent-hi`** `#eeddb8`,
+  pick = **`--active-deep`** `#62a596`, keylines = `hardware` bronze, outline
+  cores = `label`. The `-hi`/`-deep` values are the ones **`theme.js` itself
+  derives**, so they're real app values, not approximations. Measured on the
+  finished 512: pick `#63a494`, hand `#eeddb8`, disc `#493c28` — each on its
+  theme value. Weakest contrast pair **2.16:1**.
+  - The pick's target is written as `#5d9d8f`, NOT `#62a596`: the shading step
+    multiplies by each pixel's luminance ratio to its reference, and the pick's
+    pixels sit ~5% above theirs, so a literal target renders 5% light. It's
+    pre-divided so the **finished icon** lands on the theme value.
+  - **Teal is the right colour for a reason**, not just taste: in the app the
+    thumb notes are `--active`, and the pick goes on the thumb. (The coral it
+    replaced was mine, sampled from the reference photo — the user's wife said it
+    looked like a pepperoni, which is fair.)
+- **Recolouring is by CLASSIFICATION, not flood fill** (`scratchpad/jerryfy.py`
+  approach). This fixed a real shipped bug: the original art's outer background
+  and the hand's **dark outlines are the same colour to within 21**, so the
+  v2.9.1 flood fill — tolerance 18, tight enough to spare the outlines — left
+  every outline brown against the new green. Every pixel is now assigned to one
+  of six k-means references (`#683918` rust, `#36271a` dark, `#e6c899` cream,
+  `#bb823b` gold, `#876034` antialias, `#2e2116` outline core) and mapped; there
+  is no "unassigned" case, so nothing can be left behind. Disc vs pick is the one
+  split classification can't make (same source colour) — that stays a flood fill.
+- **`BORDER` in `make_icons.py` must match the master's own border colour.** It
+  was still the brown `#36271a` after the repaint, so the `FIT` padding band
+  around the art stayed brown — a second source of stray warmth, caught by
+  sampling the finished icon rather than by eye.
+- **Chrome colours followed the default**: `theme-color` (index.html) and the
+  manifest's `theme_color`/`background_color` are now `#17291e`, and
+  **`styles.css`'s `:root` fallbacks are Jerry's**, read out of the live app via
+  `getComputedStyle` rather than hand-computed, so a failed `themes.json` fetch
+  lands on exactly what a successful one produces.
+- **A saved theme preference still wins** (`travis-picker:theme`) — changing the
+  default only affects someone who has never picked a theme. Worth knowing when
+  testing: the dev browser looked unchanged until that key was cleared.
 - **Still open for a future pass** (offered, not done): **full bleed** — let the
   disc colour run edge to edge instead of sitting as a circle on a background
   band. It buys ~20–25% more hand at the same safe margin and retires the one

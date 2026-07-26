@@ -1,6 +1,6 @@
 {
   "comment": "Travis Picker UI themes. Roles: bg = app background (carries theme identity); surface = empty grid cells / panels; accent = beat-column highlights, buttons, headers (also finger notes + text); active = filled note circles (thumb); label = text inside note circles (p/i/m/a or fret numbers); hardware (OPTIONAL) = metal fittings (sheet lip, die border, jewel rim), defaults to house brass #c9a24a; playhead (OPTIONAL) = sounding-column color, defaults to mix(surface, active, 0.4) - override when that blend desaturates. Swap via data-theme attribute + CSS custom properties.",
-  "default": "merle",
+  "default": "jerry",
   "themes": [
     {
       "id": "merle",

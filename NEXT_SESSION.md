@@ -1,13 +1,20 @@
 # Carry-forward — Travis Picker (after session 15, 2026-07-26)
 
-> **v2.9.1 (`CACHE` v45)** repainted the icon to the **Jerry** palette after his
-> phone test: the pick was invisible against the disc (measured **1.08:1**).
-> Ground `#14241b`, disc `#24402f`, pick `#d24b30`. The lesson worth keeping:
-> the pick crosses both the disc and the cream thumb, so judge it by the
-> **weakest of its three contrast pairs** — the bright-gold repaints scored best
-> against the disc and worst overall, merging into the hand instead (one pair hit
-> 1.01:1). Now 2.59:1, near the 2.86:1 ceiling. **Offered and not done:** full
-> bleed, worth ~20–25% more hand.
+> **v2.9.1 → v2.9.2 (`CACHE` v46)** — two rounds off his phone test.
+> v2.9.1 repainted the icon (the pick measured **1.08:1** against its disc);
+> **v2.9.2 rebuilt every colour from Jerry's own theme roles and made JERRY THE
+> DEFAULT THEME**, his call. Three things worth carrying forward:
+> - **Judge the pick by the WEAKEST of its three contrast pairs.** It crosses both
+>   the disc and the hand, so the bright-gold repaints — best against the disc —
+>   were worst overall, merging into the hand instead (one pair hit 1.01:1).
+> - **Recolour by classifying every pixel, never by flood fill.** The art's
+>   background and its outlines are the same colour to within 21, so v2.9.1's fill
+>   left every outline brown against the new green — the stray colour he spotted.
+> - **`BORDER` in `make_icons.py` must track the master's border colour**, or the
+>   `FIT` padding band keeps the old one. Caught by sampling the output.
+>
+> Weakest pair now 2.16:1. **Offered and not done:** full bleed, worth ~20–25%
+> more hand and the last weak pair (disc vs background, 1.34:1).
 
 
 **The standing open list lives in `OPEN_ITEMS.md`** — every open item with its

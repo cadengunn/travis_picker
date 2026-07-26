@@ -797,7 +797,7 @@ check("saved: no UI settings are stored with a pattern", () => {
     context: { chordMode: "single", chord: "C", key: "C", progression: [] },
   });
   const blob = JSON.stringify(item);
-  for (const banned of ["theme", "labelMode", "merle", "elizabeth", "pima"]) {
+  for (const banned of ["theme", "labelMode", "merle", "jerry", "elizabeth", "pima"]) {
     assert(!blob.includes(banned), `saved item must not contain UI setting "${banned}"`);
   }
 });

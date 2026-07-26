@@ -114,19 +114,28 @@ reinstalls, never pollute your real library, and updates can add more. Fits the
 "favourites as a folder within Saved" idea. Probably the best-value smaller item
 on the list.
 
-### 4. App icon revamp — DONE (v2.9.0 → v2.9.1, session 15)
-Repainted to the **Jerry** palette in v2.9.1 after you spotted the pick vanishing
-— it measured 1.08:1 against the disc behind it. Now 2.59:1 at its weakest pair,
-near the 2.86:1 ceiling. **Still available if you want another round:** going
-**full bleed** (disc colour edge to edge, no background band) would buy ~20–25%
-more hand and fix the last weak pair — the hand is only 46% of the tile today.
-
+### 4. App icon revamp — DONE (v2.9.0 → v2.9.2, session 15)
 Your thumbs-up-with-a-thumbpick, as drawn artwork rather than generated shapes.
 Six treatments were compared at the real 32px; the flat-graphic one won on
-legibility, not taste. `tools/make_icons.py` now frames and resamples
+legibility, not taste. `tools/make_icons.py` frames and resamples
 `tools/icon-master.png` and enforces the maskable safe zone by measurement.
-**On the phone:** you'll probably need to delete and re-add the home-screen app
-to see it — iOS caches the installed icon and auto-update doesn't replace it.
+
+Two rounds followed your notes. **v2.9.1** repainted it after you spotted the pick
+vanishing — it measured 1.08:1 against the disc behind it. **v2.9.2** rebuilt every
+colour from **Jerry's own theme values** (teal pick = `--active-deep`, the same
+role as the thumb notes) and made **Jerry the default theme** so the icon and the
+app agree. Weakest contrast pair is now 2.16:1.
+
+**Two things to know on the phone:**
+- You'll probably need to **delete and re-add** the home-screen app to see the new
+  icon — iOS caches the installed one and auto-update doesn't replace it.
+- **A saved theme preference still wins over the default.** If your phone already
+  has one stored, the default change won't move it — pick Jerry once if so.
+
+**Still available if you want another round:** going **full bleed** (disc colour
+edge to edge, no background band) would buy ~20–25% more hand and fix the last
+weak pair (disc vs background, 1.34:1) — the hand is only 46% of the tile today.
+That one needs regenerated art, not a recolour.
 
 ### 5. Swing (G1) — OPEN
 Timing feel. The only open item that touches the scheduler rather than data.

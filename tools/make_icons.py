@@ -38,7 +38,7 @@ MASTER = "icon-master.png"
 # plus a little margin). Everything outside the inset art is filled with BORDER,
 # sampled from the master's own edge — the seam is invisible at any icon size.
 FIT = 0.93
-BORDER = (0x36, 0x27, 0x1a)
+BORDER = (0x17, 0x29, 0x1e)   # must match the master's own border (Jerry `bg`)
 
 SAFE_R = 0.40      # maskable safe zone: a centre circle of this radius
 LUM_ART = 170      # luminance above which a pixel counts as the cream artwork
