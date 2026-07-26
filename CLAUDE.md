@@ -1340,7 +1340,40 @@ alone would have been unrecognisable to anyone who doesn't own one.
   disconnected arcs. The recessed-panel feel comes from the art's vignette, which
   survives any crop.
 - **`theme_color`/`background_color` stay merle `#33241a`** — they drive the
-  splash and browser chrome, and the app behind them is dark. Nothing to change.
+  splash and browser chrome, and the app behind them is dark. The icon being
+  green while the app defaults to brown is deliberate: the icon is a brand mark,
+  not a preview of the UI.
+
+**v2.9.1 — the palette fix, and the metric that drives it** (`CACHE` v45). The
+shipped v2.9.0 icon had the pick "disappear against the background", which
+measured at a **contrast of 1.08:1** — the pick body `#6d3e19` and the disc
+`#673918` were the same colour. The whole icon was two browns at 1.49:1 covering
+77% of the pixels.
+- **The pick sits across BOTH the disc and the cream thumb, so the metric is the
+  WEAKEST of its three contrast pairs**, not the flashiest. This is the trap that
+  caught the obvious repaints: bright-gold-pick variants (Chet 4.43, Doc 3.82,
+  paper 4.10 against the disc) score *worse overall* than the muted ones, because
+  the same bright pick then merges into the cream hand (1.25 / 1.37 / **1.01** —
+  identical value, held apart only by the drawn outline). Judge by the weakest
+  link or you just move the problem.
+- **Shipped: Jerry tuned** — ground `#14241b`, disc `#24402f`, pick `#d24b30`,
+  hand cream unchanged. Weakest link **2.59:1**, against a **theoretical ceiling
+  of 2.86:1** for a hand this light over a dark ground (solved by equalising the
+  two ratios). The coral is close to the real thumbpick sampled off the user's
+  photo (`#b9544a`); green is complementary so the red does maximum work.
+- **How the variants were made:** the master was recoloured **by region**, not by
+  a global hue shift — flood fills seeded inside the outer background, the disc
+  and the pick, each tested against the SEED colour so a fill can't cascade past
+  a boundary. The pick and disc are within a colour distance of 8, so the gold
+  keyline is the only thing separating them; mask coverage is printed as the leak
+  check (outer 27%, disc 42%, pick 2.15% — no leak). Recolouring preserves each
+  pixel's luminance ratio to its region mean, so vignette and paper grain survive.
+  Verified at 7× magnification: outlines and keylines intact, no fringing.
+- **Still open for a future pass** (offered, not done): **full bleed** — let the
+  disc colour run edge to edge instead of sitting as a circle on a background
+  band. It buys ~20–25% more hand at the same safe margin and retires the one
+  contrast pair that couldn't be fixed (disc vs outer background, still 1.57).
+  The hand is currently 46% of the tile width.
 - **Expect to delete and re-add the home-screen app** to see the new icon: iOS
   caches the installed PWA's icon and the auto-updater (v2.8.0) does not touch it.
 

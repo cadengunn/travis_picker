@@ -1,5 +1,15 @@
 # Carry-forward — Travis Picker (after session 15, 2026-07-26)
 
+> **v2.9.1 (`CACHE` v45)** repainted the icon to the **Jerry** palette after his
+> phone test: the pick was invisible against the disc (measured **1.08:1**).
+> Ground `#14241b`, disc `#24402f`, pick `#d24b30`. The lesson worth keeping:
+> the pick crosses both the disc and the cream thumb, so judge it by the
+> **weakest of its three contrast pairs** — the bright-gold repaints scored best
+> against the disc and worst overall, merging into the hand instead (one pair hit
+> 1.01:1). Now 2.59:1, near the 2.86:1 ceiling. **Offered and not done:** full
+> bleed, worth ~20–25% more hand.
+
+
 **The standing open list lives in `OPEN_ITEMS.md`** — every open item with its
 size, what's decided and what needs the user's call. This file is the session
 hand-off only.
