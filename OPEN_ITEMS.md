@@ -114,12 +114,13 @@ reinstalls, never pollute your real library, and updates can add more. Fits the
 "favourites as a folder within Saved" idea. Probably the best-value smaller item
 on the list.
 
-### 4. App icon revamp — thumbpick — OPEN
-Your idea. Self-contained and fun, but real drawing work: this Mac has no
-PIL/ImageMagick, so icons go through `tools/make_icons.py`, the stdlib-only PNG
-encoder. A thumbpick is a ring plus a blade — reachable with the existing
-scanline fill, but it has to stay legible at 192px and inside the maskable safe
-zone. Deserves its own slot, not a tack-on.
+### 4. App icon revamp — DONE (v2.9.0, session 15)
+Your thumbs-up-with-a-thumbpick, as drawn artwork rather than generated shapes.
+Six treatments were compared at the real 32px; the flat-graphic one won on
+legibility, not taste. `tools/make_icons.py` now frames and resamples
+`tools/icon-master.png` and enforces the maskable safe zone by measurement.
+**On the phone:** you'll probably need to delete and re-add the home-screen app
+to see it — iOS caches the installed icon and auto-update doesn't replace it.
 
 ### 5. Swing (G1) — OPEN
 Timing feel. The only open item that touches the scheduler rather than data.
