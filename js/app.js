@@ -41,6 +41,7 @@ import { createMetronome, DEFAULT_BPM } from "./metronome.js";
 import { setUiSoundEnabled, playPress, playRelease } from "./ui-sound.js";
 import { confirmModal, promptModal, infoModal } from "./modal.js";
 import { enhanceSelect, enhanceAll } from "./dropdown.js";
+import { createWakeLock, createAudioSession, createAppUpdater } from "./platform.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -519,12 +520,16 @@ const metronome = createMetronome({
 async function togglePlay() {
   if (metronome.running) {
     metronome.stop();
+    audioSession.setPlayback(false); // back to a category that respects silent mode
     el("play").setAttribute("aria-pressed", "false");
     showCountIn(null); // clears the dim and resets the label
     return;
   }
   el("play").setAttribute("aria-pressed", "true");
   el("play").textContent = GLYPH_STOP;
+  // Claim the playback audio category BEFORE the AudioContext is created, so the
+  // transport sounds through a silenced ring switch (see platform.js).
+  audioSession.setPlayback(true);
   // Started from the click handler so iOS Safari unlocks audio.
   await metronome.start(phraseChords().length);
 }
@@ -985,18 +990,24 @@ function attach() {
   });
 }
 
+// ----- platform integrations (see platform.js; all no-ops where unsupported) -----
+const wakeLock = createWakeLock();
+const audioSession = createAudioSession();
+// A reload would discard hand-drawn edits and cut a take in half, so a pending
+// update waits for a quieter moment — the worker is already active by then, so
+// the next ordinary launch picks it up regardless.
+const updater = createAppUpdater({
+  canReload: () => !state.unsavedEdits && !metronome.running,
+});
+
 // Register the offline service worker — but ONLY on the real HTTPS origin.
 // On localhost a cache-first SW would fight serve.py's no-store and feed you
 // stale code while developing; over `--lan` (plain http) the browser blocks SW
 // registration anyway. So it runs only where it should: the Pages deploy.
 function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) return;
   const host = location.hostname;
   if (host === "localhost" || host === "127.0.0.1") return;
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch((err) =>
-      console.error("Service worker registration failed.", err));
-  });
+  window.addEventListener("load", () => { updater.start("sw.js"); });
 }
 
 // ----- boot -----
@@ -1014,6 +1025,9 @@ async function boot() {
   setUiSoundEnabled(audioPrefs.ui);
   attach();
   registerServiceWorker();
+  // Hold the screen awake for as long as the app is up — a screen lock ends
+  // practice mid-take. Re-acquired on every return to foreground (platform.js).
+  wakeLock.start();
   await generate(); // roll one immediately so the grid is never empty
   refreshSavedCount();
 

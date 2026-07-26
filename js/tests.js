@@ -52,6 +52,7 @@ import {
 } from "./metronome.js";
 import { enhanceSelect } from "./dropdown.js";
 import { confirmModal, promptModal, infoModal } from "./modal.js";
+import { createWakeLock, createAudioSession, createAppUpdater } from "./platform.js";
 
 const results = [];
 function check(name, fn) {
@@ -1123,6 +1124,35 @@ check("dropdown: renders optgroup section headers", () => {
   host.remove();
 });
 
+// ---- platform integrations (wake lock / audio session / app updater) ----
+// All three take injected `nav`/`doc` for exactly this reason: the real APIs are
+// device-only (and the wake lock can't even be observed from a hidden preview
+// tab), so the LOGIC is tested against stubs and only the physical behaviour
+// needs a phone.
+function fakeDoc(visibilityState = "visible") {
+  const listeners = {};
+  return {
+    visibilityState,
+    addEventListener(t, fn) { (listeners[t] ||= []).push(fn); },
+    removeEventListener(t, fn) { listeners[t] = (listeners[t] || []).filter((f) => f !== fn); },
+    fire(t) { for (const fn of listeners[t] || []) fn(); },
+  };
+}
+
+check("platform: audio session claims playback only while the transport runs", () => {
+  const nav = { audioSession: { type: "auto" } };
+  const session = createAudioSession({ nav });
+  assert(session.supported, "detects the API");
+  session.setPlayback(true);
+  assert(nav.audioSession.type === "playback", "playing takes the category that ignores the silent switch");
+  session.setPlayback(false);
+  assert(nav.audioSession.type === "auto", "stopping hands the previous category back");
+
+  // Unsupported (every non-WebKit browser, and older Safari): a silent no-op.
+  const none = createAudioSession({ nav: {} });
+  assert(!none.supported && none.setPlayback(true) === null, "degrades to a no-op without the API");
+});
+
 // ---- async PWA checks ----
 // The sync `check()`s above run at import time; these need fetch(), so they run
 // (awaited) inside runTests before the report renders. Served by serve.py.
@@ -1130,6 +1160,86 @@ const asyncChecks = [];
 function acheck(name, fn) {
   asyncChecks.push({ name, fn });
 }
+
+acheck("platform: wake lock is re-acquired after the app goes to the background", async () => {
+  let requests = 0;
+  let denyFirst = true;
+  const nav = {
+    wakeLock: {
+      request: async () => {
+        requests++;
+        if (denyFirst) { denyFirst = false; throw new Error("needs user activation"); }
+        return { release: async () => {}, addEventListener() {} };
+      },
+    },
+  };
+  const doc = fakeDoc();
+  const lock = createWakeLock({ nav, doc });
+
+  await lock.start();
+  assert(requests === 1 && !lock.held, "a denied first request (no activation yet) is survivable");
+  doc.fire("pointerdown"); // the retry path: first tap gives us activation
+  await Promise.resolve(); await Promise.resolve();
+  assert(lock.held, "acquired on the first gesture");
+
+  // Backgrounding: the OS drops the lock, so returning must take a NEW one.
+  doc.visibilityState = "hidden";
+  doc.fire("visibilitychange");
+  assert(!lock.held, "the lock is considered gone while hidden");
+  doc.visibilityState = "visible";
+  doc.fire("visibilitychange");
+  await Promise.resolve(); await Promise.resolve();
+  assert(lock.held && requests === 3, "re-acquired on return to the foreground");
+
+  await lock.stop();
+  assert(!lock.held, "stop releases it");
+
+  const none = createWakeLock({ nav: {}, doc: fakeDoc() });
+  assert(!none.supported && (await none.start()) === null, "degrades to a no-op without the API");
+});
+
+acheck("platform: updater bypasses the HTTP cache and reloads only on a real update", async () => {
+  const make = ({ controller = null, canReload = () => true } = {}) => {
+    const listeners = {};
+    const calls = { register: [], update: 0, reloads: 0 };
+    const nav = {
+      serviceWorker: {
+        controller,
+        addEventListener(t, fn) { (listeners[t] ||= []).push(fn); },
+        register: async (url, opts) => { calls.register.push({ url, opts }); return { update: async () => { calls.update++; } }; },
+      },
+    };
+    const doc = fakeDoc();
+    const updater = createAppUpdater({ nav, doc, canReload, reload: () => { calls.reloads++; } });
+    return { calls, doc, updater, fire: (t) => { for (const fn of listeners[t] || []) fn(); } };
+  };
+
+  // First install: nothing on screen is stale, so claiming control must NOT reload.
+  const fresh = make();
+  await fresh.updater.start("sw.js");
+  assert(fresh.calls.register[0].opts.updateViaCache === "none",
+    "the worker script itself must bypass the HTTP cache, or a launch never sees a new deploy");
+  fresh.fire("controllerchange");
+  assert(fresh.calls.reloads === 0, "first install does not reload");
+
+  // Returning to the foreground is when a standalone app checks for a deploy.
+  fresh.doc.fire("visibilitychange");
+  await Promise.resolve();
+  assert(fresh.calls.update === 1, "checks for an update on resume");
+
+  // An already-controlled page whose worker was replaced IS stale: reload once.
+  const stale = make({ controller: {} });
+  await stale.updater.start();
+  stale.fire("controllerchange");
+  stale.fire("controllerchange");
+  assert(stale.calls.reloads === 1, "a new worker taking over reloads exactly once");
+
+  // ...unless reloading would destroy work or cut a take in half.
+  const busy = make({ controller: {}, canReload: () => false });
+  await busy.updater.start();
+  busy.fire("controllerchange");
+  assert(busy.calls.reloads === 0, "unsaved edits / a running transport veto the reload");
+});
 
 acheck("modal: confirm/prompt resolve to the pressed action", async () => {
   const okP = confirmModal({ message: "ok?" });
