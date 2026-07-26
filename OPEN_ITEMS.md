@@ -13,42 +13,33 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.8.0, this session)
+## On the phone right now (v2.8.1)
 
-Three "make it behave like a native app" fixes. All three are device-only to
-judge — none of them can be seen from the dev box.
+- **Icon-only Edit / Save / Load** (pencil, floppy, folder — engraved like the
+  gear and die). Frees 53px of header width, which is what now keeps **every**
+  readout at the full 14px, worst case included — nothing shrinks any more. Two
+  small losses to check: the saved *count* moved off the Load button into its
+  long-press label (the button being enabled already says there's something to
+  load), and icon-only save/load is less self-evident than words — the Guide
+  explains them if needed.
 
-- **App auto-updates on launch.** No more force-quit-and-reopen, and no more
-  needing to visit the GitHub site first. ⚠️ **One-time caveat: this deploy
-  itself still needs the old dance** — the fix ships *inside* the update, so the
-  currently installed copy doesn't have it yet. Force-quit and reopen once, and
-  from the next deploy onward it should refresh itself.
-- **Sound plays through the silent switch** — but only while the transport is
-  running. Silenced phone and not playing = a completely quiet app, button
-  clicks included. Press play and you get music. This follows the iOS convention
-  (requested media ignores the switch, incidental UI feedback respects it) and it
-  answers the "should buttons click in silent mode?" question: they do, but only
-  while you're playing. Easy to change if it feels wrong.
-  *Uncertainty worth knowing: the API this uses is WebKit-only and fairly new. If
-  it turns out your iOS version doesn't have it, the fallback is an uglier hack
-  and we'd talk before taking it on.*
-- **Screen stays awake the whole time the app is open** (not just while playing),
-  and re-acquires the lock after you switch apps or the screen locks. No toggle —
-  say the word if the battery cost is noticeable and it becomes one.
+**Confirmed working on the phone (v2.8.0):** sound through the silent switch,
+screen staying awake.
+
+**Unproven by construction: auto-update.** The fix ships inside the update, so
+the *next* deploy is its first real test — reopen the app **without** visiting the
+GitHub site first and see whether it comes up new.
 
 ## Still on the phone from v2.7.x
 
-- **Auto-shrinking context readout** — is the worst case (~11.7px, a 4-accidental
-  custom progression) still readable at arm's length? If not, the lever is
-  dropping "Edit" to just the pencil glyph, which frees ~30px and raises the floor.
-- **Randomiser die placement** on the Options "Generation" header line — does it
-  read as "randomise the chords" or misleadingly as "randomise everything here"?
-- **Minor keys** (Am/Em) and their three progressions.
-- **Barre chords F# and Bb** — playability in `I–II–V` (E) and the `I–♭VII` folk
-  progressions (C).
-- **Whether the curated progression list matches what you actually drill.**
-  Add/drop/reorder is a one-line data edit each.
-- **Dom7 feel** in `I–I7–IV–I` (the ♭7 is a finger colour; the bass is unchanged).
+All checked and fine for now (2026-07-26): randomiser die placement (reads
+slightly like it might randomise everything in Generation, but is obvious after
+one press), minor keys and their progressions, barre chords F#/Bb, dom7 feel.
+The context readout is no longer an issue at all after v2.8.1.
+
+**Flagged for a later pass:** the **progression list** — fine for now, but you
+expect to revisit which progressions are curated once you've had more time with
+them. Add/drop/reorder is a one-line data edit each.
 
 ---
 
@@ -157,6 +148,16 @@ You called it redundant given the fret-number labels, and I agree — *today*. I
 stops being redundant the moment the chord library grows unfamiliar shapes, and
 then it belongs in the **chord picker** (where you're choosing), never near the
 grid. So: revisit if and only if item 2 happens.
+
+### 9b. Button sounds in silent mode — DECIDED (2026-07-26)
+**Left always-on, exactly like playback**; the Options toggle is there for anyone
+who wants the app silent. The alternative — suppressing button sounds while the
+transport holds the playback category, which would have made them silent on a
+silenced phone without our being able to *detect* silent mode — was offered and
+declined. **Haptics can't substitute:** iOS Safari has never shipped the
+Vibration API (Android has), and the one reported workaround is a narrow iOS 17.4
+checkbox trick that can't reach an arbitrary button. Revisit this and haptics
+together **only if this ever becomes a real App Store app** — a much later road.
 
 ### 10. Saved-name crowding — OPEN, only if it bites
 Three buttons per saved item (Load/Rename/Delete) narrow the name column, so long

@@ -125,13 +125,26 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   can't stretch the buttons (the session-8 bug). Both rows keep a reserved
   `min-height` when empty, so the grid never moves between chord modes;
   `.app-head` is **63px** (32 + 5 + 26) and any change here must re-measure it.
+- **The three pills are ICON-ONLY** (`.pill-icon`, v2.8.1): pencil / floppy /
+  folder, engraved with the transport's intaglio drop-shadow pair so a generic
+  glyph reads as part of the faceplate (the clever move is the treatment, not the
+  metaphor — a metaphor has to survive at 18px). They were the last text controls
+  in an app that otherwise speaks in glyphs, and the words cost width the context
+  needed: **199px → 146px, handing the readout 143px → 196px.** Words live on in
+  `title`/`aria-label`. The **saved count moved into the label too** — writing
+  `textContent` on the Load pill would wipe its `<svg>`, so `refreshSavedCount()`
+  sets `title`/`aria-label` and leans on the disabled state to say "nothing to
+  load". The REC lamp still rides the Edit pill (hence `display: inline-flex`).
 - **The context AUTO-SHRINKS to fit** (`fitContext()` in `app.js`, v2.7.5). Roman
-  numerals with accidentals run long — `♯iii – ♯vi – I7 – ♭II · Am` needs ~180px
-  against the ~143px the pills leave — and ellipsizing hid the very information
-  the readout exists to give. So it scales instead: 14px base, **10.5px floor**,
+  numerals with accidentals run long — `♯iii – ♯vi – I7 – ♭II · Am` needs 171px —
+  and ellipsizing hid the very information the readout exists to give. So it
+  scales instead: 14px base, **10.5px floor**,
   one measure-and-set pass (the pills are `flex: 0 0 auto`, so the space the
-  context gets doesn't change when its font does). Measured at 375×553: presets
-  stay at 14px, a 4-accidental custom bar lands ~13.4px, the worst case ~11.7px.
+  context gets doesn't change when its font does). **Since v2.8.1's icon pills
+  left 196px, every realistic readout — the worst case included — now sits at the
+  full 14px and nothing shrinks at all**; `fitContext` stays as the insurance that
+  made a longer future readout safe. (Measured at 375×553 before the icons:
+  presets 14px, a 4-accidental custom bar ~13.4px, the worst case ~11.7px.)
   Re-fits on `document.fonts.ready` (Fraunces loads async and is wider than the
   fallback) and on resize. Two supporting trims: the **version tag moved into the
   Options sheet header** (beside the title, free — it's shorter than the ✕; it was
@@ -1222,6 +1235,22 @@ calls in place, and the no-op paths genuinely exercised (Chrome has no
 throwing). **Not verifiable off-device, by construction:** the wake lock (a hidden
 tab can't hold one), the silent switch (no such concept on the dev box), and the
 SW flow (registration is skipped on localhost on purpose).
+
+**v2.8.1 — icon-only pills** (`CACHE` v42), same session, after the user's phone
+test of v2.8.0. Details in "Where controls live" above. Two decisions recorded
+alongside it, both the user's:
+- **Button sounds stay always-on**, exactly like the transport — the Options
+  toggle is the escape hatch for anyone who wants the app silent. The alternative
+  (suppress UI sound while the playback category is held, which would have made
+  buttons silent on a silenced phone without being able to *detect* silent mode)
+  was offered and declined. **Haptics are not an option on iOS web at all**:
+  Safari has never shipped the Vibration API, and the only reported alternative is
+  a narrow iOS 17.4 `<input type="checkbox" switch>` trick that can't reach an
+  arbitrary button. Revisit both only if this ever becomes a native app.
+- **Phone-test verdicts on v2.8.0:** silent-mode audio **confirmed working**, wake
+  lock **confirmed working**. Auto-update is unproven by construction — the fix
+  ships inside the update, so the *next* deploy is its first real test (reopen the
+  app WITHOUT visiting the site first).
 
 **Also from this round of notes, not built:** the **open list moved to
 `OPEN_ITEMS.md`** — a standing quick-reference the user reads between sessions,

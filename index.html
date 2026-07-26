@@ -31,10 +31,18 @@
       <div class="ctx-row">
         <span id="context" class="context" hidden></span>
         <div class="grid-actions">
-          <button id="edit-toggle" class="pill" type="button" aria-pressed="false"
-                  title="Toggle manual editing"><span class="rec-lamp" aria-hidden="true"></span>✎ Edit</button>
-          <button id="open-save" class="pill" type="button">Save</button>
-          <button id="open-load" class="pill" type="button">Load</button>
+          <!-- Icon-only (v2.8.1): the three pills were the last text controls in an
+               app that otherwise speaks in glyphs, and their labels were eating the
+               header width the context readout needs — dropping them frees ~58px,
+               which is what keeps even a 4-accidental custom progression at full
+               14px instead of shrinking to 11.7px. Engraved like the gear and die.
+               `title` carries the words (and the saved count) for a long-press. -->
+          <button id="edit-toggle" class="pill pill-icon" type="button" aria-pressed="false"
+                  aria-label="Edit pattern" title="Toggle manual editing"><span class="rec-lamp" aria-hidden="true"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+          <button id="open-save" class="pill pill-icon" type="button"
+                  aria-label="Save pattern" title="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm3-10H5V5h10v4z"/></svg></button>
+          <button id="open-load" class="pill pill-icon" type="button"
+                  aria-label="Load pattern" title="Load"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg></button>
         </div>
       </div>
       <div class="name-row">
@@ -84,7 +92,7 @@
         <h2 id="options-title">Options</h2>
         <!-- Version rides the sheet header: it's reference info you look up
              sitting down, and here it costs no height (shorter than the ✕). -->
-        <span class="app-version" aria-label="App version">v2.8.0</span>
+        <span class="app-version" aria-label="App version">v2.8.1</span>
         <button class="sheet-close" type="button" data-close aria-label="Close">✕</button>
       </header>
 

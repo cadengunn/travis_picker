@@ -560,7 +560,12 @@ function describeCurrent() {
 
 function refreshSavedCount() {
   const n = savedStore.count();
-  el("open-load").textContent = n ? `Load (${n})` : "Load";
+  // The pill is icon-only, so the count lives in the label rather than the face
+  // (writing textContent here would wipe the SVG). The enabled/disabled state
+  // already says "there is something to load"; the number is a long-press away.
+  const label = n ? `Load pattern (${n} saved)` : "Load pattern";
+  el("open-load").setAttribute("aria-label", label);
+  el("open-load").title = n ? `Load (${n} saved)` : "Load";
   el("open-load").disabled = n === 0;
 }
 
