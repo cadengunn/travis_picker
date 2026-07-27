@@ -13,6 +13,30 @@ so it isn't re-litigated.
 
 ---
 
+## New in v2.11.0 (session 17) — the typography pass
+
+- **One label tier.** The Options sheet had two that looked nearly the same, with
+  the *smaller* type on the caption that outranked the labels beneath it — which
+  is why the two pages didn't feel like the same object. Group captions are now
+  the same object as field labels, same left edge. "Appearance" is gone entirely.
+- **Panel legends are Jost** — the OFL Futura you picked, bundled (26.6KB) rather
+  than referencing the system Futura, which is commercial and only free while
+  every user is on Apple hardware. **The rule now: serif for what a control
+  *says*, Jost for what the machine *calls* it, rounded only for fret digits.**
+- **The Guide "?" is the fourth header pill**, and **the pattern name has its own
+  row** under the capo. The name gets the full width in every state now, instead
+  of 35px with a capo set. Costs nothing visible on your phone; at 375×553 the
+  clearance under the grid goes 28px → 11px.
+- **Worth a look on the phone:** an unsaved pattern leaves the name row *empty*
+  (no "Untitled" — that's deliberate, and the row keeps its height so the grid
+  never jumps when you save or load). If that empty line reads as dead space, the
+  alternatives are bringing back a muted placeholder or letting the row collapse
+  — but collapsing means the grid shifts on load, which we've avoided everywhere
+  else.
+- Small fixes riding along: the capo value no longer inherits the label's letter-
+  spacing (it was nudged off centre), the sheet's ✕ is drawn instead of rendering
+  in Arial, and the stepper's −/+ join the serif like every other typed glyph.
+
 ## Fixed in v2.10.4 (session 17)
 
 - **The home-screen app could install a stale deploy and stay there forever** —

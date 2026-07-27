@@ -1400,11 +1400,41 @@ acheck("pwa: service worker precaches every runtime module (offline stays comple
     assert(listed.includes(f), `sw.js PRECACHE is missing ${f} — offline would break`);
   }
 
+  // Every BUNDLED FONT must be precached too. Same failure as a missing module,
+  // and quieter: offline, the app still runs but silently falls back to system
+  // faces, so the panel legends and the serif voice both change.
+  const fontDir = await (await fetch("fonts/")).text();
+  const fonts = [...fontDir.matchAll(/href="([^"?]+\.woff2)"/g)].map((x) => "fonts/" + x[1].split("/").pop());
+  assert(fonts.length > 0, "expected a fonts/ directory listing to check against");
+  for (const f of fonts) {
+    assert(listed.includes(f), `sw.js PRECACHE is missing ${f} — offline would lose the face`);
+  }
+
   // Every precached path must actually resolve (catches a typo'd entry).
   for (const p of listed) {
     const r = await fetch(p);
     assert(r.ok, `precache entry "${p}" does not resolve (${r.status})`);
   }
+});
+
+acheck("type: every bundled face is declared, and the three voices stay separate", async () => {
+  const css = await (await fetch("css/styles.css")).text();
+
+  // A @font-face for each bundled file — the pairing that actually breaks is
+  // "font added to the precache, never declared", which looks fine until the
+  // system fallback is compared side by side.
+  const fontDir = await (await fetch("fonts/")).text();
+  const files = [...fontDir.matchAll(/href="([^"?]+\.woff2)"/g)].map((x) => x[1].split("/").pop());
+  for (const f of files) {
+    assert(css.includes(f), `css/styles.css declares no @font-face for fonts/${f}`);
+  }
+
+  // The legend must never fall back to the ROUNDED numeral face: --numeral is a
+  // legibility exception for fret digits, not a second opinion about labels.
+  const legend = css.match(/--legend:\s*([^;]+);/);
+  assert(legend, "--legend token is missing");
+  assert(!/rounded/i.test(legend[1]), "--legend must fall back to a grotesque, not the rounded numeral stack");
+  assert(/Jost/.test(legend[1]), "--legend should lead with the bundled Jost");
 });
 
 acheck("pwa: the precache bypasses the HTTP cache (or a deploy can install stale)", async () => {

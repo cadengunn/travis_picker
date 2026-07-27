@@ -10,7 +10,7 @@
 // worker activates. Bump CACHE on every deploy or users get stale code. The old
 // cache is deleted in `activate`. (If a pushed change doesn't show on the phone:
 // force-quit the app and reopen so the waiting SW can take over.)
-const CACHE = "travis-picker-v52";
+const CACHE = "travis-picker-v53";
 
 // App shell — everything needed to boot offline. Relative paths resolve against
 // this script's location, so the whole set is subpath-safe under GitHub Pages
@@ -22,6 +22,7 @@ const PRECACHE = [
   "themes.json",
   "css/styles.css",
   "fonts/fraunces-latin.woff2",
+  "fonts/jost-latin.woff2",
   "js/app.js",
   "js/data.js",
   "js/generator.js",

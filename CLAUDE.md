@@ -43,7 +43,8 @@ index.html        app shell: controls + grid container
 tests.html        loads js/tests.js, renders pass/fail
 serve.py          no-store dev server (see above)
 themes.json       UI themes as data (5 color roles each) — edit here, not in CSS
-fonts/            bundled Fraunces .woff2 (serif voice) + OFL license — precached
+fonts/            bundled Fraunces (serif voice) + Jost (panel legends), both
+                  .woff2 + their OFL licenses — precached, see "Type" below
 css/styles.css    mobile-first "tweed faceplate" (v2.1); colors are CSS vars set by js/theme.js
 js/data.js        pure data tables + small pure helpers (no generation logic)
 js/generator.js   pure generatePattern() + resolveBar/resolvePattern/resolvePhrase
@@ -118,16 +119,18 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
 - **Bottom strip (always visible), one row:** Play, BPM, 🎲 Generate, ⚙ Options.
   Only things you reach for mid-practice. 44px tap targets — don't shrink them
   to buy slider width.
-- **Slim bar above the grid: ONE row** since v2.10.2 — capo state (left), the
-  pattern **name**, and the three pills. **`.app-head` is 32px** (it was 63: the
-  context + pills, then the name on its own row). Any change here must re-measure
-  at 375×553. The name shared a row with the context until v2.1, when a long
-  saved name stretched the buttons and it was given a row of its own; the actual
-  fix is `flex: 0 1 auto` + `min-width: 0` + ellipsis, which `.loaded-name` has,
-  so the row was belt AND braces. Collapsing it freed the **31px** that paid for
-  the context's new home above the grid — the stage had **0px** spare at 4 bars.
-  Verified: a long name ellipsizes and `.grid-actions` stays exactly 146px, so
-  the session-8 bug does not return.
+- **Slim bar above the grid: TWO rows** again since v2.11.0 — capo state (left)
+  + the **four pills** (right), then the pattern **name** on its own line.
+  **`.app-head` is 55px.** It was one 32px row from v2.10.2, and that collapse is
+  what bought the 31px that moved the musical context above the grid; the name
+  came back down when the Guide became a fourth pill and, with a capo set, left
+  the name **35px** of a 351px row — an ellipsis and nothing else. It now gets
+  the full width in every state. **Measured at 4 bars:** nothing overflows; at
+  414×818 the second row is invisible (112px of stage slack absorbs it), at
+  375×553 the clearance under the grid goes **28px → 11px**, which is the entire
+  price. The name row is **reserved even when empty** (a fresh generation shows
+  no name at all — no "Untitled" placeholder), so saving or loading never shifts
+  the grid. Re-measure both viewports if this row's height changes.
 - **ONE readout above the grid says what you're playing over** (`#chord-head`),
   in both chord modes: the single chord big, or the progression's Roman numerals
   + key. They used to sit in different places — chord above the grid, progression
@@ -138,8 +141,13 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   so **the worst-case readout now renders at 16px** (`CONTEXT_BASE_PX`, which the
   `.context` CSS must match — `fitContext` sets the size inline). `fitContext` is
   pure insurance now; nothing shrinks.
-- **The three pills are ICON-ONLY** (`.pill-icon`, v2.8.1): pencil / floppy /
-  folder, engraved with the transport's intaglio drop-shadow pair so a generic
+- **The pills are ICON-ONLY** (`.pill-icon`, v2.8.1): pencil / floppy /
+  folder — and since v2.11.0 a **`?` Guide** (`.pill-help`), which came out of the
+  Options sheet because it was the only *action* in there wearing a field label,
+  and help belongs with the always-reachable actions rather than on a settings
+  page. Its glyph is a real letter, so it wears the intaglio as a `text-shadow`
+  pair rather than the SVG `drop-shadow` filter. All four are engraved with the
+  transport's intaglio drop-shadow pair so a generic
   glyph reads as part of the faceplate (the clever move is the treatment, not the
   metaphor — a metaphor has to survive at 18px). They were the last text controls
   in an app that otherwise speaks in glyphs, and the words cost width the context
@@ -318,6 +326,29 @@ are still deterministic. Loading restores the pattern **and** its chord context,
 then re-renders — it never re-rolls. `rename(id, name)` (v2.4.5) updates the name
 in place (trims, ignores blanks, keeps pattern/id/savedAt); each Load-menu item is
 Load / Rename / Delete.
+
+**Type — the panel speaks in THREE voices** (session 17), and the rule that
+decides which is *where the words sit*, not what they mean:
+- **`--serif` (Fraunces)** — what a control **says**: values, names, prose, and
+  any word or typed glyph **inside** a control (a dropdown's value, a lamp's
+  name, a segmented button, the capo stepper's `−`/`+`).
+- **`--legend` (Jost)** — what the machine **calls** a thing: the small tracked
+  caps **above** a control, silkscreened on the faceplate. One tier only —
+  10px / 0.16em / 500 (`--legend-size`/`-track`/`-weight`). A group caption
+  (`.sheet-sec`) is the *same object* as a field label, same left edge; it used
+  to be 9px/0.22em indented 2px, i.e. smaller type on the thing that outranks.
+- **`--numeral` (rounded geometric)** — fret digits in note circles, the bar-num
+  chip, ruler ticks, BPM. A **legibility exception**, not a third opinion.
+
+**Jost is bundled (OFL 1.1), not the system Futura it resembles** — referencing
+a commercial system face is only free while every user is on Apple hardware, and
+an OFL face is ours to embed, renders identically everywhere, and stays free if
+this is ever sold. Same footing as Fraunces. Adding any font means adding it to
+`sw.js` PRECACHE and bumping `CACHE`; **two tests** guard it (every `fonts/*.woff2`
+is precached; every bundled file has an `@font-face`, and `--legend` never falls
+back to the rounded stack). Anything typed that isn't in either face must be
+**drawn** — the sheet's `✕` was U+2715 and rendered in Arial, the one system-font
+element in the app.
 
 **Themes:** `themes.json` is the source of truth (**default: `jerry`** since
 v2.9.2 — the app icon is built from Jerry's roles, so the two match) — each theme is 5 roles
@@ -1689,6 +1720,40 @@ install: an up-to-date worker serving stale code, for good.
   deploy, since the fixed worker is the one that has to install. His stuck phone
   self-heals on this deploy — the worker script itself was always fetched fresh,
   so v52 is detected normally and its install is the fixed one.
+
+**v2.11.0** (`CACHE` v53) — **the typography pass.** 64/64 green (+2). It started
+from his note that "something seems a little off" about the fonts in the Options
+sheet, with sizes and placements inconsistent between its two pages. **The
+typefaces were never the problem** — the sheet had *two label systems* and a few
+orphans. Measured before proposing anything (see the Type note above for the rule
+that came out of it):
+
+| what | was | now |
+|---|---|---|
+| group caption vs field label | 9px/0.22em, x=18 | **one tier**: 10px/0.16em, x=16 |
+| the two Options pages | opened with different-looking objects | both open with the same legend |
+| capo value | inherited `0.16em` + caps from `.field` | resets both — a value, not a label |
+| sheet `✕` | U+2715 → **Arial** | drawn SVG |
+| stepper `−`/`+` | rounded sans 19px | serif 18px (inside a control) |
+| "Appearance" caption | a caption that looked like the labels under it | **gone** (~14px back) |
+
+- **The legend face is Jost, bundled** — his call after asking the right question
+  ("is Futura actually free?"). It isn't: Futura, Copperplate, Helvetica Neue and
+  Gill Sans are all commercial, and *referencing* one by name is free only while
+  every user is on Apple hardware. Jost is the OFL Futura-alike; 26,588 bytes,
+  latin subset, variable 400–600.
+- **The choice was made against a true-size mockup**, not a description — six
+  era-appropriate faces in a 375px replica of the sheet with the real values and
+  the real Fraunces, published as an artifact so he could judge on the phone
+  (several candidates are iOS system faces the dev box renders differently or not
+  at all). Keep that trick for any future type question.
+- **The Guide `?` became the fourth header pill** and **the name moved back to its
+  own row** — see "Where controls live". Both his calls, and the second one is
+  what makes the fourth pill free: the name had been down to 35px.
+- Building the mockup surfaced a cascade collision worth remembering: a row
+  modifier `.row.die` and the die button `.die` shared a class, so the row
+  inherited the button's box. The measured geometry caught it; the screenshot
+  alone did not.
 
 ## Working with this user
 
