@@ -14,7 +14,39 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.11.1)
+## On the phone right now (v2.12.0)
+
+Four things off your v2.11.x notes. Nothing here touched the generator.
+
+- **The "Chaos" menu is now "Fingers"**, sitting beside Thumb — the two layers,
+  named. Its sections are **Complexity** (Tame / Loose / Unruly) and
+  **Experimental** (Wild card, formerly Chaos). Saved patterns are unaffected;
+  only the words changed. Worth checking the grouped menu reads clearly at a
+  glance mid-practice.
+- **Long-pressing a control no longer selects its text.** The save-name field is
+  deliberately exempt, so paste still works there.
+- **`CAPO 2 → F♯` in the header**, and the "sounds in" readout is gone from the
+  Options sheet — its slot is free for later. The arrow rather than the words is
+  a fit decision: the words needed 210.6px of the 156.3px the pills leave.
+  Two things to sanity-check on the phone: whether the arrow reads as
+  "shapes → sounding pitch" without being told, and whether having the *shape*
+  key above the grid and the *sounding* key up top is ever confusing.
+- **Three Thumb values were clipping, not just "Dead Thumb"** — "Alternating"
+  and "Root–Fifth" too. The row's three slots are sized by content now; nothing
+  clips in any of the three menus.
+
+**Next up, your order:** swing, then the Guide rewrite (item 6 below — still
+needs the specific thing that annoyed you).
+
+---
+
+## Previously on the phone (v2.11.1) — signed off
+
+The empty name row is **settled: no placeholder**. The rest of the typography
+pass stands as shipped.
+
+<details>
+<summary>v2.11.1 detail, kept for reference</summary>
 
 **The typography pass (v2.11.0 → v2.11.1).**
 - **Panel legends are Jost** — the OFL Futura you chose, bundled (26.6KB) rather
@@ -38,10 +70,7 @@ so it isn't re-litigated.
   sheet's ✕ is drawn rather than rendering in Arial, and the stepper's −/+ join
   the serif like every other typed glyph.
 
-**One open question from it:** an unsaved pattern leaves the name row **empty**
-(no "Untitled" — deliberate). It's genuinely reserved space now, so nothing
-moves; the only question is whether that blank line reads as dead space. The
-alternative is a muted placeholder.
+</details>
 
 **Older items still worth an opinion once you've drilled with them:**
 - **The Sound lamps are one tap further away** since the sheet became two pages.
@@ -98,10 +127,27 @@ field for free.
 decision blocking it. The one thing I'd want from you is the *patterns* — either
 a handful you've saved and like, or a nod to pick a spread across the tiers.
 
-### 3. Swing — OPEN
+### 3. Swing — OPEN, next up
 Timing feel. The only open item that touches the scheduler rather than data.
-Worth pinning down first whether you want a swing **toggle** or a **percentage**,
-and whether it applies to the metronome click as well as the pattern.
+
+**Two of the three forks are already answered by how the code works:**
+- **The click needs no decision.** The metronome only sounds on *beat* slots
+  (quarters), so swinging the 8ths leaves it a straight quarter pulse — which is
+  what you want to practise against anyway.
+- **Bar length stays invariant** as long as each beat/offbeat pair still sums to
+  two slots. So BPM keeps meaning exactly what it means today, and the count-in
+  is untouched. The playhead follows for free, since it reads the audio clock
+  rather than the scheduler.
+
+**The one real fork — toggle vs percentage.** My argument is for **neither
+exactly: named stops in a segmented control** (Straight / Light / Swing, maybe a
+hard fourth), matching the hardware language. Swing is conventionally quoted at a
+few points anyway (50% straight, ~58% shuffle, 66.7% triplet), and a continuous
+slider is fiddly under a thumb mid-practice. Costs one row on sheet page 1, which
+has room. If you want the number visible, the button can carry it.
+
+**Second, smaller call:** does swing save with a pattern? I'd say no — it's a
+feel setting like BPM, which we deliberately don't store.
 
 ### 4. JSON export/import of the Saved library — OPEN
 Insurance against iOS evicting localStorage after ~7 days of not opening the app.
@@ -191,6 +237,24 @@ majors). "Curate first, expand later."
 - **Bundled OFL faces, not system ones** (v2.11.0). Referencing a commercial
   system face is free only while every user is on Apple hardware, and you want
   this commercialisable.
+- **No standalone "cleanup" session** (asked, session 18). The code isn't dirty:
+  nine modules, all small, and a scan found only ~9 exports referenced nowhere
+  (`romanize`, `romanDegrees`, `roleFor`, `modalOpen`, `SAVED_KEY`,
+  `SCHEMA_VERSION`, `getTheme`, `savedThemeId`, plus `resolveMergedBar`, which is
+  live but needlessly exported). A cleanup pass with no trigger is churn — it
+  re-touches working code and re-opens verified layout. Instead: fold dead-code
+  removal into whatever session next touches those files, and do the real
+  structural tidy **attached to** the chord-library refactor, which is the change
+  that would rewrite `data.js` anyway.
+  **What genuinely does need it is the docs** — CLAUDE.md is ~1900 lines and is
+  now part architecture, part changelog, and it's the file every session loads
+  first, so its bloat costs time on every future session. The cheap standalone
+  win is splitting it: architecture and invariants stay, the session-by-session
+  history moves to a CHANGELOG. Offered, not yet done.
+- **"Chaos" is not a UI word any more** (v2.12.0) — the setting is **Fingers**
+  and the off-curve tier is **Wild card**, under an **Experimental** heading that
+  future off-curve ideas can join. The internal ids stay `chaos` because saved
+  patterns store them.
 
 ---
 

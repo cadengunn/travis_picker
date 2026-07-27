@@ -262,7 +262,11 @@ export const CHAOS_PRESETS = {
   },
   chaos: {
     id: "chaos",
-    name: "Chaos",
+    // Named "Wild card", not "Chaos" — the word was doing two jobs. This tier is
+    // deliberately OFF the difficulty curve (session 6, user's call), so calling
+    // both the setting and its outlier by the same name implied a ranking that
+    // doesn't exist. The ID stays `chaos`: saved patterns store it.
+    name: "Wild card",
     maxRestrikes: Infinity, // fully random: anything goes
     minStrikes: 1, // fully random: uniform 1–8 total strike-times
     maxStrikes: 8,
@@ -275,6 +279,16 @@ export const CHAOS_PRESETS = {
 };
 
 export const CHAOS_IDS = ["tame", "loose", "unruly", "chaos"];
+
+// Menu sections for the Fingers selector, same idiom as CHORD_GROUPS/KEY_GROUPS.
+// The split is the point: Tame → Loose → Unruly is a curve you climb, and Wild
+// card isn't on it. A bare divider would only imply that; the caption says it,
+// and "Experimental" leaves room for future off-curve generation ideas.
+// A test asserts these partition CHAOS_IDS.
+export const CHAOS_GROUPS = [
+  { label: "Complexity",   ids: ["tame", "loose", "unruly"] },
+  { label: "Experimental", ids: ["chaos"] },
+];
 
 // `pinchesDownbeatsOnly` is intentionally NOT a per-tier flag: with the standard
 // Travis thumb striking only beats 1-4, a pinch can only land on a downbeat

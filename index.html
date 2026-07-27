@@ -153,11 +153,12 @@
             <button type="button" data-capo-step="1" aria-label="Capo up">+</button>
           </div>
         </div>
-        <!-- No caption: it reads as what the capo does, which is the only thing
-             it could be describing. -->
-        <div class="field field-sounds">
-          <p id="capo-sounds" class="sounds-readout">Concert pitch</p>
-        </div>
+        <!-- The third slot is deliberately EMPTY. The "sounds in" readout used to
+             live here; it moved into the header's capo tag (v2.12.0), where the
+             capo state is already reported, so the two halves of one fact stopped
+             living on two different screens. The slot stays so the row keeps its
+             fixed 3-slot geometry. -->
+        <div class="field"></div>
       </div>
 
       <!-- Row 2 is the die's row, and holds NOTHING else it doesn't re-roll —
@@ -187,13 +188,17 @@
         </div>
       </div>
 
-      <div class="control-row">
+      <!-- Thumb and Fingers sit side by side because that IS the model: two
+           layers, generated and re-rolled independently. The row's slots are
+           UNEVEN (see .control-row.layers) — the Thumb menu has by far the
+           longest values and the other two have the shortest. -->
+      <div class="control-row layers">
         <label class="field">
           <span>Thumb</span>
           <select id="bass"></select>
         </label>
         <label class="field">
-          <span>Chaos</span>
+          <span>Fingers</span>
           <select id="chaos"></select>
         </label>
         <label class="field">

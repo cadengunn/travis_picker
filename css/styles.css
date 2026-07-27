@@ -118,6 +118,18 @@ button, select, input, .cell, .lamp, .stepper, .segmented {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Long-pressing a control on iOS selects its text and can raise the callout
+   menu — correct for a web page, wrong for a piece of gear: nobody wants to
+   select the word "Unruly" off a knob. NOTE the deliberate absence of `input`
+   from this list (unlike the rule above): the save-name field needs selection
+   and paste. Prose stays selectable too — the Guide is for reading. */
+button, select, .cell, .lamp, .stepper, .segmented, .dd-trigger, .dd-option,
+.pill, .capo-tag, .context, .bar-header, .bar-num {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* must beat display:flex etc so hidden controls actually hide */
 [hidden] { display: none !important; }
 
@@ -214,9 +226,18 @@ main {
    untouched. Top-LEFT of the header, the same place in both chord modes. It can
    afford to be here now that the context has moved above the grid: sharing the
    row with the readout, "whole step down" (~124px) left it 63px and truncated
-   the numerals. The pattern name gives way to it (the name ellipsizes). */
+   the numerals. It shares row 1 with the four pills, which don't yield — so the
+   tag is the one that shrinks. (The pattern name has had its own row since
+   v2.11.0 and is no longer involved.) */
 .capo-tag {
-  flex: 0 0 auto;
+  /* Shrinkable, unlike the pills beside it. The worst string it can hold —
+     "WHOLE STEP DOWN → F♯m", single mode on G♯m — measures 151.2px against the
+     156.3px the four pills leave it, and at `0 0 auto` anything longer would
+     shove the pills off the row instead of degrading. It ellipsizes now. */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding-right: 2px;
   font-family: var(--legend);
   font-size: 10px;
@@ -225,6 +246,14 @@ main {
   text-transform: uppercase;
   white-space: nowrap;
   color: var(--muted);
+  /* Carries the sounding key since v2.12.0, so it can contain ♭/♯ — neither is
+     in Jost, and the fallback that serves them has a taller line box. Measured:
+     "CAPO 2 → F♯" takes this box 13px → 14.5px unpinned. That does NOT currently
+     move anything, because the pills beside it are taller and set the row's
+     height — so this pin is insurance, not a fix for an observed bug. It's here
+     because the house rule says any text that can hold ♭/♯ gets one, and the day
+     this row's height stops being pills-driven is not the day to remember why. */
+  line-height: 13px;
 }
 .grid-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
 
@@ -892,6 +921,15 @@ main {
    the die sits IN the row it re-rolls and nothing else. Single mode's chord
    select spans the two flexible columns that Key + Progression share. */
 .control-row.with-die { grid-template-columns: 1fr 1fr 46px; }
+/* Thumb / Fingers / Pattern, sized to their CONTENT rather than into three equal
+   thirds. At 375 an even split gave each menu a 75px label box and three Thumb
+   values overflowed it — "Dead Thumb" needs 94px, "Alternating" 84, "Root–Fifth"
+   78 — while Pattern's longest ("4 bars", 44.7) sat miles inside its own.
+   Measured minimum columns are 127.9 / 104.1 / 78.8 against 327px of track, so
+   there are 16.2px to spread; this split lands 133 / 108 / 86 and leaves every
+   menu 4–7px of slack. Re-measure if any VALUE gets longer — the binding one is
+   Thumb's "Dead Thumb", then Fingers' "Wild card". */
+.control-row.layers { grid-template-columns: 1.22fr 0.99fr 0.79fr; }
 .span-2 { grid-column: span 2; }
 .field {
   min-width: 0;
@@ -968,7 +1006,8 @@ main {
   color: var(--text);
   /* A VALUE, so it must not inherit the legend's caps and tracking from .field
      — 0.16em on "−2" adds a trailing space that shoves the digit off centre in
-     a centred box. (.sounds-readout beside it always reset this; this didn't.) */
+     a centred box. (The readout that used to sit beside it always reset this;
+     this didn't — which is how the bug hid.) */
   letter-spacing: normal;
   text-transform: none;
   /* the minus sign is U+2212, which may fall back off Fraunces — pin the line
@@ -976,30 +1015,9 @@ main {
   line-height: 20px;
 }
 
-/* The concert-pitch readout beside the stepper. Not a control — plain text on
-   the panel, height-matched to the well so the row never jumps. Can contain ♭/♯,
-   hence the pinned line-height. */
-.field-sounds { min-width: 0; }
-.sounds-readout {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  height: 42px;
-  padding: 0 2px;
-  font-family: var(--serif);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* At capo 0 it's reporting that nothing is happening, so it shouldn't carry a
-   control's weight. */
-.sounds-readout.at-zero { color: var(--muted); font-weight: 500; font-size: 13px; }
+/* (The concert-pitch readout that sat beside the stepper is gone as of v2.12.0 —
+   it merged into the header's capo tag, so the capo's state and what it does are
+   one string in one place. Its slot in the row is now empty, not removed.) */
 
 .segmented {
   display: flex;

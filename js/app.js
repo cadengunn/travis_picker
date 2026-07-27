@@ -7,7 +7,7 @@ import {
   SINGLE_CHORD_GROUPS,
   DEFAULT_CHORD,
   BASS_PRESETS,
-  CHAOS_IDS,
+  CHAOS_GROUPS,
   CHAOS_PRESETS,
   PATTERN_LENGTHS,
   DEFAULT_PATTERN_BARS,
@@ -57,7 +57,7 @@ const GLYPH_STOP = "■︎";
 
 // Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.11.1";
+const APP_VERSION = "v2.12.0";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -112,6 +112,8 @@ const chordOptionGroups = () =>
   SINGLE_CHORD_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((c) => ({ value: c, label: CHORDS[c].name })) }));
 const keyOptionGroups = () =>
   KEY_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((k) => ({ value: k, label: KEYS[k].name })) }));
+const chaosOptionGroups = () =>
+  CHAOS_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((c) => ({ value: c, label: CHAOS_PRESETS[c].name })) }));
 
 const keyMode = () => KEYS[state.key]?.mode || "major";
 const CUSTOM_OPTION = { value: CUSTOM_PROGRESSION_ID, label: "Custom" };
@@ -120,7 +122,7 @@ function initControls() {
   fillSelectGrouped(el("chord"), chordOptionGroups());
   fillSelectGrouped(el("key"), keyOptionGroups());
   fillSelect(el("bass"), BASS_PRESETS, (p) => p.id, (p) => p.name);
-  fillSelect(el("chaos"), CHAOS_IDS, (c) => c, (c) => CHAOS_PRESETS[c].name);
+  fillSelectGrouped(el("chaos"), chaosOptionGroups());
   fillSelect(el("pattern"), PATTERN_LENGTHS, (n) => n, (n) => `${n} bar${n > 1 ? "s" : ""}`);
   fillSelect(el("label-mode"), LABEL_MODES, (m) => m.id, (m) => m.name);
 
@@ -254,10 +256,10 @@ function renderCapo() {
   for (const b of el("capo").querySelectorAll("[data-capo-step]")) {
     b.disabled = clampCapo(state.capo + Number(b.dataset.capoStep)) === state.capo;
   }
-  const sounds = el("capo-sounds");
+  // The "sounds in" readout no longer lives beside the stepper — it's part of the
+  // header tag now (renderCapoTag). The stepper keeps saying it out loud, since
+  // the tag is visual and this is the control you're actually operating.
   const label = soundingLabel();
-  sounds.textContent = label ? `Sounds in ${label}` : "Concert pitch";
-  sounds.classList.toggle("at-zero", !label);
   el("capo").setAttribute("aria-label", `Capo ${state.capo}${label ? `, sounds in ${label}` : ""}`);
 }
 
@@ -266,10 +268,26 @@ function renderCapo() {
 // in single mode, which moved it down the screen when you switched. Costs no
 // layout either way: the header row is already reserved, and the tag only exists
 // when a capo is set.
+// Since v2.12.0 it carries the SOUNDING key too — "capo 2 → F♯" — which used to
+// sit in the Options sheet, i.e. one half of a single fact on each of two
+// screens. The arrow, not "sounds in": it reads as a transform (shapes → pitch),
+// which is what a capo is, and it fits. Width is the constraint — the four pills
+// leave the tag 156.3px at 375, and the longest string it can actually produce
+// ("WHOLE STEP DOWN → F♯m", single mode on G♯m at capo −2) measures 151.2px. The
+// old wording needed 210.6px, which is why this isn't "sounds in". Re-measure if
+// the pills, the wording, or the chord library change; .capo-tag ellipsizes so
+// that a miss degrades instead of shoving the pills off the row.
+// NOTE: this can now contain ♭/♯, which fall back off Jost onto a taller line
+// box — hence the pinned line-height on .capo-tag. Measured, that grows the
+// TAG's box 13 → 14.5px but not the row, since the pills are taller; the pin is
+// insurance for the day that stops being true.
 function renderCapoTag() {
   const tag = el("capo-tag");
   const label = capoLabel(state.capo);
-  tag.textContent = label ?? "";
+  const sounds = soundingLabel();
+  tag.textContent = label ? (sounds ? `${label} → ${sounds}` : label) : "";
+  // The arrow is a glyph, not a word; say it properly for a screen reader.
+  tag.setAttribute("aria-label", label ? `${label}${sounds ? `, sounds in ${sounds}` : ""}` : "");
   tag.hidden = !label;
 }
 
@@ -714,6 +732,9 @@ function summarize(item) {
   const ctx = item.context || {};
   const p = item.pattern || {};
   const bassName = BASS_PRESETS.find((b) => b.id === p.bass)?.name ?? p.bass;
+  // The preset's NAME, not its stored id — the id is `chaos` but the menu says
+  // "Wild card", and a saved item that disagrees with the control is confusing.
+  const fingersName = CHAOS_PRESETS[p.chaos]?.name ?? p.chaos;
   const where =
     ctx.chordMode === "progression"
       ? `${(ctx.progression || []).map((c) => degreeLabel(c, ctx.key)).join("–")} (key ${ctx.key})`
@@ -721,7 +742,7 @@ function summarize(item) {
   const bars = p.patternBars ? `${p.patternBars} bar${p.patternBars > 1 ? "s" : ""}` : "";
   // Only when set: two saves that differ only by capo would otherwise look
   // identical in the list (and collide on the default name).
-  return [where, capoLabel(ctx.capo), bassName, p.chaos, bars].filter(Boolean).join(" · ");
+  return [where, capoLabel(ctx.capo), bassName, fingersName, bars].filter(Boolean).join(" · ");
 }
 
 // One warm-green flash on the save-confirmation lamp. Restart the one-shot each

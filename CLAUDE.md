@@ -120,7 +120,11 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   Only things you reach for mid-practice. 44px tap targets — don't shrink them
   to buy slider width.
 - **Slim bar above the grid: TWO rows** again since v2.11.0 — capo state (left)
-  + the **four pills** (right), then the pattern **name** on its own line.
+  + the **four pills** (right), then the pattern **name** on its own line. The
+  capo tag says both halves of the fact since v2.12.0 (`CAPO 2 → F♯`), so it is
+  now **width-critical**: the pills leave it 156.3px and its worst string needs
+  151.2px. It's shrink-and-ellipsize, not fixed, for exactly that reason —
+  re-measure it if the pills or the wording change.
   **`.app-head` is 55px.** It was one 32px row from v2.10.2, and that collapse is
   what bought the 31px that moved the musical context above the grid; the name
   came back down when the Guide became a fourth pill and, with a capo set, left
@@ -180,7 +184,9 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   `line-height` makes every inline box the same height whatever font serves the
   glyph. Watch for this on any new text that can contain them.
 - **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Generation** (chord mode +
-  capo, then the chord/key+progression row, then thumb/chaos/pattern length) and
+  capo, then the chord/key+progression row, then Thumb/Fingers/Pattern length —
+  the last of those is `.control-row.layers`, whose three slots are UNEVEN
+  because its menus' longest values are; see session 18) and
   **Preferences** (the Sound lamp bank, note labels, theme, guide). You set all of
   it sitting down, between takes. The split exists to buy height: one page had
   ~27px spare at 375×553, so nothing new could be added. The gear always opens on
@@ -395,6 +401,17 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - **Hand domains:** fingers own strings 3/2/1 (i→3, m→2, a→1). **Chord-aware thumb domain:** thumb-legal = `{6,5,4}` ∪ the current chord's role strings. This is why D's alt-bass legitimately lands on string 3 — see `thumbLegalStrings()` in `data.js`.
 - **Two independent layers.** `thumbBars` and `trebleBars` are generated and stored separately, and the **finger layer is generated free of the thumb** (strings 1/2/3 only — the thumb is NOT seeded into the treble generator). They merge **per chord at resolve time** (`resolveMergedBar` → `enforceHardRule`, bass added first so it wins a same-slot collision). `regenerateBass()` re-rolls the thumb keeping the exact finger part, `regenerateTreble()` does the reverse — so the Thumb and Chaos controls each disturb only their own layer, and you can audition bass patterns under one right-hand part. Only Pattern-length and **Generate** re-roll everything.
   - **Fingers generate wherever they want; the bass overwrites string-3 collisions per chord** (session 10). A shared 1-bar cell over a D-key progression keeps its string-3 fingers in the G/A bars and lets D/Dm's alt bass overwrite only the D bars — before, a D reference chord seeded string 3 into the treble generator and starved every bar there. If a bar's whole finger part was string-3 pinches on a D/Dm alt-bass beat, `resolveMergedBar` rescues one finger onto a free string so no bar goes bare-thumb.
+- **The finger-density setting is called "Fingers" in the UI** (session 18), and
+  its outlier tier is **"Wild card"**, not "Chaos". The word was doing two jobs —
+  naming the whole setting *and* its one off-curve member, which implied a
+  ranking that doesn't exist. The legend is `Fingers` because it sits beside
+  `Thumb` and those are literally the two layers the generator keeps separate.
+  The menu is grouped by `CHAOS_GROUPS`: **Complexity** (Tame/Loose/Unruly) and
+  **Experimental** (Wild card) — a caption states what a bare divider could only
+  imply, and "Experimental" leaves room for future off-curve generation ideas.
+  **All internal ids are unchanged** (`chaos`, `CHAOS_PRESETS`, `state.chaos`):
+  saved patterns store the id, so renaming it would break the library. A test
+  asserts `CHAOS_GROUPS` partitions `CHAOS_IDS`.
 - **Chaos** is built as **presets over independent flags** (`CHAOS_PRESETS`),
   not branching code. The generator reads these numbers and **never branches on
   preset name** — tune feel by editing `CHAOS_PRESETS` only. The **difficulty
@@ -1572,7 +1589,10 @@ what your fingers do. It's a label plus one addend in `midiOf(event, capo)`.
   carved keys sunk into its ends, end-stops disabled at the limits.
 - **Invisible at capo 0**, also his call — at 0 the readout says "Concert pitch"
   and no on-screen indicator exists, so the default screen is the app exactly as
-  it was. Set one and a tag appears at the **right end of the NAME row**, the same
+  it was. *(v2.12.0: the sheet's readout is gone entirely — the tag carries the
+  sounding key now, and the tag still doesn't exist at capo 0, so the rule holds.
+  The tag also moved top-left in v2.10.2. See session 18.)* Set one and a tag
+  appears at the **right end of the NAME row**, the same
   place in both chord modes (v2.10.1 — it first rode the context in progression
   mode and the chord head in single mode, so it moved down the screen when you
   switched). **Costs zero layout**: the name row's height is reserved whether or
@@ -1586,8 +1606,9 @@ what your fingers do. It's a label plus one addend in `midiOf(event, capo)`.
   which is the right precedence.
 - **Concert spelling is flat-preferred except F♯** — "capo 3 with G shapes sounds
   in B♭", the way a guitarist says it. Quality suffixes survive (`Am`+2 → `Bm`,
-  `C7`+3 → `E♭7`). Those are real ♭/♯ glyphs, so **`.sounds-readout` has a pinned
-  `line-height`** like everything else that can carry them.
+  `C7`+3 → `E♭7`). Those are real ♭/♯ glyphs, so whatever displays them needs a
+  pinned `line-height` — that was `.sounds-readout` here; since v2.12.0 it's
+  **`.capo-tag`**, and `.sounds-readout` no longer exists.
 - **Capo is musical CONTENT**, so it joins the saved item's context (absent on
   pre-capo saves ⇒ `clampCapo(undefined)` = 0, which is what they were) and shows
   in the saved-list metadata, where two saves differing only by capo would
@@ -1778,6 +1799,63 @@ ships.** 65/65 green (+1).
   **4px** by `position: relative; top` — never a `transform`, which would promote a
   compositing layer and re-open the iOS lingering-label bug. Side benefit: at 4
   bars on 375×553 the outline had come within **4px** of the transport, now 6px.
+
+## Where things stand (session 18, 2026-07-27)
+
+**v2.12.0** (`CACHE` v55) — four items off his v2.11.x phone notes. 66/66 green
+(+1). Nothing here changed the generator or the musical model; three of the four
+were naming and fit.
+
+- **The empty name row is signed off** — a fresh generation shows no name, and
+  the blank reserved line reads fine. Closed; no placeholder.
+- **"Chaos" the setting became "Fingers", and Chaos the tier became "Wild
+  card"** — see the Fingers note under "Key rules" for the reasoning and the
+  group table. His call on all three words; "Fingers" (rather than
+  "Complexity", which is where we started) is the better one because it pairs
+  with Thumb and names the layer instead of the axis.
+- **Long-press no longer selects control text.** `-webkit-user-select: none` +
+  `-webkit-touch-callout: none`, alongside the `touch-action`/tap-highlight rule
+  those controls already share. **`input` is deliberately NOT in the new list** —
+  the save-name field needs selection and paste — which is why it's a second
+  rule rather than an addition to the first. Prose stays selectable.
+  Device-only to judge; the dev box can only confirm the computed property.
+- **The "sounds in" readout left the Options sheet for the header tag**, which
+  now reads `CAPO 2 → F♯`. It was one fact split across two screens. The **arrow,
+  not the words**, because the words don't fit: measured at 375, the four pills
+  leave the tag **156.3px**, and `WHOLE STEP DOWN · SOUNDS IN B♭m` needs
+  **210.6px**. The worst string the app can actually produce is
+  `WHOLE STEP DOWN → F♯m` (single mode on G♯m, capo −2) at **151.2px** — it fits,
+  with 14.1px to the pills, but that's thin enough that `.capo-tag` went
+  `flex: 0 0 auto` → `0 1 auto` with an ellipsis, so a longer future string
+  degrades instead of shoving the pills off the row. **Verified across capo
+  −2…+5 in both modes: `.app-head` stays 55.09px and the grid top never moves.**
+  The freed sheet slot is left empty (the row keeps its fixed 3-slot geometry).
+  - **`.capo-tag` gained a pinned `line-height`** because it can now hold ♭/♯.
+    Measured: unpinned, `CAPO 2 → F♯` takes the tag's box **13px → 14.5px**. That
+    doesn't currently move anything — the pills are taller and set the row height
+    — so the pin is **insurance, not a fix for an observed bug**. It's there
+    because the house rule says so, and because the day this row stops being
+    pills-driven is not the day to rediscover it.
+- **Three Thumb values were being clipped, not one.** He reported "Dead Thumb";
+  the label box was 75px and `Dead Thumb` needs **94**, `Alternating` **84**,
+  `Root–Fifth` **78**. The row was three equal thirds while `Pattern`'s longest
+  value ("4 bars") needs only 44.7. `.control-row.layers` splits it by measured
+  content instead — **133 / 108 / 86** of 327px of track, every menu with 4–7px
+  of slack, nothing clipped. Note the rename moved the binding constraint: "Wild
+  card" (70.1) is longer than "Unruly" and clipped by 1px under the first split,
+  which is why the numbers are content-derived rather than eyeballed.
+- Riding along: the saved-pattern list showed the raw tier **id** (`chaos`), so
+  it now disagreed with the menu — it prints `CHAOS_PRESETS[id].name` instead.
+
+**Still unbuilt and next in his order: swing, then the Guide rewrite.** Swing's
+one real fork is toggle vs percentage vs named stops (my argument for named
+stops is in the open list). Two of its forks are already answered by the code:
+the click only sounds on **beat** slots, so the metronome stays a straight
+quarter pulse for free, and bar length is invariant as long as each
+beat/offbeat pair sums to two slots — so BPM keeps its meaning and the count-in
+is untouched. He also asked when to do a code-cleanup session; the answer
+recorded in `OPEN_ITEMS.md` is "not on its own" — the code is clean, the docs
+are what need it.
 
 ## Working with this user
 

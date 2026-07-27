@@ -16,6 +16,9 @@ import {
   KEY_IDS,
   CHORD_GROUPS,
   SINGLE_CHORD_GROUPS,
+  CHAOS_GROUPS,
+  CHAOS_IDS,
+  CHAOS_PRESETS,
   PROGRESSIONS,
   CUSTOM_PROGRESSION_ID,
   CHORD_SHAPES,
@@ -354,6 +357,21 @@ check("chord groups partition the library exactly", () => {
     for (const id of grouped) assert(CHORDS[id], `${name} references unknown chord ${id}`);
     for (const id of CHORD_IDS) assert(grouped.includes(id), `${name}: chord ${id} is in no group`);
   }
+});
+
+// 6c) Same contract for the Fingers menu's sections: every tier in exactly one
+//     group, no strays, and every group id real. The menu is grouped so that
+//     "Wild card" reads as OFF the Tame→Loose→Unruly curve rather than as its
+//     top step — if a new tier were added and left out of CHAOS_GROUPS it would
+//     silently vanish from the menu while still being a legal saved value.
+check("chaos groups partition the tiers exactly", () => {
+  const grouped = CHAOS_GROUPS.flatMap((g) => g.ids);
+  assert(grouped.length === CHAOS_IDS.length,
+    `CHAOS_GROUPS lists ${grouped.length} tiers, there are ${CHAOS_IDS.length}`);
+  assert(new Set(grouped).size === grouped.length, "CHAOS_GROUPS: a tier appears in two groups");
+  for (const id of grouped) assert(CHAOS_PRESETS[id], `CHAOS_GROUPS references unknown tier ${id}`);
+  for (const id of CHAOS_IDS) assert(grouped.includes(id), `CHAOS_GROUPS: tier ${id} is in no group`);
+  for (const g of CHAOS_GROUPS) assert(g.label && g.ids.length, `CHAOS_GROUPS: empty group ${g.label}`);
 });
 
 // 7) Nashville: every token in every key resolves to a real chord, and each key
