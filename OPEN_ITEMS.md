@@ -13,6 +13,18 @@ so it isn't re-litigated.
 
 ---
 
+## Fixed in v2.10.4 (session 17)
+
+- **The home-screen app could install a stale deploy and stay there forever** —
+  your report, and a real bug. `sw.js` fetched its own script fresh (so it *saw*
+  the new deploy) but precached the app files through the browser's HTTP cache,
+  which GitHub Pages marks good for 10 minutes. v2.10.2 and v2.10.3 went out 11
+  minutes apart, so the new worker installed under the new cache name and filled
+  it with v2.10.2's bytes. Nothing re-fetches after install, which is why closing
+  and reopening never helped. The precache now forces the network. **Your phone
+  should self-heal on this deploy**; if it somehow doesn't, delete and re-add the
+  icon and tell me — that would mean something else is wrong.
+
 ## On the phone right now (v2.10.2)
 
 - **The Options sheet is two pages** — Generation / Preferences. Built to make
@@ -202,6 +214,22 @@ interrupt background music.
 (Android has), and the one reported workaround is a narrow iOS 17.4 checkbox trick
 that can't reach an arbitrary button. Revisit this and haptics together **only if
 this ever becomes a real App Store app** — a much later road.
+
+### 9c. Revisit the Guide (help menu) — OPEN, needs your framing
+Your call, from the v2.10.x phone notes. It was written in one pass in v2.6.0 and
+has only been touched once since (v2.6.1 fixed "amber/cream" to "bottom rows /
+top rows", because note colours are theme-driven). Since then the app has gained
+the **capo**, the **two-page Options sheet**, **minor keys / tokens / dom7
+chords**, and **icon-only pills** — and the icon-only pills are the one thing in
+the app that *needs* explaining, which makes the Guide load-bearing rather than
+decorative.
+
+**Worth deciding what's wrong with it before rewriting:** is it *stale* (says
+things that have moved), *too long* (six headings you scroll past to reach the
+legend), *the wrong shape* (reference vs a first-run tour), or *hard to find*
+(it's behind the gear, on page 2, as a "?" key)? Those pull in different
+directions — a first-run tour is a feature, a rewrite is an afternoon of copy.
+Bring the specific thing that annoyed you and it'll be obvious which.
 
 ### 10. Saved-name crowding — OPEN, only if it bites
 Three buttons per saved item (Load/Rename/Delete) narrow the name column, so long

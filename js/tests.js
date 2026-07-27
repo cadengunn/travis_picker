@@ -1407,6 +1407,24 @@ acheck("pwa: service worker precaches every runtime module (offline stays comple
   }
 });
 
+acheck("pwa: the precache bypasses the HTTP cache (or a deploy can install stale)", async () => {
+  const swText = await (await fetch("sw.js")).text();
+
+  // This is the session-17 bug, and it is invisible from inside the app: pages
+  // are served max-age=600, so `cache.addAll` — which fetches through the HTTP
+  // cache — can fill a NEW cache with the PREVIOUS deploy's bytes when two
+  // deploys land within ten minutes. Nothing re-fetches afterwards, so the app
+  // runs stale code permanently with an up-to-date worker on top of it.
+  assert(!/\.addAll\s*\(/.test(swText),
+    "sw.js must not precache with cache.addAll — it reads through the HTTP cache");
+  assert(/cache:\s*["']reload["']/.test(swText),
+    "precache fetches must force the network with { cache: \"reload\" }");
+
+  // The install must still fail loudly on a bad response, so a half-filled
+  // cache never gets to skipWaiting and replace a working app shell.
+  assert(/res\.ok/.test(swText), "a failed precache response must abort the install");
+});
+
 // ---- render report ----
 export async function runTests(mount) {
   for (const { name, fn } of asyncChecks) {

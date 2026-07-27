@@ -6,11 +6,11 @@
 // code; this SW only ever registers on the real HTTPS origin (see app.js), so
 // it never fights that.
 //
-// ⚠️ THE ONE FOOTGUN: browsers serve these cached files until a NEW service
+// ⚠️ THE DEPLOY FOOTGUN: browsers serve these cached files until a NEW service
 // worker activates. Bump CACHE on every deploy or users get stale code. The old
 // cache is deleted in `activate`. (If a pushed change doesn't show on the phone:
 // force-quit the app and reopen so the waiting SW can take over.)
-const CACHE = "travis-picker-v51";
+const CACHE = "travis-picker-v52";
 
 // App shell — everything needed to boot offline. Relative paths resolve against
 // this script's location, so the whole set is subpath-safe under GitHub Pages
@@ -41,11 +41,28 @@ const PRECACHE = [
   "icons/favicon-32.png",
 ];
 
+// ⚠️ THE SECOND FOOTGUN, and the one that actually bit (session 17): the
+// precache MUST bypass the HTTP cache. `cache.addAll` fetches through it, and
+// GitHub Pages serves app files `max-age=600` — so a worker installing within
+// ten minutes of the PREVIOUS deploy fills the NEW cache with the OLD bytes.
+// That state is permanent and silent: the cache is only ever written here, so
+// there is nothing left to install, the app runs stale code under an up-to-date
+// worker, and force-quitting can't shake it loose. `cache: "reload"` forces
+// every precache request to the network. (`updateViaCache: "none"` in app.js
+// only exempts sw.js itself — it does nothing for the files sw.js fetches.)
+async function precache() {
+  const cache = await caches.open(CACHE);
+  await Promise.all(PRECACHE.map(async (path) => {
+    const res = await fetch(new Request(path, { cache: "reload" }));
+    // A partial precache is worse than none: fail the install and let the old
+    // worker keep serving, rather than shipping a half-updated app shell.
+    if (!res.ok) throw new Error(`precache failed for ${path} (${res.status})`);
+    await cache.put(path, res);
+  }));
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(precache().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {

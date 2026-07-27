@@ -547,6 +547,16 @@ works in **airplane mode**, saved patterns persist offline. 32/32 checks green.
   stale code until a new SW activates. Doc-only pushes (CLAUDE.md/spec/workflow/
   tests aren't precached) don't need a bump. If a change doesn't show on the
   phone: force-quit and reopen so the waiting SW takes over.
+- **⚠️ THE SECOND FOOTGUN, found in session 17: the precache MUST bypass the
+  HTTP cache.** GitHub Pages serves app files `max-age=600`, and `cache.addAll`
+  fetches through that cache — so a worker installing within ten minutes of the
+  PREVIOUS deploy fills the NEW cache with the OLD bytes. The state is permanent
+  and silent (the cache is written only at install, so nothing re-fetches; the
+  app runs stale code under a current worker and force-quitting can't shake it
+  loose). `install` now fetches each entry with `{ cache: "reload" }`. Measured,
+  not theorised: against a `max-age=600` response, three default-mode fetches
+  never reached the server and a `reload` fetch did. `updateViaCache: "none"`
+  only exempts `sw.js` itself — it does nothing for the files `sw.js` fetches.
 - **The SW only registers on the real HTTPS origin** — `app.js` skips
   `localhost`/`127.0.0.1` so it never fights `serve.py`'s no-store while
   developing (and a plain-http `--lan` origin can't register a SW anyway). So the
@@ -1636,6 +1646,49 @@ Anything larger needs a different trade, not just a bigger number.
   that viewport ever matters, it's its own piece of work.
 - `CONTEXT_BASE_PX` (app.js) and `.context`'s `font-size` must stay in step —
   `fitContext` writes the size inline, so the CSS value is only the resting state.
+
+## Where things stand (session 17, 2026-07-27)
+
+**v2.10.4** (`CACHE` v52) — **the installed app could precache a stale deploy,
+permanently.** 63/63 green (+1). His report: the site had updated but the
+home-screen app still showed the previous version, and force-quitting didn't
+help. It was a real bug, and *not* in the update detection that v2.8.0 fixed.
+
+**The mechanism, and why force-quitting couldn't help.** `updateViaCache: "none"`
+makes the browser fetch **`sw.js`** from the network, which is why a new deploy
+is *detected* — but the files that `sw.js` then precaches go through the ordinary
+HTTP cache, and GitHub Pages serves them `max-age=600`. Two deploys inside ten
+minutes (v2.10.2 → v2.10.3 were **11 minutes apart**, plus ~a minute of Pages
+build) and the new worker installs correctly under the new cache name while
+filling it with the **previous** deploy's bytes. After that there is nothing left
+to install and nothing ever re-fetches, because the cache is only written at
+install: an up-to-date worker serving stale code, for good.
+- **Fix:** `install` fetches each entry as `new Request(path, { cache: "reload" })`
+  and `cache.put`s it, replacing `cache.addAll`. A non-`ok` response now throws,
+  so a partial precache fails the install and the old worker keeps serving rather
+  than a half-updated shell reaching `skipWaiting`.
+- **Measured, not theorised** (the diagnosis was otherwise circumstantial): a
+  scratchpad endpoint serving `Cache-Control: max-age=600` with a server-side hit
+  counter showed three default-mode fetches leaving the counter at **1** — the
+  browser answering from its own cache — and a `{ cache: "reload" }` fetch taking
+  it to **2**. That is exactly what `addAll` was doing to the app shell.
+- **Verified the replacement actually installs** (a typo here breaks offline,
+  which is worse than the bug): registered by hand against the mirror, the worker
+  reached `activated` and controlling, with all **23** entries present and the
+  cached `js/app.js` carrying the new `APP_VERSION`.
+- **`registerServiceWorker()` moved OUT of `boot()`** — it now runs at module
+  scope before it, and falls back to calling `start()` directly if `readyState`
+  is already `complete`. Anything throwing earlier in `boot` used to take the
+  registration with it, and an app that can't check for updates **can't ship its
+  own fix** — that failure mode ends in "delete and re-add the icon". The updater
+  is the one thing that must survive a broken build.
+- **Test:** `sw.js` source must not contain `.addAll(`, must contain
+  `cache: "reload"`, and must check `res.ok`. Source-level, because the invariant
+  is invisible from inside the app and its failure is silent.
+- **Bootstrap caveat, same as v2.8.0's:** the fix only starts protecting the next
+  deploy, since the fixed worker is the one that has to install. His stuck phone
+  self-heals on this deploy — the worker script itself was always fetched fresh,
+  so v52 is detected normally and its install is the fixed one.
 
 ## Working with this user
 

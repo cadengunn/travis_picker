@@ -57,7 +57,7 @@ const GLYPH_STOP = "■︎";
 
 // Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.10.3";
+const APP_VERSION = "v2.10.4";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -1147,10 +1147,18 @@ const playbackGuard = createPlaybackGuard({ onHidden: stopTransport });
 // On localhost a cache-first SW would fight serve.py's no-store and feed you
 // stale code while developing; over `--lan` (plain http) the browser blocks SW
 // registration anyway. So it runs only where it should: the Pages deploy.
+//
+// It runs OUTSIDE boot() on purpose. Anything that threw earlier in boot would
+// take the registration down with it, and an app that can't check for updates
+// can't ship its own fix — you'd be stuck deleting and re-adding the icon. The
+// updater is the one thing that must survive a broken build.
 function registerServiceWorker() {
   const host = location.hostname;
   if (host === "localhost" || host === "127.0.0.1") return;
-  window.addEventListener("load", () => { updater.start("sw.js"); });
+  // `load` keeps registration out of the way of the first paint — but if the
+  // module happened to evaluate after it, that event is never coming.
+  if (document.readyState === "complete") updater.start("sw.js");
+  else window.addEventListener("load", () => { updater.start("sw.js"); });
 }
 
 // ----- boot -----
@@ -1167,7 +1175,6 @@ async function boot() {
   metronome.setCountInEnabled(audioPrefs.countIn);
   setUiSoundEnabled(audioPrefs.ui);
   attach();
-  registerServiceWorker();
   // Hold the screen awake for as long as the app is up — a screen lock ends
   // practice mid-take. Re-acquired on every return to foreground (platform.js).
   wakeLock.start();
@@ -1193,4 +1200,5 @@ async function boot() {
   }
 }
 
+registerServiceWorker(); // before boot, so a boot failure can still be fixed by a deploy
 boot();
