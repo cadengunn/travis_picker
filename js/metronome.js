@@ -30,6 +30,17 @@ export const BPM_MIN = 40;
 export const BPM_MAX = 240;
 export const DEFAULT_BPM = 90;
 
+// If the page is frozen — a locked screen, a backgrounded tab, a sleeping
+// laptop — setTimeout stops firing while the audio clock keeps running, so
+// nextSlotTime falls behind ctx.currentTime. Web Audio plays anything scheduled
+// in the PAST immediately, so the plain catch-up loop below would dump every
+// missed slot at once (the disjointed burst on unlock). Past this much drift we
+// drop the missed slots and resume from where the clock actually is. app.js
+// stops the transport on the way out (platform.js's playback guard); this is the
+// backstop for a freeze nothing tells us about.
+export const MAX_DRIFT = 0.25;                            // seconds, ≈2 8ths at the top tempo
+export const hasDrifted = (nextSlotTime, now) => now - nextSlotTime > MAX_DRIFT;
+
 // --- pure helpers (unit-tested) ---
 export const secondsPerSlot = (bpm) => 30 / bpm;          // an 8th = half a beat
 export const isBeatSlot = (slotInBar) => slotInBar % 2 === 0; // 0,2,4,6 -> beats 1..4
@@ -78,6 +89,12 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
   }
 
   function scheduler() {
+    // Resync rather than replay a backlog into the past (see hasDrifted above).
+    // The queued playhead positions are stale too, so they go with it.
+    if (hasDrifted(nextSlotTime, ctx.currentTime)) {
+      nextSlotTime = ctx.currentTime + 0.02;
+      queue.length = 0;
+    }
     while (nextSlotTime < ctx.currentTime + SCHEDULE_AHEAD) {
       const inCountIn = countRemaining > 0;
       const slotInBar = inCountIn ? SLOTS_PER_BAR - countRemaining : step % SLOTS_PER_BAR;

@@ -41,7 +41,7 @@ import { createMetronome, DEFAULT_BPM } from "./metronome.js";
 import { setUiSoundEnabled, playPress, playRelease } from "./ui-sound.js";
 import { confirmModal, promptModal, infoModal } from "./modal.js";
 import { enhanceSelect, enhanceAll } from "./dropdown.js";
-import { createWakeLock, createAudioSession, createAppUpdater } from "./platform.js";
+import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -517,12 +517,20 @@ const metronome = createMetronome({
   },
 });
 
+// The one way playback ends, whether you pressed stop or the phone went away in
+// your pocket. Handing the audio category back matters as much as killing the
+// scheduler: "playback" is what keeps iOS sounding us in the background.
+function stopTransport() {
+  if (!metronome.running) return;
+  metronome.stop();
+  audioSession.setPlayback(false); // back to a category that respects silent mode
+  el("play").setAttribute("aria-pressed", "false");
+  showCountIn(null); // clears the dim and resets the label
+}
+
 async function togglePlay() {
   if (metronome.running) {
-    metronome.stop();
-    audioSession.setPlayback(false); // back to a category that respects silent mode
-    el("play").setAttribute("aria-pressed", "false");
-    showCountIn(null); // clears the dim and resets the label
+    stopTransport();
     return;
   }
   el("play").setAttribute("aria-pressed", "true");
@@ -1021,6 +1029,9 @@ const audioSession = createAudioSession();
 const updater = createAppUpdater({
   canReload: () => !state.unsavedEdits && !metronome.running,
 });
+// Lock the screen (or switch apps) mid-take and the take is over — a frozen page
+// can't hold a beat, and its backlog comes out as a burst on the way back.
+const playbackGuard = createPlaybackGuard({ onHidden: stopTransport });
 
 // Register the offline service worker — but ONLY on the real HTTPS origin.
 // On localhost a cache-first SW would fight serve.py's no-store and feed you
@@ -1050,6 +1061,7 @@ async function boot() {
   // Hold the screen awake for as long as the app is up — a screen lock ends
   // practice mid-take. Re-acquired on every return to foreground (platform.js).
   wakeLock.start();
+  playbackGuard.start();
   await generate(); // roll one immediately so the grid is never empty
   refreshSavedCount();
 

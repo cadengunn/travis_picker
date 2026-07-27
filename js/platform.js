@@ -1,10 +1,11 @@
 // platform.js — the OS integrations that make an installed PWA behave like a
-// native app. Three of them, none of which the app's musical model knows about:
+// native app. Four of them, none of which the app's musical model knows about:
 //
 //   1. createWakeLock()   — keep the screen on while you're playing guitar.
 //   2. createAudioSession() — let the transport sound through iOS's silent switch.
 //   3. createAppUpdater() — pick up a new deploy on launch instead of needing a
 //      force-quit (or a trip to the site in Safari first).
+//   4. createPlaybackGuard() — end playback when the page stops being visible.
 //
 // Every one is FEATURE-DETECTED and degrades to a silent no-op: these are all
 // young or WebKit-only APIs, and a practice tool must never break because a
@@ -188,6 +189,45 @@ export function createAppUpdater({
         console.error("Service worker registration failed.", err);
         return null;
       }
+    },
+  };
+}
+
+// ----- 4. Stop playback when the page goes away -----
+// THE BUG THIS FIXES: lock the phone mid-take and the audio kept going, in
+// bursts. Two things conspire. The transport holds the "playback" audio category
+// (integration 2), which is exactly what tells iOS to keep our sound alive in the
+// background like a music app — while the JS timer driving the lookahead
+// scheduler is throttled or frozen. The audio clock keeps running, `nextSlotTime`
+// falls behind it, and the next time the timer does fire, every missed slot is
+// scheduled at a time already in the past. Web Audio plays those IMMEDIATELY, so
+// they all land at once: the disjointed stutter.
+//
+// A backgrounded practice tool has nothing to play for, so the fix is simply to
+// end the take. `visibilitychange` is the only signal the web gives us here, and
+// it cannot tell a screen lock from an app switch or a pulled-down notification
+// shade — so all of those stop the transport too. That's the right behaviour
+// anyway: none of them leave you looking at the grid. `pagehide` covers the
+// harder exits (bfcache, termination) that never report a visibility change.
+export function createPlaybackGuard({ doc = document, win = window, onHidden = () => {} } = {}) {
+  let started = false;
+
+  const onVisible = () => { if (doc.visibilityState === "hidden") onHidden(); };
+  const onPageHide = () => { onHidden(); };
+
+  return {
+    get started() { return started; },
+    start() {
+      if (started) return;
+      started = true;
+      doc.addEventListener("visibilitychange", onVisible);
+      win?.addEventListener?.("pagehide", onPageHide);
+    },
+    stop() {
+      if (!started) return;
+      started = false;
+      doc.removeEventListener("visibilitychange", onVisible);
+      win?.removeEventListener?.("pagehide", onPageHide);
     },
   };
 }

@@ -47,12 +47,14 @@ import {
   secondsPerSlot,
   isBeatSlot,
   stepToPosition,
+  hasDrifted,
+  MAX_DRIFT,
   BPM_MIN,
   BPM_MAX,
 } from "./metronome.js";
 import { enhanceSelect } from "./dropdown.js";
 import { confirmModal, promptModal, infoModal } from "./modal.js";
-import { createWakeLock, createAudioSession, createAppUpdater } from "./platform.js";
+import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 
 const results = [];
 function check(name, fn) {
@@ -1037,6 +1039,18 @@ check(`metronome: bpm is clamped to the ${BPM_MIN}-${BPM_MAX} range`, () => {
   assert(m.running === false, "a fresh metronome should not be running");
 });
 
+check("metronome: a frozen page resyncs instead of replaying its backlog", () => {
+  // Normal running: the scheduler always queues AHEAD of the audio clock, so
+  // nothing here may ever count as drift.
+  assert(!hasDrifted(10 + 0.2, 10), "a full schedule-ahead window is not drift");
+  assert(!hasDrifted(10, 10), "landing exactly on the clock is not drift");
+  assert(!hasDrifted(10 - 0.1, 10), "a brief timer hiccup is caught up normally, not resynced");
+  // A locked screen or a slept laptop: seconds of missed slots, which the plain
+  // catch-up loop would schedule in the past and Web Audio would fire at once.
+  assert(hasDrifted(10 - 3, 10), "seconds behind is a freeze — drop the backlog");
+  assert(MAX_DRIFT > secondsPerSlot(BPM_MAX), "the threshold must exceed one 8th at top speed");
+});
+
 check("audio: pitch derives from string+fret in standard tuning", () => {
   // Open strings, low E (6) to high e (1).
   assert(OPEN_STRING_MIDI[6] === 40, "string 6 open is E2 (40)");
@@ -1151,6 +1165,31 @@ check("platform: audio session claims playback only while the transport runs", (
   // Unsupported (every non-WebKit browser, and older Safari): a silent no-op.
   const none = createAudioSession({ nav: {} });
   assert(!none.supported && none.setPlayback(true) === null, "degrades to a no-op without the API");
+});
+
+check("platform: playback ends when the page stops being visible", () => {
+  const doc = fakeDoc();
+  const win = fakeDoc(); // same listener stub; only its `pagehide` is used
+  let stops = 0;
+  const guard = createPlaybackGuard({ doc, win, onHidden: () => { stops++; } });
+
+  guard.start();
+  guard.start(); // idempotent — must not double-subscribe
+  doc.fire("visibilitychange");
+  assert(stops === 0, "still visible: a visibilitychange alone must not stop a take");
+
+  doc.visibilityState = "hidden";
+  doc.fire("visibilitychange");
+  assert(stops === 1, "going hidden (screen lock, app switch) stops playback exactly once");
+
+  // The exits that never report a visibility change: bfcache, termination.
+  win.fire("pagehide");
+  assert(stops === 2, "pagehide stops playback too");
+
+  guard.stop();
+  doc.fire("visibilitychange");
+  win.fire("pagehide");
+  assert(stops === 2, "stop unsubscribes");
 });
 
 // ---- async PWA checks ----

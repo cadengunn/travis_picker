@@ -1418,6 +1418,51 @@ than the other way round.
 - **Expect to delete and re-add the home-screen app** to see the new icon: iOS
   caches the installed PWA's icon and the auto-updater (v2.8.0) does not touch it.
 
+## Where things stand (session 16, 2026-07-26)
+
+**v2.9.3** (`CACHE` v47) — **locking the phone mid-take no longer leaves audio
+running in bursts.** 61/61 green (+2). Reported from the phone: lock the screen
+while playing and the sound "continues in a sort of disjointed way".
+
+**The cause is two of our own features meeting.** The transport holds the
+**`playback` audio category** (v2.8.0's silent-switch fix), which is precisely
+what tells iOS to keep our audio alive in the background like a music app —
+while the **`setTimeout` driving the lookahead scheduler is frozen or throttled**
+by the same backgrounding. The audio clock keeps running, so `nextSlotTime` falls
+behind `ctx.currentTime`; the next time the timer fires, every missed slot is
+scheduled at a time **already in the past**, and Web Audio plays those
+immediately. The backlog comes out as one burst. So it isn't drifting playback —
+it's a pile-up, and it got possible the moment we started claiming a background
+audio category.
+
+Two changes, a fix and a backstop:
+- **`createPlaybackGuard()` in `platform.js` (integration 4)** — stop the
+  transport when the page stops being visible. `visibilitychange` is the only
+  signal the web offers, and it **cannot distinguish a screen lock from an app
+  switch or a pulled-down notification shade**, so all of those end the take too;
+  that's right anyway, since none of them leave you looking at the grid. `pagehide`
+  covers the exits that never report a visibility change (bfcache, termination).
+  Same shape as the other three integrations: injected `doc`/`win`, tested with
+  stubs.
+- **`hasDrifted()` / `MAX_DRIFT` in `metronome.js`** — past 0.25s behind (≈2 8ths
+  at the top tempo), the scheduler **drops the missed slots and resyncs** instead
+  of replaying them, and clears the stale playhead queue with them. The guard
+  above is the fix; this is what protects a freeze nothing tells us about (a
+  slept laptop, an OS audio interruption).
+- **`stopTransport()` in `app.js`** is now the single stop path, extracted out of
+  `togglePlay` — handing the audio category back matters as much as killing the
+  scheduler, since `playback` is what keeps iOS sounding us in the background.
+  The guard calls the same function the Play button does, so nothing can drift out
+  of sync.
+
+**Verified in-browser** by probing `OscillatorNode.start`/`AudioBufferSourceNode.start`
+per second rather than by eye: playing schedules ~1.5 clicks/sec at 90bpm (with
+plucks starting after the 2.7s count-in, as they should), and after a
+`visibilitychange` **not one further sound is scheduled** — counters frozen across
+the next 1.2s, Play un-latched to ▶︎. `pagehide` behaves identically, and the
+transport restarts cleanly afterwards. **Not verifiable off-device:** the actual
+iOS lock behaviour — a real screen lock is what the report came from.
+
 ## Working with this user
 
 - **Ask before deviating from the spec** — it's a maintained document, and
