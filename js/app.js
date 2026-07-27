@@ -25,6 +25,8 @@ import {
   degreeOf,
   degreeLabel,
   midiOf,
+  clampCapo,
+  soundingName,
 } from "./data.js";
 import {
   generatePattern,
@@ -57,6 +59,7 @@ const state = {
   labelMode: "none",
   chordMode: "single",  // "single" | "progression"
   key: DEFAULT_KEY,
+  capo: 0,              // shape-first transpose; negative = a down-tuned guitar
   progression: [],      // chord id per phrase bar (progression mode)
   loaded: null,         // { id, name } of the saved pattern on screen, if any
   dirty: false,         // has it been altered since it was loaded/saved?
@@ -225,12 +228,54 @@ function fitContext(node) {
   node.style.fontSize = `${Math.max(CONTEXT_MIN_PX, scaled)}px`;
 }
 
+// What the shapes on screen actually sound like at the current capo — the one
+// piece of information a shape-first model owes you. Null at capo 0, where it
+// would just repeat what's already written.
+function soundingLabel() {
+  if (!state.capo) return null;
+  const shape = state.chordMode === "progression" ? state.key : el("chord").value;
+  return soundingName(shape, state.capo);
+}
+
+// The capo control: the well's number, its end-stops, and the "sounding"
+// readout beside it. INVISIBLE AT CAPO 0 — at 0 the readout goes quiet and the
+// on-screen indicator doesn't exist, so the default case is exactly the app as
+// it was before the capo existed.
+function renderCapo() {
+  const value = el("capo-value");
+  // U+2212, matching the button glyph — a hyphen next to a real minus reads as
+  // two different controls.
+  value.textContent = state.capo > 0 ? `+${state.capo}` : String(state.capo).replace("-", "−");
+  for (const b of el("capo").querySelectorAll("[data-capo-step]")) {
+    b.disabled = clampCapo(state.capo + Number(b.dataset.capoStep)) === state.capo;
+  }
+  const sounds = el("capo-sounds");
+  const label = soundingLabel();
+  sounds.textContent = label ? `Sounds in ${label}` : "Concert pitch";
+  sounds.classList.toggle("at-zero", !label);
+  el("capo").setAttribute("aria-label", `Capo ${state.capo}${label ? `, sounds in ${label}` : ""}`);
+}
+
+// The on-screen capo indicator, appended to whichever readout is showing. Both
+// hosts cost NO layout: the context readout already reserves its row (and
+// fitContext scales it), and the chord head floats with zero flow height. So a
+// capo can never move the grid.
+function capoTag() {
+  const tag = document.createElement("span");
+  tag.className = "capo-tag";
+  // Negative isn't a capo position, it's a down-tuned guitar, so it says so —
+  // "capo −2" would be a thing you can't do. (Semitones: down 1 = a half step.)
+  tag.textContent = state.capo > 0 ? `capo ${state.capo}` : `down ${-state.capo}`;
+  return tag;
+}
+
 // The musical-context readout. Progression mode shows the degrees as Roman
 // numerals + key top-left (e.g. "I – V – vi – IV · E"); single mode hides it and
 // shows the one chord big, above the grid (the grid is the hero, so it's a label).
 function renderContext() {
   const ctx = el("context");
   const head = el("chord-head");
+  renderCapo();
   if (state.chordMode === "progression") {
     head.hidden = true;
     ctx.hidden = false;
@@ -252,11 +297,15 @@ function renderContext() {
     sep.className = "sep";
     sep.textContent = "·";
     ctx.append(nums, sep, key);
+    if (state.capo) ctx.append(capoTag());
     fitContext(ctx); // scale to fit rather than ellipsize the numerals away
   } else {
     ctx.hidden = true;
     const id = el("chord").value;
     head.querySelector(".c").textContent = CHORDS[id]?.name ?? id;
+    const tag = head.querySelector(".capo-tag");
+    if (tag) tag.remove();
+    if (state.capo) head.append(capoTag());
     head.hidden = false;
   }
 }
@@ -425,7 +474,9 @@ function noteTable(phrase) {
   phrase.forEach(({ bar }, barIdx) => {
     for (const ev of bar) {
       const step = barIdx * 8 + (ev.slot - 1);
-      (table[step] ||= []).push({ midi: midiOf(ev), bass: ev.finger === "p" });
+      // The capo shifts what you HEAR, never what's drawn: the grid's frets are
+      // shape frets, so only the pitch moves.
+      (table[step] ||= []).push({ midi: midiOf(ev, state.capo), bass: ev.finger === "p" });
     }
   });
   return table;
@@ -550,6 +601,10 @@ function currentContext() {
     chordMode: state.chordMode,
     chord: el("chord").value,
     key: state.key,
+    // The capo is musical content — it's what the pattern SOUNDS like, not a
+    // preference like the theme. Items saved before it existed have no `capo`
+    // and read back as 0, which is what they were.
+    capo: state.capo,
     progression: [...state.progression],
   };
 }
@@ -560,7 +615,7 @@ function describeCurrent() {
     const id = detectProgression(state.progression, state.key);
     const prog = PROGRESSIONS.find((p) => p.id === id);
     const label = prog ? prog.label : "Custom";
-    return `${label} in ${state.key} · ${bassName}`;
+    return `${label} in ${state.key}${state.capo ? ` · capo ${state.capo}` : ""} · ${bassName}`;
   }
   const n = patternBars();
   return `${el("chord").value} · ${bassName} · ${n} bar${n > 1 ? "s" : ""}`;
@@ -661,7 +716,10 @@ function summarize(item) {
       ? `${(ctx.progression || []).map((c) => degreeLabel(c, ctx.key)).join("–")} (key ${ctx.key})`
       : ctx.chord;
   const bars = p.patternBars ? `${p.patternBars} bar${p.patternBars > 1 ? "s" : ""}` : "";
-  return [where, bassName, p.chaos, bars].filter(Boolean).join(" · ");
+  // Only when set: two saves that differ only by capo would otherwise look
+  // identical in the list (and collide on the default name).
+  const capo = ctx.capo ? (ctx.capo > 0 ? `capo ${ctx.capo}` : `down ${-ctx.capo}`) : "";
+  return [where, capo, bassName, p.chaos, bars].filter(Boolean).join(" · ");
 }
 
 // One warm-green flash on the save-confirmation lamp. Restart the one-shot each
@@ -709,6 +767,7 @@ async function loadSaved(id) {
   // Restore musical content only — theme and label mode stay as the user has them.
   state.pattern = item.pattern;
   state.key = ctx.key || DEFAULT_KEY;
+  state.capo = clampCapo(ctx.capo); // absent on pre-capo saves -> 0
   state.progression = [...(ctx.progression || [])];
 
   el("bass").value = item.pattern.bass;
@@ -764,6 +823,23 @@ function closeSheet() {
   el("saved-sheet").hidden = true;
 }
 
+// The Options sheet's two pages: what the PATTERN is, vs how the APP behaves.
+// The split exists to buy height — everything on one page left ~27px spare on an
+// SE, which is why the capo had nowhere to go (see index.html).
+const OPTIONS_PAGES = { "tab-generation": "page-generation", "tab-prefs": "page-prefs" };
+function showOptionsPage(tabId) {
+  for (const [tab, page] of Object.entries(OPTIONS_PAGES)) {
+    const on = tab === tabId;
+    el(tab).classList.toggle("active", on);
+    el(tab).setAttribute("aria-selected", String(on));
+    el(page).hidden = !on;
+  }
+  // The die re-rolls page 1's chords, so it goes quiet on page 2 — but it keeps
+  // its SPACE (visibility, not `hidden`), or the tabs beside it would stretch and
+  // the pair would change width every time you switched pages.
+  el("randomize-chords").classList.toggle("is-away", tabId !== "tab-generation");
+}
+
 // The Help / guide dialog (⚙ Options → "?"). A short how-to plus the indicator
 // legend the caution / REC / save lamps otherwise only explain on a hover title.
 function renderHelp(body) {
@@ -786,10 +862,13 @@ function renderHelp(body) {
   p("Tap the die to generate a fresh, playable pattern. In ⚙ Options, Thumb sets the bass style and the Chaos tier sets difficulty: Tame → Loose → Unruly get harder; Chaos is pure random discovery, off the curve.");
 
   h("Play & sound");
-  p("Play runs the loop after a one-bar count-in; the slider sets the tempo. Under Sound you can toggle the Metronome click, the Melody (hear the notes), the Count-in and the Button clicks — each on its own.");
+  p("Play runs the loop after a one-bar count-in; the slider sets the tempo. Options has two pages: Generation is what the pattern is, Preferences is how the app behaves — the Metronome click, the Melody (hear the notes), the Count-in and the Button clicks each toggle on their own.");
 
   h("Chords & keys");
   p("Single mode drills one chord. Progression mode gives a chord per bar, written as Nashville numbers in the key you choose, so the same progression transposes to any key. Raise Pattern length to let bars differ.");
+
+  h("Capo");
+  p("Set the capo and the app tells you what the shapes sound like — the grid still shows the shape you play, since that's what your fingers do, and only the pitch you hear moves. Negative values are for a guitar tuned down a half or whole step.");
 
   h("Edit, Save & Load");
   p("The pencil arms Edit mode (the grid goes dashed) — tap cells to add or remove notes. Save names the pattern to your library; Load brings it back with its chords. Everything stays on your device.");
@@ -815,6 +894,7 @@ function renderHelp(body) {
   item("tp-help-tag", "MIX", "Mixed bass — some notes follow the chords, some don't.");
   item("tp-help-dot dot-rec", "", "Red dot on Edit: edit mode is armed, so a tap changes the pattern.");
   item("tp-help-dot dot-save", "", "Green flash by Save: the pattern was saved.");
+  item("tp-help-tag", "capo 2", "By the chords: a capo is set, so what you hear is higher than the shapes on screen. \"down 2\" means a down-tuned guitar.");
   body.appendChild(legend);
 }
 
@@ -859,6 +939,25 @@ function attach() {
   el("chord-mode").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-mode]");
     if (btn) setChordMode(btn.dataset.mode);
+  });
+
+  // The capo changes what you HEAR and what the readouts say — never the
+  // pattern — so it re-renders without touching state.pattern. Nothing to
+  // confirm: hand-drawn edits are untouched.
+  el("capo").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-capo-step]");
+    if (!btn) return;
+    const next = clampCapo(state.capo + Number(btn.dataset.capoStep));
+    if (next === state.capo) return;
+    state.capo = next;
+    markDirty();
+    render();
+  });
+
+  // Options pages. The die belongs to Generation, so it goes with it.
+  el("options-sheet").querySelector(".seg-tabs").addEventListener("click", (e) => {
+    const tab = e.target.closest("[role=tab]");
+    if (tab) showOptionsPage(tab.id);
   });
 
   // Per-bar chord edits, delegated so they survive re-renders.
@@ -988,6 +1087,9 @@ function attach() {
   // Options sheet: generation inputs + preferences. Its controls are wired
   // above exactly as before — the sheet only changes where they live.
   el("open-options").addEventListener("click", () => {
+    // Always opens on Generation: gear -> the things you change between takes.
+    // Preferences is one tap away and is set far more rarely.
+    showOptionsPage("tab-generation");
     el("options-sheet").hidden = false;
     syncSheetToViewport();
   });

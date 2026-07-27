@@ -92,21 +92,34 @@
         <h2 id="options-title">Options</h2>
         <!-- Version rides the sheet header: it's reference info you look up
              sitting down, and here it costs no height (shorter than the ✕). -->
-        <span class="app-version" aria-label="App version">v2.9.3</span>
+        <span class="app-version" aria-label="App version">v2.10.0</span>
         <button class="sheet-close" type="button" data-close aria-label="Close">✕</button>
       </header>
 
-      <!-- The die re-rolls the CHORD inputs (progression mode: key + progression;
-           single mode: the chord). It rides the section header line so it costs
-           ~15px rather than a whole control row — the sheet has little headroom
-           on an SE. -->
-      <p class="sheet-sec">
-        Generation
+      <!-- TWO PAGES. The sheet used to hold everything at once and sat at 460px
+           of a 487px cap on a 375x553 phone — ~27px spare, i.e. room for zero new
+           control rows (a row is 58px). That ceiling had already pushed the
+           version tag up into the header and the die onto a section-header line,
+           and it left the capo nowhere to go. Splitting on the natural seam —
+           what the PATTERN is, vs how the APP behaves — gives each page ~180px
+           spare. The tab row replaces the old "Generation" caption (the tab now
+           says it), so page 1 costs nothing for the split.
+           The die re-rolls the CHORD inputs and belongs to page 1 only, so it
+           rides the tab row and hides on Preferences. -->
+      <div class="sheet-tabs">
+        <div class="segmented seg-tabs" role="tablist" aria-label="Options pages">
+          <button type="button" role="tab" id="tab-generation" class="active"
+                  aria-controls="page-generation" aria-selected="true">Generation</button>
+          <button type="button" role="tab" id="tab-prefs"
+                  aria-controls="page-prefs" aria-selected="false">Preferences</button>
+        </div>
         <button id="randomize-chords" class="sec-btn" type="button"
                 aria-label="Random key and progression" title="Random key &amp; progression">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.4" cy="7.4" r="1.5"/><circle cx="8.4" cy="16.6" r="1.5"/><circle cx="15.6" cy="7.4" r="1.5"/><circle cx="15.6" cy="16.6" r="1.5"/><circle cx="12" cy="12" r="1.5"/></svg>
         </button>
-      </p>
+      </div>
+
+      <div class="sheet-page" id="page-generation" role="tabpanel" aria-labelledby="tab-generation">
 
       <!-- Row 1 is the only row whose contents change between chord modes; it
            always fills 3 slots so nothing below it ever shifts. -->
@@ -148,6 +161,29 @@
           <select id="pattern"></select>
         </label>
       </div>
+
+      <!-- Capo: a shape-first transpose. The grid's frets are SHAPE frets, so
+           nothing on screen changes — this shifts the sounding pitch and the
+           concert-key readout only. Negative values are a down-tuned guitar
+           (the same transform, which a physical capo can't do). -->
+      <div class="control-row">
+        <div class="field">
+          <span>Capo</span>
+          <div class="stepper" id="capo">
+            <button type="button" data-capo-step="-1" aria-label="Capo down">−</button>
+            <output id="capo-value" aria-live="off">0</output>
+            <button type="button" data-capo-step="1" aria-label="Capo up">+</button>
+          </div>
+        </div>
+        <div class="field span-2 field-sounds">
+          <span>Sounding</span>
+          <p id="capo-sounds" class="sounds-readout">Concert pitch</p>
+        </div>
+      </div>
+
+      </div><!-- /page-generation -->
+
+      <div class="sheet-page" id="page-prefs" role="tabpanel" aria-labelledby="tab-prefs" hidden>
 
       <p class="sheet-sec">Sound</p>
 
@@ -195,6 +231,8 @@
                   aria-haspopup="dialog" aria-label="How to use Travis Picker">?</button>
         </div>
       </div>
+
+      </div><!-- /page-prefs -->
     </section>
   </div>
 

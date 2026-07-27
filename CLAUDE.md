@@ -158,9 +158,13 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   bottom-anchored Options sheet up 3.75px (measured both ways). Pinning
   `line-height` makes every inline box the same height whatever font serves the
   glyph. Watch for this on any new text that can contain them.
-- **⚙ Options sheet:** *generation* inputs (chord mode, chord or key+progression,
-  thumb, chaos, pattern length) and below a rule, app-wide *preferences* (note
-  labels, theme). You set these sitting down, between takes.
+- **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Generation** (chord mode, chord
+  or key+progression, thumb, chaos, pattern length, capo) and **Preferences** (the
+  Sound lamp bank, note labels, theme, guide). You set all of it sitting down,
+  between takes. The split exists to buy height: one page had ~27px spare at
+  375×553, so nothing new could be added; two pages have ~160px each. The gear
+  always opens on Generation. See the session-16 notes for the measurements and
+  for why the die uses `visibility` rather than `hidden`.
 - **There is no app bar.** A title told you nothing the home-screen icon doesn't,
   and its 53px was the difference between the 4-bar grid fitting and not.
 
@@ -1148,9 +1152,10 @@ above. Progressions became harmonic **tokens** instead of bare 1–6 degrees so
 - Also in v2.7.4: a **chord randomiser** die
   (`#randomize-chords`) on the Options **"Generation" section header line** —
   progression mode rolls a key + a progression of that key's mode, single mode
-  rolls an open chord. It rides the header line rather than taking a control row
-  because the sheet only has **~45px headroom at 375×553** (a row is ~64px); after
-  the die it's 458/487. Pure helpers `randomKeyProgression`/`randomChord` in
+  rolls an open chord. It rode the header line rather than taking a control row
+  because the sheet only had **~45px headroom at 375×553** (a row is ~64px); after
+  the die it was 458/487. *(v2.10.0 split the sheet into two pages and the die
+  moved to the tab row; the headroom problem that forced this is gone.)* Pure helpers `randomKeyProgression`/`randomChord` in
   `data.js`, rng injectable. **Two-stage sampling — key first, then a progression
   within it** — because flat sampling over (key, progression) pairs would bury the
   minor keys at ~8% of rolls (2 keys × 3 progressions against 5 × 14); a test
@@ -1462,6 +1467,78 @@ plucks starting after the 2.7s count-in, as they should), and after a
 the next 1.2s, Play un-latched to ▶︎. `pagehide` behaves identically, and the
 transport restarts cleanly afterwards. **Not verifiable off-device:** the actual
 iOS lock behaviour — a real screen lock is what the report came from.
+
+**v2.10.0** (`CACHE` v48) — **the Options sheet became two pages, and the capo
+lives in the room that made.** 62/62 green (+1). His call on all four design
+forks; the two-page idea was his, and it's better than the three placements I
+offered.
+
+**The Options sheet is TWO PAGES now — Generation / Preferences.** Everything on
+one page measured **460px of a 486.6px cap** at 375×553: ~27px spare, i.e. room
+for **zero** new control rows (a row is 58px). That ceiling had already exiled
+the version tag into the sheet header and put the die on a section-header line,
+and it's why the capo had nowhere to go. Split on the natural seam — what the
+**pattern** is, vs how the **app** behaves — each page now measures **311px and
+329px**, leaving ~160–176px, i.e. room for three more rows each.
+- **The tab row REPLACES the old "Generation" caption** (the tab says it), so the
+  split costs page 1 nothing — the capo row is already inside that 311px.
+- The **die rides the tab row** and goes `visibility: hidden` on Preferences —
+  **not** the `hidden` attribute, which let the tabs stretch and made the pair
+  change width between pages. A jumping control panel is a specific past complaint.
+- Page 1 = chord mode, chord/key+progression, thumb, chaos, pattern length, capo.
+  Page 2 = the Sound lamp bank, note labels, theme, guide. **The gear always opens
+  on Generation** — muscle memory beats remembering where you were, and
+  Preferences is set far more rarely.
+- **Known cost, his call:** Metronome/Melody are now a tap away, and those are the
+  most mid-practice controls in the sheet. Worth feeling out on the phone.
+
+**The capo is SHAPE-FIRST** (`CAPO_MIN`/`CAPO_MAX`/`clampCapo`/`soundingName` in
+`data.js`): you pick the shape and where the capo is, and the concert key is
+derived. That's what makes it cheap — **the grid never changes and the generator
+never sees it**, because the frets on screen are shape frets, which is exactly
+what your fingers do. It's a label plus one addend in `midiOf(event, capo)`.
+- **Range −2 to 5.** Negative is a **down-tuned guitar** — a physical capo can't
+  go below the nut, but it's the identical transform and it's what he actually
+  does. The top is 5 because that's where real capos live; one constant if a 7
+  ever comes up. On screen a negative reads **"down 2"**, not "capo −2", which
+  would be a thing you can't do.
+- **A hardware stepper**, not a dropdown (his pick): one recessed well with two
+  carved keys sunk into its ends, end-stops disabled at the limits.
+- **Invisible at capo 0**, also his call — at 0 the readout says "Concert pitch"
+  and no on-screen indicator exists, so the default screen is the app exactly as
+  it was. Set one and a small tag appears: inline in the context readout
+  (progression) or bottom-right of the floating chord head (single). **Both hosts
+  cost zero layout** — the context row is already reserved and the chord head has
+  `height: 0` — so a capo can never move the grid. Measured: grid top identical at
+  capo 0 and capo 5 in both modes, no overflow at 4 bars.
+- The tag in the chord head is **absolutely positioned**, not a flex sibling: as a
+  sibling it shoved the big chord letter off centre whenever a capo was set, which
+  is the exact thing that floating head was built to prevent.
+- **Concert spelling is flat-preferred except F♯** — "capo 3 with G shapes sounds
+  in B♭", the way a guitarist says it. Quality suffixes survive (`Am`+2 → `Bm`,
+  `C7`+3 → `E♭7`). Those are real ♭/♯ glyphs, so **`.sounds-readout` has a pinned
+  `line-height`** like everything else that can carry them.
+- **Capo is musical CONTENT**, so it joins the saved item's context (absent on
+  pre-capo saves ⇒ `clampCapo(undefined)` = 0, which is what they were) and shows
+  in the saved-list metadata, where two saves differing only by capo would
+  otherwise be indistinguishable. The **randomiser deliberately does not roll it**
+  — being told to move a physical clamp every roll is hostile.
+
+**Verified in-browser, measured rather than eyeballed:**
+- **The audio genuinely transposes.** Karplus-Strong output is periodic at its
+  fundamental, so the pitches were recovered from the rendered `AudioBuffer`s by
+  period detection: capo 0 sounded `[40,42,44,45,45,49,49,52,52,54,56]` and capo 3
+  sounded **exactly that set +3**. (A first attempt compared cached buffer
+  identity and was inconclusive — a +2 shift can land on a pitch that was already
+  in the set.)
+- Worst-case context readout (`♯iii – ♯vi – I7 – ♭II · Am`) still sits at the full
+  **14px at capo 0** (196/196px), and drops to **12.2px** with a capo — well clear
+  of the 10.5px floor, so `fitContext` absorbs it as designed.
+- Save→reset→load restores the capo and both readouts; the custom dropdowns still
+  work on the initially-hidden Preferences page (the `<select>` source-of-truth
+  contract holds); tabs hold a constant 293px width across pages.
+- **Not verified off-device:** how the two-page split actually feels mid-practice,
+  and the stepper's tap targets under a thumb.
 
 ## Working with this user
 

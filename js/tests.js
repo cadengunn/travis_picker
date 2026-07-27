@@ -30,6 +30,10 @@ import {
   fitProgression,
   midiOf,
   OPEN_STRING_MIDI,
+  clampCapo,
+  soundingName,
+  CAPO_MIN,
+  CAPO_MAX,
 } from "./data.js";
 import { midiToFreq } from "./synth.js";
 import {
@@ -774,7 +778,8 @@ function memoryStorage(initial) {
 check("saved: round-trips a pattern with its chord context", () => {
   const store = createStore("test", memoryStorage());
   const pattern = generatePattern("C", { bass: "travis", chaos: "tame", patternBars: 2, rng: seeded(12) });
-  const context = { chordMode: "progression", chord: "C", key: "G", progression: ["G", "C", "D", "G"] };
+  // The capo rides along: it's what the pattern SOUNDS like, so it's content.
+  const context = { chordMode: "progression", chord: "C", key: "G", capo: 3, progression: ["G", "C", "D", "G"] };
 
   assert(store.count() === 0, "new store should be empty");
   const item = store.save({ name: "  Test lick  ", pattern, context });
@@ -1051,6 +1056,29 @@ check("metronome: a frozen page resyncs instead of replaying its backlog", () =>
   assert(MAX_DRIFT > secondsPerSlot(BPM_MAX), "the threshold must exceed one 8th at top speed");
 });
 
+check("capo: shape-first transposition names the concert key a guitarist would say", () => {
+  // The everyday cases: a shape plus a capo sounds somewhere else.
+  assert(soundingName("G", 2) === "A", "G shapes at capo 2 sound in A");
+  assert(soundingName("G", 3) === "B♭", "capo 3 spells the flat, not A♯");
+  assert(soundingName("E", 4) === "A♭", "flat-preferred spelling throughout");
+  assert(soundingName("C", 6) === "F♯", "F♯ is the one sharp we keep, by convention");
+  assert(soundingName("G", 0) === "G", "capo 0 is the shape itself");
+  // Quality suffixes survive: it's still a minor / still a dominant 7th.
+  assert(soundingName("Am", 2) === "Bm", "a minor key stays minor");
+  assert(soundingName("C7", 3) === "E♭7", "a dom7 stays a dom7");
+  // Negatives are a down-tuned guitar, and the wrap is modular in both directions.
+  assert(soundingName("E", -1) === "E♭", "tuned down a half step");
+  assert(soundingName("C", -2) === "B♭", "tuned down a whole step wraps below C");
+  assert(soundingName("nonsense", 1) === null, "an unreadable root reports null rather than guessing");
+
+  // The range runs both ways: a physical capo can't go negative, but a
+  // down-tuned guitar is the same transform.
+  assert(CAPO_MIN < 0 && CAPO_MAX > 0, "the range spans down-tuning and real capo positions");
+  assert(clampCapo(CAPO_MAX + 4) === CAPO_MAX && clampCapo(CAPO_MIN - 4) === CAPO_MIN, "out of range clamps");
+  assert(clampCapo(undefined) === 0 && clampCapo(null) === 0, "an absent capo (a pre-capo save) reads as 0");
+  assert(clampCapo("3") === 3 && clampCapo(2.4) === 2, "values arrive from the DOM as strings, and must be whole");
+});
+
 check("audio: pitch derives from string+fret in standard tuning", () => {
   // Open strings, low E (6) to high e (1).
   assert(OPEN_STRING_MIDI[6] === 40, "string 6 open is E2 (40)");
@@ -1062,6 +1090,11 @@ check("audio: pitch derives from string+fret in standard tuning", () => {
   // A malformed event (no known string) yields NaN, which the synth skips —
   // better a silent note than a wrong pitch.
   assert(Number.isNaN(midiOf({ string: 9, fret: 0 })), "unknown string -> NaN");
+  // The capo shifts pitch and nothing else — the fret in the event is the SHAPE
+  // fret either way, which is what the grid draws and your fingers play.
+  assert(midiOf({ string: 6, fret: 0 }, 2) === 42, "capo 2 raises the open 6th a whole step");
+  assert(midiOf({ string: 5, fret: 3 }, -2) === 46, "a down-tuned guitar (capo -2) lowers it");
+  assert(Number.isNaN(midiOf({ string: 9 }, 3)), "a capo can't rescue a malformed event");
 
   // Equal temperament: A4 (MIDI 69) is 440Hz, and an octave doubles frequency.
   assert(Math.abs(midiToFreq(69) - 440) < 1e-6, "MIDI 69 -> 440Hz");

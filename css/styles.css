@@ -151,6 +151,18 @@ main {
 /* the · between progression and key — still breathing room, but 5px not 10px:
    it's 12px of a row where every pixel goes to fitting the numerals unshrunk. */
 .context .sep { display: inline-block; margin: 0 5px; }
+/* Capo indicator — present ONLY when a capo is set, so the default screen is
+   untouched. In the context readout it's inline, and fitContext scales the whole
+   line if the extra words tighten it. */
+.capo-tag {
+  font-family: var(--numeral);
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.context .capo-tag::before { content: "·"; margin: 0 5px; letter-spacing: 0; }
 .grid-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
 
 /* Raised, carved hardware buttons — the transport's bevel language (top-lit face,
@@ -340,6 +352,20 @@ main {
   align-items: flex-end;
   justify-content: center;
   text-align: center;
+  /* anchor for the capo tag. `relative` (not `transform`) for the same reason
+     as .chord-head .c below — no compositing layer. */
+  position: relative;
+}
+/* The capo tag rides the head's bottom-RIGHT rather than sitting beside the
+   letter: as a flex sibling it would shove the big chord off centre whenever a
+   capo was set, and a chord label that moves is exactly what this floating head
+   was built to avoid. */
+.chord-head .capo-tag {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-size: 10px;
+  line-height: 12px;
 }
 .chord-head .c {
   font-family: var(--serif);
@@ -751,6 +777,16 @@ main {
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
+/* The Options sheet's two pages. The tab row REPLACES the old "Generation"
+   caption rather than adding to it, so the split costs page 1 nothing; the die
+   keeps its right-hand berth (.sec-btn's margin-left: auto) and hides on
+   Preferences, since it re-rolls page 1's chords. */
+.sheet-tabs { display: flex; align-items: center; gap: 10px; }
+/* holds its width so the tabs never resize between pages */
+.sec-btn.is-away { visibility: hidden; pointer-events: none; }
+.seg-tabs { flex: 1; min-width: 0; }
+.sheet-page { display: flex; flex-direction: column; gap: 8px; }
+
 /* Fixed 3-slot rows. Only row 1's contents swap between chord modes, and the
    single-chord select spans 2 slots to fill the space Key+Progression use — so
    switching modes never moves the rows below. */
@@ -812,6 +848,72 @@ main {
               0 2px 3px rgba(0, 0, 0, 0.4);
 }
 .help-btn:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
+
+/* Capo stepper: ONE recessed well (same material as a select) with two carved
+   keys sunk into its ends, so it reads as a single instrument control rather
+   than three buttons in a row. Height matches .field select so the row's
+   `align-items: end` lines it up with the readout beside it. */
+.stepper {
+  display: grid;
+  grid-template-columns: 38px 1fr 38px;
+  align-items: stretch;
+  height: 42px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 9px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 var(--bevel-hi);
+}
+.stepper button {
+  border: none;
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.16)), var(--control);
+  color: var(--glyph);
+  font-family: var(--numeral);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16);
+}
+.stepper button:first-child { border-right: 1px solid rgba(0, 0, 0, 0.38); }
+.stepper button:last-child { border-left: 1px solid rgba(0, 0, 0, 0.38); }
+.stepper button:active { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
+.stepper button:disabled { color: var(--muted); opacity: 0.45; cursor: default; }
+.stepper button:disabled:active { box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16); }
+.stepper output {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  /* the minus sign is U+2212, which may fall back off Fraunces — pin the line
+     box so the well can't change height (the ♭/♯ lesson from v2.7.5) */
+  line-height: 20px;
+}
+
+/* The concert-pitch readout beside the stepper. Not a control — plain text on
+   the panel, height-matched to the well so the row never jumps. Can contain ♭/♯,
+   hence the pinned line-height. */
+.field-sounds { min-width: 0; }
+.sounds-readout {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 2px;
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sounds-readout.at-zero { color: var(--muted); font-weight: 500; }
 
 .segmented {
   display: flex;

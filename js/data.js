@@ -19,11 +19,43 @@ export const OFFBEAT_SLOTS = [2, 4, 6, 8]; // the "&"s
 // resolved event's { string, fret } — this is what the audio synth plays.
 export const OPEN_STRING_MIDI = { 6: 40, 5: 45, 4: 50, 3: 55, 2: 59, 1: 64 };
 
-// Pure: resolved event -> MIDI note number. Undefined string yields NaN, which
-// the synth skips (a malformed event never makes a sound rather than a wrong one).
-export function midiOf({ string, fret = 0 }) {
+// Pure: resolved event -> MIDI note number, plus the capo (see below). Undefined
+// string yields NaN, which the synth skips (a malformed event never makes a
+// sound rather than a wrong one).
+export function midiOf({ string, fret = 0 }, capo = 0) {
   const open = OPEN_STRING_MIDI[string];
-  return open == null ? NaN : open + fret;
+  return open == null ? NaN : open + fret + capo;
+}
+
+// ----- Capo -----
+// SHAPE-FIRST: you pick the shape you play and where the capo is, and the
+// concert key is derived. Everything already on screen stays literally true —
+// the grid's frets are SHAPE frets, which is exactly what your fingers do — so
+// the capo is a label plus one addend in the audio. The generator never sees it.
+//
+// NEGATIVE values are a down-tuned guitar (half or whole step). A physical capo
+// can't go below the nut, but it's the identical transform and it's what you
+// actually do, so the range runs both ways. The top is 5 because that's where
+// real capos live; it's one constant if a 7 ever comes up.
+export const CAPO_MIN = -2;
+export const CAPO_MAX = 5;
+export const clampCapo = (n) => Math.min(CAPO_MAX, Math.max(CAPO_MIN, Math.round(Number(n) || 0)));
+
+// Pitch class -> the name a guitarist would say. Flat-preferred, except F♯ —
+// the usual convention ("capo 3 with G shapes sounds in B♭", not "A♯"). The
+// pretty glyphs match the Roman numerals' ♭/♯, so anywhere these are shown needs
+// a pinned line-height (they fall back off Fraunces).
+const PC_NAME = ["C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
+
+// Transpose a chord or key id by `capo` semitones and return it spelled for
+// display, keeping the quality suffixes (Am + 2 -> "Bm", C7 + 3 -> "E♭7").
+// Returns null for anything whose root we can't read, so callers can fall back.
+export function soundingName(id, capo = 0) {
+  if (!id) return null;
+  const suffix = /m$/.test(id) ? "m" : /7$/.test(id) ? "7" : "";
+  const pc = chordRootPc(id);
+  if (pc == null) return null;
+  return PC_NAME[(((pc + capo) % 12) + 12) % 12] + suffix;
 }
 
 // ----- Bass engine presets (verbatim from the spec) -----

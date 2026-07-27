@@ -13,7 +13,21 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.8.1)
+## On the phone right now (v2.10.0)
+
+- **The Options sheet is two pages** — Generation / Preferences. Built to make
+  room for the capo, and it retires the height ceiling that had been distorting
+  decisions for three sessions. The gear always opens on Generation. **The cost to
+  judge:** the Sound lamps are one tap further away, and Metronome/Melody are the
+  ones you reach for mid-practice.
+- **Capo**, shape-first, −2 to 5, invisible at 0. See item 1 below.
+- **Locking the phone now ends playback** (v2.9.3). It used to keep going in
+  bursts, because the transport holds the iOS "playback" audio category while the
+  JS timer is frozen, so the backlog fired all at once on the way back. Note the
+  web can't tell a screen lock from an app switch, so switching apps stops a take
+  too.
+
+## On the phone from v2.8.1
 
 - **Icon-only Edit / Save / Load** (pencil, floppy, folder — engraved like the
   gear and die). Frees 53px of header width, which is what now keeps **every**
@@ -48,35 +62,32 @@ them. Add/drop/reorder is a one-line data edit each.
 
 ## Big — design session first
 
-### 1. Capo system — NEEDS A CALL
-Separate the chord *shape* you play from the *concert key* it sounds in
-(Shape G + capo 2 = sounds A).
+### 1. Capo system — DONE (v2.10.0, session 16)
+Shape-first, exactly as recommended: you pick the shape key + capo, and the
+concert key is a derived readout. The grid never changes (its frets are shape
+frets — what your fingers do), so this was a label plus one addend in the audio,
+and the generator was untouched.
 
-**Size:** a moderate session. Pure data plus a derived label, one addend in the
-audio, one new control, and a save-context migration. The fiddly part is where
-the control goes.
+Your four calls, all built: **shape-first**; **invisible at capo 0** (nothing on
+screen until you set one); a **hardware stepper** rather than a dropdown; and
+**negative values for a down-tuned guitar** — range **−2 to 5**, reading "down 2"
+rather than the impossible "capo −2". Capo transposes the audio (verified by
+recovering the sounded pitches from the rendered buffers: capo 3 = capo 0 + 3
+semitones exactly), joins the saved item's context, and the randomiser leaves it
+alone.
 
-**What I'd recommend (from the last discussion):**
-- **Shape-first.** You pick the shape key + capo; concert key is a derived
-  readout. Everything already on screen stays literally true, since the grid's
-  frets are shape frets. (Sound-first — "I need Bb, what capo?" — is a nice later
-  add-on, not the model; it has no unique answer.)
-- **Capo transposes the audio.** Otherwise Melody playback lies at any capo.
-- **Control on the "Generation" header line** beside the die. The Options sheet is
-  at 458px of a 487px budget at 375×553 — a control row is ~64px and does not fit.
-  Fallbacks: move the Single/Prog toggle up to free a slot in row 1, or let the
-  sheet scroll.
-- **Invisible at capo 0.** Concert key lives next to the capo control in the
-  sheet ("Capo 2 · sounds in A"); the header gets a small indicator only when the
-  capo is on. Keeps the header-fit work from v2.7.5 completely untouched in the
-  default case.
-- Range 0–11; capo joins the saved item's context (missing = 0, old saves fine);
-  the randomiser does **not** roll the capo (being told to move a physical clamp
-  every roll is hostile).
+**It needed the Options sheet split into two pages first** — your idea, and a
+better one than any of the three placements offered. One page was at 460px of a
+486.6px cap: room for zero new rows. Generation / Preferences now sit at 311px
+and 329px, so there's room for ~3 more rows on each. The tab row replaced the
+"Generation" caption, so page 1 paid nothing for the split.
 
-**Needs from you:** does shape-first match how you think when you clamp one on?
-And are you happy with "invisible at capo 0", or do you want concert key on
-screen always, at the cost of header room?
+**Two things to feel out on the phone:** the Sound lamps (Metronome / Melody) are
+now one tap further away, which is the real cost of the split; and whether "down
+2" is the right wording for a down-tuned guitar. Both are small changes.
+
+**Still deferred:** sound-first ("I need B♭, what capo?") as a lookup helper. It
+has no unique answer, so it's an add-on, not the model.
 
 ### 2. Chord library expansion + Root × Quality picker — NEEDS A CALL
 Elliott: add m7, maj7, ♭5, diminished, augmented — and split the chord menu into
@@ -214,7 +225,8 @@ All 12 keys, and sharp minor keys (Bm/F#m/C#m — these pull in new barre majors
 ## Ground rules that constrain any of the above
 
 - **The grid is the hero.** Re-measure 375×553 before shipping any chrome growth.
-  The Options sheet has ~29px headroom; a control row is ~64px.
+  The Options sheet is no longer the bottleneck — since v2.10.0 it's two pages
+  with ~160px spare on each (a control row is 58px). The *header* is still tight.
 - **Keys/chords/progressions are data in `data.js`** — the generator stays untouched.
 - **Any new text that can contain ♭ or ♯ needs a pinned `line-height`** (those
   glyphs fall back off Fraunces to a taller font and grow the line box).
