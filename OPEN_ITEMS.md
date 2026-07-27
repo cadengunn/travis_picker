@@ -1,7 +1,8 @@
 # Open items — Travis Picker
 
-A standing list of everything open, to think over between sessions. Newest input
-folded in: the v2.7.5 guitar notes + Elliott's feedback (2026-07-26).
+A standing list of everything open, to think over between sessions. Rewritten at
+the end of session 17 (2026-07-27, v2.11.1) — completed items moved out to
+CLAUDE.md, the rest renumbered.
 
 **How to read this:** each item says how big it is, what's already decided, and
 what (if anything) needs your call before it can be built. Items are grouped by
@@ -13,145 +14,62 @@ so it isn't re-litigated.
 
 ---
 
-## New in v2.11.0 (session 17) — the typography pass
+## On the phone right now (v2.11.1)
 
-- **One label tier.** The Options sheet had two that looked nearly the same, with
-  the *smaller* type on the caption that outranked the labels beneath it — which
-  is why the two pages didn't feel like the same object. Group captions are now
-  the same object as field labels, same left edge. "Appearance" is gone entirely.
-- **Panel legends are Jost** — the OFL Futura you picked, bundled (26.6KB) rather
+**The typography pass (v2.11.0 → v2.11.1).**
+- **Panel legends are Jost** — the OFL Futura you chose, bundled (26.6KB) rather
   than referencing the system Futura, which is commercial and only free while
-  every user is on Apple hardware. **The rule now: serif for what a control
+  every user is on Apple hardware. The rule now: **serif for what a control
   *says*, Jost for what the machine *calls* it, rounded only for fret digits.**
-- **The Guide "?" is the fourth header pill**, and **the pattern name has its own
-  row** under the capo. The name gets the full width in every state now, instead
-  of 35px with a capo set. Costs nothing visible on your phone; at 375×553 the
-  clearance under the grid goes 28px → 11px.
-- **Two v2.11.0 bugs you caught, both fixed in v2.11.1.** The grid jumped when a
-  name appeared: an empty name row collapsed to 1px instead of holding its 23px,
-  so the header swung 33 ↔ 55px. And edit mode's dashed outline cut through the
-  progression readout — it's drawn *outside* the grid and reached 7px up, while
-  the readout sat flush with the grid's top edge (single mode never showed it
-  because that chord was already lifted 9px). The outline now reaches 5px and the
-  readout is lifted 4px, so both ends have real clearance — including a bit more
-  room above the transport at 4 bars.
-- **Still worth a look on the phone:** an unsaved pattern leaves the name row
-  *empty* (no "Untitled" — deliberate). It's now genuinely reserved space, so
-  nothing moves; the question is only whether the empty line reads as dead space.
-  A muted placeholder is the alternative.
-- Small fixes riding along: the capo value no longer inherits the label's letter-
-  spacing (it was nudged off centre), the sheet's ✕ is drawn instead of rendering
-  in Arial, and the stepper's −/+ join the serif like every other typed glyph.
+- **One label tier.** The Options sheet had two that looked nearly identical, with
+  the *smaller* type on the caption that outranked the labels beneath it — which
+  is why the two pages didn't feel like the same object. "Appearance" is gone.
+- **The Guide "?" is the fourth header pill**, and **the name has its own row**
+  under the capo, with the full width in every state (it was down to 35px with a
+  capo set). At 375×553 the clearance under the grid goes 28px → 11px; on your
+  phone the second row is invisible.
+- **The two bugs you caught are fixed** — the grid no longer jumps when a name
+  appears (the empty row was collapsing to 1px; it now reserves its height from
+  the name's own font metrics, and there's a test that fails without the fix),
+  and edit mode's dashed outline no longer crosses the progression readout
+  (`outline` draws *outside* the box, so its reach was 7px into a readout sitting
+  flush with the grid; the outline now reaches 5px and the readout is lifted 4px).
+- Riding along: the capo value no longer inherits the label's letter-spacing, the
+  sheet's ✕ is drawn rather than rendering in Arial, and the stepper's −/+ join
+  the serif like every other typed glyph.
 
-## Fixed in v2.10.4 (session 17)
+**One open question from it:** an unsaved pattern leaves the name row **empty**
+(no "Untitled" — deliberate). It's genuinely reserved space now, so nothing
+moves; the only question is whether that blank line reads as dead space. The
+alternative is a muted placeholder.
 
-- **The home-screen app could install a stale deploy and stay there forever** —
-  your report, and a real bug. `sw.js` fetched its own script fresh (so it *saw*
-  the new deploy) but precached the app files through the browser's HTTP cache,
-  which GitHub Pages marks good for 10 minutes. v2.10.2 and v2.10.3 went out 11
-  minutes apart, so the new worker installed under the new cache name and filled
-  it with v2.10.2's bytes. Nothing re-fetches after install, which is why closing
-  and reopening never helped. The precache now forces the network. **Your phone
-  should self-heal on this deploy**; if it somehow doesn't, delete and re-add the
-  icon and tell me — that would mean something else is wrong.
-
-## On the phone right now (v2.10.2)
-
-- **The Options sheet is two pages** — Generation / Preferences. Built to make
-  room for the capo, and it retires the height ceiling that had been distorting
-  decisions for three sessions. The gear always opens on Generation. **The cost to
-  judge:** the Sound lamps are one tap further away, and Metronome/Melody are the
-  ones you reach for mid-practice.
-- **Capo**, shape-first, −2 to 5, invisible at 0. See item 1 below.
-- **The header is one row now** (capo · name · pills) and **the progression/key
-  readout sits above the grid**, in the same slot as the single-mode chord. That
-  came out of your notes; the header collapse is what paid for it, since the
-  stage had no spare height. Worth a look: the pattern name is 17px rather than
-  21px now that it shares the row.
-- **The readout is 22px** (v2.10.3). Width was never the limit — the worst case
-  needs 305px of 351 even at 26px. Height is, and narrowly: 22px used most of the
-  8px of stage slack at 375×553, and `.stage`'s bottom padding went 28 → 24 to
-  keep a margin. Bigger than this needs a different trade, not just a number.
-- **Locking the phone now ends playback** (v2.9.3). It used to keep going in
-  bursts, because the transport holds the iOS "playback" audio category while the
-  JS timer is frozen, so the backlog fired all at once on the way back. Note the
-  web can't tell a screen lock from an app switch, so switching apps stops a take
-  too.
-
-## On the phone from v2.8.1
-
-- **Icon-only Edit / Save / Load** (pencil, floppy, folder — engraved like the
-  gear and die). Frees 53px of header width, which is what now keeps **every**
-  readout at the full 14px, worst case included — nothing shrinks any more. Two
-  small losses to check: the saved *count* moved off the Load button into its
-  long-press label (the button being enabled already says there's something to
-  load), and icon-only save/load is less self-evident than words — the Guide
-  explains them if needed.
-
-- **Buttons no longer click while the transport is running** (v2.8.2) — which is
-  what makes them silent on a silenced phone, since that was the only window where
-  they could override the switch. Worth feeling out: with the ringer on, you also
-  lose the click during a take. Intended, but you may have an opinion once you've
-  drilled with it.
-
-**Confirmed working on the phone: all three v2.8.0 items** — sound through the
-silent switch, screen staying awake, and auto-update (v2.8.1 arrived without a
-trip to the site first).
-
-## Still on the phone from v2.7.x
-
-All checked and fine for now (2026-07-26): randomiser die placement (reads
-slightly like it might randomise everything in Generation, but is obvious after
-one press), minor keys and their progressions, barre chords F#/Bb, dom7 feel.
-The context readout is no longer an issue at all after v2.8.1.
-
-**Flagged for a later pass:** the **progression list** — fine for now, but you
-expect to revisit which progressions are curated once you've had more time with
-them. Add/drop/reorder is a one-line data edit each.
+**Older items still worth an opinion once you've drilled with them:**
+- **The Sound lamps are one tap further away** since the sheet became two pages.
+  Metronome / Melody are the most mid-practice controls in there. Moving them to
+  page 1 is a small change.
+- **Buttons don't click while the transport is running** (v2.8.2) — which is what
+  keeps them silent on a silenced phone. Side effect with the ringer on: you also
+  lose the click during a take.
+- **The progression list** — fine so far, but you expect to revisit which
+  progressions are curated. Add/drop/reorder is a one-line data edit each.
 
 ---
 
 ## Big — design session first
 
-### 1. Capo system — DONE (v2.10.0, session 16)
-Shape-first, exactly as recommended: you pick the shape key + capo, and the
-concert key is a derived readout. The grid never changes (its frets are shape
-frets — what your fingers do), so this was a label plus one addend in the audio,
-and the generator was untouched.
-
-Your four calls, all built: **shape-first**; **invisible at capo 0** (nothing on
-screen until you set one); a **hardware stepper** rather than a dropdown; and
-**negative values for a down-tuned guitar** — range **−2 to 5**, reading "down 2"
-rather than the impossible "capo −2". Capo transposes the audio (verified by
-recovering the sounded pitches from the rendered buffers: capo 3 = capo 0 + 3
-semitones exactly), joins the saved item's context, and the randomiser leaves it
-alone.
-
-**It needed the Options sheet split into two pages first** — your idea, and a
-better one than any of the three placements offered. One page was at 460px of a
-486.6px cap: room for zero new rows. Generation / Preferences now sit at 311px
-and 329px, so there's room for ~3 more rows on each. The tab row replaced the
-"Generation" caption, so page 1 paid nothing for the split.
-
-**Two things to feel out on the phone:** the Sound lamps (Metronome / Melody) are
-now one tap further away, which is the real cost of the split; and whether "down
-2" is the right wording for a down-tuned guitar. Both are small changes.
-
-**Still deferred:** sound-first ("I need B♭, what capo?") as a lookup helper. It
-has no unique answer, so it's an add-on, not the model.
-
-### 2. Chord library expansion + Root × Quality picker — NEEDS A CALL
+### 1. Chord library expansion + Root × Quality picker — NEEDS A CALL
 Elliott: add m7, maj7, ♭5, diminished, augmented — and split the chord menu into
 a **root** dropdown and a **quality** dropdown.
 
 **Size:** the biggest thing on the list, and it's really two items.
 - *The picker refactor* is worth doing on its own terms — 21 chords is already a
-  long menu, and root × quality collapses it into two short ones.
-- *The library* is the hard half. Every chord currently hand-declares its bass
-  roles and its shape. 12 roots × 7 qualities = 84 hand-written entries: that
-  stops being a data edit and becomes a data problem. The way out is deriving
-  chords from movable shape templates (CAGED-ish: template + root fret ⇒ shape
-  and roles), which is a real architecture change to `data.js`.
+  long menu, and root × quality collapses it into two short ones. The Options
+  sheet has room for it now that it's two pages, which it didn't before.
+- *The library* is the hard half. Every chord hand-declares its bass roles and its
+  shape. 12 roots × 7 qualities = 84 hand-written entries: that stops being a data
+  edit and becomes a data problem. The way out is deriving chords from movable
+  shape templates (CAGED-ish: template + root fret ⇒ shape and roles), which is a
+  real architecture change to `data.js`.
 
 **Already answered:** your closed-voicing worry has a clean solution *in the
 existing model, with no generator change* — a chord that declares root, alt and
@@ -160,65 +78,68 @@ notes, i.e. exactly the thumb-on-root-only behaviour you proposed. So the jazz
 shapes are a data convention, not new code.
 
 **Needs from you — the framing question:** do you want to **drill your right hand
-over richer harmony** (maybe a dozen curated additions: m7, maj7, a couple of
-dim/aug — small), or do you want a **chord dictionary** (all roots × all
-qualities — the templates refactor)? Elliott hedged himself here ("maybe
-unnecessary, this is really a right hand exercise"), which is worth weighing.
+over richer harmony** (a dozen curated additions: m7, maj7, a couple of dim/aug —
+small), or do you want a **chord dictionary** (all roots × all qualities — the
+templates refactor)? Elliott hedged himself here ("maybe unnecessary, this is
+really a right hand exercise"), which is worth weighing.
 
 ---
 
 ## Medium
 
-### 3. Pre-loaded patterns (G2) — OPEN, design already settled
+### 2. Pre-loaded patterns — OPEN, design already settled
 Ship a set of good starting patterns as **read-only "Built-in" data** in the Load
 sheet, with "save a copy" — *not* seeded into localStorage. That way they survive
 reinstalls, never pollute your real library, and updates can add more. Fits the
-"favourites as a folder within Saved" idea. Probably the best-value smaller item
-on the list.
+"favourites as a folder within Saved" idea, and it inherits the capo context
+field for free.
 
-### 4. App icon revamp — DONE (v2.9.0 → v2.9.2, session 15)
-Your thumbs-up-with-a-thumbpick, as drawn artwork rather than generated shapes.
-Six treatments were compared at the real 32px; the flat-graphic one won on
-legibility, not taste. `tools/make_icons.py` frames and resamples
-`tools/icon-master.png` and enforces the maskable safe zone by measurement.
+**Probably the best-value item on the list**, and the only big-ish one with no
+decision blocking it. The one thing I'd want from you is the *patterns* — either
+a handful you've saved and like, or a nod to pick a spread across the tiers.
 
-Two rounds followed your notes. **v2.9.1** repainted it after you spotted the pick
-vanishing — it measured 1.08:1 against the disc behind it. **v2.9.2** rebuilt every
-colour from **Jerry's own theme values** (teal pick = `--active-deep`, the same
-role as the thumb notes) and made **Jerry the default theme** so the icon and the
-app agree. Weakest contrast pair is now 2.16:1.
-
-**Two things to know on the phone:**
-- You'll probably need to **delete and re-add** the home-screen app to see the new
-  icon — iOS caches the installed one and auto-update doesn't replace it.
-- **A saved theme preference still wins over the default.** If your phone already
-  has one stored, the default change won't move it — pick Jerry once if so.
-
-**Still available if you want another round:** going **full bleed** (disc colour
-edge to edge, no background band) would buy ~20–25% more hand and fix the last
-weak pair (disc vs background, 1.34:1) — the hand is only 46% of the tile today.
-That one needs regenerated art, not a recolour.
-
-### 5. Swing (G1) — OPEN
+### 3. Swing — OPEN
 Timing feel. The only open item that touches the scheduler rather than data.
-Worth pinning down first whether you want a swing *toggle* or a *percentage*.
+Worth pinning down first whether you want a swing **toggle** or a **percentage**,
+and whether it applies to the metronome click as well as the pattern.
 
-### 6. JSON export/import of the Saved library — OPEN
+### 4. JSON export/import of the Saved library — OPEN
 Insurance against iOS evicting localStorage after ~7 days of not opening the app.
 The home-screen install is the main defence; this is the belt-and-braces one, and
 it's the most *defensive* item on the list.
+
+### 5. App icon: full bleed — OPEN, needs regenerated art
+The icon is done and signed off (v2.9.2, built from Jerry's own theme values).
+The remaining option: letting the disc colour run **edge to edge** instead of
+sitting as a circle on a background band would buy ~20–25% more hand at the same
+safe margin, and retire the last weak contrast pair (disc vs background, 1.57:1).
+The hand is only 46% of the tile today. Needs new art, not a recolour.
 
 ---
 
 ## Small — numbers, copy, or a single decision
 
-### 7. Unruly density (E1) — OPEN
+### 6. Revisit the Guide — OPEN, needs your framing
+Your call, from the v2.10.x notes. It was written in one pass in v2.6.0 and
+touched once since. The app has gained the **capo**, the **two-page Options
+sheet**, **minor keys / tokens / dom7 chords**, **icon-only pills**, and now a
+**"?" that lives in the header** — and the icon-only pills are the one thing in
+the app that *needs* explaining, which makes the Guide load-bearing.
+
+**Worth deciding what's wrong with it before rewriting:** is it *stale* (says
+things that have moved), *too long* (six headings before the legend), *the wrong
+shape* (reference vs a first-run tour), or *was it hard to find* (which the header
+"?" may have already fixed)? Those pull in different directions — a first-run tour
+is a feature, a rewrite is an afternoon of copy. Bring the specific thing that
+annoyed you and it'll be obvious which.
+
+### 7. Unruly density — OPEN, only if the drilling says so
 You once felt Unruly is occasionally "too much". Everything is numbers in
 `CHAOS_PRESETS` (`maxRestrikes` 1 for milder, 3 for spicier). Generation was
-signed off on guitar, so this only reopens if the weekend drilling says so.
+signed off on guitar, so this only reopens if it bothers you again.
 
 ### 8. Chaos "stops sounding like Travis picking" (Elliott) — NEEDS A CALL
-Accurate observation of what Chaos *is*: deliberately off the difficulty curve,
+An accurate observation of what Chaos *is*: deliberately off the difficulty curve,
 the novelty/discovery setting, per the spec and your session-6 call. Not a bug.
 **Only worth reopening if you agree it's more useless than fun** — in which case
 the fix is constraints on its column shapes, and it becomes "Unruly+" instead of
@@ -228,46 +149,22 @@ the fix is constraints on its column shapes, and it becomes "Unruly+" instead of
 You called it redundant given the fret-number labels, and I agree — *today*. It
 stops being redundant the moment the chord library grows unfamiliar shapes, and
 then it belongs in the **chord picker** (where you're choosing), never near the
-grid. So: revisit if and only if item 2 happens.
-
-### 9b. Button sounds in silent mode — DECIDED and shipped (v2.8.2)
-**Buttons never sound on a silenced phone.** Since the web can't read the ring
-switch, the rule is "no button sound while the transport is running" — playback is
-the only window where they could have punched through. Side effect with the ringer
-ON: buttons are also quiet during a take, which is arguably a bonus. The metronome
-and melody still ignore the switch, so you get the native split: requested audio
-plays, incidental feedback doesn't. The Options toggle is unchanged.
-Rejected: holding the playback category permanently (nothing respects silent
-mode) — that category doesn't mix with other apps, so a stray button tap would
-interrupt background music.
-**Haptics can't substitute:** iOS Safari has never shipped the Vibration API
-(Android has), and the one reported workaround is a narrow iOS 17.4 checkbox trick
-that can't reach an arbitrary button. Revisit this and haptics together **only if
-this ever becomes a real App Store app** — a much later road.
-
-### 9c. Revisit the Guide (help menu) — OPEN, needs your framing
-Your call, from the v2.10.x phone notes. It was written in one pass in v2.6.0 and
-has only been touched once since (v2.6.1 fixed "amber/cream" to "bottom rows /
-top rows", because note colours are theme-driven). Since then the app has gained
-the **capo**, the **two-page Options sheet**, **minor keys / tokens / dom7
-chords**, and **icon-only pills** — and the icon-only pills are the one thing in
-the app that *needs* explaining, which makes the Guide load-bearing rather than
-decorative.
-
-**Worth deciding what's wrong with it before rewriting:** is it *stale* (says
-things that have moved), *too long* (six headings you scroll past to reach the
-legend), *the wrong shape* (reference vs a first-run tour), or *hard to find*
-(it's behind the gear, on page 2, as a "?" key)? Those pull in different
-directions — a first-run tour is a feature, a rewrite is an afternoon of copy.
-Bring the specific thing that annoyed you and it'll be obvious which.
+grid. So: revisit if and only if item 1 happens.
 
 ### 10. Saved-name crowding — OPEN, only if it bites
-Three buttons per saved item (Load/Rename/Delete) narrow the name column, so long
-names ellipsize early. Fix if it annoys you: icon buttons, or a two-row layout.
+Three buttons per saved item (Load / Rename / Delete) narrow the name column, so
+long names ellipsize early. Fix if it annoys you: icon buttons, or a two-row
+layout. (Note the *header* name is no longer cramped — that was v2.11.0.)
 
-### 11. More keys — DEFERRED by your call
-All 12 keys, and sharp minor keys (Bm/F#m/C#m — these pull in new barre majors).
-"Curate first, expand later."
+### 11. "Add to Home Screen" hint — OPEN, cheap
+Elliott still reaches for it in Safari rather than the installed icon. If that's
+common for people you share it with, a dismissible hint is a small piece of work —
+and the home-screen install is also what protects saved patterns from iOS's
+storage eviction, so it's not purely cosmetic.
+
+### 12. More keys — DEFERRED by your call
+All 12 keys, and sharp minor keys (Bm / F♯m / C♯m — these pull in new barre
+majors). "Curate first, expand later."
 
 ---
 
@@ -283,23 +180,38 @@ All 12 keys, and sharp minor keys (Bm/F#m/C#m — these pull in new barre majors
   pattern length to make one bar differ.
 - **Note tokens are domes**, not chips (v2.5.2).
 - **Menu labels show the concise idea** (`I–IV–V`), not the padded 4-bar literal.
-- **Elliott's "it already feels like an app"** — worth noting he still reaches for
-  it in Safari rather than the home-screen icon. If that's common for people you
-  share it with, an "Add to Home Screen" hint is a cheap thing to add.
+- **Capo is shape-first** — you pick the shape and the capo, the concert key is
+  derived. Sound-first ("I need B♭, what capo?") has no unique answer, so it
+  would be a lookup helper on top, not a different model.
+- **Buttons never sound on a silenced phone** (v2.8.2). The web can't read the
+  ring switch, so the rule is "no button sound while the transport is running" —
+  playback is the only window where they could punch through. Haptics can't
+  substitute: iOS Safari has never shipped the Vibration API. Revisit both only
+  if this ever becomes a real App Store app.
+- **Bundled OFL faces, not system ones** (v2.11.0). Referencing a commercial
+  system face is free only while every user is on Apple hardware, and you want
+  this commercialisable.
 
 ---
 
 ## Ground rules that constrain any of the above
 
-- **The grid is the hero.** Re-measure 375×553 before shipping any chrome growth.
-  The Options sheet is no longer the bottleneck — since v2.10.0 it's two pages
-  with ~160px spare on each (a control row is 58px). The *header* is still tight.
-- **Keys/chords/progressions are data in `data.js`** — the generator stays untouched.
+- **The grid is the hero.** Re-measure **375×553** before shipping any chrome
+  growth. The Options sheet is no longer the bottleneck (two pages, ~150px spare
+  each; a control row is 58px). The **header is tight**: it's two rows / 55px
+  since v2.11.0, and the clearance under the grid at 4 bars is down to 11px.
+- **Keys / chords / progressions are data in `data.js`** — the generator stays
+  untouched.
+- **Three type voices, and the rule is *where the words sit***: serif inside a
+  control, Jost above it, rounded only for fret digits. Adding a font means
+  precaching it and bumping `CACHE`; two tests guard that.
 - **Any new text that can contain ♭ or ♯ needs a pinned `line-height`** (those
   glyphs fall back off Fraunces to a taller font and grow the line box).
-- **Tests stay green and grow with anything new** (`tests.html`).
-- **Deploy dance:** bump `CACHE` in `sw.js` + `APP_VERSION` in `js/app.js`
-  (it moved out of `index.html` in v2.10.1, along with the tag itself),
-  push, then test on the phone. (Should get easier from v2.8.0 onward.)
+- **Tests stay green and grow with anything new** (`tests.html`). Layout
+  invariants can be tested too — see the name-row check, which renders the real
+  stylesheet in an iframe.
+- **Deploy dance:** bump `CACHE` in `sw.js` + `APP_VERSION` in `js/app.js`, push,
+  then check on the phone. Since v2.10.4 the precache forces the network, so a
+  deploy can no longer install stale bytes.
 - **The repo is public** — keep the GitHub noreply identity, never a real
   name/email.

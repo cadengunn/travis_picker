@@ -1,136 +1,134 @@
-# Carry-forward — Travis Picker (after session 16, 2026-07-26)
+# Carry-forward — Travis Picker (after session 17, 2026-07-27)
 
 **The standing open list lives in `OPEN_ITEMS.md`** — every open item with its
 size, what's decided and what needs the user's call. This file is the session
 hand-off only.
 
-## Shipped this session — v2.9.3 → v2.10.3 (`CACHE` v51)
+## Shipped this session — v2.10.4 → v2.11.1 (`CACHE` v54)
 
-62/62 green. Tree clean, everything deployed, nothing half-finished. Full detail
-in CLAUDE.md "Where things stand (session 16)".
+65/65 green. Tree clean, everything deployed, nothing half-finished. Full detail
+in CLAUDE.md "Where things stand (session 17)".
 
-### v2.9.3 — locking the phone no longer leaves audio running in bursts
-His report, from the phone. **The cause was two of our own features meeting:**
-the transport holds the iOS **`playback` audio category** (v2.8.0's silent-switch
-fix), which is exactly what keeps our sound alive in the background — while the
-**`setTimeout` driving the lookahead scheduler is frozen** by that same
-backgrounding. The audio clock keeps running, `nextSlotTime` falls behind, and
-the next timer tick schedules every missed slot at a time already in the past.
-Web Audio plays those immediately, so the backlog comes out as one burst.
+### v2.10.4 — the installed app could precache a STALE deploy, permanently
+His report: the site had updated but the home-screen app still showed the
+previous version, and force-quitting didn't help. A real bug, and **not** in the
+update detection that v2.8.0 fixed.
 
-- `createPlaybackGuard()` in `platform.js` (a fourth integration, same injected-
-  `doc`/`win` shape as the others): stop on `visibilitychange` → hidden, and on
-  `pagehide`. **The web can't tell a screen lock from an app switch**, so both end
-  the take — right anyway, since neither leaves you looking at the grid.
-- `hasDrifted()`/`MAX_DRIFT` in `metronome.js`: past 0.25s behind, drop the missed
-  slots and resync rather than replay them. The backstop for a freeze nothing
-  tells us about.
-- `stopTransport()` in `app.js` is now the single stop path, so the guard hands
-  the audio category back exactly as the Play button does.
+`updateViaCache: "none"` makes the browser fetch **`sw.js`** from the network,
+which is why a new deploy is *detected* — but the files `sw.js` then precaches go
+through the ordinary HTTP cache, and GitHub Pages serves them `max-age=600`. Two
+deploys inside ten minutes (v2.10.2 → v2.10.3 were **11 minutes apart**) and the
+new worker installs correctly under the new cache name while filling it with the
+**previous** deploy's bytes. Nothing re-fetches afterwards, because the cache is
+only written at install: an up-to-date worker serving stale code, for good.
 
-### v2.10.0 — the Options sheet became two pages, and the capo lives in that room
-**The two-page split was HIS idea**, offered in place of the three capo
-placements I'd put to him, and it's better than all of them: it dissolves the
-constraint instead of working around it. One page measured **460px of a 486.6px
-cap** at 375×553 — room for *zero* new control rows. Generation / Preferences now
-measure **311px and 329px**.
+- Fix: `install` fetches each entry with `{ cache: "reload" }` and `cache.put`s
+  it, replacing `cache.addAll`. A non-`ok` response throws, so a partial precache
+  can't reach `skipWaiting`.
+- **Proven, not argued:** a scratchpad endpoint serving `max-age=600` with a
+  server-side hit counter showed three default-mode fetches leaving the counter
+  at **1** and a `reload` fetch taking it to **2**.
+- Second hole found while tracing it: `registerServiceWorker()` ran inside
+  `boot()`, so anything throwing earlier took the updater down with it — and an
+  app that can't check for updates can't ship its own fix.
 
-The capo is **shape-first**, **−2 to 5** (negative = a down-tuned guitar, reading
-"half-step down" / "whole step down"), a **hardware stepper**, and **invisible at
-capo 0** — all his calls. The grid never changes and the generator never sees it.
+### v2.11.0 — the typography pass
+Started from "something seems a little off about the fonts" in the Options sheet.
+**The typefaces were never the problem** — the sheet had *two label systems* and
+a few orphans. Measured first: the group caption was 9px/0.22em at x=18 over
+field labels at 10px/0.14em at x=16, i.e. *smaller type on the thing that
+outranks*, and the two pages therefore opened with different-looking objects.
 
-### v2.10.1 — seven fixes off his phone test of v2.10.0
-Every one a real defect, not a preference. Full list in CLAUDE.md; the three
-worth remembering:
-- **The sheet jumped between pages** (311 vs 329px). Both pages now share one CSS
-  grid cell with the inactive one hidden by `visibility`, so the panel is always
-  the taller page's height — no magic numbers, still true if the content changes.
-- **Rapid capo taps triggered iOS double-tap zoom** even though the buttons had
-  `touch-action: manipulation`. The hole was the CONTAINER: at an end-stop the
-  button under your finger goes `disabled` and the tap falls through to the well
-  behind it. `.stepper` and `.segmented` joined the rule.
-- **The die now sits in the chord row and nothing else** (his suggestion) —
-  position is the only thing that communicates its scope. The Single/Prog toggle
-  moved up to join the capo in a "context" row to make that possible.
+The rule that came out of it is about **where words sit**, not what they mean —
+serif inside a control, `--legend` above it, `--numeral` only for fret digits.
 
-**The deploy dance changed:** the version is `APP_VERSION` in `js/app.js` now,
-not a span in `index.html`. It moved to the foot of the Guide to free the room
-that put the tabs on the sheet's title line.
+**The legend face is bundled Jost (OFL 1.1, 26,588 bytes)** rather than the
+system Futura it resembles. He asked exactly the right question — *is Futura
+actually free?* — and it isn't: Futura, Copperplate, Helvetica Neue and Gill Sans
+are all commercial, and referencing one by name is free only while every user is
+on Apple hardware. He's thinking about commercialising, so an OFL face wins.
 
-### v2.10.2 — the two placement calls that wrapped the session
-- **Capo readout to the top LEFT**, and **the progression/key indicator down to
-  the slot above the grid**, alongside the single-mode chord — "to be consistent
-  with the chord indicator in single-chord mode". Right call: they're the same
-  piece of information and it shouldn't move when the mode does.
-- **The room came from collapsing the header to ONE row.** The stage had 0px
-  spare at 4 bars, so a reserved slot above the grid had to be paid for. Shaving
-  `.stage`'s 28px `padding-bottom` left 1px of margin and crowded the transport;
-  merging the name into the header row freed 31px and kept the breathing room.
-  `.app-head` 63 → 32px. The name can't stretch the pills (`flex: 0 1 auto` +
-  ellipsis, measured: pills stay exactly 146px), which is what made it safe.
-- Side benefit: the readout now has the stage's full width instead of ~196px, so
-  even the worst-case numerals render at **22px** (v2.10.3 — he asked for bigger
-  and was right), with `fitContext` reduced to pure insurance.
-- **Which limit binds, if it's asked again:** not width — the worst case needs
-  305px of 351 even at 26px type. Height, and narrowly: the stage's shrinkable
-  `::before` gap was 8px at 375×553 with 4 bars, so 22px type came out of it and
-  `.stage`'s `padding-bottom` went 28 → 24 to keep a real margin (6px now).
+Also his two placement calls, which depend on each other: the **Guide "?" became
+a fourth header pill**, and the **name moved back to its own row** — which is
+what makes the fourth pill free, since with a capo set the name had been left
+35px of a 351px row.
 
-### Five things worth carrying forward
-1. **Measure the constraint before proposing a workaround.** Three sessions of
-   decisions had been distorted by the sheet's ~27px of headroom — the version tag
-   exiled into the header, the die on a caption line, and every capo placement I
-   offered. He asked the better question, which was why the sheet held everything
-   at once.
-2. **Shape-first is what makes a capo cheap.** The grid's frets are shape frets,
-   so nothing on screen changes: a label plus one addend in `midiOf`. If a future
-   feature wants sound-first, it's a lookup helper on top, not a different model.
-3. **Judge audio changes by recovering the pitches, not by trusting the code.**
-   Karplus-Strong output is periodic at its fundamental, so period detection on
-   the rendered buffers proved capo 3 = capo 0 + 3 semitones exactly. A first
-   attempt compared cached buffer identity and was inconclusive — a +2 shift can
-   land on a pitch that was already sounding.
-4. **`visibility: hidden`, not the `hidden` attribute**, whenever an element
-   shares a flex/grid track with something that would otherwise take its space.
-   It fixed both the tabs resizing between pages and the sheet jumping — the
-   jumping-control complaint showing up twice in one session.
-5. **Zero-layout-cost hosts are the way to add on-screen state, but check what
-   they cost their NEIGHBOURS.** The capo tag beside the context cost the grid
-   nothing and still had to move: "whole step down" left the readout 63px and
-   truncated the numerals. The name row had the width to spare.
+### v2.11.1 — two bugs he caught on the phone, both mine
+- **The grid jumped when a name appeared.** An empty `.loaded-name` is a 0-height
+  inline box, so the row collapsed to 1px and the header swung **33 ↔ 55px**. I
+  had reported this verified after measuring the "no name" case *with placeholder
+  text in the element*. Fixed with a zero-width-space `::before`, so the
+  reservation comes from the name's own font metrics.
+- **Edit mode's dashed outline crossed the progression readout.** `outline` draws
+  OUTSIDE the box, so its reach is `offset + width` = 7px, into a readout sitting
+  flush with the grid's top edge. Fixed at both ends: offset 5 → 3px and the
+  readout lifted 4px (via `position: relative; top` — a transform would re-open
+  the iOS lingering-label bug).
 
-### Tell him, if it comes up
-- **The Sound lamps are one tap further away now.** Metronome/Melody are the most
-  mid-practice controls in the sheet; that's the real cost of the split and the
-  thing to feel out. Moving them back to page 1 is a small change.
-- v2.9.3's fix means **switching apps also stops playback**, not just locking.
+## Five things worth carrying forward
+
+1. **Measure the state that actually ships.** Both v2.11.1 bugs were layout
+   claims I'd "verified" in a state the user never sees — a name row with
+   placeholder text in it, and a readout without edit mode armed.
+2. **Reproduce the mechanism, don't infer it.** The stale-cache diagnosis was
+   circumstantial until a `max-age=600` endpoint with a hit counter showed the
+   browser answering `addAll` from its own cache. That took one small server and
+   settled it.
+3. **A layout invariant CAN have a test.** The name-row check renders the real
+   stylesheet plus the header markup in an **iframe** (tests.html has no
+   stylesheet, and booting the app in the harness would touch his saved
+   patterns), then asserts empty and filled heights match. Verified it fails with
+   the fix removed. This repo has hit grid-jump bugs repeatedly — more of these.
+4. **For type or colour questions, build the real thing at true size and let him
+   judge on the phone.** Six candidate faces in a 375px replica of the sheet,
+   with the real values and the real Fraunces, published as an artifact. Several
+   candidates are iOS system faces the dev box renders differently or not at all,
+   so a laptop screenshot would have been the wrong evidence.
+5. **Licensing is a real design constraint here.** He intends to keep the option
+   to commercialise, so "it renders on my phone" isn't the same as "we can use
+   it". Bundled OFL is the house rule now.
+
+## Tell him, if it comes up
+
+- **v2.11.1 is the first deploy that proves the v2.10.4 fix** — if the Guide
+  reads the current version after a relaunch without a force-quit, the stale
+  precache bug is settled.
+- **The empty name row** is the one deliberate thing from this session he hasn't
+  ruled on: a fresh generation shows no name, so that row is blank. It's reserved
+  space now (nothing moves), but a muted placeholder is the alternative.
+- The **dev-box caveat is unchanged**: rAF is paused in the hidden preview tab,
+  which freezes the playhead and the beat lamp, and `document.fonts.ready` can
+  hang there too — force layout with `offsetHeight` instead of awaiting frames.
 
 ## Next session — his call
 
 From `OPEN_ITEMS.md`, in the order I'd argue for:
 
-- **Pre-loaded patterns** — now the best-value item on the list, design already
-  settled (read-only "Built-in" data in the Load sheet with "save a copy", never
-  seeded into localStorage). It also inherits the capo field for free, which is
-  why capo went first.
-- **Chord-library fork** — still blocked on the framing question: richer harmony
-  to drill (a dozen curated additions) vs a chord dictionary (all roots ×
-  qualities, which needs a movable-shape-template refactor of `data.js`). The
-  Options sheet now has room for a root × quality picker, which it didn't before.
-- **Icon full bleed** — needs regenerated art, not a recolour.
-- Smaller: swing, JSON export/import, Unruly density.
+- **Pre-loaded patterns** — the best-value item on the list and the only sizeable
+  one with nothing blocking it. Design settled (read-only "Built-in" data in the
+  Load sheet with "save a copy", never seeded into localStorage). The one thing
+  needed from him is the patterns themselves.
+- **The chord-library fork** — still blocked on the framing question: richer
+  harmony to drill (a dozen curated additions) vs a chord dictionary (all roots ×
+  qualities, needing a movable-shape-template refactor of `data.js`).
+- **The Guide rewrite** — he asked to revisit it; needs him to say *what's* wrong
+  with it, since stale / too long / wrong shape pull in different directions.
+- Smaller: swing, JSON export/import, icon full bleed, an "Add to Home Screen"
+  hint.
 
 ## How this user likes to work
-- **Agree the design BEFORE coding.** Surface genuine forks, don't guess. This
-  session that produced four decisions in two questions — and one better idea
-  from him than anything on the menu.
-- **He will improve your options.** When he answers a multiple choice with a
-  fifth option, take it seriously; the two-page split was exactly that.
+
+- **Agree the design BEFORE coding.** Surface genuine forks, don't guess. He says
+  so explicitly ("let's discuss before making any modifications") and he means it.
+- **He will improve your options.** The two-page Options sheet and the name-row
+  move both came from him rejecting the menu I offered.
+- **He asks the question you should have asked.** "Is Futura actually free?" was
+  the whole licensing thread; it changed the answer.
 - He **tests on a real guitar and a real phone between sessions** and brings
   written notes — stop at checkpoints and say what's worth trying.
 - Favourite kind of work is **functional hardware detail** (lamps, button feel,
-  and now the capo stepper).
+  the capo stepper).
 - **The pattern grid is always the hero.** Re-measure 375×553 before shipping any
-  chrome growth. The header is still tight; the Options sheet no longer is.
+  chrome growth.
 - **Report what was and wasn't verified**, and prefer measuring to theorising.
 - Deploys are public — keep the GitHub noreply identity.
