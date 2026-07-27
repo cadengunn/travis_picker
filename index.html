@@ -21,15 +21,19 @@
 </head>
 <body>
   <main>
-    <!-- Header, two rows. Row 1: the musical context, top-LEFT (progression + key,
-         progression mode only) + the pattern actions. Row 2: the pattern's name,
-         which owns a full row so a long saved name can't stretch the buttons.
-         The context auto-shrinks its font to fit (fitContext in app.js) — Roman
-         numerals with accidentals run long, and the version tag was moved into
-         the Options sheet to give this row back ~43px. -->
+    <!-- Header, ONE row: capo state (left) · the pattern's name · the pattern
+         actions. The musical context moved above the grid in v2.10.2, which is
+         what let the two header rows become one — and that 31px is exactly what
+         paid for the context's new home (the stage had 0px spare at 4 bars).
+         Nothing here can stretch anything: the name is `flex: 0 1 auto` with
+         min-width 0 and ellipsizes, which is the actual fix for the session-8
+         bug that first gave it a row of its own. -->
     <header class="app-head">
       <div class="ctx-row">
-        <span id="context" class="context" hidden></span>
+        <!-- Capo state, top-LEFT and in the same place in both chord modes. Only
+             exists when a capo is set, so the default screen is untouched. -->
+        <span id="capo-tag" class="capo-tag" hidden></span>
+        <span id="loaded-name" class="loaded-name"></span>
         <div class="grid-actions">
           <!-- Icon-only (v2.8.2): the three pills were the last text controls in an
                app that otherwise speaks in glyphs, and their labels were eating the
@@ -45,24 +49,19 @@
                   aria-label="Load pattern" title="Load"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg></button>
         </div>
       </div>
-      <div class="name-row">
-        <span id="loaded-name" class="loaded-name"></span>
-        <!-- Capo state, in the SAME place in both chord modes — it used to ride
-             the context in progression mode and the floating chord label in
-             single mode, so it moved down the screen when you switched. It's on
-             the name row rather than beside the context because "whole step
-             down" is ~124px: sharing row 1 squeezed even a preset readout past
-             fitContext's floor and truncated the numerals (measured). Costs no
-             layout — the row's height is reserved whether or not it's used. -->
-        <span id="capo-tag" class="capo-tag" hidden></span>
-      </div>
     </header>
 
     <div class="stage">
-      <!-- Single-chord mode shows the chord once, above the grid (the grid is the
-           hero, so this stays a modest label). Hidden in progression mode, where
-           each bar carries its own chord. -->
-      <div id="chord-head" class="chord-head" hidden><span class="c"></span></div>
+      <!-- ONE slot above the grid says what you're playing over, in both chord
+           modes: the single chord, or the progression's Roman numerals + key.
+           They used to live in different places (chord here, progression up in
+           the header), so the readout moved when you switched modes. The slot's
+           height is reserved, so the grid never shifts; the big single-mode
+           chord still overflows it upward, as it always did. -->
+      <div id="chord-head" class="chord-head">
+        <span class="c"></span>
+        <span id="context" class="context" hidden></span>
+      </div>
       <section id="grid" class="grid" aria-label="Pattern grid"></section>
     </div>
   </main>

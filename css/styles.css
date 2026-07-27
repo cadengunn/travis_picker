@@ -124,22 +124,23 @@ main {
 /* (The version tag once lived here, then in the Options sheet header; it's at
    the foot of the Guide now — see .tp-help-version. Both earlier homes cost
    width that the readouts beside them needed.) */
-/* progression + key, top-LEFT of row 1, shown only in progression mode.
-   Roman numerals with accidentals (i – ♯vi – I7 – VII · Am) run longer than the
-   room beside the pills, so `fitContext()` in app.js scales the font down (14px
-   base, 10.5px floor) only when a readout would otherwise truncate. The fixed
-   line-height matters: ♭/♯ (U+266D/U+266F) aren't in Fraunces and the fallback
-   font's taller metrics would grow the line box — and with it the row. */
+/* Progression + key, ABOVE THE GRID since v2.10.2, in the same slot the single
+   chord uses — the two are the same piece of information and used to sit in
+   different places. It gets the stage's full width there instead of the ~196px
+   it had beside the pills, so `fitContext()` (14px base, 10.5px floor) now never
+   has to shrink anything; it stays as insurance for a longer future readout.
+   The fixed line-height matters: ♭/♯ (U+266D/U+266F) aren't in Fraunces and the
+   fallback font's taller metrics would grow the line box — and with it the row. */
 .context {
-  flex: 1 1 auto;
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: left;
+  text-align: center;
   font-family: var(--serif);
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: 16px;      /* must match CONTEXT_BASE_PX — fitContext sets it inline */
+  line-height: 20px;
   font-weight: 600;
   color: var(--text);
   font-variation-settings: "opsz" 30, "SOFT" 30;
@@ -149,15 +150,13 @@ main {
    it's 12px of a row where every pixel goes to fitting the numerals unshrunk. */
 .context .sep { display: inline-block; margin: 0 5px; }
 /* Capo indicator — present ONLY when a capo is set, so the default screen is
-   untouched. Right end of the NAME row, the same place in both chord modes.
-   Row 1 was tried first and is wrong: "whole step down" is ~124px, which took
-   the context readout below fitContext's 10.5px floor and truncated the
-   numerals. The name row has the width to spare, and long saved names already
-   ellipsize. */
+   untouched. Top-LEFT of the header, the same place in both chord modes. It can
+   afford to be here now that the context has moved above the grid: sharing the
+   row with the readout, "whole step down" (~124px) left it 63px and truncated
+   the numerals. The pattern name gives way to it (the name ellipsizes). */
 .capo-tag {
   flex: 0 0 auto;
-  margin-left: auto;
-  padding-left: 10px;
+  padding-right: 2px;
   font-family: var(--numeral);
   font-size: 10px;
   font-weight: 600;
@@ -257,16 +256,11 @@ main {
   }
 }
 
-/* row 2: the pattern name. Owns a full row so a long saved name can't stretch the
-   action pills. Keeps its reserved min-height when empty, so the grid never moves. */
-.name-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: 5px;
-  min-height: 26px;
-  padding: 0 2px;
-}
+/* The pattern name shares the single header row (v2.10.2 — it had a row of its
+   own from v2.1, back when the context was up here too). `flex: 0 1 auto` +
+   min-width 0 + ellipsis is what actually stops a long name stretching the
+   pills — the separate row was belt AND braces, and collapsing it is what freed
+   the 31px the context needed above the grid. */
 .loaded-name {
   min-width: 0;
   flex: 0 1 auto;
@@ -274,7 +268,7 @@ main {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--serif);
-  font-size: 21px;
+  font-size: 17px;
   /* room for descenders (g/j/q/p/y): with overflow:hidden a tight line-height
      clips the tails. 1.3 gives the serif's deep descenders space. */
   line-height: 1.3;
@@ -343,18 +337,21 @@ main {
   min-height: 0;
 }
 
-/* single-mode chord label — modest, above the grid (the grid is the hero). It
-   FLOATS with zero flow height (height:0 + overflow:visible), dropped to just
-   above the grid via align-items:flex-end, so showing/hiding it never pushes the
-   grid down — the grid keeps the exact position it holds in progression mode. */
+/* The one "what am I playing over" slot, above the grid — the single chord, or
+   the progression's numerals + key. Modest either way: the grid is the hero.
+   Its height is RESERVED (22px) and it's always present, so the grid sits in the
+   same place in both chord modes and switching can't move it. The 40px single-
+   mode chord still overflows the slot upward (overflow: visible + flex-end), the
+   way it did when this box was zero-height. */
 .chord-head {
   flex: 0 0 auto;
-  height: 0;
+  height: 22px;
   overflow: visible;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   text-align: center;
+  min-width: 0;
 }
 .chord-head .c {
   font-family: var(--serif);

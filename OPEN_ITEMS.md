@@ -13,7 +13,7 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.10.0)
+## On the phone right now (v2.10.2)
 
 - **The Options sheet is two pages** — Generation / Preferences. Built to make
   room for the capo, and it retires the height ceiling that had been distorting
@@ -21,6 +21,11 @@ so it isn't re-litigated.
   judge:** the Sound lamps are one tap further away, and Metronome/Melody are the
   ones you reach for mid-practice.
 - **Capo**, shape-first, −2 to 5, invisible at 0. See item 1 below.
+- **The header is one row now** (capo · name · pills) and **the progression/key
+  readout sits above the grid**, in the same slot as the single-mode chord. That
+  came out of your notes; the header collapse is what paid for it, since the
+  stage had no spare height. Worth a look: the pattern name is 17px rather than
+  21px now that it shares the row.
 - **Locking the phone now ends playback** (v2.9.3). It used to keep going in
   bursts, because the transport holds the iOS "playback" audio category while the
   JS timer is frozen, so the backlog fired all at once on the way back. Note the

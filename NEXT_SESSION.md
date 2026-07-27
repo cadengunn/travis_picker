@@ -4,7 +4,7 @@
 size, what's decided and what needs the user's call. This file is the session
 hand-off only.
 
-## Shipped this session — v2.9.3 → v2.10.1 (`CACHE` v49)
+## Shipped this session — v2.9.3 → v2.10.2 (`CACHE` v50)
 
 62/62 green. Tree clean, everything deployed, nothing half-finished. Full detail
 in CLAUDE.md "Where things stand (session 16)".
@@ -56,6 +56,21 @@ worth remembering:
 **The deploy dance changed:** the version is `APP_VERSION` in `js/app.js` now,
 not a span in `index.html`. It moved to the foot of the Guide to free the room
 that put the tabs on the sheet's title line.
+
+### v2.10.2 — the two placement calls that wrapped the session
+- **Capo readout to the top LEFT**, and **the progression/key indicator down to
+  the slot above the grid**, alongside the single-mode chord — "to be consistent
+  with the chord indicator in single-chord mode". Right call: they're the same
+  piece of information and it shouldn't move when the mode does.
+- **The room came from collapsing the header to ONE row.** The stage had 0px
+  spare at 4 bars, so a reserved slot above the grid had to be paid for. Shaving
+  `.stage`'s 28px `padding-bottom` left 1px of margin and crowded the transport;
+  merging the name into the header row freed 31px and kept the breathing room.
+  `.app-head` 63 → 32px. The name can't stretch the pills (`flex: 0 1 auto` +
+  ellipsis, measured: pills stay exactly 146px), which is what made it safe.
+- Side benefit: the readout now has the stage's full width instead of ~196px, so
+  even the worst-case numerals render at **16px** — bigger than they have ever
+  been, with `fitContext` reduced to pure insurance.
 
 ### Five things worth carrying forward
 1. **Measure the constraint before proposing a workaround.** Three sessions of

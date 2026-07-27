@@ -118,13 +118,26 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
 - **Bottom strip (always visible), one row:** Play, BPM, 🎲 Generate, ⚙ Options.
   Only things you reach for mid-practice. 44px tap targets — don't shrink them
   to buy slider width.
-- **Slim bar above the grid:** things acting on the pattern in front of you —
-  Edit / Save / Load, its name, and the relative/mixed/absolute indicator.
-  **Two rows:** row 1 = the musical **context** (`#context`) top-LEFT + the three
-  pills; row 2 = the pattern **name**, which owns a full row so a long saved name
-  can't stretch the buttons (the session-8 bug). Both rows keep a reserved
-  `min-height` when empty, so the grid never moves between chord modes;
-  `.app-head` is **63px** (32 + 5 + 26) and any change here must re-measure it.
+- **Slim bar above the grid: ONE row** since v2.10.2 — capo state (left), the
+  pattern **name**, and the three pills. **`.app-head` is 32px** (it was 63: the
+  context + pills, then the name on its own row). Any change here must re-measure
+  at 375×553. The name shared a row with the context until v2.1, when a long
+  saved name stretched the buttons and it was given a row of its own; the actual
+  fix is `flex: 0 1 auto` + `min-width: 0` + ellipsis, which `.loaded-name` has,
+  so the row was belt AND braces. Collapsing it freed the **31px** that paid for
+  the context's new home above the grid — the stage had **0px** spare at 4 bars.
+  Verified: a long name ellipsizes and `.grid-actions` stays exactly 146px, so
+  the session-8 bug does not return.
+- **ONE readout above the grid says what you're playing over** (`#chord-head`),
+  in both chord modes: the single chord big, or the progression's Roman numerals
+  + key. They used to sit in different places — chord above the grid, progression
+  up in the header — so the information moved when you switched modes. The slot's
+  **height is reserved (22px)** so the grid can't shift; the 40px single-mode
+  chord still overflows it upward, exactly as it did when the box was zero-height.
+  Moving the context here also gave it the stage's full width instead of ~196px,
+  so **the worst-case readout now renders at 16px** (`CONTEXT_BASE_PX`, which the
+  `.context` CSS must match — `fitContext` sets the size inline). `fitContext` is
+  pure insurance now; nothing shrinks.
 - **The three pills are ICON-ONLY** (`.pill-icon`, v2.8.1): pencil / floppy /
   folder, engraved with the transport's intaglio drop-shadow pair so a generic
   glyph reads as part of the faceplate (the clever move is the treatment, not the
@@ -1585,6 +1598,27 @@ what your fingers do. It's a label plus one addend in `midiOf(event, capo)`.
    scope; the die had read as "randomise everything in Generation" on the tab row.
    Note this moves the mode-swapping fields to **row 2** — both alternatives still
    fill the same two slots, so the invariant (nothing below ever shifts) holds.
+
+**v2.10.2** (`CACHE` v50) — the last two placement calls from his phone test, and
+the session's wrap. 62/62 green.
+- **The capo readout moved top-LEFT** of the header, where the context used to be
+  — the position it wanted all along. It could only go there once the context
+  left: sharing that row, "whole step down" (~124px) took the readout to 63px and
+  truncated the numerals (v2.10.1's measurement).
+- **The progression/key indicator moved above the grid**, into the same slot as
+  the single-mode chord, "to be consistent with the chord indicator in
+  single-chord mode" — his framing, and right: they're the same piece of
+  information and it shouldn't move when the mode does.
+- **How the room was found.** The stage had **0px** spare at 4 bars in
+  progression mode (`.stage::before`, the capped-growth gap, was already
+  collapsed to 0), so a reserved slot above the grid had to be paid for. Two
+  candidates were measured: shaving `.stage`'s 28px `padding-bottom` left **1px**
+  of margin and squeezed the grid against the transport, while **collapsing the
+  two-row header to one** freed 31px and kept the bottom breathing room. Header
+  63 → 32px, and the grid gained ~30px of clearance above the controls.
+- Note the readout sits ~14px higher in progression mode, because the track it
+  sits above is taller there (the per-bar chord headers). The **cells** are still
+  pinned at the same y in both modes (84px) — that's the invariant that matters.
 
 ## Working with this user
 

@@ -57,7 +57,7 @@ const GLYPH_STOP = "■︎";
 
 // Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.10.1";
+const APP_VERSION = "v2.10.2";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -219,7 +219,7 @@ function renderLoadedName() {
 // One measure-and-set pass is enough: the pills are `flex: 0 0 auto`, so the
 // space the context gets does NOT change when its font does. Fonts load async,
 // so `document.fonts.ready` re-runs this once Fraunces is in (see boot).
-const CONTEXT_BASE_PX = 14;
+const CONTEXT_BASE_PX = 16;
 const CONTEXT_MIN_PX = 10.5;
 function fitContext(node) {
   node.style.fontSize = `${CONTEXT_BASE_PX}px`;
@@ -273,16 +273,18 @@ function renderCapoTag() {
   tag.hidden = !label;
 }
 
-// The musical-context readout. Progression mode shows the degrees as Roman
-// numerals + key top-left (e.g. "I – V – vi – IV · E"); single mode hides it and
-// shows the one chord big, above the grid (the grid is the hero, so it's a label).
+// What you're playing over, in the ONE slot above the grid: the progression's
+// Roman numerals + key (e.g. "I – V – vi – IV · E"), or the single chord, big.
+// Both live in #chord-head, whose height is reserved — only the contents swap,
+// so the grid can't move when you change modes.
 function renderContext() {
   const ctx = el("context");
   const head = el("chord-head");
+  const chord = head.querySelector(".c");
   renderCapo();
-  renderCapoTag(); // before the fit below: it shares the row's width
+  renderCapoTag();
   if (state.chordMode === "progression") {
-    head.hidden = true;
+    chord.hidden = true;
     ctx.hidden = false;
     ctx.innerHTML = "";
     // Concise idea when the bars match a preset (I–V, not I–V–I–V); the literal
@@ -302,12 +304,12 @@ function renderContext() {
     sep.className = "sep";
     sep.textContent = "·";
     ctx.append(nums, sep, key);
-    fitContext(ctx); // scale to fit rather than ellipsize the numerals away
+    fitContext(ctx); // insurance only: the stage's full width fits any readout
   } else {
     ctx.hidden = true;
     const id = el("chord").value;
-    head.querySelector(".c").textContent = CHORDS[id]?.name ?? id;
-    head.hidden = false;
+    chord.textContent = CHORDS[id]?.name ?? id;
+    chord.hidden = false;
   }
 }
 
