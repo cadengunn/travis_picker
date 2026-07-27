@@ -139,8 +139,8 @@ main {
   white-space: nowrap;
   text-align: center;
   font-family: var(--serif);
-  font-size: 16px;      /* must match CONTEXT_BASE_PX — fitContext sets it inline */
-  line-height: 20px;
+  font-size: 22px;      /* must match CONTEXT_BASE_PX — fitContext sets it inline */
+  line-height: 26px;
   font-weight: 600;
   color: var(--text);
   font-variation-settings: "opsz" 30, "SOFT" 30;
@@ -327,7 +327,10 @@ main {
   flex-direction: column;
   justify-content: flex-start;
   gap: 0;
-  padding-bottom: 28px;
+  /* 28px until v2.10.3, trimmed to buy back slack for the bigger readout above
+     the grid — at 375×553 with 4 bars the shrinkable ::before gap was down to
+     2px, which is no margin at all. 24 keeps a 28px gap to the transport. */
+  padding-bottom: 24px;
   min-height: 0;
   position: relative;
 }
@@ -345,7 +348,7 @@ main {
    way it did when this box was zero-height. */
 .chord-head {
   flex: 0 0 auto;
-  height: 22px;
+  height: 28px;
   overflow: visible;
   display: flex;
   align-items: flex-end;

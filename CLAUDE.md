@@ -1617,8 +1617,25 @@ the session's wrap. 62/62 green.
   two-row header to one** freed 31px and kept the bottom breathing room. Header
   63 → 32px, and the grid gained ~30px of clearance above the controls.
 - Note the readout sits ~14px higher in progression mode, because the track it
-  sits above is taller there (the per-bar chord headers). The **cells** are still
-  pinned at the same y in both modes (84px) — that's the invariant that matters.
+  sits above is taller there (the per-bar chord headers). **What the stage's
+  `::before` gap actually pins is the grid's BOTTOM** — measured 28px above the
+  transport in both modes — not its top and not the first cell row (which differ
+  by 7px between modes). Worth knowing before you "fix" a top alignment.
+
+**v2.10.3** (`CACHE` v51) — **the above-grid readout grew 16px → 22px**, with the
+slot at 28px. He was right that it had room; the interesting part is which limit
+binds. **Width doesn't** — even the four-accidental worst case needs only 305px
+of the stage's 351px at 26px type, and `fitContext` would absorb anything longer.
+**Height does**, and only barely: at 375×553 with 4 bars the stage's shrinkable
+`::before` gap was down to **8px**, so every px of type came out of it. 22px left
+**2px**, which is no margin at all, so `.stage`'s `padding-bottom` went 28 → 24 to
+buy it back — **6px of slack now, and still a 28px gap to the transport.**
+Anything larger needs a different trade, not just a bigger number.
+- **320×454 (iPhone 5/SE-1 class) already overflows by 18px at the OLD 16px** —
+  it's outside the documented budget either way, and 22px takes it to 24px. If
+  that viewport ever matters, it's its own piece of work.
+- `CONTEXT_BASE_PX` (app.js) and `.context`'s `font-size` must stay in step —
+  `fitContext` writes the size inline, so the CSS value is only the resting state.
 
 ## Working with this user
 

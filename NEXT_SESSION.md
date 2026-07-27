@@ -4,7 +4,7 @@
 size, what's decided and what needs the user's call. This file is the session
 hand-off only.
 
-## Shipped this session — v2.9.3 → v2.10.2 (`CACHE` v50)
+## Shipped this session — v2.9.3 → v2.10.3 (`CACHE` v51)
 
 62/62 green. Tree clean, everything deployed, nothing half-finished. Full detail
 in CLAUDE.md "Where things stand (session 16)".
@@ -69,8 +69,12 @@ that put the tabs on the sheet's title line.
   `.app-head` 63 → 32px. The name can't stretch the pills (`flex: 0 1 auto` +
   ellipsis, measured: pills stay exactly 146px), which is what made it safe.
 - Side benefit: the readout now has the stage's full width instead of ~196px, so
-  even the worst-case numerals render at **16px** — bigger than they have ever
-  been, with `fitContext` reduced to pure insurance.
+  even the worst-case numerals render at **22px** (v2.10.3 — he asked for bigger
+  and was right), with `fitContext` reduced to pure insurance.
+- **Which limit binds, if it's asked again:** not width — the worst case needs
+  305px of 351 even at 26px type. Height, and narrowly: the stage's shrinkable
+  `::before` gap was 8px at 375×553 with 4 bars, so 22px type came out of it and
+  `.stage`'s `padding-bottom` went 28 → 24 to keep a real margin (6px now).
 
 ### Five things worth carrying forward
 1. **Measure the constraint before proposing a workaround.** Three sessions of

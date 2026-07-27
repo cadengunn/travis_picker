@@ -26,6 +26,10 @@ so it isn't re-litigated.
   came out of your notes; the header collapse is what paid for it, since the
   stage had no spare height. Worth a look: the pattern name is 17px rather than
   21px now that it shares the row.
+- **The readout is 22px** (v2.10.3). Width was never the limit — the worst case
+  needs 305px of 351 even at 26px. Height is, and narrowly: 22px used most of the
+  8px of stage slack at 375×553, and `.stage`'s bottom padding went 28 → 24 to
+  keep a margin. Bigger than this needs a different trade, not just a number.
 - **Locking the phone now ends playback** (v2.9.3). It used to keep going in
   bursts, because the transport holds the iOS "playback" audio category while the
   JS timer is frozen, so the backlog fired all at once on the way back. Note the

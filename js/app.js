@@ -57,7 +57,7 @@ const GLYPH_STOP = "■︎";
 
 // Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.10.2";
+const APP_VERSION = "v2.10.3";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -219,7 +219,7 @@ function renderLoadedName() {
 // One measure-and-set pass is enough: the pills are `flex: 0 0 auto`, so the
 // space the context gets does NOT change when its font does. Fonts load async,
 // so `document.fonts.ready` re-runs this once Fraunces is in (see boot).
-const CONTEXT_BASE_PX = 16;
+const CONTEXT_BASE_PX = 22;
 const CONTEXT_MIN_PX = 10.5;
 function fitContext(node) {
   node.style.fontSize = `${CONTEXT_BASE_PX}px`;
