@@ -27,12 +27,18 @@ so it isn't re-litigated.
   row** under the capo. The name gets the full width in every state now, instead
   of 35px with a capo set. Costs nothing visible on your phone; at 375×553 the
   clearance under the grid goes 28px → 11px.
-- **Worth a look on the phone:** an unsaved pattern leaves the name row *empty*
-  (no "Untitled" — that's deliberate, and the row keeps its height so the grid
-  never jumps when you save or load). If that empty line reads as dead space, the
-  alternatives are bringing back a muted placeholder or letting the row collapse
-  — but collapsing means the grid shifts on load, which we've avoided everywhere
-  else.
+- **Two v2.11.0 bugs you caught, both fixed in v2.11.1.** The grid jumped when a
+  name appeared: an empty name row collapsed to 1px instead of holding its 23px,
+  so the header swung 33 ↔ 55px. And edit mode's dashed outline cut through the
+  progression readout — it's drawn *outside* the grid and reached 7px up, while
+  the readout sat flush with the grid's top edge (single mode never showed it
+  because that chord was already lifted 9px). The outline now reaches 5px and the
+  readout is lifted 4px, so both ends have real clearance — including a bit more
+  room above the transport at 4 bars.
+- **Still worth a look on the phone:** an unsaved pattern leaves the name row
+  *empty* (no "Untitled" — deliberate). It's now genuinely reserved space, so
+  nothing moves; the question is only whether the empty line reads as dead space.
+  A muted placeholder is the alternative.
 - Small fixes riding along: the capo value no longer inherits the label's letter-
   spacing (it was nudged off centre), the sheet's ✕ is drawn instead of rendering
   in Arial, and the stepper's −/+ join the serif like every other typed glyph.

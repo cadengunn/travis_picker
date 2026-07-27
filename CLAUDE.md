@@ -1755,6 +1755,30 @@ that came out of it):
   inherited the button's box. The measured geometry caught it; the screenshot
   alone did not.
 
+**v2.11.1** (`CACHE` v54) — two v2.11.0 bugs from his phone, both mine, both the
+same lesson: **a layout claim has to be measured in the state that actually
+ships.** 65/65 green (+1).
+- **The grid jumped when a name appeared.** An empty `.loaded-name` is a 0-height
+  inline box, so `.name-row` collapsed to 1px and `.app-head` swung **33 ↔ 55px**.
+  I had "verified" this by measuring the no-name case with placeholder text in the
+  element — which is not the no-name case. The fix is
+  `.loaded-name::before { content: "\200B" }`: the reservation comes from the
+  name's OWN font metrics, so it can't drift out of step with a future size
+  change the way a hard-coded `min-height` would.
+  **There is now a test** (`layout: the name row reserves its height when empty`),
+  which renders the header + real stylesheet in an **iframe** — tests.html carries
+  no stylesheet, and booting the real app inside the harness would touch the
+  user's localStorage. Verified it fails without the fix (`got 1px`), so it guards
+  rather than passes vacuously.
+- **Edit mode's dashed outline cut through the progression readout.** `outline` is
+  drawn OUTSIDE the box, so its **reach = `outline-offset` + `outline-width`** —
+  5+2 = 7px, into a readout whose line box sat flush with the grid's top edge with
+  2px of slack above it. Single mode never showed it only because `.c` is lifted
+  9px. Fixed at both ends: offset 5 → **3px** (reach 7 → 5) and `.context` lifted
+  **4px** by `position: relative; top` — never a `transform`, which would promote a
+  compositing layer and re-open the iOS lingering-label bug. Side benefit: at 4
+  bars on 375×553 the outline had come within **4px** of the transport, now 6px.
+
 ## Working with this user
 
 - **Ask before deviating from the spec** — it's a maintained document, and

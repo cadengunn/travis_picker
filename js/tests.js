@@ -1417,6 +1417,36 @@ acheck("pwa: service worker precaches every runtime module (offline stays comple
   }
 });
 
+acheck("layout: the name row reserves its height when empty (or the grid jumps)", async () => {
+  // A fresh generation shows NO name — deliberately, no "Untitled" placeholder —
+  // and an empty inline box is 0px tall, so the header swung 33 ↔ 55px and the
+  // grid moved every time you saved or loaded. Measured in an iframe: the test
+  // page has no stylesheet of its own, and booting the real app here would touch
+  // the user's localStorage.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:220px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<header class="app-head"><div class="ctx-row"></div>' +
+    '<div class="name-row"><span id="n" class="loaded-name"></span></div></header>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  // Deliberately NOT awaiting document.fonts.ready: both measurements use
+  // whatever face is loaded, so the comparison holds either way.
+  const doc = frame.contentDocument;
+  const row = doc.querySelector(".name-row");
+  const empty = row.getBoundingClientRect().height;
+  doc.getElementById("n").textContent = "Sunday morning roll in dropped D";
+  const filled = row.getBoundingClientRect().height;
+  frame.remove();
+
+  assert(empty > 1, `an empty name row must still reserve its line box (got ${empty}px)`);
+  assert(Math.abs(empty - filled) < 0.5,
+    `the name row changes height with content (${empty}px empty vs ${filled}px filled) — the grid will jump on load/save`);
+});
+
 acheck("type: every bundled face is declared, and the three voices stay separate", async () => {
   const css = await (await fetch("css/styles.css")).text();
 

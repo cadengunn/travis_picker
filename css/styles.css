@@ -169,6 +169,13 @@ main {
 /* The name's own row. Full width, so a long saved name reads instead of
    ellipsizing against the pills — which is the entire reason it moved. */
 .name-row { display: flex; align-items: baseline; min-width: 0; }
+/* THE ROW MUST HOLD ITS HEIGHT WHEN EMPTY. A fresh generation has no name at
+   all (deliberate — no "Untitled" placeholder), and an empty inline box is 0px
+   tall, so the header swung 33 ↔ 55px and the grid jumped every time you loaded
+   or saved. The zero-width space gives the span a line box from ITS OWN font
+   metrics, so the reservation tracks the name's size instead of a magic number
+   that would silently drift out of step with it. */
+.loaded-name::before { content: "\200B"; }
 /* (The version tag once lived here, then in the Options sheet header; it's at
    the foot of the Guide now — see .tp-help-version. Both earlier homes cost
    width that the readouts beside them needed.) */
@@ -193,6 +200,12 @@ main {
   color: var(--text);
   font-variation-settings: "opsz" 30, "SOFT" 30;
 }
+/* Lifted off the grid's top edge, the same way (and for the same reason) as the
+   single-mode chord below — `position: relative; top`, never a `transform`,
+   which would promote a compositing layer and reproduce the iOS lingering-label
+   bug. Single mode never showed this because .c was already lifted 9px; the
+   progression readout sat flush, so edit mode's dashed outline ran through it. */
+.context { position: relative; top: -4px; }
 .context .key { color: var(--active); font-variation-settings: "opsz" 30, "wght" 560, "SOFT" 40; }
 /* the · between progression and key — still breathing room, but 5px not 10px:
    it's 12px of a row where every pixel goes to fitting the numerals unshrunk. */
@@ -535,7 +548,12 @@ main {
 
 /* edit mode: cells become tappable. Off by default so you can't nudge a
    pattern by accident while playing. */
-.grid-track.editable { outline: 2px dashed var(--active); outline-offset: 5px; border-radius: 8px; }
+/* offset 3px, not 5: the outline is drawn OUTSIDE the track, so its reach
+   (offset + width) is what has to clear the readout above and the transport
+   below. At 5px it reached 7px and cut through the feet of the progression
+   readout, and at 4 bars on a 375×553 screen it came within 4px of the
+   transport. 3px reaches 5px and still reads as a frame around the grid. */
+.grid-track.editable { outline: 2px dashed var(--active); outline-offset: 3px; border-radius: 8px; }
 .grid-track.editable .cell { cursor: pointer; }
 .grid-track.editable .cell:active { filter: brightness(1.35); }
 

@@ -57,7 +57,7 @@ const GLYPH_STOP = "■︎";
 
 // Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.11.0";
+const APP_VERSION = "v2.11.1";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
