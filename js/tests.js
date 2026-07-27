@@ -31,6 +31,7 @@ import {
   midiOf,
   OPEN_STRING_MIDI,
   clampCapo,
+  capoLabel,
   soundingName,
   CAPO_MIN,
   CAPO_MAX,
@@ -1077,6 +1078,13 @@ check("capo: shape-first transposition names the concert key a guitarist would s
   assert(clampCapo(CAPO_MAX + 4) === CAPO_MAX && clampCapo(CAPO_MIN - 4) === CAPO_MIN, "out of range clamps");
   assert(clampCapo(undefined) === 0 && clampCapo(null) === 0, "an absent capo (a pre-capo save) reads as 0");
   assert(clampCapo("3") === 3 && clampCapo(2.4) === 2, "values arrive from the DOM as strings, and must be whole");
+
+  // How it's SAID: a negative isn't a capo position, it's how the guitar is
+  // tuned, so it gets the phrase a player uses.
+  assert(capoLabel(0) === null, "capo 0 says nothing at all — the app looks untouched");
+  assert(capoLabel(3) === "capo 3", "a real capo position");
+  assert(capoLabel(-1) === "half-step down", "-1 is a half-step-down tuning, not 'capo -1'");
+  assert(capoLabel(-2) === "whole step down", "-2 is a whole step down");
 });
 
 check("audio: pitch derives from string+fret in standard tuning", () => {

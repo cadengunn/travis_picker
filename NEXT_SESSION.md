@@ -4,7 +4,7 @@
 size, what's decided and what needs the user's call. This file is the session
 hand-off only.
 
-## Shipped this session — v2.9.3 → v2.10.0 (`CACHE` v48)
+## Shipped this session — v2.9.3 → v2.10.1 (`CACHE` v49)
 
 62/62 green. Tree clean, everything deployed, nothing half-finished. Full detail
 in CLAUDE.md "Where things stand (session 16)".
@@ -36,8 +36,26 @@ cap** at 375×553 — room for *zero* new control rows. Generation / Preferences
 measure **311px and 329px**.
 
 The capo is **shape-first**, **−2 to 5** (negative = a down-tuned guitar, reading
-"down 2"), a **hardware stepper**, and **invisible at capo 0** — all his calls.
-The grid never changes and the generator never sees it.
+"half-step down" / "whole step down"), a **hardware stepper**, and **invisible at
+capo 0** — all his calls. The grid never changes and the generator never sees it.
+
+### v2.10.1 — seven fixes off his phone test of v2.10.0
+Every one a real defect, not a preference. Full list in CLAUDE.md; the three
+worth remembering:
+- **The sheet jumped between pages** (311 vs 329px). Both pages now share one CSS
+  grid cell with the inactive one hidden by `visibility`, so the panel is always
+  the taller page's height — no magic numbers, still true if the content changes.
+- **Rapid capo taps triggered iOS double-tap zoom** even though the buttons had
+  `touch-action: manipulation`. The hole was the CONTAINER: at an end-stop the
+  button under your finger goes `disabled` and the tap falls through to the well
+  behind it. `.stepper` and `.segmented` joined the rule.
+- **The die now sits in the chord row and nothing else** (his suggestion) —
+  position is the only thing that communicates its scope. The Single/Prog toggle
+  moved up to join the capo in a "context" row to make that possible.
+
+**The deploy dance changed:** the version is `APP_VERSION` in `js/app.js` now,
+not a span in `index.html`. It moved to the foot of the Guide to free the room
+that put the tabs on the sheet's title line.
 
 ### Five things worth carrying forward
 1. **Measure the constraint before proposing a workaround.** Three sessions of
@@ -53,20 +71,19 @@ The grid never changes and the generator never sees it.
    the rendered buffers proved capo 3 = capo 0 + 3 semitones exactly. A first
    attempt compared cached buffer identity and was inconclusive — a +2 shift can
    land on a pitch that was already sounding.
-4. **`visibility: hidden`, not the `hidden` attribute**, for anything sharing a
-   flex row with something that stretches. Hiding the die let the tabs resize
-   between pages, which is the jumping-control complaint in a new place.
-5. **Zero-layout-cost hosts are the way to add on-screen state.** The capo tag
-   lives in the context readout (row already reserved) and the chord head
-   (`height: 0`), so a capo can never move the grid — measured identical at capo 0
-   and capo 5 in both chord modes.
+4. **`visibility: hidden`, not the `hidden` attribute**, whenever an element
+   shares a flex/grid track with something that would otherwise take its space.
+   It fixed both the tabs resizing between pages and the sheet jumping — the
+   jumping-control complaint showing up twice in one session.
+5. **Zero-layout-cost hosts are the way to add on-screen state, but check what
+   they cost their NEIGHBOURS.** The capo tag beside the context cost the grid
+   nothing and still had to move: "whole step down" left the readout 63px and
+   truncated the numerals. The name row had the width to spare.
 
 ### Tell him, if it comes up
 - **The Sound lamps are one tap further away now.** Metronome/Melody are the most
   mid-practice controls in the sheet; that's the real cost of the split and the
   thing to feel out. Moving them back to page 1 is a small change.
-- **"down 2"** for a down-tuned guitar is a wording guess, not a researched
-  convention. Easy to change.
 - v2.9.3's fix means **switching apps also stops playback**, not just locking.
 
 ## Next session — his call

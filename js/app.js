@@ -26,6 +26,7 @@ import {
   degreeLabel,
   midiOf,
   clampCapo,
+  capoLabel,
   soundingName,
 } from "./data.js";
 import {
@@ -53,6 +54,10 @@ const el = (id) => document.getElementById(id);
 // glyph so the button styling applies. The count-in digits need no selector.
 const GLYPH_PLAY = "▶︎";
 const GLYPH_STOP = "■︎";
+
+// Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
+// sw.js — it used to live in index.html's Options header.
+const APP_VERSION = "v2.10.1";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -256,17 +261,16 @@ function renderCapo() {
   el("capo").setAttribute("aria-label", `Capo ${state.capo}${label ? `, sounds in ${label}` : ""}`);
 }
 
-// The on-screen capo indicator, appended to whichever readout is showing. Both
-// hosts cost NO layout: the context readout already reserves its row (and
-// fitContext scales it), and the chord head floats with zero flow height. So a
-// capo can never move the grid.
-function capoTag() {
-  const tag = document.createElement("span");
-  tag.className = "capo-tag";
-  // Negative isn't a capo position, it's a down-tuned guitar, so it says so —
-  // "capo −2" would be a thing you can't do. (Semitones: down 1 = a half step.)
-  tag.textContent = state.capo > 0 ? `capo ${state.capo}` : `down ${-state.capo}`;
-  return tag;
+// The on-screen capo indicator. It sits in the header row in BOTH chord modes —
+// it used to ride the context in progression mode and the floating chord label
+// in single mode, which moved it down the screen when you switched. Costs no
+// layout either way: the header row is already reserved, and the tag only exists
+// when a capo is set.
+function renderCapoTag() {
+  const tag = el("capo-tag");
+  const label = capoLabel(state.capo);
+  tag.textContent = label ?? "";
+  tag.hidden = !label;
 }
 
 // The musical-context readout. Progression mode shows the degrees as Roman
@@ -276,6 +280,7 @@ function renderContext() {
   const ctx = el("context");
   const head = el("chord-head");
   renderCapo();
+  renderCapoTag(); // before the fit below: it shares the row's width
   if (state.chordMode === "progression") {
     head.hidden = true;
     ctx.hidden = false;
@@ -297,15 +302,11 @@ function renderContext() {
     sep.className = "sep";
     sep.textContent = "·";
     ctx.append(nums, sep, key);
-    if (state.capo) ctx.append(capoTag());
     fitContext(ctx); // scale to fit rather than ellipsize the numerals away
   } else {
     ctx.hidden = true;
     const id = el("chord").value;
     head.querySelector(".c").textContent = CHORDS[id]?.name ?? id;
-    const tag = head.querySelector(".capo-tag");
-    if (tag) tag.remove();
-    if (state.capo) head.append(capoTag());
     head.hidden = false;
   }
 }
@@ -615,7 +616,7 @@ function describeCurrent() {
     const id = detectProgression(state.progression, state.key);
     const prog = PROGRESSIONS.find((p) => p.id === id);
     const label = prog ? prog.label : "Custom";
-    return `${label} in ${state.key}${state.capo ? ` · capo ${state.capo}` : ""} · ${bassName}`;
+    return [`${label} in ${state.key}`, capoLabel(state.capo), bassName].filter(Boolean).join(" · ");
   }
   const n = patternBars();
   return `${el("chord").value} · ${bassName} · ${n} bar${n > 1 ? "s" : ""}`;
@@ -718,8 +719,7 @@ function summarize(item) {
   const bars = p.patternBars ? `${p.patternBars} bar${p.patternBars > 1 ? "s" : ""}` : "";
   // Only when set: two saves that differ only by capo would otherwise look
   // identical in the list (and collide on the default name).
-  const capo = ctx.capo ? (ctx.capo > 0 ? `capo ${ctx.capo}` : `down ${-ctx.capo}`) : "";
-  return [where, capo, bassName, p.chaos, bars].filter(Boolean).join(" · ");
+  return [where, capoLabel(ctx.capo), bassName, p.chaos, bars].filter(Boolean).join(" · ");
 }
 
 // One warm-green flash on the save-confirmation lamp. Restart the one-shot each
@@ -832,12 +832,10 @@ function showOptionsPage(tabId) {
     const on = tab === tabId;
     el(tab).classList.toggle("active", on);
     el(tab).setAttribute("aria-selected", String(on));
-    el(page).hidden = !on;
+    // `is-away` keeps the page in its grid cell (see .sheet-pages) so the panel
+    // stays the height of the TALLER page and the sheet can't jump on a switch.
+    el(page).classList.toggle("is-away", !on);
   }
-  // The die re-rolls page 1's chords, so it goes quiet on page 2 — but it keeps
-  // its SPACE (visibility, not `hidden`), or the tabs beside it would stretch and
-  // the pair would change width every time you switched pages.
-  el("randomize-chords").classList.toggle("is-away", tabId !== "tab-generation");
 }
 
 // The Help / guide dialog (⚙ Options → "?"). A short how-to plus the indicator
@@ -894,8 +892,16 @@ function renderHelp(body) {
   item("tp-help-tag", "MIX", "Mixed bass — some notes follow the chords, some don't.");
   item("tp-help-dot dot-rec", "", "Red dot on Edit: edit mode is armed, so a tap changes the pattern.");
   item("tp-help-dot dot-save", "", "Green flash by Save: the pattern was saved.");
-  item("tp-help-tag", "capo 2", "By the chords: a capo is set, so what you hear is higher than the shapes on screen. \"down 2\" means a down-tuned guitar.");
+  item("tp-help-tag", "capo 2", "Top of the screen: a capo is set, so what you hear is higher than the shapes shown. \"half-step down\" means a down-tuned guitar instead.");
   body.appendChild(legend);
+
+  // The version lives here now. It was riding the Options header, where it took
+  // width from the tabs and told you nothing you'd want mid-practice; this is
+  // the app's reference surface, which is exactly what a version number is.
+  const version = document.createElement("p");
+  version.className = "tp-help-version";
+  version.textContent = `Travis Picker ${APP_VERSION}`;
+  body.appendChild(version);
 }
 
 // ----- wire up -----

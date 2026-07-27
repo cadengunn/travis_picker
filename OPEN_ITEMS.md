@@ -231,7 +231,8 @@ All 12 keys, and sharp minor keys (Bm/F#m/C#m — these pull in new barre majors
 - **Any new text that can contain ♭ or ♯ needs a pinned `line-height`** (those
   glyphs fall back off Fraunces to a taller font and grow the line box).
 - **Tests stay green and grow with anything new** (`tests.html`).
-- **Deploy dance:** bump `CACHE` in `sw.js` + the version label in `index.html`,
+- **Deploy dance:** bump `CACHE` in `sw.js` + `APP_VERSION` in `js/app.js`
+  (it moved out of `index.html` in v2.10.1, along with the tag itself),
   push, then test on the phone. (Should get easier from v2.8.0 onward.)
 - **The repo is public** — keep the GitHub noreply identity, never a real
   name/email.

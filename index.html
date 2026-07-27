@@ -47,6 +47,14 @@
       </div>
       <div class="name-row">
         <span id="loaded-name" class="loaded-name"></span>
+        <!-- Capo state, in the SAME place in both chord modes — it used to ride
+             the context in progression mode and the floating chord label in
+             single mode, so it moved down the screen when you switched. It's on
+             the name row rather than beside the context because "whole step
+             down" is ~124px: sharing row 1 squeezed even a preset readout past
+             fitContext's floor and truncated the numerals (measured). Costs no
+             layout — the row's height is reserved whether or not it's used. -->
+        <span id="capo-tag" class="capo-tag" hidden></span>
       </div>
     </header>
 
@@ -88,41 +96,35 @@
   <div id="options-sheet" class="sheet" hidden>
     <div class="sheet-backdrop" data-close></div>
     <section class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="options-title">
-      <header class="sheet-head">
-        <h2 id="options-title">Options</h2>
-        <!-- Version rides the sheet header: it's reference info you look up
-             sitting down, and here it costs no height (shorter than the ✕). -->
-        <span class="app-version" aria-label="App version">v2.10.0</span>
-        <button class="sheet-close" type="button" data-close aria-label="Close">✕</button>
-      </header>
-
       <!-- TWO PAGES. The sheet used to hold everything at once and sat at 460px
            of a 487px cap on a 375x553 phone — ~27px spare, i.e. room for zero new
-           control rows (a row is 58px). That ceiling had already pushed the
-           version tag up into the header and the die onto a section-header line,
-           and it left the capo nowhere to go. Splitting on the natural seam —
-           what the PATTERN is, vs how the APP behaves — gives each page ~180px
-           spare. The tab row replaces the old "Generation" caption (the tab now
-           says it), so page 1 costs nothing for the split.
-           The die re-rolls the CHORD inputs and belongs to page 1 only, so it
-           rides the tab row and hides on Preferences. -->
-      <div class="sheet-tabs">
+           control rows (a row is 58px). That ceiling had already pushed the die
+           onto a section-header line and left the capo nowhere to go. Splitting
+           on the natural seam — what the PATTERN is, vs how the APP behaves —
+           gives each page ~150px spare.
+           The tabs ride the sheet's TITLE line, so the split costs no height at
+           all (the version tag moved into the Guide to make the room). -->
+      <header class="sheet-head">
+        <h2 id="options-title">Options</h2>
         <div class="segmented seg-tabs" role="tablist" aria-label="Options pages">
           <button type="button" role="tab" id="tab-generation" class="active"
                   aria-controls="page-generation" aria-selected="true">Generation</button>
           <button type="button" role="tab" id="tab-prefs"
                   aria-controls="page-prefs" aria-selected="false">Preferences</button>
         </div>
-        <button id="randomize-chords" class="sec-btn" type="button"
-                aria-label="Random key and progression" title="Random key &amp; progression">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.4" cy="7.4" r="1.5"/><circle cx="8.4" cy="16.6" r="1.5"/><circle cx="15.6" cy="7.4" r="1.5"/><circle cx="15.6" cy="16.6" r="1.5"/><circle cx="12" cy="12" r="1.5"/></svg>
-        </button>
-      </div>
+        <button class="sheet-close" type="button" data-close aria-label="Close">✕</button>
+      </header>
+
+      <!-- Both pages occupy the SAME grid cell, so the panel is always as tall as
+           the taller one and switching tabs can't make the sheet jump. The
+           inactive page is hidden by `visibility` (still occupying its cell), not
+           `display`. -->
+      <div class="sheet-pages">
 
       <div class="sheet-page" id="page-generation" role="tabpanel" aria-labelledby="tab-generation">
 
-      <!-- Row 1 is the only row whose contents change between chord modes; it
-           always fills 3 slots so nothing below it ever shifts. -->
+      <!-- Row 1 is the instrument's CONTEXT — one chord or a progression, and
+           where the capo is. Deliberately NOT the die's row (see row 2). -->
       <div class="control-row">
         <div class="field">
           <span>Chords</span>
@@ -132,6 +134,30 @@
           </div>
         </div>
 
+        <!-- Capo: a shape-first transpose. The grid's frets are SHAPE frets, so
+             nothing on screen changes — this shifts the sounding pitch and the
+             concert-key readout only. Negative values are a down-tuned guitar
+             (the same transform, which a physical capo can't do). -->
+        <div class="field">
+          <span>Capo</span>
+          <div class="stepper" id="capo">
+            <button type="button" data-capo-step="-1" aria-label="Capo down">−</button>
+            <output id="capo-value" aria-live="off">0</output>
+            <button type="button" data-capo-step="1" aria-label="Capo up">+</button>
+          </div>
+        </div>
+        <!-- No caption: it reads as what the capo does, which is the only thing
+             it could be describing. -->
+        <div class="field field-sounds">
+          <p id="capo-sounds" class="sounds-readout">Concert pitch</p>
+        </div>
+      </div>
+
+      <!-- Row 2 is the die's row, and holds NOTHING else it doesn't re-roll —
+           that adjacency is the only thing telling you what the die's scope is.
+           Its contents are the only ones that swap between chord modes, and both
+           fill the same two slots, so nothing below ever shifts. -->
+      <div class="control-row with-die">
         <label class="field span-2" id="field-chord">
           <span>Chord</span>
           <select id="chord"></select>
@@ -145,6 +171,13 @@
           <span>Progression</span>
           <select id="progression"></select>
         </label>
+
+        <div class="field field-die">
+          <button id="randomize-chords" class="die-btn" type="button"
+                  aria-label="Random key and progression" title="Random key &amp; progression">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.4" cy="7.4" r="1.5"/><circle cx="8.4" cy="16.6" r="1.5"/><circle cx="15.6" cy="7.4" r="1.5"/><circle cx="15.6" cy="16.6" r="1.5"/><circle cx="12" cy="12" r="1.5"/></svg>
+          </button>
+        </div>
       </div>
 
       <div class="control-row">
@@ -162,28 +195,9 @@
         </label>
       </div>
 
-      <!-- Capo: a shape-first transpose. The grid's frets are SHAPE frets, so
-           nothing on screen changes — this shifts the sounding pitch and the
-           concert-key readout only. Negative values are a down-tuned guitar
-           (the same transform, which a physical capo can't do). -->
-      <div class="control-row">
-        <div class="field">
-          <span>Capo</span>
-          <div class="stepper" id="capo">
-            <button type="button" data-capo-step="-1" aria-label="Capo down">−</button>
-            <output id="capo-value" aria-live="off">0</output>
-            <button type="button" data-capo-step="1" aria-label="Capo up">+</button>
-          </div>
-        </div>
-        <div class="field span-2 field-sounds">
-          <span>Sounding</span>
-          <p id="capo-sounds" class="sounds-readout">Concert pitch</p>
-        </div>
-      </div>
-
       </div><!-- /page-generation -->
 
-      <div class="sheet-page" id="page-prefs" role="tabpanel" aria-labelledby="tab-prefs" hidden>
+      <div class="sheet-page is-away" id="page-prefs" role="tabpanel" aria-labelledby="tab-prefs">
 
       <p class="sheet-sec">Sound</p>
 
@@ -233,6 +247,7 @@
       </div>
 
       </div><!-- /page-prefs -->
+      </div><!-- /sheet-pages -->
     </section>
   </div>
 

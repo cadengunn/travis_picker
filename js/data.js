@@ -41,6 +41,16 @@ export const CAPO_MIN = -2;
 export const CAPO_MAX = 5;
 export const clampCapo = (n) => Math.min(CAPO_MAX, Math.max(CAPO_MIN, Math.round(Number(n) || 0)));
 
+// How a capo setting is SAID. Negatives get the tuning phrase a guitarist uses
+// rather than a number of semitones — "half-step down", not "down 1" (and
+// certainly not "capo −1", which is a thing you can't do). Null at 0, where
+// there's nothing to report.
+export function capoLabel(capo) {
+  if (!capo) return null;
+  if (capo > 0) return `capo ${capo}`;
+  return capo === -1 ? "half-step down" : capo === -2 ? "whole step down" : `${-capo} semitones down`;
+}
+
 // Pitch class -> the name a guitarist would say. Flat-preferred, except F♯ —
 // the usual convention ("capo 3 with G shapes sounds in B♭", not "A♯"). The
 // pretty glyphs match the Roman numerals' ♭/♯, so anywhere these are shown needs

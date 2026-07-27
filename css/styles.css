@@ -69,7 +69,11 @@
 /* Kill the ~300ms double-tap-to-zoom delay on tap targets, so a fast double-tap
    on the die fires two generates instead of triggering Safari's zoom gesture.
    Scoped to interactive controls, NOT the viewport — pinch-zoom stays enabled. */
-button, select, input, .cell, .lamp {
+/* `.stepper` is in this list for its CONTAINER, not its buttons: at an end-stop
+   the button under your finger goes `disabled`, and the tap then falls through
+   to the well behind it — which, without this, is an untagged element and gets
+   Safari's double-tap zoom. Rapid capo taps hit that every time. */
+button, select, input, .cell, .lamp, .stepper, .segmented {
   touch-action: manipulation;
   /* Kill iOS's default blue tap-highlight overlay — it flashed as a "halo" on
      the light Elizabeth faceplate (invisible on dark themes). We draw our own
@@ -117,16 +121,9 @@ main {
   gap: 9px;
   min-height: 32px;
 }
-/* version tag now lives in the Options sheet header (it was eating ~43px of the
-   context's width here, and it's reference info, not something you read mid-take) */
-.app-version {
-  flex: 0 0 auto;
-  font-family: var(--numeral);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
+/* (The version tag once lived here, then in the Options sheet header; it's at
+   the foot of the Guide now — see .tp-help-version. Both earlier homes cost
+   width that the readouts beside them needed.) */
 /* progression + key, top-LEFT of row 1, shown only in progression mode.
    Roman numerals with accidentals (i – ♯vi – I7 – VII · Am) run longer than the
    room beside the pills, so `fitContext()` in app.js scales the font down (14px
@@ -152,17 +149,23 @@ main {
    it's 12px of a row where every pixel goes to fitting the numerals unshrunk. */
 .context .sep { display: inline-block; margin: 0 5px; }
 /* Capo indicator — present ONLY when a capo is set, so the default screen is
-   untouched. In the context readout it's inline, and fitContext scales the whole
-   line if the extra words tighten it. */
+   untouched. Right end of the NAME row, the same place in both chord modes.
+   Row 1 was tried first and is wrong: "whole step down" is ~124px, which took
+   the context readout below fitContext's 10.5px floor and truncated the
+   numerals. The name row has the width to spare, and long saved names already
+   ellipsize. */
 .capo-tag {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 10px;
   font-family: var(--numeral);
-  font-size: 0.72em;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
   color: var(--muted);
 }
-.context .capo-tag::before { content: "·"; margin: 0 5px; letter-spacing: 0; }
 .grid-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
 
 /* Raised, carved hardware buttons — the transport's bevel language (top-lit face,
@@ -352,20 +355,6 @@ main {
   align-items: flex-end;
   justify-content: center;
   text-align: center;
-  /* anchor for the capo tag. `relative` (not `transform`) for the same reason
-     as .chord-head .c below — no compositing layer. */
-  position: relative;
-}
-/* The capo tag rides the head's bottom-RIGHT rather than sitting beside the
-   letter: as a flex sibling it would shove the big chord off centre whenever a
-   capo was set, and a chord label that moves is exactly what this floating head
-   was built to avoid. */
-.chord-head .capo-tag {
-  position: absolute;
-  right: 2px;
-  bottom: 1px;
-  font-size: 10px;
-  line-height: 12px;
 }
 .chord-head .c {
   font-family: var(--serif);
@@ -745,18 +734,15 @@ main {
 }
 .sheet-sec:first-of-type { margin-top: 0; }
 
-/* Small carved key riding a section header line (the chord randomiser). Same
-   raised/press-in bevel language as the transport and the Guide "?", sized to
-   the header rather than a control row — the sheet has ~45px headroom on an SE,
-   so a whole extra row wouldn't fit. */
-.sec-btn {
-  margin-left: auto;
-  flex: 0 0 auto;
+/* The chord randomiser, now the last slot of the row it re-rolls. Same raised /
+   press-in bevel language as the transport and the Guide "?"; height matched to
+   the selects beside it so the row reads as one unit. */
+.die-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 28px;
+  width: 100%;
+  height: 42px;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -771,21 +757,39 @@ main {
               0 2px 3px rgba(0, 0, 0, 0.36);
   transition: box-shadow 0.07s ease;
 }
-.sec-btn svg { width: 17px; height: 17px; fill: currentColor; }
-.sec-btn:active {
+.die-btn svg { width: 19px; height: 19px; fill: currentColor; }
+.die-btn:active {
   transform: translateY(1px);
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
 }
+/* the die's slot has no caption, so pin it to the row's baseline */
+.field-die { justify-content: flex-end; }
 
-/* The Options sheet's two pages. The tab row REPLACES the old "Generation"
-   caption rather than adding to it, so the split costs page 1 nothing; the die
-   keeps its right-hand berth (.sec-btn's margin-left: auto) and hides on
-   Preferences, since it re-rolls page 1's chords. */
-.sheet-tabs { display: flex; align-items: center; gap: 10px; }
-/* holds its width so the tabs never resize between pages */
-.sec-btn.is-away { visibility: hidden; pointer-events: none; }
-.seg-tabs { flex: 1; min-width: 0; }
-.sheet-page { display: flex; flex-direction: column; gap: 8px; }
+/* The tabs ride the sheet's title line — the split costs no height that way.
+   Compact type: they share the row with the title and the ✕. */
+.seg-tabs { margin-left: auto; flex: 0 0 auto; }
+/* Doubled-up class for SPECIFICITY: `.segmented button` is defined later in this
+   file, and with a bare `.seg-tabs button` it won on source order — leaving the
+   tabs at `padding: 10px 0`, so the two words butted straight into each other. */
+.segmented.seg-tabs button {
+  flex: 0 0 auto;
+  padding: 9px 11px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* BOTH pages sit in the same grid cell, so the panel is always as tall as the
+   taller one — otherwise switching tabs made the bottom-anchored sheet jump up
+   and down by the difference. The inactive page keeps its cell and is hidden by
+   `visibility` (which also takes it out of the tab order and the a11y tree). */
+.sheet-pages { display: grid; }
+.sheet-page {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sheet-page.is-away { visibility: hidden; pointer-events: none; }
 
 /* Fixed 3-slot rows. Only row 1's contents swap between chord modes, and the
    single-chord select spans 2 slots to fill the space Key+Progression use — so
@@ -796,6 +800,10 @@ main {
   gap: 8px;
   align-items: end;
 }
+/* The chord row gives its last slot to the die instead of a third control, so
+   the die sits IN the row it re-rolls and nothing else. Single mode's chord
+   select spans the two flexible columns that Key + Progression share. */
+.control-row.with-die { grid-template-columns: 1fr 1fr 46px; }
 .span-2 { grid-column: span 2; }
 .field {
   min-width: 0;
@@ -855,7 +863,7 @@ main {
    `align-items: end` lines it up with the readout beside it. */
 .stepper {
   display: grid;
-  grid-template-columns: 38px 1fr 38px;
+  grid-template-columns: 1fr minmax(30px, auto) 1fr;
   align-items: stretch;
   height: 42px;
   border: 1px solid rgba(0, 0, 0, 0.4);
@@ -903,7 +911,7 @@ main {
   height: 42px;
   padding: 0 2px;
   font-family: var(--serif);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 20px;
   text-transform: none;
@@ -913,7 +921,9 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.sounds-readout.at-zero { color: var(--muted); font-weight: 500; }
+/* At capo 0 it's reporting that nothing is happening, so it shouldn't carry a
+   control's weight. */
+.sounds-readout.at-zero { color: var(--muted); font-weight: 500; font-size: 13px; }
 
 .segmented {
   display: flex;
@@ -1269,6 +1279,16 @@ main {
   font-size: 13.5px;
   line-height: 1.42;
   color: var(--text);
+}
+/* Version, quietly at the foot of the guide — reference info, not a badge. */
+.tp-help-version {
+  margin: 16px 0 0;
+  text-align: center;
+  font-family: var(--numeral);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .tp-help-legend { margin-top: 8px; display: flex; flex-direction: column; gap: 9px; }
 .tp-help-item { display: flex; align-items: flex-start; gap: 10px; }

@@ -158,13 +158,21 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   bottom-anchored Options sheet up 3.75px (measured both ways). Pinning
   `line-height` makes every inline box the same height whatever font serves the
   glyph. Watch for this on any new text that can contain them.
-- **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Generation** (chord mode, chord
-  or key+progression, thumb, chaos, pattern length, capo) and **Preferences** (the
-  Sound lamp bank, note labels, theme, guide). You set all of it sitting down,
-  between takes. The split exists to buy height: one page had ~27px spare at
-  375×553, so nothing new could be added; two pages have ~160px each. The gear
-  always opens on Generation. See the session-16 notes for the measurements and
-  for why the die uses `visibility` rather than `hidden`.
+- **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Generation** (chord mode +
+  capo, then the chord/key+progression row, then thumb/chaos/pattern length) and
+  **Preferences** (the Sound lamp bank, note labels, theme, guide). You set all of
+  it sitting down, between takes. The split exists to buy height: one page had
+  ~27px spare at 375×553, so nothing new could be added. The gear always opens on
+  Generation. Three rules hold it together, each fixing something measured:
+  **the tabs ride the sheet's TITLE line** (so the split costs no height at all —
+  the version tag moved to the Guide to make the room); **both pages live in one
+  CSS grid cell** with the inactive one hidden by `visibility`, so the panel is
+  always the height of the taller page and switching tabs can't make the
+  bottom-anchored sheet jump; and **the die sits in the chord row and nothing
+  else**, because that adjacency is the only thing that says what its scope is.
+  `.segmented.seg-tabs button` is double-classed for specificity — `.segmented
+  button` is defined later in the file and won on source order, leaving the tabs
+  at `padding: 10px 0` with the two words butted together.
 - **There is no app bar.** A title told you nothing the home-screen icon doesn't,
   and its 53px was the difference between the 4-bar grid fitting and not.
 
@@ -557,7 +565,9 @@ is confirmed on the phone** — the bass presets and the whole chaos redesign ar
    viewport, so pinch-zoom still works.
 2. **`v1.0` version tag**, top-left of the grid-bar (`.app-version`) — low-profile
    muted label riding the existing 36px row (no vertical cost). Bump by hand at
-   release points.
+   release points. *(It moved to the Options sheet header in v2.7.4 and to the
+   foot of the Guide in v2.10.1, where it's `APP_VERSION` in `app.js`. Each move
+   was to give the width back to a readout beside it.)*
 3. **All seven bass presets surfaced** (see the Bass-presets note above). Dropped
    the `V1_BASS_IDS` filter. Absolute Climb/Descend correctly ignore the chord.
 4. **Chaos redesign** (see the expanded Chaos note under "Key rules") — the big
@@ -1500,20 +1510,26 @@ what your fingers do. It's a label plus one addend in `midiOf(event, capo)`.
 - **Range −2 to 5.** Negative is a **down-tuned guitar** — a physical capo can't
   go below the nut, but it's the identical transform and it's what he actually
   does. The top is 5 because that's where real capos live; one constant if a 7
-  ever comes up. On screen a negative reads **"down 2"**, not "capo −2", which
-  would be a thing you can't do.
+  ever comes up. `capoLabel()` in `data.js` decides how it's SAID: **"half-step
+  down" / "whole step down"** (his wording), never "capo −1", which is a thing you
+  can't do. One helper drives the on-screen tag, the saved-list metadata and the
+  default save name.
 - **A hardware stepper**, not a dropdown (his pick): one recessed well with two
   carved keys sunk into its ends, end-stops disabled at the limits.
 - **Invisible at capo 0**, also his call — at 0 the readout says "Concert pitch"
   and no on-screen indicator exists, so the default screen is the app exactly as
-  it was. Set one and a small tag appears: inline in the context readout
-  (progression) or bottom-right of the floating chord head (single). **Both hosts
-  cost zero layout** — the context row is already reserved and the chord head has
-  `height: 0` — so a capo can never move the grid. Measured: grid top identical at
-  capo 0 and capo 5 in both modes, no overflow at 4 bars.
-- The tag in the chord head is **absolutely positioned**, not a flex sibling: as a
-  sibling it shoved the big chord letter off centre whenever a capo was set, which
-  is the exact thing that floating head was built to prevent.
+  it was. Set one and a tag appears at the **right end of the NAME row**, the same
+  place in both chord modes (v2.10.1 — it first rode the context in progression
+  mode and the chord head in single mode, so it moved down the screen when you
+  switched). **Costs zero layout**: the name row's height is reserved whether or
+  not it's used, so a capo can never move the grid. Measured: `.app-head` 63px and
+  grid top identical at capo 0, capo 5 and −2, in both modes, no overflow at 4 bars.
+- **Why the name row and not beside the context:** `"whole step down"` is ~124px.
+  Sharing row 1 with the readout left it **63px**, which drove `fitContext` to its
+  10.5px floor and **truncated the numerals** — measured, on a preset readout, not
+  just the exotic worst case. On the name row the worst-case readout stays at the
+  full 14px with any capo set. Long saved names ellipsize and the tag stays whole,
+  which is the right precedence.
 - **Concert spelling is flat-preferred except F♯** — "capo 3 with G shapes sounds
   in B♭", the way a guitarist says it. Quality suffixes survive (`Am`+2 → `Bm`,
   `C7`+3 → `E♭7`). Those are real ♭/♯ glyphs, so **`.sounds-readout` has a pinned
@@ -1539,6 +1555,36 @@ what your fingers do. It's a label plus one addend in `midiOf(event, capo)`.
   contract holds); tabs hold a constant 293px width across pages.
 - **Not verified off-device:** how the two-page split actually feels mid-practice,
   and the stepper's tap targets under a thumb.
+
+**v2.10.1** (`CACHE` v49) — seven refinements off his phone test of v2.10.0.
+62/62 green (+1 assertion set). Every one was a real defect, not a preference:
+1. **The sheet jumped when switching pages** (311 vs 329px). Both pages now sit in
+   one CSS grid cell (`.sheet-pages { display: grid }`, `.sheet-page { grid-area:
+   1/1 }`), inactive one hidden by `visibility`, so the panel is always the
+   height of the taller page — no magic numbers, and it stays true if the content
+   changes. Measured 285/285.
+2. **The tabs moved onto the sheet's title line**, beside "Options", which makes
+   the split free in height, and **the version tag moved to the foot of the
+   Guide** to pay for the room. The version now lives in `APP_VERSION` in
+   `app.js` — **the deploy dance changed: bump that, not a span in index.html.**
+3. **`capoLabel()`** — see the capo notes above.
+4. **The capo tag moved to the name row** — see the capo notes above.
+5. **Rapid capo taps triggered iOS double-tap zoom.** The buttons already had
+   `touch-action: manipulation`; the hole was the **container**. At an end-stop
+   the button under your finger goes `disabled`, the tap falls through to the
+   `.stepper` well behind it, and an untagged element gets the zoom gesture.
+   `.stepper` and `.segmented` joined that rule.
+6. **The "Sounding" caption is gone** — it only restated the "Capo" label next to
+   it. The readout stands alone and quiets down (13px, muted) at capo 0, where it
+   is reporting that nothing is happening.
+7. **The die's scope now reads from its position.** It sits in the row holding
+   the chord (single) or key + progression (progression) and **nothing else** —
+   `.control-row.with-die` gives its last slot to the die (`1fr 1fr 46px`) instead
+   of a third control, and the Single/Prog toggle moved up to join the capo in a
+   "context" row. His suggestion, and the only thing that actually communicates
+   scope; the die had read as "randomise everything in Generation" on the tab row.
+   Note this moves the mode-swapping fields to **row 2** — both alternatives still
+   fill the same two slots, so the invariant (nothing below ever shifts) holds.
 
 ## Working with this user
 
