@@ -35,12 +35,11 @@ Four things off your v2.11.x notes. Nothing here touched the generator.
   and "Root–Fifth" too. The row's three slots are sized by content now; nothing
   clips in any of the three menus.
 
-**And swing shipped in v2.13.0** — both feels, side by side, for you to pick
-between on the guitar. See item 3; it's the one thing on this list actively
-waiting on you.
+**Swing shipped and is settled** (v2.13.0 trial → v2.13.1 built to your spec).
+See item 3 — nothing outstanding on it but the Guide line.
 
 **Next up:** the Guide rewrite (item 6 below — still needs the specific thing
-that annoyed you).
+that annoyed you). Note it now carries the swing line too.
 
 ---
 
@@ -131,31 +130,19 @@ field for free.
 decision blocking it. The one thing I'd want from you is the *patterns* — either
 a handful you've saved and like, or a nod to pick a spread across the tiers.
 
-### 3. Swing — SHIPPED (v2.13.0), ON THE PHONE, and **you owe it a verdict**
-Both feels are live behind the **Feel** toggle, because the one you described
-isn't what "swing" usually means and I'd rather you feel the difference than pick
-from a description. **One of them gets deleted after your trial.**
+### 3. Swing — DONE (v2.13.1), built to your spec
+Both resolutions kept. One **SWING** control: a slider over five named detents
+(Straight 50 · Light 56 · Medium 62 · Hard 67 · Triplet 75) reading
+`Medium · 62%`, plus a resolution toggle — **`&s` / `2 & 4`** — that only appears
+past Straight. Each resolution remembers its own step and they're never converted
+into each other. Straight is the off switch.
 
-- **8ths** — each beat pairs with its `&`. The `&`s move late, **beats 1-4 stay
-  put**, so your thumb keeps perfect time and only the fingers lilt. The classic
-  shuffle, and the metronome click never moves.
-- **Beats** — beat 1 pairs with 2, beat 3 with 4. **Beats 2 and 4 move late**,
-  exactly as you described it. This one swings *the thumb*, so your alternating
-  bass goes long-short — and the click shuffles with it, since it sits on those
-  beats. (I told you earlier the click wouldn't move; that's only true of 8ths.)
+**Still owed:** the Guide line, when the Guide rewrite happens (item 6) — one
+line saying the `2 & 4` feel sits outside Travis technique, Chet's thumb doesn't
+move, naming the shuffle/laid-back-backbeat character. No cumbia, no "in 2".
 
-**Slider, not preset stops** — you said this needs trial and error, which is the
-argument for hunting the number by ear. 50% is Straight (off), 75% is extreme,
-**67% is true triplet swing**. It retunes live while the loop runs, so you can
-drag it mid-take and hear it move.
-
-Two things that are true of both, by construction: the **bar length never
-changes**, so BPM still means what it means; and **swing isn't saved with a
-pattern** — it's a feel setting like BPM (it does persist across launches,
-though, unlike BPM).
-
-**What I need back:** which feel, and roughly what percentage. Then I delete the
-other one and the Feel toggle goes away.
+**Not doing, recorded:** bidirectional swing (sub-50 pre-delay), moving anything
+under Experimental, any generator change.
 
 ### 4. JSON export/import of the Saved library — OPEN
 Insurance against iOS evicting localStorage after ~7 days of not opening the app.
@@ -174,6 +161,10 @@ The hand is only 46% of the tile today. Needs new art, not a recolour.
 ## Small — numbers, copy, or a single decision
 
 ### 6. Revisit the Guide — OPEN, needs your framing
+**Now also carries one owed line:** the `2 & 4` swing sits outside Travis
+technique (Chet's thumb doesn't move); name the shuffle / laid-back-backbeat
+character; don't invoke cumbia or "in 2".
+
 Your call, from the v2.10.x notes. It was written in one pass in v2.6.0 and
 touched once since. The app has gained the **capo**, the **two-page Options
 sheet**, **minor keys / tokens / dom7 chords**, **icon-only pills**, and now a

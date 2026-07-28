@@ -61,6 +61,10 @@ import {
   BPM_MAX,
   slotSeconds,
   clampSwing,
+  snapSwing,
+  swingStepIndex,
+  swingStepName,
+  SWING_STEPS,
   SWING_MIN,
   SWING_MAX,
   SWING_UNITS,
@@ -1093,6 +1097,29 @@ check("swing: straight (50%) is exactly the un-swung grid, in both feels", () =>
   assert(clampSwing(999) === SWING_MAX, "above range clamps");
   assert(clampSwing(undefined) === SWING_MIN, "a missing pref reads as straight");
   assert(clampSwing("62") === 62, "a string from an <input> is accepted");
+});
+
+check("swing: the named detents are the only reachable settings", () => {
+  // The control is a slider over these five, so the table IS the range: it has
+  // to start at off and end at the top, in order, or the slider's ends lie.
+  assert(SWING_STEPS[0].pct === SWING_MIN, "the first detent must be Straight (the off switch)");
+  assert(SWING_STEPS[SWING_STEPS.length - 1].pct === SWING_MAX, "the last detent must be the top of the range");
+  for (let i = 1; i < SWING_STEPS.length; i++) {
+    assert(SWING_STEPS[i].pct > SWING_STEPS[i - 1].pct, "detents must ascend");
+    assert(SWING_STEPS[i].name, "every detent needs a name — the name is what you think in");
+  }
+  // Index round-trip: what the slider writes and what it reads back must agree.
+  SWING_STEPS.forEach((s, i) => {
+    assert(swingStepIndex(s.pct) === i, `${s.name} should round-trip to index ${i}`);
+    assert(snapSwing(s.pct) === s.pct, `${s.name} must be a fixed point of snapping`);
+  });
+  // Anything off-grid — a stale pref, a hand-edited blob — lands on a real stop.
+  assert(snapSwing(63) === 62, "63 snaps to Medium");
+  assert(snapSwing(66) === 67, "66 snaps to Hard");
+  assert(snapSwing(51) === 50, "51 snaps to Straight, not a near-silent lope");
+  assert(snapSwing(999) === SWING_MAX && snapSwing(-5) === SWING_MIN, "out of range still lands on a stop");
+  assert(snapSwing(undefined) === SWING_MIN, "a missing pref reads as Straight");
+  assert(swingStepName(62) === "Medium", "the readout name comes from the table");
 });
 
 check("swing: the bar's total length never changes, at any amount or feel", () => {

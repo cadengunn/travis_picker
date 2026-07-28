@@ -295,10 +295,32 @@ nothing:
   and the metronome click (which only sounds on beat slots) never moves.
 - **`unit: 4` ("beats")** pairs beat 1 with 2 and beat 3 with 4. **Beats 2 and 4
   move late**, so the *thumb itself* swings and the click shuffles with it.
-- **Both are shipped side by side pending a guitar trial** — the user described
-  the second, which isn't what "swing" normally means on an 8-note grid, so
-  rather than pick for him both are live behind a Feel toggle. **One of them gets
-  deleted afterwards**, along with its half of the control.
+- **Both are KEPT** (v2.13.1, after his guitar trial). `&s` at Hard is "classic
+  Jerry Reed at a high tempo"; the quarters feel is the shuffle/laid-back-backbeat
+  character he keeps meeting in tunes he plays (St. James Infirmary and
+  cumbia-adjacent things). **It sits outside Travis technique — Chet's thumb
+  doesn't move — and that's a thing to say in the Guide, not to hide.** His
+  framing: *fence it, don't hide it.*
+- **The amount is five named DETENTS, not a free number** (`SWING_STEPS`):
+  Straight 50 · Light 56 · Medium 62 · Hard 67 · Triplet 75. The slider's
+  `value` is an INDEX into that table, so the detents are native and the thumb
+  physically can't land between two stops — a continuous slider let you miss the
+  setting you wanted by 2% and never know. `snapSwing()` quantises anything
+  off-grid (a stale pref, a hand-edited blob); it's deliberately separate from
+  `clampSwing` (range) and `slotSeconds` still accepts any value, so the timing
+  math stays continuous and independently testable.
+- **Amount and resolution are ONE control under ONE `SWING` legend.** There is no
+  "Feel" heading: `8ths` is a note value, not a character. The resolution toggle
+  is meaningless at Straight, so below that it's hidden by **`visibility`,
+  keeping its space** — if it collapsed, the slider would widen the instant you
+  came off Straight and the thumb would jump under your finger mid-drag.
+- **Labels are `&s` / `2 & 4`**, matching the count row already under the grid,
+  rather than jargon. Explicitly **not "Beats"** — it's a different unit type
+  sitting next to a note value.
+- **Each resolution remembers its own step** (`swingEighths`/`swingQuarters`),
+  and they are **never converted into each other**: the same percentage is twice
+  the displacement on quarters, so carrying a value across would silently double
+  the lope.
 - **The bar's total length is invariant** at any amount or feel (each group sums
   back to `unit × secondsPerSlot`), which is what keeps BPM meaning what it means
   and leaves the count-in a full bar. Asserted in tests.
@@ -306,13 +328,16 @@ nothing:
   already time-driven — notes are scheduled at `nextSlotTime`, the playhead reads
   the audio clock — so the app follows for free. The count-in swings too, which
   is right: it should tell you the feel you're counting into.
-- **50% is straight (off)**, range 50–75, integer steps — so true triplet swing
-  is 67%, 1.7ms from exact 2:1 at 120bpm and inaudible. The readout says
-  "Straight" rather than "50%".
-- **Verified by probing scheduled audio times**, not by reading the math: at
-  90bpm, straight gives click gaps of 0.667s and even 0.333s 8ths; the 8ths feel
-  leaves the clicks at 0.667 and makes the plucks 0.447/0.22; the beats feel
-  makes the *clicks* 0.893/0.44.
+- **Straight is a real detent and doubles as the off switch.** Its readout is
+  just "Straight" — the 50% behind it is an implementation detail, not
+  information; every other step reads `Medium · 62%`, the name to think in plus
+  the number to compare.
+- **Verified by probing scheduled audio times**, not by reading the math. At
+  90bpm: straight gives click gaps of 0.667s and even 0.333s 8ths; `&s` at Hard
+  leaves the clicks at 0.667 and makes the plucks 0.447/0.22; `2 & 4` at Medium
+  makes the *clicks* 0.827/0.507 and at Triplet 1.0/0.333. The 8ths inside a
+  swung beat stretch with it — the nesting is what makes the lope coherent, and
+  he confirmed that on the guitar.
 - **Swing is a FEEL setting, not pattern content** — it persists in `tp-audio`
   alongside the sound toggles and is deliberately not part of a saved pattern's
   context (same class as BPM, which isn't saved either).
@@ -1908,6 +1933,31 @@ Metronome section; what matters at this level:
 - **Sheet cost measured:** the panel goes 266 → **333px** at 375×553, leaving
   220px of headroom, and the tab-to-tab jump stays 0 (Generation is now the
   taller page, and the shared grid cell handles it).
+
+**v2.13.1 — the swing verdict, and the control it earned.** He kept **both**
+resolutions and specified the control himself; the design and its reasoning are
+in the Swing note under the Metronome section. Three things worth carrying:
+- **`&s` at Hard is the keeper** — "classic Jerry Reed feel at a high tempo".
+  `2 & 4` stays because he keeps hearing it in tunes he plays, with the standing
+  instruction **"fence it, don't hide it"**: the UI makes it secondary (it only
+  appears past Straight), and the *Guide* is where it gets the one line saying it
+  sits outside Travis technique — Chet's thumb doesn't move.
+- **Guide copy constraints he set:** name the shuffle / laid-back-backbeat
+  character; **don't invoke cumbia, and don't say "in 2"** — that framing of mine
+  described a perception, not what the code does (the grid is still in 4 and the
+  click still marks 4; the quarters are just uneven).
+- **A real bug the migration test caught**, worth remembering as a class:
+  `audioPrefs` is seeded with defaults, so `audioPrefs.x ?? fallback` can *never*
+  detect "the user has no setting" — it only ever sees the default. The v2.13.0
+  trial value was silently dropped until `loadAudioPrefs()` started **returning
+  the raw stored blob** for the migration to read. Any future pref migration has
+  the same trap.
+- **A layout bug only the SCREENSHOT caught:** the readout wrapped to two lines
+  inside a fixed 42px well, and `scrollWidth <= clientWidth` came back clean
+  because a wrapped box *does* fit. Fixed with `white-space: nowrap` and a width
+  measured off the rendered element — a canvas measurement under-read it, because
+  canvas doesn't apply `tabular-nums`. (Widest reading is `Medium · 62%` at
+  87.6px, not `Triplet · 75%`: the longer word beats the wider number.)
 
 **Next in his order after this: the Guide rewrite** — still blocked on him saying
 *what* bothers him about it (stale / too long / wrong shape / hard to find pull

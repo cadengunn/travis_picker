@@ -53,12 +53,44 @@ export const SWING_MAX = 75;
 export const DEFAULT_SWING = SWING_MIN;
 export const clampSwing = (n) => Math.min(SWING_MAX, Math.max(SWING_MIN, Math.round(Number(n) || SWING_MIN)));
 
-// WHAT gets paired long-short, in slots. Two feels, being trialled side by side:
-//   2 ("8ths")  — pairs each beat with its "&". The &s move late and beats 1-4
+// The swing amount is a DETENT, not a free number. A continuous slider let you
+// miss the setting you wanted by 2% and never know it; five named stops make the
+// useful values the only reachable ones, and give you a word to think in.
+// Straight is a real entry, not a special case — it doubles as the off switch.
+export const SWING_STEPS = [
+  { pct: 50, name: "Straight" },
+  { pct: 56, name: "Light" },
+  { pct: 62, name: "Medium" },
+  { pct: 67, name: "Hard" },     // ~2:1, the classic swung-8ths ratio
+  { pct: 75, name: "Triplet" },
+];
+export const swingStepIndex = (pct) => {
+  const target = clampSwing(pct);
+  let best = 0;
+  for (let i = 1; i < SWING_STEPS.length; i++) {
+    if (Math.abs(SWING_STEPS[i].pct - target) < Math.abs(SWING_STEPS[best].pct - target)) best = i;
+  }
+  return best;
+};
+// Quantise anything (a stale pref, a hand-edited blob) onto the nearest detent.
+// Kept separate from clampSwing: clamping is about range, this is about the
+// control's grid, and slotSeconds deliberately still accepts any value so the
+// timing math stays continuous and independently testable.
+export const snapSwing = (pct) => SWING_STEPS[swingStepIndex(pct)].pct;
+export const swingStepName = (pct) => SWING_STEPS[swingStepIndex(pct)].name;
+
+// WHAT gets paired long-short, in slots — the swing's RESOLUTION, not a second
+// kind of feel (which is why the UI groups it under one SWING heading rather
+// than calling it "Feel": "8ths" is a note value, not a character).
+//   2 ("&s")    — pairs each beat with its "&". The &s move late and beats 1-4
 //                 stay put, so the THUMB stays metronomic: the classic shuffle.
-//   4 ("beats") — pairs beat 1 with beat 2 and beat 3 with beat 4. Beats 2 and 4
-//                 move late, so the thumb itself swings. This is the feel the
-//                 user described ("2 moves further from 1 and closer to 3").
+//   4 ("2 & 4") — pairs beat 1 with beat 2 and beat 3 with beat 4. Beats 2 and 4
+//                 move late, so the thumb itself swings, and the 8ths inside
+//                 each beat stretch along with it (confirmed on the guitar —
+//                 the nesting is what makes the lope coherent).
+// The second one sits OUTSIDE Travis technique — Chet's thumb doesn't move —
+// and is kept anyway because it's a shuffle/laid-back-backbeat character the
+// user keeps meeting in tunes he plays. Fenced by the UI, not hidden.
 // Both divide 8 evenly, so the grouping never straddles a bar line.
 export const SWING_UNITS = { eighths: 2, beats: 4 };
 export const DEFAULT_SWING_UNIT = SWING_UNITS.eighths;
