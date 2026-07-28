@@ -555,3 +555,136 @@ export function detectProgression(chords, keyId) {
   }
   return cycled ?? CUSTOM_PROGRESSION_ID;
 }
+
+// ----- Help mode content -----
+//
+// Every explanation in the app, as DATA — the same rule chords, themes and
+// progressions follow, and for the same reason: the copy is the thing that
+// changes, and it shouldn't live in DOM-building code. The old Guide modal was
+// prose inside `renderHelp()` in app.js, which is exactly why it went stale
+// (it was still calling the Fingers menu "Chaos" three versions after the
+// rename).
+//
+// A key here is matched to a `data-help="<key>"` attribute in index.html.
+// `tests.js` asserts the two sides agree in BOTH directions — an unreachable
+// entry is dead copy, and a control pointing at a missing entry is a tap that
+// does nothing, which is worse in help mode than anywhere else.
+//
+// Keep `body` to two or three sentences. This is a card floating over a 375px
+// screen, and anything longer is the manual again.
+export const HELP = {
+  // The mode announcing itself. Shown anchored to the "?" the moment you arm
+  // help mode, so you're never looking at a changed screen with no explanation
+  // of what changed. It carries the version, which used to sit at the foot of
+  // the Guide this replaced.
+  "help-mode": {
+    title: "Help mode",
+    body: "Tap anything on the screen to find out what it does — nothing you tap will change your pattern or your settings. The gear still opens Options so you can reach the controls in there. Tap ? again to leave.",
+  },
+
+  // --- header ---
+  "edit-toggle": {
+    title: "Edit",
+    body: "Arms manual editing: the grid goes dashed and a red lamp lights on this button, and then tapping a cell adds or removes a note. It's off by default so a stray tap can't nudge a pattern while you're playing. Editing a bar that repeats changes every repeat — raise Pattern length first if you want one bar to differ.",
+  },
+  "open-save": {
+    title: "Save",
+    body: "Names the current pattern and keeps it in your library on this device, along with its chords, key and capo. Nothing leaves the phone and there's no account.",
+  },
+  "open-load": {
+    title: "Load",
+    body: "Opens your saved patterns. Each one can be loaded, renamed or deleted. Loading brings back the pattern and the chords it was written over — it never re-rolls anything.",
+  },
+  "capo-tag": {
+    title: "Capo",
+    body: "Only appears when you've set a capo. It reads \"CAPO 2 → F♯\": the shapes on the grid are still the ones you play, and the arrow points at what they actually sound like. \"Whole step down\" instead means a down-tuned guitar.",
+  },
+  "loaded-name": {
+    title: "Pattern name",
+    body: "The saved pattern currently on screen. Blank means this one is unsaved — the line is held open either way so the grid never shifts when you save or load.",
+  },
+
+  // --- the stage ---
+  "chord-head": {
+    title: "What you're playing over",
+    body: "The chord in Single mode, or the progression's Nashville numbers and key in Progression mode. With a capo set, this is the shape key — the sounding key is the tag at the top of the screen.",
+  },
+  grid: {
+    title: "The grid is your right hand",
+    body: "Each column is an eighth note and each row is a string, read left to right. The notes on the bottom rows are your thumb — the alternating bass — and the ones on the top rows are your fingers: i, m, a on strings 3, 2 and 1. Notes stacked in one column are struck together.",
+  },
+
+  // --- transport ---
+  play: {
+    title: "Play",
+    body: "Runs the loop after a one-bar count-in, and the button stays pressed in while it plays. What you hear — the metronome click, the picked notes, the count-in — is set by the lamps on the Preferences page.",
+  },
+  bpm: {
+    title: "Tempo",
+    body: "40 to 240 beats per minute. The lamp beside the number blinks on every beat, with a bigger pulse on the downbeat, so it works as a silent metronome when the click is off.",
+  },
+  "beat-lamp": {
+    title: "Beat lamp",
+    body: "Blinks on each beat while the transport runs — a bigger pulse on the downbeat — so you can keep time by eye with the click turned off. It also counts you in.",
+  },
+  generate: {
+    title: "Generate",
+    body: "Rolls a fresh pattern using the Thumb and Fingers settings in Options. This is the one control that re-rolls everything, so it asks first if you have unsaved hand-drawn edits.",
+  },
+  "type-indicator": {
+    title: "Bass warning",
+    body: "Appears only when the bass won't follow your chords. ABS means the whole bass line is fixed to literal strings (Full Random, Climb and Descend do this); MIX means some notes follow the chords and some don't. Fine in Single mode, worth knowing in a progression.",
+  },
+
+  // --- Options: Setup ---
+  "chord-mode": {
+    title: "Format",
+    body: "Single drills one chord for the whole loop. Prog. gives you a chord per bar, written as Nashville numbers in a key, so the same progression transposes anywhere.",
+  },
+  capo: {
+    title: "Capo",
+    body: "Shifts what the shapes sound like. The grid doesn't change, because the fret numbers on it are shape frets — which is what your fingers actually do — so only the pitch you hear and the readout at the top move. Negative values are a guitar tuned down instead.",
+  },
+  "field-chord": {
+    title: "Chord",
+    body: "The one chord the whole pattern is played over. Open chords are listed first. The thumb's bass notes follow whichever chord you pick.",
+  },
+  "field-key": {
+    title: "Key",
+    body: "The key the progression's numbers are realised in. Changing key inside major or inside minor transposes what you already have, including bars you edited by hand; crossing between major and minor starts you on that side's first progression, because the two don't share numbers.",
+  },
+  "field-prog": {
+    title: "Progression",
+    body: "A chord per bar, grouped by style. Every one is four bars: a two-chord idea repeats and a three-chord idea holds its last chord. Change a single bar's chord on the grid and this reads Custom.",
+  },
+  "randomize-chords": {
+    title: "Random chords",
+    body: "Rolls a new key and progression, or a new chord in Single mode. It only touches what's in this row — your pattern, your capo and your settings are left alone, so hand-drawn work is safe.",
+  },
+  bass: {
+    title: "Thumb",
+    body: "The bass line your thumb plays. Travis alternates root–alt–fifth–alt; Dead Thumb stays on one string; Climb and Descend walk the strings and ignore the chord. Changing this re-rolls only the bass and keeps your finger part exactly as it is.",
+  },
+  chaos: {
+    title: "Fingers",
+    body: "How busy and how hard the finger part is. Tame → Loose → Unruly is the difficulty curve, measured in how many separate times your fingers attack in a bar. Wild Card sits off the curve on purpose — it's fully random, for finding ideas rather than for drilling. Changing this re-rolls only the fingers.",
+  },
+  pattern: {
+    title: "Pattern length",
+    body: "How many bars of picking are actually different before the pattern repeats. Growing it copies what you have rather than re-rolling, so hand-drawn work survives — and it's what you raise when you want one bar of a progression to differ from the rest.",
+  },
+  swing: {
+    title: "Swing",
+    body: "Delays the \"&\"s between the beats, from straight up to a triplet feel. The beats themselves never move, so your thumb stays metronomic and the click keeps giving you a straight quarter pulse to play against. Drag it while the loop runs and you'll hear it change.",
+  },
+
+  // --- Options: Preferences ---
+  "click-toggle": { title: "Metronome", body: "The click on every beat. Independent of the picked notes, so you can practise against the click alone." },
+  "pattern-toggle": { title: "Melody", body: "Hear the pattern itself played back, so you can check what a roll sounds like before you try it." },
+  "count-in-toggle": { title: "Count-in", body: "One bar of counting before the loop starts, with the grid dimmed. The count-in always clicks even with the metronome off, so you get an audible 1-2-3-4." },
+  "ui-sound-toggle": { title: "Buttons", body: "The mechanical click when you press a control. It stays silent while the transport is running, which is also what keeps the app quiet on a silenced phone." },
+  "label-mode": { title: "Note labels", body: "What's written inside each note: the fret number, the picking finger (p, i, m, a) or nothing at all." },
+  theme: { title: "Theme", body: "The instrument's colours. Each one is named for a player, and the choice is remembered." },
+};
+
+export const HELP_KEYS = Object.keys(HELP);

@@ -48,7 +48,8 @@ import {
   clampSwing,
 } from "./metronome.js";
 import { setUiSoundEnabled, playPress, playRelease } from "./ui-sound.js";
-import { confirmModal, promptModal, infoModal } from "./modal.js";
+import { confirmModal, promptModal } from "./modal.js";
+import { createHelp } from "./help.js";
 import { enhanceSelect, enhanceAll } from "./dropdown.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 
@@ -61,9 +62,23 @@ const el = (id) => document.getElementById(id);
 const GLYPH_PLAY = "▶︎";
 const GLYPH_STOP = "■︎";
 
-// Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
-// sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.13.3";
+// Shown on help mode's own card. Bump on every release, alongside CACHE in
+// sw.js — it used to live in index.html's Options header, then at the foot of
+// the Guide modal that help mode replaced.
+const APP_VERSION = "v2.13.4";
+
+// Help mode: the "?" latches and every other tap becomes an explanation instead
+// of an action. Created here rather than in attach() because the edit-toggle
+// handler needs to disarm it, and both are wired in the same pass.
+const help = createHelp({
+  version: APP_VERSION,
+  onChange: (on) => {
+    el("open-help").setAttribute("aria-pressed", String(on));
+    // Edit mode signals itself with a dashed grid; help mode is app-wide, so the
+    // latched pill plus the card that opens with it carry the state.
+    if (on) el("open-help").blur();
+  },
+});
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -903,72 +918,6 @@ function showOptionsPage(tabId) {
   }
 }
 
-// The Help / guide dialog (⚙ Options → "?"). A short how-to plus the indicator
-// legend the caution / REC / save lamps otherwise only explain on a hover title.
-function renderHelp(body) {
-  const h = (text) => {
-    const node = document.createElement("h3");
-    node.className = "tp-help-h";
-    node.textContent = text;
-    body.appendChild(node);
-  };
-  const p = (text) => {
-    const node = document.createElement("p");
-    node.textContent = text;
-    body.appendChild(node);
-  };
-
-  h("The grid is your right hand");
-  p("Each column is an eighth-note; each row is a string. The notes along the bottom rows are the thumb (the alternating bass); those on the top rows are your fingers — i, m, a on strings 3, 2, 1. Read a bar left to right.");
-
-  h("Roll a pattern");
-  p("Tap the die to generate a fresh, playable pattern. In ⚙ Options, Thumb sets the bass style and the Chaos tier sets difficulty: Tame → Loose → Unruly get harder; Chaos is pure random discovery, off the curve.");
-
-  h("Play & sound");
-  p("Play runs the loop after a one-bar count-in; the slider sets the tempo. Options has two pages: Setup is what the pattern is, Preferences is how the app behaves — the Metronome click, the Melody (hear the notes), the Count-in and the Button clicks each toggle on their own.");
-
-  h("Chords & keys");
-  p("Single mode drills one chord. Progression mode gives a chord per bar, written as Nashville numbers in the key you choose, so the same progression transposes to any key. Raise Pattern length to let bars differ.");
-
-  h("Capo");
-  p("Set the capo and the app tells you what the shapes sound like — the grid still shows the shape you play, since that's what your fingers do, and only the pitch you hear moves. Negative values are for a guitar tuned down a half or whole step.");
-
-  h("Edit, Save & Load");
-  p("The pencil arms Edit mode (the grid goes dashed) — tap cells to add or remove notes. Save names the pattern to your library; Load brings it back with its chords. Everything stays on your device.");
-
-  h("Indicators");
-  const legend = document.createElement("div");
-  legend.className = "tp-help-legend";
-  const item = (markerClass, markerText, text) => {
-    const row = document.createElement("div");
-    row.className = "tp-help-item";
-    const key = document.createElement("span");
-    key.className = "tp-help-key";
-    const marker = document.createElement("span");
-    marker.className = markerClass;
-    if (markerText) marker.textContent = markerText;
-    key.appendChild(marker);
-    const desc = document.createElement("p");
-    desc.textContent = text;
-    row.append(key, desc);
-    legend.appendChild(row);
-  };
-  item("tp-help-tag", "ABS", "Absolute bass — it won't follow chord changes (Full Random, Climb, Descend).");
-  item("tp-help-tag", "MIX", "Mixed bass — some notes follow the chords, some don't.");
-  item("tp-help-dot dot-rec", "", "Red dot on Edit: edit mode is armed, so a tap changes the pattern.");
-  item("tp-help-dot dot-save", "", "Green flash by Save: the pattern was saved.");
-  item("tp-help-tag", "capo 2", "Top of the screen: a capo is set, so what you hear is higher than the shapes shown. \"half-step down\" means a down-tuned guitar instead.");
-  body.appendChild(legend);
-
-  // The version lives here now. It was riding the Options header, where it took
-  // width from the tabs and told you nothing you'd want mid-practice; this is
-  // the app's reference surface, which is exactly what a version number is.
-  const version = document.createElement("p");
-  version.className = "tp-help-version";
-  version.textContent = `Travis Picker ${APP_VERSION}`;
-  body.appendChild(version);
-}
-
 // ----- wire up -----
 function attach() {
   el("generate").addEventListener("click", generate);
@@ -1128,6 +1077,10 @@ function attach() {
 
   // Manual editing — off by default so taps can't nudge a pattern mid-practice.
   el("edit-toggle").addEventListener("click", () => {
+    // No help-mode guard here, and deliberately: this handler is unreachable
+    // while help mode is armed, because the pencil isn't on help mode's
+    // navigation allowlist — tapping it explains the pencil instead. The
+    // exclusion only has to run the other way, in the "?" handler below.
     state.editing = !state.editing;
     el("edit-toggle").setAttribute("aria-pressed", String(state.editing));
     render();
@@ -1173,9 +1126,13 @@ function attach() {
     syncSheetToViewport();
   });
 
-  // Help "?" (bottom-right of the Appearance row) opens the read-only guide.
+  // Help "?" latches in like the pencil. `#open-help` is on help mode's own
+  // navigation allowlist, so this handler is reached in BOTH directions and the
+  // exit needs no special case.
   el("open-help").addEventListener("click", () => {
-    infoModal({ title: "How to use", closeText: "Got it", render: renderHelp });
+    if (help.on) { help.disarm(); return; }
+    if (state.editing) el("edit-toggle").click(); // one latch at a time
+    help.arm();
   });
 
   // The context is scaled to the width it's given, so re-fit when that changes

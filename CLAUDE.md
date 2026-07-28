@@ -149,8 +149,9 @@ js/editor.js      pure tap-to-edit logic (toggleNote, hand inference) — no DOM
 js/metronome.js   Web Audio click + pattern playback + playhead scheduling (no deps)
 js/synth.js       Karplus-Strong plucked-string voice (no deps) — pattern audio
 js/ui-sound.js    the two-phase button "ka-chunk" (no deps) — see UI components
-js/modal.js       confirm / prompt / info modals in the app's own language
+js/modal.js       confirm / prompt modals in the app's own language
 js/dropdown.js    custom dropdowns OVER the native <select> — read the invariant
+js/help.js        help mode: the "?" latches and every tap explains instead of acting
 js/platform.js    OS integrations: wake lock, iOS audio session, SW auto-update,
                   playback guard
 js/app.js         the ONLY stateful/DOM-glue file: controls -> generator -> grid
@@ -244,10 +245,11 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   `.context` CSS must match — `fitContext` sets the size inline). `fitContext` is
   pure insurance now; nothing shrinks.
 - **The pills are ICON-ONLY** (`.pill-icon`, v2.8.1): pencil / floppy /
-  folder — and since v2.11.0 a **`?` Guide** (`.pill-help`), which came out of the
+  folder — and since v2.11.0 a **`?`** (`.pill-help`), which came out of the
   Options sheet because it was the only *action* in there wearing a field label,
   and help belongs with the always-reachable actions rather than on a settings
-  page. Its glyph is a real letter, so it wears the intaglio as a `text-shadow`
+  page. Since v2.13.4 it is a **latching toggle**, not a dialog opener — see
+  "Help mode". Its glyph is a real letter, so it wears the intaglio as a `text-shadow`
   pair rather than the SVG `drop-shadow` filter. All four are engraved with the
   transport's intaglio drop-shadow pair so a generic
   glyph reads as part of the faceplate (the clever move is the treatment, not the
@@ -500,14 +502,12 @@ Three dependency-free modules, all precached:
   app gets its captions. The panel flips up near the bottom edge, clamps into the
   viewport, and closes on outside-tap / Escape / external scroll — but **not** on
   its own open-time `scrollIntoView`. A test guards the contract.
-- **`modal.js`** — Promise-based `confirmModal()` / `promptModal()` /
-  `infoModal({ title, closeText, render })`, replacing `confirm()`/`prompt()`, so
-  callers are `async`. Destructive actions wear the app's fixed red
+- **`modal.js`** — Promise-based `confirmModal()` / `promptModal()`, replacing
+  `confirm()`/`prompt()`, so callers are `async`. (There was an `infoModal` too;
+  it existed only for the Guide, and went with it in v2.13.4.) Destructive actions wear the app's fixed red
   (`.tp-modal-danger`, the same convention as the REC lamp). Escape/backdrop
   cancel, with a capture-phase Escape + `stopPropagation` so it doesn't also close
   the Options sheet underneath. `render(bodyEl)` fills the info card, so content
-  lives in the caller and `modal.js` stays generic — the Guide is built that way
-  (`renderHelp` in `app.js`).
 - **`ui-sound.js`** — a two-phase tape-deck transport key: a light, bright
   **`playPress`** ("ka") on `pointerdown` as the key travels in, and a deeper
   **`playRelease`** ("chunk") on `pointerup` as the spring seats. Fired by ONE
@@ -622,6 +622,61 @@ rgba because it's texture, not hue**, so it rides every theme.
   `transform` promotes a compositing layer, and content behind the Options
   sheet's translucent backdrop then doesn't repaint on iOS — that was a real
   lingering-label bug.
+
+**Help mode — the app explains itself in place** (`help.js`, v2.13.4). Tap the
+`?` and it latches in like the Edit pencil; from then on, tapping anything shows
+a short card about it **instead of** doing what it normally does, so you can poke
+at every control without touching your pattern, your settings or your library.
+It replaced a scrolling instruction-manual modal, and the argument is specific
+rather than general: **the four header pills are icon-only and the ABS/MIX chips
+and the REC/save lamps are deliberately cryptic hardware indicators**, which are
+exactly what a manual explains worst — a list of glyphs on another screen is the
+one place you can't compare the glyph to the thing.
+- **NAVIGATION SURVIVES, and the allowlist IS the spec** (`NAV_SELECTOR`): the
+  gear, the two page tabs, the sheet's `[data-close]`, the `?` itself, and the
+  card. Nothing else. Half the controls worth explaining live in the Options
+  sheet and would otherwise be unreachable. Save and Load **explain rather than
+  open**, because everything inside those sheets is a state-changing action;
+  dropdowns explain rather than opening inert.
+- **The `?` needs no exit special-case** because it's on its own allowlist: the
+  tap reaches its normal handler, which sees the mode is on and disarms it.
+- **The card is an OVERLAY and costs zero layout.** Measured at 375×553 with 4
+  bars: `.app-head` 55.09px, grid 384.84px, clearance 11.06px, no overflow —
+  **identical** before arming, while armed, and with a card up. That is what
+  makes this design affordable at all; anything reserving a strip for
+  explanations was unshippable against an 11px budget.
+- **`click` capture is NOT enough — `pointerdown` is the one that matters.**
+  Measured with a real drag, not synthetic events: with click-capture alone and
+  help mode armed, dragging the BPM slider ran it **90 → 240**. A capture-phase
+  click listener *does* stop a `<label>` toggling its hidden checkbox (the Sound
+  lamps), and does *not* stop a native range drag. Cancelling the pointerdown is
+  what does. `keydown` is intercepted too.
+- **A DISABLED control emits no click at all**, so it would be a dead tap — and
+  this is not a corner case: **the Load pill is disabled whenever the library is
+  empty**, i.e. the first-run state, i.e. exactly the person most likely to be
+  reading help. The capo's `−`/`+` disable at their end stops. Help mode already
+  guarantees nothing acts, so `disabled` has no job while armed: `liftDisabled`
+  removes it (leaving `aria-disabled` truthful) and `restoreDisabled` puts it
+  back on exit. Found in-browser — tapping Load showed the *previous* card.
+- **Navigation dismisses the open card**, because opening the sheet, switching
+  pages or closing it all move or hide whatever the card was anchored to. The ✕
+  used to leave a "Theme" card floating over the grid.
+- **The copy is DATA** (`HELP` in `data.js`, keyed to `data-help` attributes),
+  which is the same rule chords and themes follow and the direct fix for how the
+  Guide rotted — it was prose inside `renderHelp()` and was still calling the
+  Fingers menu "Chaos" three versions after the rename. **A test checks both
+  directions**: a control pointing at missing copy is a tap that silently does
+  nothing, and an entry nothing can reach is dead copy.
+- **Help and Edit are mutually exclusive, but only one guard is needed** —
+  arming help disarms edit; the reverse is unreachable, because the pencil isn't
+  on the allowlist, so tapping it in help mode explains the pencil.
+- **The transport is left alone** (his call): arming help mid-take keeps it
+  playing, and Play explains itself rather than stopping. Verified by counting
+  scheduled sounds across the arm.
+- **The mode announces itself** with a card anchored to the `?` that armed it —
+  otherwise you'd face an unchanged screen wondering what the button did. That
+  card is also where **`APP_VERSION`** lives now (header → Options sheet → Guide
+  foot → here; every earlier home cost width a readout beside it needed).
 
 **Type — the panel speaks in THREE voices** (session 17), and the rule that
 decides which is *where the words sit*, not what they mean:

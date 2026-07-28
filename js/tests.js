@@ -38,6 +38,8 @@ import {
   soundingName,
   CAPO_MIN,
   CAPO_MAX,
+  HELP,
+  HELP_KEYS,
 } from "./data.js";
 import { midiToFreq } from "./synth.js";
 import {
@@ -66,7 +68,8 @@ import {
   DEFAULT_SWING,
 } from "./metronome.js";
 import { enhanceSelect } from "./dropdown.js";
-import { confirmModal, promptModal, infoModal } from "./modal.js";
+import { confirmModal, promptModal } from "./modal.js";
+import { isNav, helpTargetFor, createHelp, NAV_SELECTOR } from "./help.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 
 const results = [];
@@ -1421,24 +1424,167 @@ acheck("modal: confirm/prompt resolve to the pressed action", async () => {
   assert(!document.querySelector(".tp-modal"), "no dialog left mounted");
 });
 
-acheck("modal: info dialog renders content and resolves on close", async () => {
-  let rendered = false;
-  const p = infoModal({
-    title: "Help",
-    render: (body) => {
-      rendered = true;
-      const h = document.createElement("h3");
-      h.textContent = "Section";
-      body.appendChild(h);
-    },
-  });
-  const card = document.querySelector(".tp-modal-info");
-  assert(card, "an info card is mounted");
-  assert(rendered && card.querySelector(".tp-modal-body h3"), "render() filled the body");
-  assert(!card.querySelector(".tp-modal-cancel"), "info dialog has no cancel button");
-  document.querySelector(".tp-modal-ok").click();
-  assert((await p) === undefined, "info resolves (void) on close");
-  assert(!document.querySelector(".tp-modal"), "no dialog left mounted");
+// ---- help mode ----
+// The mode's whole promise is "tap anything and you'll get an explanation", so
+// the failure that matters is a control pointing at copy that doesn't exist:
+// the tap does nothing at all, and nothing on screen says why.
+acheck("help: every data-help target has copy, and every entry is reachable", async () => {
+  const res = await fetch("index.html");
+  assert(res.ok, "index.html should be served");
+  const html = await res.text();
+  const used = [...html.matchAll(/data-help="([^"]+)"/g)].map((m) => m[1]);
+
+  assert(used.length > 20, `expected help on most controls, found ${used.length}`);
+  const dupes = used.filter((k, i) => used.indexOf(k) !== i);
+  assert(!dupes.length, `duplicate data-help keys: ${dupes.join(", ")}`);
+
+  const orphanTargets = used.filter((k) => !HELP[k]);
+  assert(!orphanTargets.length,
+    `controls point at missing help copy (tapping them would do nothing): ${orphanTargets.join(", ")}`);
+
+  const unusedCopy = HELP_KEYS.filter((k) => !used.includes(k));
+  assert(!unusedCopy.length, `help copy nothing can reach: ${unusedCopy.join(", ")}`);
+
+  // The mode announces itself on the "?" it was armed from.
+  assert(HELP["help-mode"], "help mode needs its own entry card");
+  const bad = HELP_KEYS.filter((k) => !HELP[k].title || !HELP[k].body);
+  assert(!bad.length, `help entries missing title/body: ${bad.join(", ")}`);
+});
+
+check("help: navigation survives, everything else becomes educational", () => {
+  // If the gear, the page tabs and the ✕ didn't keep working, every control in
+  // the Options sheet — over half of them — would be unreachable to explain.
+  const frag = document.createElement("div");
+  frag.innerHTML =
+    '<button id="open-options"></button>' +
+    '<button id="tab-setup"></button><button id="tab-prefs"></button>' +
+    '<button data-close></button>' +
+    '<button id="open-help" data-help="help-mode">?</button>' +
+    '<button id="play" data-help="play"><svg></svg></button>' +
+    '<div class="help-pop"><p>x</p></div>' +
+    '<button id="stray"></button>';
+
+  for (const id of ["open-options", "tab-setup", "tab-prefs", "open-help"]) {
+    assert(isNav(frag.querySelector("#" + id)), `#${id} must keep working in help mode`);
+  }
+  assert(isNav(frag.querySelector("[data-close]")), "the sheet's close control must keep working");
+  assert(isNav(frag.querySelector(".help-pop p")), "a tap inside the card must reach the card");
+  assert(!isNav(frag.querySelector("#play")), "Play must become educational, not stay live");
+  assert(!isNav(frag.querySelector("#stray")), "an unlisted control must not stay live");
+
+  // A tap lands on the SVG inside a button; the entry belongs to the ancestor.
+  const hit = helpTargetFor(frag.querySelector("#play svg"));
+  assert(hit && hit.key === "play", "a tap inside a control resolves to its help entry");
+  assert(hit.anchor === frag.querySelector("#play"), "the card anchors to the control, not the glyph");
+  assert(helpTargetFor(frag.querySelector("#stray")) === null, "an unannotated control has no card");
+});
+
+acheck("help: arming intercepts input; disarming gives every control back", async () => {
+  // Measured, not assumed: a capture-phase CLICK listener stops a <label> from
+  // toggling its hidden checkbox, but does NOT stop a drag on <input
+  // type="range"> — the BPM and Swing sliders moved anyway until pointerdown was
+  // intercepted too. This test is that finding, frozen.
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0";
+  host.innerHTML =
+    '<button id="open-help" data-help="help-mode">?</button>' +
+    '<label class="lamp" data-help="click-toggle"><input id="l" type="checkbox"></label>' +
+    '<input id="r" type="range" min="40" max="240" value="90" data-help="bpm">' +
+    '<button id="open-options">gear</button>';
+  document.body.appendChild(host);
+
+  const helper = createHelp({ version: "vTEST" });
+  const box = host.querySelector("#l");
+  const range = host.querySelector("#r");
+  let gearClicks = 0;
+  let lampClicks = 0;
+  host.querySelector("#open-options").addEventListener("click", () => { gearClicks++; });
+  box.addEventListener("click", () => { lampClicks++; });
+
+  // An armed controller holds document-level capture listeners, so a failing
+  // assert must still tear it down — otherwise it swallows every later test's
+  // clicks and takes the whole run down with it.
+  try {
+    box.click();
+    assert(box.checked, "the lamp toggles normally when help mode is off");
+    box.checked = false;
+
+    helper.arm();
+    assert(document.body.classList.contains("help-on"), "arming marks the body");
+    assert(helper._shownKey() === "help-mode", "arming opens the mode's own card");
+    assert(document.querySelector(".help-pop-version"), "the entry card carries the version");
+
+    const before = lampClicks;
+    host.querySelector("label.lamp").click();
+    assert(!box.checked, "a lamp must NOT toggle while help mode is armed");
+    assert(lampClicks === before, "the lamp's own handler must not run");
+    assert(helper._shownKey() === "click-toggle", "tapping it shows its card instead");
+
+    // The slider, and note WHAT is asserted. A synthetic PointerEvent cannot
+    // drive a native range drag at all, so checking `range.value` here would
+    // pass with no interception whatsoever — vacuous. Cancelling the pointerdown
+    // is the actual mechanism that stops the drag, and that IS observable.
+    // Verified against the real thing first: with click-capture alone and a real
+    // drag, the BPM slider ran 90 → 240 with help mode armed.
+    const pd = new PointerEvent("pointerdown", {
+      bubbles: true, cancelable: true, pointerId: 1, isPrimary: true, buttons: 1,
+    });
+    range.dispatchEvent(pd);
+    assert(pd.defaultPrevented,
+      "pointerdown on a slider must be cancelled — a click-capture listener cannot stop a native range drag");
+
+    host.querySelector("#open-options").click();
+    assert(gearClicks === 1, "the gear must still open Options while help mode is armed");
+    // …and navigation takes the card with it: it was anchored to something that
+    // has now moved or gone. Closing the sheet used to leave a card floating
+    // over the grid pointing at a hidden control.
+    assert(helper._shownKey() === null, "a navigation tap must dismiss the open card");
+  } finally {
+    helper.disarm();
+  }
+
+  assert(!document.body.classList.contains("help-on"), "disarming clears the body class");
+  assert(!document.querySelector(".help-pop"), "disarming closes the card");
+  assert(!document.querySelector(".help-target"), "disarming clears the highlight");
+  box.click();
+  assert(box.checked, "every control works again after disarming");
+  host.remove();
+});
+
+check("help: a disabled control is still explainable (the empty-library trap)", () => {
+  // A disabled button emits NO click, so it would be a dead tap — and the Load
+  // pill is disabled exactly when the library is empty, which is the first-run
+  // state and the likeliest moment to be reading help. Found in-browser rather
+  // than reasoned about: tapping Load in help mode showed the PREVIOUS card.
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0";
+  host.innerHTML =
+    '<button id="open-help" data-help="help-mode">?</button>' +
+    '<button id="open-load" data-help="open-load" disabled>load</button>' +
+    '<div class="field" data-help="capo"><button id="cd" data-capo-step="-1" disabled>-</button></div>';
+  document.body.appendChild(host);
+
+  const helper = createHelp({ version: "vTEST" });
+  const load = host.querySelector("#open-load");
+  const step = host.querySelector("#cd");
+
+  try {
+    helper.arm();
+    assert(!load.disabled, "a disabled control must become tappable while help mode is armed");
+    assert(load.getAttribute("aria-disabled") === "true", "…but must still read as disabled to assistive tech");
+    assert(!step.disabled, "a disabled control nested under a help target is lifted too");
+
+    load.click();
+    assert(helper._shownKey() === "open-load", "tapping the disabled Load pill shows ITS card");
+    step.click();
+    assert(helper._shownKey() === "capo", "a disabled end-stop resolves to its field's card");
+  } finally {
+    helper.disarm();
+  }
+
+  assert(load.disabled && step.disabled, "disabling is restored on exit, or the app forgets its own state");
+  assert(!load.hasAttribute("aria-disabled"), "the aria stand-in is cleaned up too");
+  host.remove();
 });
 
 acheck("pwa: manifest is valid and installable", async () => {

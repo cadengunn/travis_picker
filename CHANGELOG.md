@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [19](#where-things-stand-session-19-2026-07-28) | v2.13.4 | the docs split into CLAUDE.md + this file; the Guide became help mode |
 | [18](#where-things-stand-session-18-2026-07-27) | v2.12.0 → v2.13.3 | naming (Fingers / Wild Card), capo tag, swing — trialled, spec'd, cut back |
 | [17](#where-things-stand-session-17-2026-07-27) | v2.10.4 → v2.11.1 | the stale-precache bug; the typography pass (Jost) |
 | [16](#where-things-stand-session-16-2026-07-26) | v2.9.3 → v2.10.3 | background-audio pile-up; the capo; the two-page Options sheet |
@@ -32,6 +33,84 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 19, 2026-07-28)
+
+Two pieces: the docs, then the Guide. **72/72 green** (+3 net: three help-mode
+checks and a disabled-control check in, one dead `infoModal` check out).
+
+**Part 1 — the docs split, no app file touched.** CLAUDE.md was **1,982 lines and
+half changelog**, and it's the file every session loads first, so its bloat cost
+time on every future session. It's now **867 lines of architecture and
+invariants**; the session-by-session history is this file, newest first, with
+markers where a later session overturned an entry. `NEXT_SESSION.md` was folded
+away — durable lessons into "Working with this user", the rest into
+`OPEN_ITEMS.md` — leaving three docs, each with one job.
+
+- **It wasn't a straight cut.** A set of still-load-bearing facts lived ONLY in
+  session notes and would have stopped being loaded each session: `ui-sound.js` /
+  `modal.js` / `dropdown.js` were **missing from the file map entirely** (with
+  `sw.js`, the manifest, `icons/` and `tools/`), as were both deploy footguns,
+  the dev-box limits, the lamp-colour convention, the design-language statement,
+  and `platform.js`'s four integrations. All promoted.
+- **Six stale numbers corrected against the code**, not the old notes:
+  `CONTEXT_BASE_PX` was documented as 16px and is **22**; `.stage`
+  `padding-bottom` 28 → **24**; `confirm()` → `confirmModal()`; the saved
+  context's **`capo`** field; Click/Pattern are labelled **Metronome/Melody**;
+  the `:root` fallbacks are **Jerry's**, not Merle's.
+- **The height-budget table was re-measured live** rather than carried forward:
+  375×553, 4 bars, progression mode — grid **384.8px**, chrome **168.2px**,
+  `.app-head` **55.1px**, clearance **11.1px**, no overflow. The session-8
+  figures held.
+
+**Part 2 — v2.13.4: the Guide became HELP MODE** (`CACHE` v61). His design, and
+a better one than a rewrite: tap the `?`, it latches like the Edit pencil, and
+from then on tapping anything explains it instead of doing it. Full design in
+CLAUDE.md's "Help mode"; what's worth keeping here is what the build turned up.
+
+- **Why it's the right shape, specifically.** The Guide's problem was never
+  length, it was *distance*: the pills are icon-only and the ABS/MIX chips are
+  cryptic on purpose, and a manual explains those worst of all, because a list of
+  glyphs on another screen is the one place you can't compare the glyph to the
+  thing. It also lets **inert elements** carry help — the caution chip, the capo
+  tag, the readout, the grid — which is where the old Guide's legend section
+  went, and it had no other home.
+- **Three forks, all decided before coding:** an anchored popover (over a fixed
+  band or a modal per item) because it costs **zero layout**, which is what makes
+  it affordable against an 11px clearance; the manual **replaced entirely**; and
+  the **transport left alone**, with Play explaining itself.
+- **`click` capture is not enough, and I only half-verified that at first.** I
+  told him a capture-phase click listener wouldn't stop the sliders, then wrote a
+  test using synthetic PointerEvents — which **cannot drive a native range drag
+  at all**, so the assertion would have passed with no interception whatsoever.
+  Caught it by sabotaging the fix and finding the test still green. Re-measured
+  with a **real drag**: click-capture alone, help armed, BPM ran **90 → 240**.
+  The test now asserts the actual mechanism (`pointerdown.defaultPrevented`),
+  which does fail without the fix.
+- **The bug the build was worth doing for: a DISABLED control emits no click**,
+  so it's a dead tap — and **the Load pill is disabled exactly when the library
+  is empty**, the first-run state, i.e. the person most likely to be in help
+  mode. Found in-browser (tapping Load showed the *previous* card), not reasoned
+  about. Help mode already guarantees nothing acts, so `disabled` has no job
+  while armed: lift it, keep `aria-disabled` truthful, restore on exit.
+- **Two smaller ones, both found by looking rather than thinking.** A screenshot
+  showed the ✕ leaving a "Theme" card floating over the grid pointing at a
+  now-hidden control — navigation dismisses the card now. And the
+  mutual-exclusion guard I put in the Edit handler was **unreachable**: the
+  pencil isn't on the allowlist, so in help mode it explains itself and the
+  handler never runs. Removed, with a comment saying why.
+- **A test that fails must not cascade.** The sabotage run revealed that my own
+  help test left the controller **armed** when an assert threw, and its
+  document-level capture listeners then swallowed every later test's clicks —
+  one failure took the whole suite to 0/0. Both help tests now tear down in a
+  `finally`.
+- **Copy is data** (`HELP` in `data.js`, keyed to `data-help`), with a test in
+  both directions. This is the direct fix for how the Guide rotted: it was prose
+  inside `renderHelp()` and still called the Fingers menu "Chaos" three versions
+  after the rename.
+- Riding along: `infoModal` + `buildInfo` + the `.tp-help-*` CSS are **deleted**,
+  dead with the modal they served, and `APP_VERSION` moved to help mode's own
+  entry card.
 
 ## Where things stand (session 18, 2026-07-27)
 

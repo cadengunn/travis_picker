@@ -16,7 +16,58 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.13.3)
+## On the phone right now (v2.13.4) — HELP MODE
+
+**The Guide is gone; the `?` is a mode now.** Tap it and it latches in like the
+Edit pencil, and from then on tapping anything on screen tells you what it does
+instead of doing it. The gear still opens Options, its page tabs still switch and
+the ✕ still closes — everything else, Play and the die included, explains itself.
+Tap `?` again to leave.
+
+**What to poke at on the phone:**
+- **Does it read as a mode?** The `?` presses in and lights, and a card opens
+  anchored to it saying what's happening. That card is also where the version
+  number lives now.
+- **The cards are anchored to what you tapped** and flip above it near the bottom
+  of the screen. Worth checking they never land somewhere silly under a thumb —
+  that's the one thing the dev box can't judge.
+- **Tap the greyed-out Load pill.** It works: a disabled button normally emits no
+  click at all, which would have made it a dead tap for exactly the person most
+  likely to be reading help (an empty library is the first-run state).
+- **The transport is deliberately left alone** — arm help mid-take and it keeps
+  playing, and Play explains itself rather than stopping. Two taps to actually
+  stop. Say if that's wrong in practice.
+- **Nothing you tap can change anything.** Verified across every control, both
+  Options pages, and a real slider drag.
+
+**Costs nothing in layout** — the card is an overlay, so at 375×553 with 4 bars
+the geometry is identical armed or not (clearance still 11.06px, no overflow).
+
+---
+
+## Session 19 — the docs, not the app
+
+**No app file changed**, so there's nothing to test on the phone and no deploy.
+CLAUDE.md was **1,982 lines and half changelog**; it's now **867 lines of
+architecture and invariants**, with the session-by-session history moved to a new
+**`CHANGELOG.md`** (newest first, with markers where a later session overturned
+an entry). `NEXT_SESSION.md` is gone — its durable lessons merged into CLAUDE.md's
+"Working with this user", the rest into this file.
+
+The split wasn't a straight cut: a set of still-load-bearing facts lived **only**
+in session notes and would have stopped being loaded each session. Those were
+promoted into CLAUDE.md — `ui-sound.js` / `modal.js` / `dropdown.js` (missing
+from the file map entirely, along with `sw.js`, the manifest, `icons/` and
+`tools/`), both deploy footguns, the dev-box limits, the lamp-colour convention,
+the design-language statement, and `platform.js`'s four integrations. Six stale
+numbers were corrected against the code, and **the height-budget table was
+re-measured live** rather than carried forward: at 375×553 with 4 bars the grid
+is 384.8px, chrome 168.2px, and **11.1px of clearance under the grid** — no
+overflow. 69/69 green.
+
+---
+
+## Previously on the phone (v2.13.3)
 
 Four things off your v2.11.x notes. Nothing here touched the generator.
 
@@ -49,8 +100,8 @@ reads as "shapes → sounding pitch" without being told, and whether having the
 (`CAPO 2 → F♯`) is ever confusing. The arrow is the whole thing carrying that
 distinction.
 
-**Next up:** the Guide rewrite (item 6 below — still needs the specific thing
-that annoyed you).
+*(The Guide rewrite that was "next up" here is done — it became help mode,
+v2.13.4. See the top of this file and item 6.)*
 
 ---
 
@@ -95,28 +146,6 @@ pass stands as shipped.
   lose the click during a take.
 - **The progression list** — fine so far, but you expect to revisit which
   progressions are curated. Add/drop/reorder is a one-line data edit each.
-
----
-
-## Session 19 — the docs, not the app
-
-**No app file changed**, so there's nothing to test on the phone and no deploy.
-CLAUDE.md was **1,982 lines and half changelog**; it's now **867 lines of
-architecture and invariants**, with the session-by-session history moved to a new
-**`CHANGELOG.md`** (newest first, with markers where a later session overturned
-an entry). `NEXT_SESSION.md` is gone — its durable lessons merged into CLAUDE.md's
-"Working with this user", the rest into this file.
-
-The split wasn't a straight cut: a set of still-load-bearing facts lived **only**
-in session notes and would have stopped being loaded each session. Those were
-promoted into CLAUDE.md — `ui-sound.js` / `modal.js` / `dropdown.js` (missing
-from the file map entirely, along with `sw.js`, the manifest, `icons/` and
-`tools/`), both deploy footguns, the dev-box limits, the lamp-colour convention,
-the design-language statement, and `platform.js`'s four integrations. Six stale
-numbers were corrected against the code, and **the height-budget table was
-re-measured live** rather than carried forward: at 375×553 with 4 bars the grid
-is 384.8px, chrome 168.2px, and **11.1px of clearance under the grid** — no
-overflow. 69/69 green.
 
 ---
 
@@ -193,20 +222,23 @@ The hand is only 46% of the tile today. Needs new art, not a recolour.
 
 ## Small — numbers, copy, or a single decision
 
-### 6. Revisit the Guide — OPEN, needs your framing
+### 6. Revisit the Guide — DONE (v2.13.4), as help mode
 
-Your call, from the v2.10.x notes. It was written in one pass in v2.6.0 and
-touched once since. The app has gained the **capo**, the **two-page Options
-sheet**, **minor keys / tokens / dom7 chords**, **icon-only pills**, and now a
-**"?" that lives in the header** — and the icon-only pills are the one thing in
-the app that *needs* explaining, which makes the Guide load-bearing.
+Your call, and a better answer than the rewrite this item was expecting: instead
+of a block of instruction-manual text, the `?` arms a mode in which tapping
+anything explains it. See the top of this file for what to test.
 
-**Worth deciding what's wrong with it before rewriting:** is it *stale* (says
-things that have moved), *too long* (six headings before the legend), *the wrong
-shape* (reference vs a first-run tour), or *was it hard to find* (which the header
-"?" may have already fixed)? Those pull in different directions — a first-run tour
-is a feature, a rewrite is an afternoon of copy. Bring the specific thing that
-annoyed you and it'll be obvious which.
+The reason it beats a rewrite: the Guide's problem was never length, it was
+*distance*. The pills are icon-only and the ABS/MIX chips are cryptic on purpose,
+and a manual is the worst possible place to explain a glyph, because it's the one
+place you can't compare the glyph to the thing. It also gave the old Guide's
+indicator legend a home — inert things like the caution chip, the capo tag and
+the readout are tappable in help mode, and they had nowhere else to live.
+
+**Copy is data now** (`HELP` in `data.js`), which is the direct fix for how the
+Guide went stale: it was prose buried in a DOM-building function, and was still
+calling the Fingers menu "Chaos" three versions after you renamed it. A test
+checks every control has copy and every entry is reachable, so that can't recur.
 
 ### 7. Unruly density — OPEN, only if the drilling says so
 You once felt Unruly is occasionally "too much". Everything is numbers in

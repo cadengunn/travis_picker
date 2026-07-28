@@ -32,7 +32,7 @@
       <div class="ctx-row">
         <!-- Capo state, top-LEFT and in the same place in both chord modes. Only
              exists when a capo is set, so the default screen is untouched. -->
-        <span id="capo-tag" class="capo-tag" hidden></span>
+        <span id="capo-tag" class="capo-tag" data-help="capo-tag" hidden></span>
         <div class="grid-actions">
           <!-- Icon-only (v2.8.2): the three pills were the last text controls in an
                app that otherwise speaks in glyphs, and their labels were eating the
@@ -40,21 +40,22 @@
                which is what keeps even a 4-accidental custom progression at full
                14px instead of shrinking to 11.7px. Engraved like the gear and die.
                `title` carries the words (and the saved count) for a long-press. -->
-          <button id="edit-toggle" class="pill pill-icon" type="button" aria-pressed="false"
+          <button id="edit-toggle" class="pill pill-icon" type="button" aria-pressed="false" data-help="edit-toggle"
                   aria-label="Edit pattern" title="Toggle manual editing"><span class="rec-lamp" aria-hidden="true"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
-          <button id="open-save" class="pill pill-icon" type="button"
+          <button id="open-save" class="pill pill-icon" type="button" data-help="open-save"
                   aria-label="Save pattern" title="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm3-10H5V5h10v4z"/></svg></button>
-          <button id="open-load" class="pill pill-icon" type="button"
+          <button id="open-load" class="pill pill-icon" type="button" data-help="open-load"
                   aria-label="Load pattern" title="Load"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg></button>
           <!-- The Guide moved here from the Options sheet (v2.11.0): it was the
                only ACTION in there wearing a field label, and help belongs with
                the app's other always-reachable actions, not on a settings page. -->
           <button id="open-help" class="pill pill-icon pill-help" type="button"
-                  aria-haspopup="dialog" aria-label="How to use Travis Picker"
-                  title="Guide">?</button>
+                  aria-pressed="false" data-help="help-mode"
+                  aria-label="Help mode: tap anything to see what it does"
+                  title="Help">?</button>
         </div>
       </div>
-      <div class="name-row">
+      <div class="name-row" data-help="loaded-name">
         <span id="loaded-name" class="loaded-name"></span>
       </div>
     </header>
@@ -66,11 +67,11 @@
            the header), so the readout moved when you switched modes. The slot's
            height is reserved, so the grid never shifts; the big single-mode
            chord still overflows it upward, as it always did. -->
-      <div id="chord-head" class="chord-head">
+      <div id="chord-head" class="chord-head" data-help="chord-head">
         <span class="c"></span>
         <span id="context" class="context" hidden></span>
       </div>
-      <section id="grid" class="grid" aria-label="Pattern grid"></section>
+      <section id="grid" class="grid" aria-label="Pattern grid" data-help="grid"></section>
     </div>
   </main>
 
@@ -79,16 +80,16 @@
   <div class="controls">
     <!-- Absolute/mixed-bass caution indicator: sits bottom-right, above the gear,
          so the header name row is reserved for the pattern name. -->
-    <span id="type-indicator" class="type-indicator"></span>
+    <span id="type-indicator" class="type-indicator" data-help="type-indicator"></span>
     <div class="transport">
-      <button id="play" class="btn-icon btn-play" type="button" aria-pressed="false"
+      <button id="play" class="btn-icon btn-play" type="button" aria-pressed="false" data-help="play"
               aria-label="Start metronome">&#x25B6;&#xFE0E;</button>
-      <div class="slider-wrap">
+      <div class="slider-wrap" data-help="bpm">
         <input id="bpm" class="bpm-slider" type="range" min="40" max="240" step="1" value="90"
                aria-label="Tempo in beats per minute" />
-        <div class="bpm-readout"><span id="beat-lamp" class="beat-lamp" aria-hidden="true"></span><output id="bpm-value" class="bpm-value" for="bpm">90</output> BPM</div>
+        <div class="bpm-readout"><span id="beat-lamp" class="beat-lamp" data-help="beat-lamp" aria-hidden="true"></span><output id="bpm-value" class="bpm-value" for="bpm">90</output> BPM</div>
       </div>
-      <button id="generate" class="btn-icon btn-roll" type="button"
+      <button id="generate" class="btn-icon btn-roll" type="button" data-help="generate"
               aria-label="Generate a new pattern" title="Generate">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.4" cy="7.4" r="1.4"/><circle cx="8.4" cy="12" r="1.4"/><circle cx="8.4" cy="16.6" r="1.4"/><circle cx="15.6" cy="7.4" r="1.4"/><circle cx="15.6" cy="12" r="1.4"/><circle cx="15.6" cy="16.6" r="1.4"/></svg>
       </button>
@@ -133,7 +134,7 @@
       <!-- Row 1 is the instrument's CONTEXT — one chord or a progression, and
            where the capo is. Deliberately NOT the die's row (see row 2). -->
       <div class="control-row">
-        <div class="field">
+        <div class="field" data-help="chord-mode">
           <span>Format</span>
           <div id="chord-mode" class="segmented" role="group" aria-label="Chord mode">
             <button type="button" data-mode="single" class="active">Single</button>
@@ -145,7 +146,7 @@
              nothing on screen changes — this shifts the sounding pitch and the
              concert-key readout only. Negative values are a down-tuned guitar
              (the same transform, which a physical capo can't do). -->
-        <div class="field">
+        <div class="field" data-help="capo">
           <span>Capo</span>
           <div class="stepper" id="capo">
             <button type="button" data-capo-step="-1" aria-label="Capo down">−</button>
@@ -166,22 +167,22 @@
            Its contents are the only ones that swap between chord modes, and both
            fill the same two slots, so nothing below ever shifts. -->
       <div class="control-row with-die">
-        <label class="field span-2" id="field-chord">
+        <label class="field span-2" id="field-chord" data-help="field-chord">
           <span>Chord</span>
           <select id="chord"></select>
         </label>
 
-        <label class="field" id="field-key" hidden>
+        <label class="field" id="field-key" data-help="field-key" hidden>
           <span>Key</span>
           <select id="key"></select>
         </label>
-        <label class="field" id="field-prog" hidden>
+        <label class="field" id="field-prog" data-help="field-prog" hidden>
           <span>Progression</span>
           <select id="progression"></select>
         </label>
 
         <div class="field field-die">
-          <button id="randomize-chords" class="die-btn" type="button"
+          <button id="randomize-chords" class="die-btn" type="button" data-help="randomize-chords"
                   aria-label="Random key and progression" title="Random key &amp; progression">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.4" cy="7.4" r="1.5"/><circle cx="8.4" cy="16.6" r="1.5"/><circle cx="15.6" cy="7.4" r="1.5"/><circle cx="15.6" cy="16.6" r="1.5"/><circle cx="12" cy="12" r="1.5"/></svg>
           </button>
@@ -193,15 +194,15 @@
            UNEVEN (see .control-row.layers) — the Thumb menu has by far the
            longest values and the other two have the shortest. -->
       <div class="control-row layers">
-        <label class="field">
+        <label class="field" data-help="bass">
           <span>Thumb</span>
           <select id="bass"></select>
         </label>
-        <label class="field">
+        <label class="field" data-help="chaos">
           <span>Fingers</span>
           <select id="chaos"></select>
         </label>
-        <label class="field">
+        <label class="field" data-help="pattern">
           <span>Pattern</span>
           <select id="pattern"></select>
         </label>
@@ -218,7 +219,7 @@
            this. It swings the "&"s only; the quarters resolution that briefly
            rode beside it here was cut for not being Travis picking. -->
       <div class="control-row">
-        <label class="field span-3" id="field-swing">
+        <label class="field span-3" id="field-swing" data-help="swing">
           <span>Swing</span>
           <div class="slider-well">
             <input id="swing" class="swing-slider" type="range" min="50" max="75" step="1" value="50"
@@ -239,22 +240,22 @@
            the UI press-click (its own on/off). ids are unchanged (click-toggle =
            metronome, pattern-toggle = melody) so the app wiring is untouched. -->
       <div class="lamp-row">
-        <label class="lamp">
+        <label class="lamp" data-help="click-toggle">
           <input id="click-toggle" type="checkbox" checked />
           <span class="jewel"></span>
           <span class="t">Metronome</span>
         </label>
-        <label class="lamp">
+        <label class="lamp" data-help="pattern-toggle">
           <input id="pattern-toggle" type="checkbox" checked />
           <span class="jewel"></span>
           <span class="t">Melody</span>
         </label>
-        <label class="lamp">
+        <label class="lamp" data-help="count-in-toggle">
           <input id="count-in-toggle" type="checkbox" checked />
           <span class="jewel"></span>
           <span class="t">Count-in</span>
         </label>
-        <label class="lamp">
+        <label class="lamp" data-help="ui-sound-toggle">
           <input id="ui-sound-toggle" type="checkbox" checked />
           <span class="jewel"></span>
           <span class="t">Buttons</span>
@@ -265,11 +266,11 @@
            already called Preferences, and a group caption that looks exactly like
            a field label stacked on top of field labels says nothing. -->
       <div class="control-row">
-        <label class="field">
+        <label class="field" data-help="label-mode">
           <span>Note labels</span>
           <select id="label-mode"></select>
         </label>
-        <label class="field">
+        <label class="field" data-help="theme">
           <span>Theme</span>
           <select id="theme"></select>
         </label>
