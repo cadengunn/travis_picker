@@ -4,11 +4,11 @@
 size, what's decided and what needs the user's call. This file is the session
 hand-off only.
 
-## Shipped this session — v2.12.0 (`CACHE` v55)
+## Shipped this session — v2.12.0 → v2.13.0 (`CACHE` v57)
 
-66/66 green (+1). Tree clean, nothing half-finished. Four items off his v2.11.x
-phone notes; **the generator and the musical model were not touched**. Full
-detail in CLAUDE.md "Where things stand (session 18)".
+69/69 green (+4). Tree clean, nothing half-finished. Four items off his v2.11.x
+phone notes, then swing. Full detail in CLAUDE.md "Where things stand
+(session 18)".
 
 1. **The empty name row is signed off** — closed, no placeholder.
 2. **"Chaos" left the UI.** The setting is **Fingers** (beside Thumb — the two
@@ -21,9 +21,29 @@ detail in CLAUDE.md "Where things stand (session 18)".
 4. **The "sounds in" readout moved from the Options sheet into the header tag**,
    which now reads `CAPO 2 → F♯`.
 5. **Three clipped Thumb values fixed** by sizing that row's slots to content.
+6. **v2.12.1** — "Wild Card" capitalised, which cost 2.7px and forced the same
+   row to rebalance again (133/108/86 → 133/111/83).
+7. **v2.13.0 — swing, BOTH FEELS, for a guitar trial.** One pure function
+   (`slotSeconds`) covers both; the Feel toggle picks `unit: 2` (8ths move, thumb
+   steady — the classic shuffle) or `unit: 4` (beats 2 and 4 move, the thumb
+   itself swings — what he described). **He picks one on the guitar and the other
+   gets deleted.**
 
-## Four things worth carrying forward
+## Six things worth carrying forward
 
+0. **When he describes something unusual, work out whether he means it — and
+   show him, don't tell him.** His swing description ("2 moves further from 1 and
+   closer to 3") was precise and *not* standard swing: it swings the beats, which
+   in Travis picking means the thumb stops being a metronome. Writing the eight
+   slot positions out as a diagram for both readings is what let him decide, and
+   his answer was "trial both". Which was affordable only because they're one
+   parameter apart in one pure function — **check whether a fork is actually
+   expensive before making him choose.**
+0b. **I had to correct myself mid-thread and it mattered.** I'd told him the
+   metronome click needed no decision because it only sounds on beat slots. True
+   of the 8ths feel; under the beats feel the click sits on beats 2 and 4 and
+   shuffles with them. Say it plainly and move on — but do say it, because he'd
+   have heard it on the guitar and wondered.
 1. **He improves the option you hand him — twice this session.** I proposed
    "Complexity" as the setting name; he came back with **"Fingers"**, which is
    better because it pairs with Thumb and names the *layer* rather than the axis.
@@ -59,19 +79,19 @@ detail in CLAUDE.md "Where things stand (session 18)".
   which freezes the playhead and the beat lamp, and `document.fonts.ready` can
   hang there — force layout with `offsetHeight` instead of awaiting frames.
 
-## Next session — he has already chosen
+## Next session
 
-**Swing first, then the Guide rewrite.**
+**First: collect the swing verdict.** Both feels are on his phone and one of them
+should be deleted — that's the only thing on the open list actively waiting on
+him. What's needed back is *which feel* and *roughly what percentage*; then
+delete the loser, drop the Feel toggle, and the Swing row narrows to one control.
+If he wants both kept, that's a legitimate answer too (they're genuinely
+different feels, and the toggle costs one slot) — but don't let it drift
+undecided, because a trial control that never resolves is just clutter.
 
-- **Swing** — two of its three forks are answered by the code and recorded in
-  `OPEN_ITEMS.md` item 3: the click only sounds on beat slots (so the metronome
-  stays a straight quarter pulse for free), and bar length is invariant if each
-  beat/offbeat pair sums to two slots (so BPM keeps its meaning and the count-in
-  is untouched). The open call is **toggle vs percentage vs named stops** — my
-  argument is named stops in a segmented control — plus whether swing saves with
-  a pattern (I'd say no, it's a feel setting like BPM).
-- **The Guide rewrite** — still blocked on him saying *what* bothers him about
-  it. Stale / too long / wrong shape / hard to find pull in different directions.
+**Then: the Guide rewrite** — still blocked on him saying *what* bothers him
+about it. Stale / too long / wrong shape / hard to find pull in different
+directions.
 - He also asked when to do a **code-cleanup session**; the answer is recorded in
   `OPEN_ITEMS.md` under Decided — not on its own, because the code is clean and
   the *docs* are what need it. The offered cheap win is splitting CLAUDE.md into

@@ -45,6 +45,37 @@ export const hasDrifted = (nextSlotTime, now) => now - nextSlotTime > MAX_DRIFT;
 export const secondsPerSlot = (bpm) => 30 / bpm;          // an 8th = half a beat
 export const isBeatSlot = (slotInBar) => slotInBar % 2 === 0; // 0,2,4,6 -> beats 1..4
 
+// --- swing ---
+// A percentage: how much of each PAIR the first half gets. 50 = straight (both
+// halves equal, i.e. swing off), 66.7 = triplet swing, 75 = extreme.
+export const SWING_MIN = 50;
+export const SWING_MAX = 75;
+export const DEFAULT_SWING = SWING_MIN;
+export const clampSwing = (n) => Math.min(SWING_MAX, Math.max(SWING_MIN, Math.round(Number(n) || SWING_MIN)));
+
+// WHAT gets paired long-short, in slots. Two feels, being trialled side by side:
+//   2 ("8ths")  — pairs each beat with its "&". The &s move late and beats 1-4
+//                 stay put, so the THUMB stays metronomic: the classic shuffle.
+//   4 ("beats") — pairs beat 1 with beat 2 and beat 3 with beat 4. Beats 2 and 4
+//                 move late, so the thumb itself swings. This is the feel the
+//                 user described ("2 moves further from 1 and closer to 3").
+// Both divide 8 evenly, so the grouping never straddles a bar line.
+export const SWING_UNITS = { eighths: 2, beats: 4 };
+export const DEFAULT_SWING_UNIT = SWING_UNITS.eighths;
+
+// How long slot `slotInBar` (0-7) lasts. The whole model is one line: a group of
+// `unit` slots is split long-short, the first half taking `ratio` of it.
+//
+// The bar's TOTAL is invariant — each group sums to `unit * secondsPerSlot`
+// whatever the ratio — which is what keeps BPM meaning exactly what it means
+// with swing off, and leaves the count-in a full bar. A test asserts it.
+export function slotSeconds(slotInBar, bpm, swing = DEFAULT_SWING, unit = DEFAULT_SWING_UNIT) {
+  const ratio = clampSwing(swing) / 100;
+  const inGroup = ((slotInBar % unit) + unit) % unit;
+  const firstHalf = inGroup < unit / 2;
+  return 2 * secondsPerSlot(bpm) * (firstHalf ? ratio : 1 - ratio);
+}
+
 // step (a global 8th counter) -> where the playhead sits
 export function stepToPosition(step) {
   return { bar: Math.floor(step / SLOTS_PER_BAR), slot: (step % SLOTS_PER_BAR) + 1 };
@@ -69,6 +100,8 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
   let clickOn = true;      // emit the metronome click on beats
   let patternOn = true;    // emit the plucked pattern notes
   let countInOn = true;    // one bar of count-in before the loop starts
+  let swing = DEFAULT_SWING;
+  let swingUnit = DEFAULT_SWING_UNIT;
 
   const slotsTotal = () => bars * SLOTS_PER_BAR;
 
@@ -118,7 +151,12 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
         count: inCountIn ? Math.floor(slotInBar / 2) + 1 : null,
       });
 
-      nextSlotTime += secondsPerSlot(bpm);
+      // Swing lives HERE and nowhere else: the slot's length depends on where it
+      // sits in its group. Everything downstream is already time-driven — the
+      // notes are scheduled at `nextSlotTime`, and the playhead reads the audio
+      // clock — so the whole app follows for free. The count-in swings too,
+      // which is right: it should tell you the feel you're counting into.
+      nextSlotTime += slotSeconds(slotInBar, bpm, swing, swingUnit);
       if (inCountIn) countRemaining--;
       else step = (step + 1) % slotsTotal();
     }
@@ -166,6 +204,15 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
     },
     setCountInEnabled(on) {
       countInOn = !!on;
+    },
+
+    // Takes effect on the next scheduled slot, so you can dial it while playing
+    // and hear the change within the lookahead window (~0.2s) rather than having
+    // to stop and restart. That's the point of a feel control you're hunting for.
+    setSwing(pct, unit) {
+      swing = clampSwing(pct);
+      if (unit) swingUnit = unit;
+      return swing;
     },
 
     async start(barCount) {

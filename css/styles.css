@@ -971,6 +971,49 @@ main {
    keys sunk into its ends, so it reads as a single instrument control rather
    than three buttons in a row. Height matches .field select so the row's
    `align-items: end` lines it up with the readout beside it. */
+/* The swing slider sits in the same recessed well as the stepper and the
+   dropdowns, so the sheet's controls stay one material — 42px tall like the
+   rest, or the row it's in would be a different height from every other row.
+   The value rides INSIDE the well beside the travel rather than under it (the
+   BPM readout's layout), because a second line here would cost the row 16px for
+   a number you glance at. */
+.slider-well {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 10px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 var(--bevel-hi);
+}
+.swing-slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--active);
+  height: 24px;
+}
+/* A VALUE — so the serif, and it must not inherit .field's legend caps/tracking.
+   Fixed width so the slider's travel doesn't jitter as the text changes width
+   between "Straight" and "62%". Pinned line-height for the same reason every
+   readout here has one. */
+.swing-value {
+  flex: 0 0 52px;
+  text-align: right;
+  font-family: var(--serif);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+/* At 50 it's reporting that nothing is happening — same convention as the capo's
+   old "Concert pitch" state. */
+.swing-value.at-zero { color: var(--muted); font-weight: 500; font-size: 12px; }
+
 .stepper {
   display: grid;
   grid-template-columns: 1fr minmax(30px, auto) 1fr;

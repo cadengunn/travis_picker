@@ -207,6 +207,31 @@
         </label>
       </div>
 
+      <!-- Swing. On the Generation page rather than Preferences because this is
+           part of what you're PLAYING, not how the app behaves — the same
+           reasoning that keeps chord and capo here. It is NOT a generation
+           input: the die doesn't roll it and it isn't in the pattern, which is
+           why it sits below the die's row rather than in it.
+           BOTH FEELS ARE SHIPPED SIDE BY SIDE for a guitar trial (see
+           SWING_UNITS in metronome.js); one of them gets deleted afterwards. -->
+      <div class="control-row">
+        <label class="field span-2" id="field-swing">
+          <span>Swing</span>
+          <div class="slider-well">
+            <input id="swing" class="swing-slider" type="range" min="50" max="75" step="1" value="50"
+                   aria-label="Swing amount">
+            <output id="swing-value" class="swing-value" for="swing">Straight</output>
+          </div>
+        </label>
+        <div class="field">
+          <span>Feel</span>
+          <div id="swing-unit" class="segmented" role="group" aria-label="What swings">
+            <button type="button" data-swing-unit="2" class="active">8ths</button>
+            <button type="button" data-swing-unit="4">Beats</button>
+          </div>
+        </div>
+      </div>
+
       </div><!-- /page-generation -->
 
       <div class="sheet-page is-away" id="page-prefs" role="tabpanel" aria-labelledby="tab-prefs">

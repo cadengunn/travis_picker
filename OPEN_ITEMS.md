@@ -35,8 +35,12 @@ Four things off your v2.11.x notes. Nothing here touched the generator.
   and "Root–Fifth" too. The row's three slots are sized by content now; nothing
   clips in any of the three menus.
 
-**Next up, your order:** swing, then the Guide rewrite (item 6 below — still
-needs the specific thing that annoyed you).
+**And swing shipped in v2.13.0** — both feels, side by side, for you to pick
+between on the guitar. See item 3; it's the one thing on this list actively
+waiting on you.
+
+**Next up:** the Guide rewrite (item 6 below — still needs the specific thing
+that annoyed you).
 
 ---
 
@@ -127,27 +131,31 @@ field for free.
 decision blocking it. The one thing I'd want from you is the *patterns* — either
 a handful you've saved and like, or a nod to pick a spread across the tiers.
 
-### 3. Swing — OPEN, next up
-Timing feel. The only open item that touches the scheduler rather than data.
+### 3. Swing — SHIPPED (v2.13.0), ON THE PHONE, and **you owe it a verdict**
+Both feels are live behind the **Feel** toggle, because the one you described
+isn't what "swing" usually means and I'd rather you feel the difference than pick
+from a description. **One of them gets deleted after your trial.**
 
-**Two of the three forks are already answered by how the code works:**
-- **The click needs no decision.** The metronome only sounds on *beat* slots
-  (quarters), so swinging the 8ths leaves it a straight quarter pulse — which is
-  what you want to practise against anyway.
-- **Bar length stays invariant** as long as each beat/offbeat pair still sums to
-  two slots. So BPM keeps meaning exactly what it means today, and the count-in
-  is untouched. The playhead follows for free, since it reads the audio clock
-  rather than the scheduler.
+- **8ths** — each beat pairs with its `&`. The `&`s move late, **beats 1-4 stay
+  put**, so your thumb keeps perfect time and only the fingers lilt. The classic
+  shuffle, and the metronome click never moves.
+- **Beats** — beat 1 pairs with 2, beat 3 with 4. **Beats 2 and 4 move late**,
+  exactly as you described it. This one swings *the thumb*, so your alternating
+  bass goes long-short — and the click shuffles with it, since it sits on those
+  beats. (I told you earlier the click wouldn't move; that's only true of 8ths.)
 
-**The one real fork — toggle vs percentage.** My argument is for **neither
-exactly: named stops in a segmented control** (Straight / Light / Swing, maybe a
-hard fourth), matching the hardware language. Swing is conventionally quoted at a
-few points anyway (50% straight, ~58% shuffle, 66.7% triplet), and a continuous
-slider is fiddly under a thumb mid-practice. Costs one row on sheet page 1, which
-has room. If you want the number visible, the button can carry it.
+**Slider, not preset stops** — you said this needs trial and error, which is the
+argument for hunting the number by ear. 50% is Straight (off), 75% is extreme,
+**67% is true triplet swing**. It retunes live while the loop runs, so you can
+drag it mid-take and hear it move.
 
-**Second, smaller call:** does swing save with a pattern? I'd say no — it's a
-feel setting like BPM, which we deliberately don't store.
+Two things that are true of both, by construction: the **bar length never
+changes**, so BPM still means what it means; and **swing isn't saved with a
+pattern** — it's a feel setting like BPM (it does persist across launches,
+though, unlike BPM).
+
+**What I need back:** which feel, and roughly what percentage. Then I delete the
+other one and the Feel toggle goes away.
 
 ### 4. JSON export/import of the Saved library — OPEN
 Insurance against iOS evicting localStorage after ~7 days of not opening the app.

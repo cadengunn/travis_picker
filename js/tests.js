@@ -59,6 +59,12 @@ import {
   MAX_DRIFT,
   BPM_MIN,
   BPM_MAX,
+  slotSeconds,
+  clampSwing,
+  SWING_MIN,
+  SWING_MAX,
+  SWING_UNITS,
+  DEFAULT_SWING,
 } from "./metronome.js";
 import { enhanceSelect } from "./dropdown.js";
 import { confirmModal, promptModal, infoModal } from "./modal.js";
@@ -1061,6 +1067,70 @@ check(`metronome: bpm is clamped to the ${BPM_MIN}-${BPM_MAX} range`, () => {
   // delayed setTimeout lands a click late.
   assert(secondsPerSlot(BPM_MAX) < 0.2, "one 8th at max bpm must fit in the schedule-ahead window");
   assert(m.running === false, "a fresh metronome should not be running");
+});
+
+// Swing. The positions below are the whole feature — where the eight slots of a
+// bar actually land — so they're asserted as absolute offsets in BEATS rather
+// than as durations, which is how you'd read them off a grid.
+const slotOffsetsInBeats = (bpm, swing, unit) => {
+  const beat = 60 / bpm;
+  const out = [];
+  let t = 0;
+  for (let i = 0; i < 8; i++) { out.push(+(t / beat).toFixed(6)); t += slotSeconds(i, bpm, swing, unit); }
+  return { offsets: out, barBeats: +(t / beat).toFixed(6) };
+};
+
+check("swing: straight (50%) is exactly the un-swung grid, in both feels", () => {
+  assert(DEFAULT_SWING === SWING_MIN, "swing must default to OFF");
+  for (const unit of [SWING_UNITS.eighths, SWING_UNITS.beats]) {
+    for (let i = 0; i < 8; i++) {
+      const s = slotSeconds(i, 120, 50, unit);
+      assert(Math.abs(s - secondsPerSlot(120)) < 1e-12,
+        `unit ${unit} slot ${i} at 50% should equal a plain 8th, got ${s}`);
+    }
+  }
+  assert(clampSwing(10) === SWING_MIN, "below range clamps to straight");
+  assert(clampSwing(999) === SWING_MAX, "above range clamps");
+  assert(clampSwing(undefined) === SWING_MIN, "a missing pref reads as straight");
+  assert(clampSwing("62") === 62, "a string from an <input> is accepted");
+});
+
+check("swing: the bar's total length never changes, at any amount or feel", () => {
+  // This is what keeps BPM meaning what it means and leaves the count-in a full
+  // bar — every group is split long/short, so each one sums back to itself.
+  for (const unit of [SWING_UNITS.eighths, SWING_UNITS.beats]) {
+    for (const pct of [50, 55, 60, 66, 70, 75]) {
+      const { barBeats } = slotOffsetsInBeats(120, pct, unit);
+      assert(Math.abs(barBeats - 4) < 1e-9,
+        `unit ${unit} at ${pct}% should still be a 4-beat bar, got ${barBeats}`);
+    }
+  }
+});
+
+check("swing: the two feels move different things (8ths vs beats)", () => {
+  // 67, not 66.667: the slider steps in whole percent and clampSwing rounds, so
+  // 67% is the closest reachable setting to true triplet swing (2:1). The error
+  // is 0.33% of an 8th — 1.7ms at 120bpm — which is inaudible, and the roundness
+  // of the control is worth more than the third decimal.
+  const pct = 67;
+  const eighths = slotOffsetsInBeats(120, pct, SWING_UNITS.eighths).offsets;
+  const beats = slotOffsetsInBeats(120, pct, SWING_UNITS.beats).offsets;
+  const near = (a, b) => Math.abs(a - b) < 1e-4;
+
+  // 8ths: the &s move late, and BEATS 1-4 STAY PUT — the thumb keeps time.
+  assert([0, 1, 2, 3].every((b, k) => near(eighths[k * 2], b)),
+    `8ths feel must leave beats on 0,1,2,3 — got ${eighths.filter((_, i) => i % 2 === 0)}`);
+  assert(near(eighths[1], 0.67), `the & should sit at 0.67 of the beat, got ${eighths[1]}`);
+  assert(Math.abs(eighths[1] - 2 / 3) < 0.005, "…which is within a rounding hair of true triplet swing");
+
+  // Beats: beats 2 and 4 move late; 1 and 3 stay. The thumb itself swings.
+  assert(near(beats[0], 0) && near(beats[4], 2), "beats 1 and 3 stay put in the beats feel");
+  assert(near(beats[2], 2 * 0.67), `beat 2 should be pushed to ~1.33, got ${beats[2]}`);
+  assert(near(beats[6], 2 + 2 * 0.67), `beat 4 should be pushed to ~3.33, got ${beats[6]}`);
+  // ...which is exactly the difference between the two, and nothing else:
+  assert(!near(eighths[2], beats[2]) && !near(eighths[6], beats[6]), "the feels must differ on beats 2 and 4");
+  assert([0, 1, 3, 4, 5, 7].every((i) => near(eighths[i], beats[i])),
+    "the feels must agree everywhere EXCEPT beats 2 and 4");
 });
 
 check("metronome: a frozen page resyncs instead of replaying its backlog", () => {

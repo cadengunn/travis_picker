@@ -285,6 +285,38 @@ only if v2's pattern playback actually needs a synth library.
 - `start()` creates/resumes the `AudioContext` **inside the click handler**, or
   iOS Safari stays silent. BPM 40–240, clamped in `setBpm`.
 
+**Swing** (`slotSeconds()` in `metronome.js`, session 18): the whole feature is
+one pure function saying how long slot 0–7 lasts. A group of `unit` slots is
+split long–short, the first half taking `ratio` of it — and that single
+expression covers both feels, which is why shipping two of them cost almost
+nothing:
+- **`unit: 2` ("8ths")** pairs each beat with its `&`. The `&`s move late and
+  **beats 1–4 stay put**, so the thumb stays metronomic — the classic shuffle,
+  and the metronome click (which only sounds on beat slots) never moves.
+- **`unit: 4` ("beats")** pairs beat 1 with 2 and beat 3 with 4. **Beats 2 and 4
+  move late**, so the *thumb itself* swings and the click shuffles with it.
+- **Both are shipped side by side pending a guitar trial** — the user described
+  the second, which isn't what "swing" normally means on an 8-note grid, so
+  rather than pick for him both are live behind a Feel toggle. **One of them gets
+  deleted afterwards**, along with its half of the control.
+- **The bar's total length is invariant** at any amount or feel (each group sums
+  back to `unit × secondsPerSlot`), which is what keeps BPM meaning what it means
+  and leaves the count-in a full bar. Asserted in tests.
+- **It lives only in the scheduler's slot advance.** Everything downstream is
+  already time-driven — notes are scheduled at `nextSlotTime`, the playhead reads
+  the audio clock — so the app follows for free. The count-in swings too, which
+  is right: it should tell you the feel you're counting into.
+- **50% is straight (off)**, range 50–75, integer steps — so true triplet swing
+  is 67%, 1.7ms from exact 2:1 at 120bpm and inaudible. The readout says
+  "Straight" rather than "50%".
+- **Verified by probing scheduled audio times**, not by reading the math: at
+  90bpm, straight gives click gaps of 0.667s and even 0.333s 8ths; the 8ths feel
+  leaves the clicks at 0.667 and makes the plucks 0.447/0.22; the beats feel
+  makes the *clicks* 0.893/0.44.
+- **Swing is a FEEL setting, not pattern content** — it persists in `tp-audio`
+  alongside the sound toggles and is deliberately not part of a saved pattern's
+  context (same class as BPM, which isn't saved either).
+
 **Pattern playback** (`synth.js` + `metronome.js`, session 7): you can *hear* a
 generated pattern, not just see it and the click. It **rides the same lookahead
 scheduler** — no second clock. `app.js` builds a `step -> [{midi, bass}]` table
@@ -1847,15 +1879,41 @@ were naming and fit.
 - Riding along: the saved-pattern list showed the raw tier **id** (`chaos`), so
   it now disagreed with the menu — it prints `CHAOS_PRESETS[id].name` instead.
 
-**Still unbuilt and next in his order: swing, then the Guide rewrite.** Swing's
-one real fork is toggle vs percentage vs named stops (my argument for named
-stops is in the open list). Two of its forks are already answered by the code:
-the click only sounds on **beat** slots, so the metronome stays a straight
-quarter pulse for free, and bar length is invariant as long as each
-beat/offbeat pair sums to two slots — so BPM keeps its meaning and the count-in
-is untouched. He also asked when to do a code-cleanup session; the answer
-recorded in `OPEN_ITEMS.md` is "not on its own" — the code is clean, the docs
-are what need it.
+**v2.12.1** — "Wild Card" capitalised, his call. Not free, and worth the note: the
+capital C is **2.7px** wider, which took the Fingers column from 3.9px of slack
+to **1.2px**, so the layers row rebalanced 133/108/86 → **133/111/83** (the spare
+came from Pattern). Same lesson as the rename right before it — *check whether
+the fix moved the constraint*; one capital letter did.
+
+**v2.13.0 — swing, both feels, for a guitar trial** (`CACHE` v57). 69/69 green
+(+3). The design and the measured verification are in the Swing note under the
+Metronome section; what matters at this level:
+- **He described a feel that isn't standard swing**, precisely: "2 moves further
+  from 1 and closer to 3 … 4 closer to 1". That's the *beats* swinging, not the
+  8ths — which in Travis picking means **the thumb itself swings**, where the
+  usual shuffle keeps the thumb metronomic and lilts only the fingers. Both were
+  put to him with the slot positions written out; his call was to **trial both on
+  the guitar** rather than pick from a description.
+- **That's affordable only because they're one parameter apart.** `slotSeconds()`
+  is a single expression; `unit: 2` vs `unit: 4` is the whole difference. Delete
+  the loser and its half of the Feel toggle.
+- **A correction I had to make to him mid-thread:** I'd said the click needed no
+  decision because it only sounds on beat slots. True for the 8ths feel — but
+  under the beats feel the click sits on beats 2 and 4, so **it shuffles too**.
+- **The control is a slider, not named stops** — he wants to hunt for the number
+  by ear ("might take some trial and error with the guitar"), which is the
+  argument that beat my earlier segmented-stops recommendation. It's on the
+  **Generation** page: swing is part of what you're *playing*, not how the app
+  behaves. Not in the die's row — the die doesn't roll it.
+- **Sheet cost measured:** the panel goes 266 → **333px** at 375×553, leaving
+  220px of headroom, and the tab-to-tab jump stays 0 (Generation is now the
+  taller page, and the shared grid cell handles it).
+
+**Next in his order after this: the Guide rewrite** — still blocked on him saying
+*what* bothers him about it (stale / too long / wrong shape / hard to find pull
+in different directions). He also asked when to do a code-cleanup session; the
+answer recorded in `OPEN_ITEMS.md` is "not on its own" — the code is clean, the
+docs are what need it.
 
 ## Working with this user
 

@@ -40,7 +40,14 @@ import { renderGrid } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
 import { savedStore } from "./storage.js";
 import { toggleNote } from "./editor.js";
-import { createMetronome, DEFAULT_BPM } from "./metronome.js";
+import {
+  createMetronome,
+  DEFAULT_BPM,
+  DEFAULT_SWING,
+  DEFAULT_SWING_UNIT,
+  SWING_MIN,
+  clampSwing,
+} from "./metronome.js";
 import { setUiSoundEnabled, playPress, playRelease } from "./ui-sound.js";
 import { confirmModal, promptModal, infoModal } from "./modal.js";
 import { enhanceSelect, enhanceAll } from "./dropdown.js";
@@ -57,7 +64,7 @@ const GLYPH_STOP = "■︎";
 
 // Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.12.1";
+const APP_VERSION = "v2.13.0";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -261,6 +268,19 @@ function renderCapo() {
   // the tag is visual and this is the control you're actually operating.
   const label = soundingLabel();
   el("capo").setAttribute("aria-label", `Capo ${state.capo}${label ? `, sounds in ${label}` : ""}`);
+}
+
+// The swing controls: the amount readout and which feel is latched. 50% is
+// "Straight" rather than "50%" — at the bottom of the range the control is off,
+// and saying so is more useful than a number you have to interpret.
+function renderSwing() {
+  const value = el("swing-value");
+  const off = audioPrefs.swing === SWING_MIN;
+  value.textContent = off ? "Straight" : `${audioPrefs.swing}%`;
+  value.classList.toggle("at-zero", off);
+  for (const b of el("swing-unit").querySelectorAll("[data-swing-unit]")) {
+    b.classList.toggle("active", Number(b.dataset.swingUnit) === audioPrefs.swingUnit);
+  }
 }
 
 // The on-screen capo indicator. It sits in the header row in BOTH chord modes —
@@ -507,7 +527,14 @@ function noteTable(phrase) {
 // an on/off preference (default on) persisted like the theme. localStorage may
 // throw in private mode; fall back to the defaults rather than break boot.
 const AUDIO_KEY = "tp-audio";
-const audioPrefs = { click: true, pattern: true, ui: true, countIn: true };
+// Swing rides in here rather than in a saved pattern's context: it's a FEEL
+// setting, the same class of thing as BPM, not part of what the pattern is. (It
+// does persist across launches, unlike BPM — you settle on a feel for a tune and
+// keep it, where you move the tempo constantly.)
+const audioPrefs = {
+  click: true, pattern: true, ui: true, countIn: true,
+  swing: DEFAULT_SWING, swingUnit: DEFAULT_SWING_UNIT,
+};
 function loadAudioPrefs() {
   try {
     Object.assign(audioPrefs, JSON.parse(localStorage.getItem(AUDIO_KEY) || "{}"));
@@ -983,6 +1010,24 @@ function attach() {
     render();
   });
 
+  // Swing. `input` (not `change`) so dragging the slider retunes the feel live —
+  // the scheduler only queues ~0.2s ahead, so you hear it move under your hands
+  // while the loop runs, which is the whole point of a control you hunt with.
+  el("swing").addEventListener("input", (e) => {
+    audioPrefs.swing = clampSwing(e.target.value);
+    metronome.setSwing(audioPrefs.swing, audioPrefs.swingUnit);
+    renderSwing();
+    saveAudioPrefs();
+  });
+  el("swing-unit").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-swing-unit]");
+    if (!btn) return;
+    audioPrefs.swingUnit = Number(btn.dataset.swingUnit);
+    metronome.setSwing(audioPrefs.swing, audioPrefs.swingUnit);
+    renderSwing();
+    saveAudioPrefs();
+  });
+
   // Options pages. The die belongs to Generation, so it goes with it.
   el("options-sheet").querySelector(".seg-tabs").addEventListener("click", (e) => {
     const tab = e.target.closest("[role=tab]");
@@ -1191,9 +1236,16 @@ async function boot() {
   el("pattern-toggle").checked = audioPrefs.pattern;
   el("ui-sound-toggle").checked = audioPrefs.ui;
   el("count-in-toggle").checked = audioPrefs.countIn;
+  // A pref blob written before swing existed has neither key, and a hand-edited
+  // one could have anything — clamp rather than trust it into the scheduler.
+  audioPrefs.swing = clampSwing(audioPrefs.swing ?? DEFAULT_SWING);
+  audioPrefs.swingUnit = audioPrefs.swingUnit === 4 ? 4 : DEFAULT_SWING_UNIT;
+  el("swing").value = String(audioPrefs.swing);
   metronome.setClickEnabled(audioPrefs.click);
   metronome.setPatternEnabled(audioPrefs.pattern);
   metronome.setCountInEnabled(audioPrefs.countIn);
+  metronome.setSwing(audioPrefs.swing, audioPrefs.swingUnit);
+  renderSwing();
   setUiSoundEnabled(audioPrefs.ui);
   attach();
   // Hold the screen awake for as long as the app is up — a screen lock ends
