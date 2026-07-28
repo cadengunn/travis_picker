@@ -43,11 +43,25 @@ Tap `?` again to leave.
 **Costs nothing in layout** — the card is an overlay, so at 375×553 with 4 bars
 the geometry is identical armed or not (clearance still 11.06px, no overflow).
 
+**Known open questions on it, none blocking:**
+- **Card placement under a thumb** — the only thing the dev box genuinely can't
+  judge. Cards anchor below what you tapped and flip above near the bottom edge.
+- **Wording and length.** Every entry is 2–3 sentences by rule, since it's a card
+  floating over a 375px screen. All of it is one map (`HELP` in `data.js`), so
+  any rewrite is a data edit — cheap, and no code moves.
+- **Coverage.** 29 things are annotated. If something you tapped said nothing,
+  that's a missing `data-help` + entry, also a data edit.
+- **Whether the die and Play should be exempt** like the gear is. Currently they
+  explain themselves, which is the rule as you specified it.
+
+**Next session is dedicated to adjusting this interface**, so bring whatever the
+drilling turns up.
+
 ---
 
-## Session 19 — the docs, not the app
+## Session 19, part 1 — the docs
 
-**No app file changed**, so there's nothing to test on the phone and no deploy.
+**No app file changed in this part.**
 CLAUDE.md was **1,982 lines and half changelog**; it's now **867 lines of
 architecture and invariants**, with the session-by-session history moved to a new
 **`CHANGELOG.md`** (newest first, with markers where a later session overturned
@@ -63,7 +77,7 @@ the design-language statement, and `platform.js`'s four integrations. Six stale
 numbers were corrected against the code, and **the height-budget table was
 re-measured live** rather than carried forward: at 375×553 with 4 bars the grid
 is 384.8px, chrome 168.2px, and **11.1px of clearance under the grid** — no
-overflow. 69/69 green.
+overflow. 69/69 green at that point (72/72 after help mode).
 
 ---
 
