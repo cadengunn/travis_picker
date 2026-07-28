@@ -53,59 +53,23 @@ export const SWING_MAX = 75;
 export const DEFAULT_SWING = SWING_MIN;
 export const clampSwing = (n) => Math.min(SWING_MAX, Math.max(SWING_MIN, Math.round(Number(n) || SWING_MIN)));
 
-// The swing amount is a DETENT, not a free number. A continuous slider let you
-// miss the setting you wanted by 2% and never know it; five named stops make the
-// useful values the only reachable ones, and give you a word to think in.
-// Straight is a real entry, not a special case — it doubles as the off switch.
-export const SWING_STEPS = [
-  { pct: 50, name: "Straight" },
-  { pct: 56, name: "Light" },
-  { pct: 62, name: "Medium" },
-  { pct: 67, name: "Hard" },     // ~2:1, the classic swung-8ths ratio
-  { pct: 75, name: "Triplet" },
-];
-export const swingStepIndex = (pct) => {
-  const target = clampSwing(pct);
-  let best = 0;
-  for (let i = 1; i < SWING_STEPS.length; i++) {
-    if (Math.abs(SWING_STEPS[i].pct - target) < Math.abs(SWING_STEPS[best].pct - target)) best = i;
-  }
-  return best;
-};
-// Quantise anything (a stale pref, a hand-edited blob) onto the nearest detent.
-// Kept separate from clampSwing: clamping is about range, this is about the
-// control's grid, and slotSeconds deliberately still accepts any value so the
-// timing math stays continuous and independently testable.
-export const snapSwing = (pct) => SWING_STEPS[swingStepIndex(pct)].pct;
-export const swingStepName = (pct) => SWING_STEPS[swingStepIndex(pct)].name;
-
-// WHAT gets paired long-short, in slots — the swing's RESOLUTION, not a second
-// kind of feel (which is why the UI groups it under one SWING heading rather
-// than calling it "Feel": "8ths" is a note value, not a character).
-//   2 ("&s")    — pairs each beat with its "&". The &s move late and beats 1-4
-//                 stay put, so the THUMB stays metronomic: the classic shuffle.
-//   4 ("2 & 4") — pairs beat 1 with beat 2 and beat 3 with beat 4. Beats 2 and 4
-//                 move late, so the thumb itself swings, and the 8ths inside
-//                 each beat stretch along with it (confirmed on the guitar —
-//                 the nesting is what makes the lope coherent).
-// The second one sits OUTSIDE Travis technique — Chet's thumb doesn't move —
-// and is kept anyway because it's a shuffle/laid-back-backbeat character the
-// user keeps meeting in tunes he plays. Fenced by the UI, not hidden.
-// Both divide 8 evenly, so the grouping never straddles a bar line.
-export const SWING_UNITS = { eighths: 2, beats: 4 };
-export const DEFAULT_SWING_UNIT = SWING_UNITS.eighths;
-
-// How long slot `slotInBar` (0-7) lasts. The whole model is one line: a group of
-// `unit` slots is split long-short, the first half taking `ratio` of it.
+// SWING PAIRS EACH BEAT WITH ITS "&", and nothing else. The & moves late and
+// beats 1-4 stay exactly where they were, so the thumb stays metronomic — which
+// is the whole technique this app is for.
 //
-// The bar's TOTAL is invariant — each group sums to `unit * secondsPerSlot`
-// whatever the ratio — which is what keeps BPM meaning exactly what it means
-// with swing off, and leaves the count-in a full bar. A test asserts it.
-export function slotSeconds(slotInBar, bpm, swing = DEFAULT_SWING, unit = DEFAULT_SWING_UNIT) {
+// A second resolution was built and trialled (v2.13.0-.1): pairing beat 1 with 2
+// and 3 with 4, so beats 2 and 4 moved and the THUMB itself swung. It worked,
+// and it's a real feel — but it's a shuffle, not Travis picking, and the user
+// cut it on those grounds after playing with it. Don't rebuild it without that
+// argument changing; the git history has the implementation if it ever comes up.
+//
+// How long slot `slotInBar` (0-7) lasts. The bar's TOTAL is invariant — each
+// pair sums to two plain 8ths whatever the ratio — which is what keeps BPM
+// meaning exactly what it means with swing off, and leaves the count-in a full
+// bar. A test asserts it.
+export function slotSeconds(slotInBar, bpm, swing = DEFAULT_SWING) {
   const ratio = clampSwing(swing) / 100;
-  const inGroup = ((slotInBar % unit) + unit) % unit;
-  const firstHalf = inGroup < unit / 2;
-  return 2 * secondsPerSlot(bpm) * (firstHalf ? ratio : 1 - ratio);
+  return 2 * secondsPerSlot(bpm) * (isBeatSlot(slotInBar) ? ratio : 1 - ratio);
 }
 
 // step (a global 8th counter) -> where the playhead sits
@@ -133,7 +97,6 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
   let patternOn = true;    // emit the plucked pattern notes
   let countInOn = true;    // one bar of count-in before the loop starts
   let swing = DEFAULT_SWING;
-  let swingUnit = DEFAULT_SWING_UNIT;
 
   const slotsTotal = () => bars * SLOTS_PER_BAR;
 
@@ -188,7 +151,7 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
       // notes are scheduled at `nextSlotTime`, and the playhead reads the audio
       // clock — so the whole app follows for free. The count-in swings too,
       // which is right: it should tell you the feel you're counting into.
-      nextSlotTime += slotSeconds(slotInBar, bpm, swing, swingUnit);
+      nextSlotTime += slotSeconds(slotInBar, bpm, swing);
       if (inCountIn) countRemaining--;
       else step = (step + 1) % slotsTotal();
     }
@@ -241,9 +204,8 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
     // Takes effect on the next scheduled slot, so you can dial it while playing
     // and hear the change within the lookahead window (~0.2s) rather than having
     // to stop and restart. That's the point of a feel control you're hunting for.
-    setSwing(pct, unit) {
+    setSwing(pct) {
       swing = clampSwing(pct);
-      if (unit) swingUnit = unit;
       return swing;
     },
 

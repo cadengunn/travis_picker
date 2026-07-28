@@ -989,16 +989,6 @@ main {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 var(--bevel-hi);
 }
-/* Amount + resolution as one object under one legend. The resolution keeps a
-   fixed share so the slider's travel — and therefore the thumb's position under
-   your finger — never changes when the toggle hides at Straight. */
-.swing-group { display: flex; align-items: center; gap: 8px; }
-.swing-group .slider-well { flex: 1; min-width: 0; }
-.swing-group .segmented { flex: 0 0 108px; }
-/* Nothing to resolve when there's no swing. Hidden, not removed — see the note
-   in index.html about the slider thumb jumping mid-drag. */
-#field-swing.at-zero .segmented { visibility: hidden; }
-
 .swing-slider {
   flex: 1;
   min-width: 0;
@@ -1010,15 +1000,15 @@ main {
    "Straight" and "Triplet · 75%". Pinned line-height for the same reason every
    readout here has one. */
 .swing-value {
-  /* nowrap FIRST: without it this wraps to two lines inside a fixed 42px well
-     and overflows it — and a wrapped box reports scrollWidth == clientWidth, so
-     "does it fit" measurements come back clean while it visibly breaks. Only a
-     screenshot catches that. 95px is sized from the rendered width of the widest
-     reading — "Medium · 62%" at 87.6px, NOT "Triplet · 75%" as you'd guess; the
-     longer word beats the wider number. Measure the real element, not a canvas:
-     tabular-nums widens the digits and canvas doesn't apply it. */
+  /* nowrap is load-bearing: without it this wraps to two lines inside a fixed
+     42px well and overflows it — and a wrapped box reports
+     scrollWidth == clientWidth, so "does it fit" measurements come back clean
+     while it visibly breaks. Only a screenshot catches that; it happened.
+     Width is sized off the RENDERED element, not a canvas measurement — canvas
+     doesn't apply tabular-nums, so it under-reads the digits. Widest reading is
+     "Straight". */
   white-space: nowrap;
-  flex: 0 0 95px;
+  flex: 0 0 60px;
   text-align: right;
   font-family: var(--serif);
   font-size: 13px;

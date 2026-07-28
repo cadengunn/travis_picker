@@ -35,11 +35,10 @@ Four things off your v2.11.x notes. Nothing here touched the generator.
   and "Root–Fifth" too. The row's three slots are sized by content now; nothing
   clips in any of the three menus.
 
-**Swing shipped and is settled** (v2.13.0 trial → v2.13.1 built to your spec).
-See item 3 — nothing outstanding on it but the Guide line.
+**Swing is done and settled** (v2.13.2) — see item 3. Nothing outstanding on it.
 
 **Next up:** the Guide rewrite (item 6 below — still needs the specific thing
-that annoyed you). Note it now carries the swing line too.
+that annoyed you).
 
 ---
 
@@ -130,19 +129,19 @@ field for free.
 decision blocking it. The one thing I'd want from you is the *patterns* — either
 a handful you've saved and like, or a nod to pick a spread across the tiers.
 
-### 3. Swing — DONE (v2.13.1), built to your spec
-Both resolutions kept. One **SWING** control: a slider over five named detents
-(Straight 50 · Light 56 · Medium 62 · Hard 67 · Triplet 75) reading
-`Medium · 62%`, plus a resolution toggle — **`&s` / `2 & 4`** — that only appears
-past Straight. Each resolution remembers its own step and they're never converted
-into each other. Straight is the off switch.
+### 3. Swing — DONE (v2.13.2)
+One **SWING** slider on the Generation page, 50–75%, smooth like the Tempo one.
+Straight is the off switch. It swings the **&s** — the beats never move, so your
+thumb stays metronomic. 67% is your setting.
 
-**Still owed:** the Guide line, when the Guide rewrite happens (item 6) — one
-line saying the `2 & 4` feel sits outside Travis technique, Chet's thumb doesn't
-move, naming the shuffle/laid-back-backbeat character. No cumbia, no "in 2".
+**Cut along the way, recorded so it isn't re-proposed:** the `2 & 4` resolution
+(swings the thumb; a real feel, but not Travis picking — your call), and the five
+named detents (Straight/Light/Medium/Hard/Triplet — you preferred the smooth
+slider). Both are in git history if the argument ever changes. Also not doing:
+bidirectional swing (sub-50 pre-delay), and any generator change.
 
-**Not doing, recorded:** bidirectional swing (sub-50 pre-delay), moving anything
-under Experimental, any generator change.
+**Nothing owed on it** — the Guide line about the `2 & 4` feel is moot now that
+the feel is gone.
 
 ### 4. JSON export/import of the Saved library — OPEN
 Insurance against iOS evicting localStorage after ~7 days of not opening the app.
@@ -161,9 +160,6 @@ The hand is only 46% of the tile today. Needs new art, not a recolour.
 ## Small — numbers, copy, or a single decision
 
 ### 6. Revisit the Guide — OPEN, needs your framing
-**Now also carries one owed line:** the `2 & 4` swing sits outside Travis
-technique (Chet's thumb doesn't move); name the shuffle / laid-back-backbeat
-character; don't invoke cumbia or "in 2".
 
 Your call, from the v2.10.x notes. It was written in one pass in v2.6.0 and
 touched once since. The app has gained the **capo**, the **two-page Options

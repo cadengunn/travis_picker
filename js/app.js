@@ -44,12 +44,8 @@ import {
   createMetronome,
   DEFAULT_BPM,
   DEFAULT_SWING,
-  DEFAULT_SWING_UNIT,
   SWING_MIN,
-  SWING_STEPS,
-  snapSwing,
-  swingStepIndex,
-  swingStepName,
+  clampSwing,
 } from "./metronome.js";
 import { setUiSoundEnabled, playPress, playRelease } from "./ui-sound.js";
 import { confirmModal, promptModal, infoModal } from "./modal.js";
@@ -67,7 +63,7 @@ const GLYPH_STOP = "■︎";
 
 // Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.13.1";
+const APP_VERSION = "v2.13.2";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -273,37 +269,24 @@ function renderCapo() {
   el("capo").setAttribute("aria-label", `Capo ${state.capo}${label ? `, sounds in ${label}` : ""}`);
 }
 
-// The swing control: the detent readout, the slider's position, and which
-// resolution is latched. Straight reads as just "Straight" — it's the off
-// position, and the 50% behind it is an implementation detail, not information.
-// Every other step names itself AND shows its number ("Medium · 62%"), because
-// the name is what you think in and the number is what you compare.
+// The swing readout. At the bottom of the range it reads "Straight" rather than
+// "50%" — that's the off position, and the number behind it is an implementation
+// detail, not information.
 function renderSwing() {
-  const pct = currentSwing();
+  const pct = audioPrefs.swing;
   const off = pct === SWING_MIN;
-  const name = swingStepName(pct);
-
   const value = el("swing-value");
-  value.textContent = off ? name : `${name} · ${pct}%`;
+  value.textContent = off ? "Straight" : `${pct}%`;
   value.classList.toggle("at-zero", off);
-
   const slider = el("swing");
-  slider.value = String(swingStepIndex(pct));
-  // The slider's value is a step INDEX, so its raw number would be read out as
-  // "2 of 4" — meaningless. aria-valuetext replaces it with the words.
+  slider.value = String(pct);
   slider.setAttribute("aria-valuetext", value.textContent);
-
-  // Nothing to resolve when there's no swing (CSS hides it, keeping its space).
-  el("field-swing").classList.toggle("at-zero", off);
-  for (const b of el("swing-unit").querySelectorAll("[data-swing-unit]")) {
-    b.classList.toggle("active", Number(b.dataset.swingUnit) === audioPrefs.swingUnit);
-  }
 }
 
-// One place that pushes the current resolution's step into the scheduler, so the
-// two can't drift apart.
+// One place that pushes the amount into the scheduler, so control and clock
+// can't drift apart.
 function applySwing() {
-  metronome.setSwing(currentSwing(), audioPrefs.swingUnit);
+  metronome.setSwing(audioPrefs.swing);
   renderSwing();
   saveAudioPrefs();
 }
@@ -556,18 +539,9 @@ const AUDIO_KEY = "tp-audio";
 // setting, the same class of thing as BPM, not part of what the pattern is. (It
 // does persist across launches, unlike BPM — you settle on a feel for a tune and
 // keep it, where you move the tempo constantly.)
-//
-// EACH RESOLUTION REMEMBERS ITS OWN STEP, and they are never converted into each
-// other: the same percentage is twice the displacement on quarters (its group is
-// twice as long), so carrying a value across would silently double the lope. Two
-// keys, no arithmetic between them.
 const audioPrefs = {
-  click: true, pattern: true, ui: true, countIn: true,
-  swingEighths: DEFAULT_SWING, swingQuarters: DEFAULT_SWING, swingUnit: DEFAULT_SWING_UNIT,
+  click: true, pattern: true, ui: true, countIn: true, swing: DEFAULT_SWING,
 };
-// The step in force right now — the current resolution's own remembered one.
-const swingKey = (unit = audioPrefs.swingUnit) => (unit === 4 ? "swingQuarters" : "swingEighths");
-const currentSwing = () => audioPrefs[swingKey()];
 // Returns what was actually IN storage, which is not the same question as what
 // audioPrefs now holds: the defaults above are always present, so a caller that
 // asks `audioPrefs.x ?? fallback` can never tell "the user has no setting" from
@@ -1055,16 +1029,7 @@ function attach() {
   // the scheduler only queues ~0.2s ahead, so you hear it move under your hands
   // while the loop runs, which is the whole point of a control you hunt with.
   el("swing").addEventListener("input", (e) => {
-    const step = SWING_STEPS[Number(e.target.value)] || SWING_STEPS[0];
-    audioPrefs[swingKey()] = step.pct;
-    applySwing();
-  });
-  // Switching resolution restores THAT resolution's own remembered step rather
-  // than carrying the current number across — see the note on audioPrefs.
-  el("swing-unit").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-swing-unit]");
-    if (!btn) return;
-    audioPrefs.swingUnit = Number(btn.dataset.swingUnit);
+    audioPrefs.swing = clampSwing(e.target.value);
     applySwing();
   });
 
@@ -1280,16 +1245,14 @@ async function boot() {
   // v2.13.0 trial has a single free-range `swing`. Snap whatever turns up onto a
   // real detent rather than trusting it into the scheduler — the migration is
   // one line because the old value was in the same units.
-  audioPrefs.swingUnit = stored.swingUnit === 4 ? 4 : DEFAULT_SWING_UNIT;
-  // The trial's single value belongs to whichever resolution was active when it
-  // was written — putting it on the wrong one would hand you a doubled lope.
-  // Read from `stored`, not audioPrefs: the latter always has both keys.
-  const legacyKey = swingKey();
-  delete audioPrefs.swing;
-  for (const key of ["swingEighths", "swingQuarters"]) {
-    const raw = stored[key] ?? (key === legacyKey ? stored.swing : undefined);
-    audioPrefs[key] = snapSwing(raw ?? DEFAULT_SWING);
-  }
+  // Read from `stored`, not audioPrefs: the latter always carries the defaults,
+  // so `audioPrefs.x ?? fallback` can never tell "no setting" from "the default".
+  // `swingEighths` is the v2.13.1 key for the resolution that survived; a
+  // quarters value is deliberately dropped, since that feel no longer exists.
+  audioPrefs.swing = clampSwing(stored.swing ?? stored.swingEighths ?? DEFAULT_SWING);
+  delete audioPrefs.swingEighths;
+  delete audioPrefs.swingQuarters;
+  delete audioPrefs.swingUnit;
   metronome.setClickEnabled(audioPrefs.click);
   metronome.setPatternEnabled(audioPrefs.pattern);
   metronome.setCountInEnabled(audioPrefs.countIn);

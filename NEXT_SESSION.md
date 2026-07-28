@@ -4,11 +4,12 @@
 size, what's decided and what needs the user's call. This file is the session
 hand-off only.
 
-## Shipped this session — v2.12.0 → v2.13.1 (`CACHE` v58)
+## Shipped this session — v2.12.0 → v2.13.2 (`CACHE` v59)
 
-70/70 green (+5). Tree clean, nothing half-finished. Four items off his v2.11.x
-phone notes, then swing — trialled, then built to a spec he wrote. Full detail in CLAUDE.md "Where things stand
-(session 18)".
+69/69 green (+4 net — two swing tests retired with the feature they guarded).
+Tree clean, nothing half-finished. Four items off his v2.11.x phone notes, then
+swing: trialled, spec'd, and cut back. Full detail in CLAUDE.md "Where things
+stand (session 18)".
 
 1. **The empty name row is signed off** — closed, no placeholder.
 2. **"Chaos" left the UI.** The setting is **Fingers** (beside Thumb — the two
@@ -26,28 +27,30 @@ phone notes, then swing — trialled, then built to a spec he wrote. Full detail
 7. **v2.13.0 — swing, both resolutions, for a guitar trial.** One pure function
    (`slotSeconds`) covers both: `unit: 2` (the &s move, thumb steady — the
    classic shuffle) and `unit: 4` (beats 2 and 4 move, the thumb itself swings).
-8. **v2.13.1 — the verdict, and the control it earned.** He kept **both** and
-   wrote the spec himself: one SWING heading over amount + resolution, five named
-   detents on a snapping slider, `&s` / `2 & 4` labels, resolution hidden at
-   Straight, per-resolution memory with no conversion between them. `&s` at Hard
-   is his keeper ("classic Jerry Reed at a high tempo"); `2 & 4` stays because he
-   keeps hearing it in tunes he plays. **Fence it, don't hide it.**
+8. **v2.13.1 — the verdict, as a written spec from him:** one SWING heading over
+   amount + resolution, five named detents on a snapping slider, `&s` / `2 & 4`
+   labels, per-resolution memory.
+9. **v2.13.2 — and then he cut two thirds of it, correctly.** After playing with
+   it: the `2 & 4` resolution is **deleted** ("I don't think it fits the theme of
+   the app ultimately" — it swings the thumb, and the thumb not moving is the
+   technique), and the detents are **gone** in favour of a smooth 50–75 slider
+   "similar to how Tempo already works". What's left is one slider at his 67%.
 
 ## Worth carrying forward
 
-1. **When he describes something unusual, work out whether he means it — and
-   show him, don't tell him.** His swing description ("2 moves further from 1 and
-   closer to 3") was precise and *not* standard swing: it swings the beats, which
-   in Travis picking means the thumb stops being a metronome. Writing the eight
-   slot positions out as a diagram for both readings is what let him decide, and
-   his answer was "trial both". Which was affordable only because they're one
-   parameter apart in one pure function — **check whether a fork is actually
-   expensive before making him choose.**
+1. **Build the cheap version of a fork instead of debating it — he decides by
+   playing.** His swing description ("2 moves further from 1 and closer to 3")
+   was precise and *not* standard swing. Writing the eight slot positions out as
+   a diagram for both readings got him to "trial both", which was affordable
+   because they were one parameter apart in one pure function. He then kept the
+   unusual one, wrote a detailed spec for it — **and two days later cut it, plus
+   the detents he'd specified.** Three rounds, all correct, none of which a
+   conversation would have reached. Cheap prototypes over argument.
 2. **I had to correct myself mid-thread and it mattered.** I'd told him the
-   metronome click needed no decision because it only sounds on beat slots. True
-   of the 8ths feel; under the beats feel the click sits on beats 2 and 4 and
-   shuffles with them. Say it plainly and move on — but do say it, because he'd
-   have heard it on the guitar and wondered.
+   metronome click needed no decision because it only sounds on beat slots — true
+   of the resolution that survived, but not of the one that moved beats 2 and 4,
+   where the click shuffled too. He'd have heard it on the guitar and wondered.
+   Say it plainly and move on.
 3. **He improves the option you hand him — three times this session.** I proposed
    "Complexity" as the setting name; he came back with **"Fingers"**, which is
    better because it pairs with Thumb and names the *layer* rather than the axis.
@@ -96,11 +99,10 @@ phone notes, then swing — trialled, then built to a spec he wrote. Full detail
 
 ## Next session
 
-**The Guide rewrite** is next, and it now carries an owed line: the `2 & 4` swing
-sits outside Travis technique (Chet's thumb doesn't move) — name the shuffle /
-laid-back-backbeat character, and **don't invoke cumbia or "in 2"**. It's still
-blocked on him saying *what* bothers him about it: stale / too long /
-wrong shape / hard to find pull in different directions.
+**The Guide rewrite**, still blocked on him saying *what* bothers him about it:
+stale / too long / wrong shape / hard to find pull in different directions.
+(Swing owes it nothing — the line about the `2 & 4` feel is moot now that the
+feel is gone.)
 - He also asked when to do a **code-cleanup session**; the answer is recorded in
   `OPEN_ITEMS.md` under Decided — not on its own, because the code is clean and
   the *docs* are what need it. The offered cheap win is splitting CLAUDE.md into

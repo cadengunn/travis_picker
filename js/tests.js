@@ -61,13 +61,8 @@ import {
   BPM_MAX,
   slotSeconds,
   clampSwing,
-  snapSwing,
-  swingStepIndex,
-  swingStepName,
-  SWING_STEPS,
   SWING_MIN,
   SWING_MAX,
-  SWING_UNITS,
   DEFAULT_SWING,
 } from "./metronome.js";
 import { enhanceSelect } from "./dropdown.js";
@@ -1076,88 +1071,55 @@ check(`metronome: bpm is clamped to the ${BPM_MIN}-${BPM_MAX} range`, () => {
 // Swing. The positions below are the whole feature — where the eight slots of a
 // bar actually land — so they're asserted as absolute offsets in BEATS rather
 // than as durations, which is how you'd read them off a grid.
-const slotOffsetsInBeats = (bpm, swing, unit) => {
+const slotOffsetsInBeats = (bpm, swing) => {
   const beat = 60 / bpm;
   const out = [];
   let t = 0;
-  for (let i = 0; i < 8; i++) { out.push(+(t / beat).toFixed(6)); t += slotSeconds(i, bpm, swing, unit); }
+  for (let i = 0; i < 8; i++) { out.push(+(t / beat).toFixed(6)); t += slotSeconds(i, bpm, swing); }
   return { offsets: out, barBeats: +(t / beat).toFixed(6) };
 };
 
-check("swing: straight (50%) is exactly the un-swung grid, in both feels", () => {
+check("swing: straight (50%) is exactly the un-swung grid", () => {
   assert(DEFAULT_SWING === SWING_MIN, "swing must default to OFF");
-  for (const unit of [SWING_UNITS.eighths, SWING_UNITS.beats]) {
-    for (let i = 0; i < 8; i++) {
-      const s = slotSeconds(i, 120, 50, unit);
-      assert(Math.abs(s - secondsPerSlot(120)) < 1e-12,
-        `unit ${unit} slot ${i} at 50% should equal a plain 8th, got ${s}`);
-    }
+  for (let i = 0; i < 8; i++) {
+    const s = slotSeconds(i, 120, 50);
+    assert(Math.abs(s - secondsPerSlot(120)) < 1e-12,
+      `slot ${i} at 50% should equal a plain 8th, got ${s}`);
   }
   assert(clampSwing(10) === SWING_MIN, "below range clamps to straight");
   assert(clampSwing(999) === SWING_MAX, "above range clamps");
   assert(clampSwing(undefined) === SWING_MIN, "a missing pref reads as straight");
   assert(clampSwing("62") === 62, "a string from an <input> is accepted");
+  assert(clampSwing(61.4) === 61, "the slider is whole-percent, so anything else rounds");
 });
 
-check("swing: the named detents are the only reachable settings", () => {
-  // The control is a slider over these five, so the table IS the range: it has
-  // to start at off and end at the top, in order, or the slider's ends lie.
-  assert(SWING_STEPS[0].pct === SWING_MIN, "the first detent must be Straight (the off switch)");
-  assert(SWING_STEPS[SWING_STEPS.length - 1].pct === SWING_MAX, "the last detent must be the top of the range");
-  for (let i = 1; i < SWING_STEPS.length; i++) {
-    assert(SWING_STEPS[i].pct > SWING_STEPS[i - 1].pct, "detents must ascend");
-    assert(SWING_STEPS[i].name, "every detent needs a name — the name is what you think in");
-  }
-  // Index round-trip: what the slider writes and what it reads back must agree.
-  SWING_STEPS.forEach((s, i) => {
-    assert(swingStepIndex(s.pct) === i, `${s.name} should round-trip to index ${i}`);
-    assert(snapSwing(s.pct) === s.pct, `${s.name} must be a fixed point of snapping`);
-  });
-  // Anything off-grid — a stale pref, a hand-edited blob — lands on a real stop.
-  assert(snapSwing(63) === 62, "63 snaps to Medium");
-  assert(snapSwing(66) === 67, "66 snaps to Hard");
-  assert(snapSwing(51) === 50, "51 snaps to Straight, not a near-silent lope");
-  assert(snapSwing(999) === SWING_MAX && snapSwing(-5) === SWING_MIN, "out of range still lands on a stop");
-  assert(snapSwing(undefined) === SWING_MIN, "a missing pref reads as Straight");
-  assert(swingStepName(62) === "Medium", "the readout name comes from the table");
-});
-
-check("swing: the bar's total length never changes, at any amount or feel", () => {
+check("swing: the bar's total length never changes, at any amount", () => {
   // This is what keeps BPM meaning what it means and leaves the count-in a full
-  // bar — every group is split long/short, so each one sums back to itself.
-  for (const unit of [SWING_UNITS.eighths, SWING_UNITS.beats]) {
-    for (const pct of [50, 55, 60, 66, 70, 75]) {
-      const { barBeats } = slotOffsetsInBeats(120, pct, unit);
-      assert(Math.abs(barBeats - 4) < 1e-9,
-        `unit ${unit} at ${pct}% should still be a 4-beat bar, got ${barBeats}`);
-    }
+  // bar — each beat/& pair is split long/short, so it sums back to itself.
+  for (const pct of [50, 55, 60, 62, 66, 67, 70, 75]) {
+    const { barBeats } = slotOffsetsInBeats(120, pct);
+    assert(Math.abs(barBeats - 4) < 1e-9, `${pct}% should still be a 4-beat bar, got ${barBeats}`);
   }
 });
 
-check("swing: the two feels move different things (8ths vs beats)", () => {
-  // 67, not 66.667: the slider steps in whole percent and clampSwing rounds, so
-  // 67% is the closest reachable setting to true triplet swing (2:1). The error
-  // is 0.33% of an 8th — 1.7ms at 120bpm — which is inaudible, and the roundness
-  // of the control is worth more than the third decimal.
-  const pct = 67;
-  const eighths = slotOffsetsInBeats(120, pct, SWING_UNITS.eighths).offsets;
-  const beats = slotOffsetsInBeats(120, pct, SWING_UNITS.beats).offsets;
+check("swing: the &s move late and the BEATS never move", () => {
+  // The thumb staying metronomic is the technique this app exists for, so this
+  // is the invariant that says swing is still Travis picking. A second
+  // resolution that moved beats 2 and 4 was trialled and cut (v2.13.2); if one
+  // ever comes back, it must not come back through this function silently.
   const near = (a, b) => Math.abs(a - b) < 1e-4;
-
-  // 8ths: the &s move late, and BEATS 1-4 STAY PUT — the thumb keeps time.
-  assert([0, 1, 2, 3].every((b, k) => near(eighths[k * 2], b)),
-    `8ths feel must leave beats on 0,1,2,3 — got ${eighths.filter((_, i) => i % 2 === 0)}`);
-  assert(near(eighths[1], 0.67), `the & should sit at 0.67 of the beat, got ${eighths[1]}`);
-  assert(Math.abs(eighths[1] - 2 / 3) < 0.005, "…which is within a rounding hair of true triplet swing");
-
-  // Beats: beats 2 and 4 move late; 1 and 3 stay. The thumb itself swings.
-  assert(near(beats[0], 0) && near(beats[4], 2), "beats 1 and 3 stay put in the beats feel");
-  assert(near(beats[2], 2 * 0.67), `beat 2 should be pushed to ~1.33, got ${beats[2]}`);
-  assert(near(beats[6], 2 + 2 * 0.67), `beat 4 should be pushed to ~3.33, got ${beats[6]}`);
-  // ...which is exactly the difference between the two, and nothing else:
-  assert(!near(eighths[2], beats[2]) && !near(eighths[6], beats[6]), "the feels must differ on beats 2 and 4");
-  assert([0, 1, 3, 4, 5, 7].every((i) => near(eighths[i], beats[i])),
-    "the feels must agree everywhere EXCEPT beats 2 and 4");
+  for (const pct of [56, 62, 67, 75]) {
+    const o = slotOffsetsInBeats(120, pct).offsets;
+    assert([0, 1, 2, 3].every((b, k) => near(o[k * 2], b)),
+      `at ${pct}% the beats must stay on 0,1,2,3 — got ${o.filter((_, i) => i % 2 === 0)}`);
+    // ...and every & sits exactly `pct` of the way through its own beat.
+    assert([0, 1, 2, 3].every((b, k) => near(o[k * 2 + 1], b + pct / 100)),
+      `at ${pct}% each & should sit ${pct}% into its beat — got ${o.filter((_, i) => i % 2 === 1)}`);
+  }
+  // 67% is the reachable setting closest to true triplet swing (2:1); the
+  // remaining error is 0.33% of an 8th, 1.7ms at 120bpm, inaudible.
+  assert(Math.abs(slotOffsetsInBeats(120, 67).offsets[1] - 2 / 3) < 0.005,
+    "67% must be within a rounding hair of true triplet swing");
 });
 
 check("metronome: a frozen page resyncs instead of replaying its backlog", () => {

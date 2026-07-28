@@ -286,58 +286,42 @@ only if v2's pattern playback actually needs a synth library.
   iOS Safari stays silent. BPM 40–240, clamped in `setBpm`.
 
 **Swing** (`slotSeconds()` in `metronome.js`, session 18): the whole feature is
-one pure function saying how long slot 0–7 lasts. A group of `unit` slots is
-split long–short, the first half taking `ratio` of it — and that single
-expression covers both feels, which is why shipping two of them cost almost
-nothing:
-- **`unit: 2` ("8ths")** pairs each beat with its `&`. The `&`s move late and
-  **beats 1–4 stay put**, so the thumb stays metronomic — the classic shuffle,
-  and the metronome click (which only sounds on beat slots) never moves.
-- **`unit: 4` ("beats")** pairs beat 1 with 2 and beat 3 with 4. **Beats 2 and 4
-  move late**, so the *thumb itself* swings and the click shuffles with it.
-- **Both are KEPT** (v2.13.1, after his guitar trial). `&s` at Hard is "classic
-  Jerry Reed at a high tempo"; the quarters feel is the shuffle/laid-back-backbeat
-  character he keeps meeting in tunes he plays (St. James Infirmary and
-  cumbia-adjacent things). **It sits outside Travis technique — Chet's thumb
-  doesn't move — and that's a thing to say in the Guide, not to hide.** His
-  framing: *fence it, don't hide it.*
-- **The amount is five named DETENTS, not a free number** (`SWING_STEPS`):
-  Straight 50 · Light 56 · Medium 62 · Hard 67 · Triplet 75. The slider's
-  `value` is an INDEX into that table, so the detents are native and the thumb
-  physically can't land between two stops — a continuous slider let you miss the
-  setting you wanted by 2% and never know. `snapSwing()` quantises anything
-  off-grid (a stale pref, a hand-edited blob); it's deliberately separate from
-  `clampSwing` (range) and `slotSeconds` still accepts any value, so the timing
-  math stays continuous and independently testable.
-- **Amount and resolution are ONE control under ONE `SWING` legend.** There is no
-  "Feel" heading: `8ths` is a note value, not a character. The resolution toggle
-  is meaningless at Straight, so below that it's hidden by **`visibility`,
-  keeping its space** — if it collapsed, the slider would widen the instant you
-  came off Straight and the thumb would jump under your finger mid-drag.
-- **Labels are `&s` / `2 & 4`**, matching the count row already under the grid,
-  rather than jargon. Explicitly **not "Beats"** — it's a different unit type
-  sitting next to a note value.
-- **Each resolution remembers its own step** (`swingEighths`/`swingQuarters`),
-  and they are **never converted into each other**: the same percentage is twice
-  the displacement on quarters, so carrying a value across would silently double
-  the lope.
-- **The bar's total length is invariant** at any amount or feel (each group sums
-  back to `unit × secondsPerSlot`), which is what keeps BPM meaning what it means
-  and leaves the count-in a full bar. Asserted in tests.
+one pure function saying how long slot 0–7 lasts. Each beat is paired with its
+`&` and the pair split long–short, the beat taking `ratio` of it.
+- **The `&`s move late and BEATS 1–4 NEVER MOVE**, so the thumb stays
+  metronomic — which is the technique this app exists for. The metronome click
+  only sounds on beat slots, so it never moves either: you always have a straight
+  quarter pulse to practise against. **A test asserts the beats don't move**, and
+  it's there as a guard, not a formality (see the cut feature below).
+- **A second resolution was built, trialled and CUT.** It paired beat 1 with 2
+  and beat 3 with 4, so beats 2 and 4 moved and the *thumb itself* swung
+  (v2.13.0–.1, removed in v2.13.2). It worked and it's a real feel — a
+  shuffle / laid-back backbeat, the thing you hear in St. James Infirmary — but
+  **it isn't Travis picking**, and that's why he cut it after playing with it:
+  *"I don't think it fits the theme of the app ultimately."* The git history has
+  the implementation. Don't rebuild it without that argument changing.
+- **The control is a smooth slider, 50–75 in whole percent**, matching the BPM
+  slider it sits below. Five named detents (Straight/Light/Medium/Hard/Triplet on
+  an index-valued slider) were also built and tried, and he preferred the smooth
+  one — so the names and `snapSwing`/`SWING_STEPS` are gone too. **50 is Straight
+  and doubles as the off switch**; the readout says "Straight" rather than "50%",
+  since the number behind the off position isn't information.
+- **The bar's total length is invariant** at any amount (each pair sums back to
+  two plain 8ths), which is what keeps BPM meaning what it means and leaves the
+  count-in a full bar. Asserted in tests.
 - **It lives only in the scheduler's slot advance.** Everything downstream is
   already time-driven — notes are scheduled at `nextSlotTime`, the playhead reads
   the audio clock — so the app follows for free. The count-in swings too, which
   is right: it should tell you the feel you're counting into.
-- **Straight is a real detent and doubles as the off switch.** Its readout is
-  just "Straight" — the 50% behind it is an implementation detail, not
-  information; every other step reads `Medium · 62%`, the name to think in plus
-  the number to compare.
-- **Verified by probing scheduled audio times**, not by reading the math. At
-  90bpm: straight gives click gaps of 0.667s and even 0.333s 8ths; `&s` at Hard
-  leaves the clicks at 0.667 and makes the plucks 0.447/0.22; `2 & 4` at Medium
-  makes the *clicks* 0.827/0.507 and at Triplet 1.0/0.333. The 8ths inside a
-  swung beat stretch with it — the nesting is what makes the lope coherent, and
-  he confirmed that on the guitar.
+- **`setSwing` takes effect on the next scheduled slot**, so you can drag the
+  slider while the loop runs and hear it move within the ~0.2s lookahead. That's
+  the point of a feel control you hunt for by ear.
+- **67% is the reachable setting closest to true triplet swing** (2:1); the
+  rounding error is 1.7ms at 120bpm. It's the user's own sweet spot — "classic
+  Jerry Reed feel at a high tempo".
+- **Verified by probing scheduled audio times**, not by reading the math: at
+  90bpm and 67%, the clicks stay evenly spaced at 0.667s while the plucks go
+  0.447/0.22.
 - **Swing is a FEEL setting, not pattern content** — it persists in `tp-audio`
   alongside the sound toggles and is deliberately not part of a saved pattern's
   context (same class as BPM, which isn't saved either).
@@ -1934,30 +1918,34 @@ Metronome section; what matters at this level:
   220px of headroom, and the tab-to-tab jump stays 0 (Generation is now the
   taller page, and the shared grid cell handles it).
 
-**v2.13.1 — the swing verdict, and the control it earned.** He kept **both**
-resolutions and specified the control himself; the design and its reasoning are
-in the Swing note under the Metronome section. Three things worth carrying:
-- **`&s` at Hard is the keeper** — "classic Jerry Reed feel at a high tempo".
-  `2 & 4` stays because he keeps hearing it in tunes he plays, with the standing
-  instruction **"fence it, don't hide it"**: the UI makes it secondary (it only
-  appears past Straight), and the *Guide* is where it gets the one line saying it
-  sits outside Travis technique — Chet's thumb doesn't move.
-- **Guide copy constraints he set:** name the shuffle / laid-back-backbeat
-  character; **don't invoke cumbia, and don't say "in 2"** — that framing of mine
-  described a perception, not what the code does (the grid is still in 4 and the
-  click still marks 4; the quarters are just uneven).
-- **A real bug the migration test caught**, worth remembering as a class:
-  `audioPrefs` is seeded with defaults, so `audioPrefs.x ?? fallback` can *never*
-  detect "the user has no setting" — it only ever sees the default. The v2.13.0
-  trial value was silently dropped until `loadAudioPrefs()` started **returning
-  the raw stored blob** for the migration to read. Any future pref migration has
-  the same trap.
+**v2.13.1 → v2.13.2 — the swing verdict, arrived at by playing it.** The end
+state is in the Swing note under the Metronome section; what matters here is that
+**two of the three things v2.13.1 shipped were cut two days later, and both cuts
+were right.** He asked for a second resolution and named detents, used them, and
+reversed himself on both — which is the argument for building the cheap version
+of a fork rather than debating it.
+- **The `2 & 4` resolution is gone.** He kept it in v2.13.1 on the grounds that
+  he keeps hearing that feel in tunes he plays, then cut it: *"I don't think it
+  fits the theme of the app ultimately."* It swings the thumb, and the thumb not
+  moving is the technique. **The test asserting beats never move is the guard
+  that keeps it out** — it's aimed at a real thing that was once in the code, not
+  at a hypothetical.
+- **The five named detents are gone**, back to a smooth 50–75 slider "similar to
+  how Tempo already works". The detent argument (a free slider lets you miss the
+  value by 2%) was sound in the abstract and just didn't survive use.
+- **What survived from his spec:** one `SWING` heading, Straight as the off
+  switch reading "Straight" rather than "50%", and swing as a feel setting in
+  `tp-audio` rather than pattern content.
+- **A bug class worth remembering, found by testing the migration:** `audioPrefs`
+  is seeded with defaults, so `audioPrefs.x ?? fallback` can *never* detect "the
+  user has no setting" — it only sees the default. A trial value was silently
+  dropped until `loadAudioPrefs()` started **returning the raw stored blob** for
+  the migration to read. Both swing migrations since have used that.
 - **A layout bug only the SCREENSHOT caught:** the readout wrapped to two lines
   inside a fixed 42px well, and `scrollWidth <= clientWidth` came back clean
   because a wrapped box *does* fit. Fixed with `white-space: nowrap` and a width
-  measured off the rendered element — a canvas measurement under-read it, because
-  canvas doesn't apply `tabular-nums`. (Widest reading is `Medium · 62%` at
-  87.6px, not `Triplet · 75%`: the longer word beats the wider number.)
+  measured off the rendered element — canvas under-reads, because it doesn't
+  apply `tabular-nums`. **Take a screenshot; fit maths can lie.**
 
 **Next in his order after this: the Guide rewrite** — still blocked on him saying
 *what* bothers him about it (stale / too long / wrong shape / hard to find pull

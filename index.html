@@ -213,32 +213,19 @@
            input: the die doesn't roll it and it isn't in the pattern, which is
            why it sits below the die's row rather than in it.
 
-           ONE control under ONE heading: the amount and its resolution are the
-           same setting, so there's no second "Feel" legend — "8ths" is a note
-           value, not a character. The resolution toggle is only meaningful past
-           Straight, so below that it's hidden by VISIBILITY, keeping its space:
-           if it collapsed, the slider would widen the moment you came off
-           Straight and the thumb would jump under your finger mid-drag. (Same
-           reason the die uses visibility on the Preferences tab.)
-
-           The slider indexes SWING_STEPS rather than carrying a percentage, so
-           the detents are native — the thumb physically cannot land between two
-           named stops. -->
+           ONE smooth slider over the whole range, like the BPM one it sits
+           below — the user tried five named detents (v2.13.1) and preferred
+           this. It swings the "&"s only; the quarters resolution that briefly
+           rode beside it here was cut for not being Travis picking. -->
       <div class="control-row">
-        <div class="field span-3" id="field-swing">
+        <label class="field span-3" id="field-swing">
           <span>Swing</span>
-          <div class="swing-group">
-            <div class="slider-well">
-              <input id="swing" class="swing-slider" type="range" min="0" max="4" step="1" value="0"
-                     aria-label="Swing amount" aria-valuetext="Straight">
-              <output id="swing-value" class="swing-value" for="swing">Straight</output>
-            </div>
-            <div id="swing-unit" class="segmented" role="group" aria-label="Swing resolution">
-              <button type="button" data-swing-unit="2" class="active">&amp;s</button>
-              <button type="button" data-swing-unit="4">2 &amp; 4</button>
-            </div>
+          <div class="slider-well">
+            <input id="swing" class="swing-slider" type="range" min="50" max="75" step="1" value="50"
+                   aria-label="Swing amount" aria-valuetext="Straight">
+            <output id="swing-value" class="swing-value" for="swing">Straight</output>
           </div>
-        </div>
+        </label>
       </div>
 
       </div><!-- /page-generation -->
