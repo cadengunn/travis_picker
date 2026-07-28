@@ -1432,7 +1432,16 @@ acheck("help: every data-help target has copy, and every entry is reachable", as
   const res = await fetch("index.html");
   assert(res.ok, "index.html should be served");
   const html = await res.text();
-  const used = [...html.matchAll(/data-help="([^"]+)"/g)].map((m) => m[1]);
+  // Two sources, because not every annotated control is in the markup: the
+  // per-bar chord picker is built at render time, so grid.js sets its key in
+  // JS. Scanning only index.html would report that entry as unreachable copy.
+  const gridRes = await fetch("js/grid.js");
+  assert(gridRes.ok, "js/grid.js should be served");
+  const gridSrc = await gridRes.text();
+  const used = [
+    ...[...html.matchAll(/data-help="([^"]+)"/g)].map((m) => m[1]),
+    ...[...gridSrc.matchAll(/dataset\.help\s*=\s*"([^"]+)"/g)].map((m) => m[1]),
+  ];
 
   assert(used.length > 20, `expected help on most controls, found ${used.length}`);
   const dupes = used.filter((k, i) => used.indexOf(k) !== i);
@@ -1584,6 +1593,85 @@ check("help: a disabled control is still explainable (the empty-library trap)", 
 
   assert(load.disabled && step.disabled, "disabling is restored on exit, or the app forgets its own state");
   assert(!load.hasAttribute("aria-disabled"), "the aria stand-in is cleaned up too");
+  host.remove();
+});
+
+check("help: the highlight rings the visible child, not the reserved slot", () => {
+  // #chord-head reserves a full-width 28px box so the grid can't move, and puts
+  // either a 40px chord glyph (which overflows it upward) or a text-width run of
+  // numerals inside it. One explanation covers both, but ringing the CONTAINER
+  // outlined the same wide short box in both modes — in single mode, mostly
+  // empty space under the chord it claimed to be pointing at.
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0;width:300px";
+  host.innerHTML =
+    '<div id="ch" data-help="chord-head" data-help-ring=".c, #ctx" style="display:flex;height:28px">' +
+    '<span class="c" style="font-size:40px">C</span>' +
+    '<span id="ctx">I &ndash; V &ndash; vi &ndash; IV</span></div>' +
+    '<button id="p" data-help="play"><svg></svg></button>';
+  document.body.appendChild(host);
+
+  const head = host.querySelector("#ch");
+  const chord = host.querySelector(".c");
+  const ctx = host.querySelector("#ctx");
+
+  try {
+    // Single mode: the numerals are hidden, so the chord glyph takes the ring.
+    ctx.hidden = true;
+    let hit = helpTargetFor(chord);
+    assert(hit.key === "chord-head", "both children share the one explanation");
+    assert(hit.anchor === chord, "single mode must ring the chord, not the slot around it");
+    // A tap anywhere in the slot resolves the same way — you aim at the glyph.
+    assert(helpTargetFor(head).anchor === chord, "a tap on the slot itself still rings what's showing");
+
+    // Progression mode: the swap happens with no mode flag reaching help.js.
+    ctx.hidden = false;
+    chord.hidden = true;
+    hit = helpTargetFor(chord.parentNode);
+    assert(hit.anchor === ctx, "progression mode must ring the readout, not the slot around it");
+
+    // An unringed control is unaffected — the anchor is the annotated element.
+    assert(helpTargetFor(host.querySelector("#p svg")).anchor === host.querySelector("#p"),
+      "a control with no data-help-ring still anchors to itself");
+
+    // And a ring that matches nothing rendered falls back rather than vanishing:
+    // this is the state before enhanceAll() has built a dropdown's .dd wrapper.
+    head.dataset.helpRing = ".nothing-here";
+    assert(helpTargetFor(chord).anchor === head, "an unmatched ring falls back to the annotated element");
+  } finally {
+    host.remove();
+  }
+});
+
+check("help: tapping the same control again puts its card away", () => {
+  // The card has no ✕. It goes away when you tap the faceplate, tap the card, or
+  // tap the thing it's about — and the last is the one your finger is already on.
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0";
+  host.innerHTML =
+    '<button id="open-help" data-help="help-mode">?</button>' +
+    '<button id="a" data-help="play">play</button>' +
+    '<button id="b" data-help="generate">roll</button>';
+  document.body.appendChild(host);
+
+  const helper = createHelp({ version: "vTEST" });
+  const a = host.querySelector("#a");
+  const b = host.querySelector("#b");
+
+  try {
+    helper.arm();
+    a.click();
+    assert(helper._shownKey() === "play", "first tap opens the card");
+    a.click();
+    assert(helper._shownKey() === null, "tapping the same control again closes it");
+    assert(!document.querySelector(".help-target"), "…and clears its highlight");
+    a.click();
+    assert(helper._shownKey() === "play", "and a third tap opens it again — it's a toggle");
+    b.click();
+    assert(helper._shownKey() === "generate", "tapping a DIFFERENT control still swaps the card, not closes it");
+  } finally {
+    helper.disarm();
+  }
   host.remove();
 });
 

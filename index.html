@@ -67,7 +67,12 @@
            the header), so the readout moved when you switched modes. The slot's
            height is reserved, so the grid never shifts; the big single-mode
            chord still overflows it upward, as it always did. -->
-      <div id="chord-head" class="chord-head" data-help="chord-head">
+      <!-- One explanation, two boxes: the slot's own height is reserved and
+           full-width, but what's IN it is either a 40px chord overflowing
+           upward or a text-width run of numerals. `data-help-ring` points help
+           mode's highlight at whichever child is actually showing, so it rings
+           the thing you tapped rather than the reserved space around it. -->
+      <div id="chord-head" class="chord-head" data-help="chord-head" data-help-ring=".c, #context">
         <span class="c"></span>
         <span id="context" class="context" hidden></span>
       </div>

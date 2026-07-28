@@ -12,6 +12,7 @@ The other docs:
 |---|---|
 | `CHANGELOG.md` | session-by-session history, newest first — *why* things are the way they are, what was tried, what was cut |
 | `OPEN_ITEMS.md` | the standing open list: each item's size, what's decided, what needs his call |
+| `HELP_COPY.md` | every help card's text in one readable place, grouped by where the control sits — a review sheet, not a source; `HELP` in `data.js` is the source |
 | `travis-picker-spec.md` | source of truth for the **musical model** |
 | `travis-picker-workflow.md` | the original build order (complete) |
 
@@ -661,6 +662,30 @@ one place you can't compare the glyph to the thing.
 - **Navigation dismisses the open card**, because opening the sheet, switching
   pages or closing it all move or hide whatever the card was anchored to. The ✕
   used to leave a "Theme" card floating over the grid.
+- **Tapping the same control again dismisses its card** (v2.13.5, his call), so
+  every control is its own toggle. The card has no ✕ — it goes away when you tap
+  it, tap bare faceplate, or tap the thing it's about, and the last of those is
+  the one your finger is already on. Compared by *key*, so a different control
+  still swaps the card rather than closing it.
+- **The card's ring and its entry are separate jobs** (`data-help-ring`,
+  v2.13.5). `data-help` says which copy; an optional `data-help-ring` selector
+  says which box to outline and hang the card off, picking **the first matching
+  child that's actually rendered**. `#chord-head` is why it exists: it reserves a
+  full-width 28px slot so the grid can't move, but what you *see* in it is either
+  a 40px chord glyph overflowing the slot upward or a text-width run of numerals
+  inside it. Ringing the container drew the same wide, short box in both modes —
+  measured at 375×553, `351×28` against a chord actually occupying `25.3×40`, so
+  in single mode the outline was mostly empty space *below* the chord it claimed
+  to point at. One entry, two shapes, and no mode flag has to reach `help.js`.
+- **The per-bar chord picker is annotated on its HEADER, in `grid.js`** — the one
+  control whose card was actively wrong rather than merely missing (v2.13.5). It
+  fell through to the grid's own card, because `dropdown.js` hides the native
+  `<select>` and overlays a **sibling** `.dd-trigger`, so the annotated select was
+  never an ancestor of the tap. It needs no `data-help-ring`: the numeral chip is
+  positioned absolutely, so the header's box and the picker's are the same box
+  (measured, both `164.5×28.8` at 4 bars). **It is also the first `data-help` set
+  in JS rather than markup**, so the coverage test scans `js/grid.js` alongside
+  `index.html` — otherwise its entry reads as unreachable copy.
 - **The copy is DATA** (`HELP` in `data.js`, keyed to `data-help` attributes),
   which is the same rule chords and themes follow and the direct fix for how the
   Guide rotted — it was prose inside `renderHelp()` and was still calling the
@@ -859,7 +884,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.13.3 is live and signed off**, 69/69 checks green, tree clean. The build
+**v2.13.5 — help-mode adjustments, on the phone.** 74/74 checks green, tree
+clean. (v2.13.3 was the last version signed off on the guitar.) The build
 order in `travis-picker-workflow.md` is complete: generator + grid, progression
 mode, the Saved library, the manual editor, the metronome, PWA packaging,
 pattern audio, the visual identity (structure then colour), keys / chords /

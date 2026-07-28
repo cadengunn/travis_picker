@@ -613,6 +613,13 @@ export const HELP = {
     title: "The grid is your right hand",
     body: "Each column is an eighth note and each row is a string, read left to right. The notes on the bottom rows are your thumb — the alternating bass — and the ones on the top rows are your fingers: i, m, a on strings 3, 2 and 1. Notes stacked in one column are struck together.",
   },
+  // Lives on the bar HEADER (see grid.js) rather than on the <select>, which
+  // dropdown.js hides behind an overlay button — an annotation on the select
+  // itself would never be an ancestor of the tap.
+  "bar-chord": {
+    title: "Bar chord",
+    body: "Changes the chord for this one bar without touching the others, and the thumb's bass follows it there. Doing that makes the progression stop matching a preset, so the readout above the grid reads Custom and shows the bars' own numbers. The chip beside it is the bar's position in the phrase.",
+  },
 
   // --- transport ---
   play: {

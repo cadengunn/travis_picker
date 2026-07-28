@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [20](#where-things-stand-session-20-2026-07-28) | v2.13.5 | help mode adjusted against his drilling: the ring, the bar chord, tap-to-dismiss |
 | [19](#where-things-stand-session-19-2026-07-28) | v2.13.4 | the docs split into CLAUDE.md + this file; the Guide became help mode |
 | [18](#where-things-stand-session-18-2026-07-27) | v2.12.0 → v2.13.3 | naming (Fingers / Wild Card), capo tag, swing — trialled, spec'd, cut back |
 | [17](#where-things-stand-session-17-2026-07-27) | v2.10.4 → v2.11.1 | the stale-precache bug; the typography pass (Jost) |
@@ -31,6 +32,79 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 20, 2026-07-28)
+
+**v2.13.5 — help mode, adjusted against a session of real drilling.** 74/74
+green (+2). His verdict on the mode itself was "working well", and the three
+open questions from session 19 came back answered: **Play's behaviour is fine as
+is** (arming mid-take leaves the take running, and Play explains rather than
+stops), and **Save and Load stay non-enterable** — their contents are words, not
+glyphs, so they read for themselves. That closes both, and the allowlist is
+unchanged: the gear, the two page tabs, `[data-close]`, the `?`, the card.
+
+**Three changes.**
+
+**1. The highlight was sized for the wrong mode — his bug, and the good kind.**
+The `#chord-head` slot reserves a full-width 28px box so the grid can't move
+when you switch chord modes, and what actually sits in it is either a 40px chord
+glyph *overflowing the slot upward* or a text-width run of Roman numerals inside
+it. `data-help` was on the container, so the ring drew the same wide, short box
+either way. Measured at 375×553: the ring was `351×28` while the chord it
+claimed to point at was `25.3×40` — in single mode the outline was mostly empty
+space *below* the chord.
+
+The fix splits the two jobs the anchor was doing. `data-help` says which copy;
+a new optional **`data-help-ring`** selector says which box to outline and hang
+the card off, taking **the first matching child that is actually rendered**.
+Since the two children are mutually exclusive (`hidden`), that picks the right
+one with no mode flag reaching `help.js` at all — one explanation, two shapes,
+as he asked. Now `25.3×40` on the chord and `67.9×26` on the numerals.
+
+**2. The per-bar chord picker had a card, and it was the wrong one.** Tapping a
+bar's chord in progression mode showed *"The grid is your right hand"* — the
+only control I found whose card was actively misleading rather than merely
+absent, and it matters because that picker is how a progression becomes Custom.
+The cause is structural: `dropdown.js` hides the native `<select>` and overlays
+a **sibling** `.dd-trigger`, so an annotation on the select is never an ancestor
+of the tap and `closest()` walked past it to `#grid`. The key therefore goes on
+the bar **header**, in `grid.js`.
+
+It needed no `data-help-ring` in the end — I wrote one, measured it, and took it
+out: the numeral chip is positioned absolutely, so the header's box and the
+picker's are *the same box* (both `164.5×28.8` at 4 bars) and the ring landed on
+the picker regardless. Shipping an attribute that does nothing would have been a
+comment I hadn't measured.
+
+This is also the **first `data-help` set in JS rather than in markup**, so the
+coverage test now scans `js/grid.js` beside `index.html`. Without that it
+reported the new entry as unreachable copy — which is exactly the failure the
+test is for, so it earned its keep on the way in.
+
+**3. Tapping the same control again dismisses its card** (his call). Every
+control is now its own toggle. The card still has no ✕; it goes away when you
+tap it, tap bare faceplate, or tap the thing it's about, and the last is the one
+your finger is already on. Compared by *key*, so tapping a **different** control
+still swaps the card rather than closing it.
+
+**All three tests were verified to fail without their fix**, individually,
+against a mutated copy of the tree: the ring test failed on *"single mode must
+ring the chord, not the slot around it"*, the dismiss test on *"tapping the same
+control again closes it"*, and the coverage test on *"help copy nothing can
+reach: bar-chord"*.
+
+**Zero layout cost holds.** Re-measured at 375×553, 4 bars, progression mode,
+across five states — help off, armed, a card on the readout, a card on a bar
+chord, disarmed again: `.app-head` 55.09px, grid 384.84px, **clearance 11.06px,
+no overflow, identical in every one**. Same numbers as v2.13.4.
+
+**New doc: `HELP_COPY.md`** — all 30 cards' text in one place, grouped by where
+the control sits on screen, so the wording can be reviewed without hunting
+through `data.js`. It's a review sheet, not a source; `HELP` in `data.js` stays
+the source of truth. Verified verbatim against the live map (30 entries, 30
+quoted bodies, nothing missing, nothing stray) rather than transcribed by hand.
 
 ---
 

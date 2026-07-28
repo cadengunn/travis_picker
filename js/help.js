@@ -40,14 +40,38 @@ export function isNav(node) {
   return !!closestIn(node, NAV_SELECTOR);
 }
 
+// The element a card RINGS and hangs off is usually the annotated element
+// itself, but not always: `data-help-ring` splits the two jobs where ONE
+// explanation covers two mutually-exclusive boxes of different shapes.
+//
+// `#chord-head` is the case that forced it. It reserves a full-width 28px slot
+// so the grid can't move, and what you actually see in that slot is either a
+// 40px chord glyph that overflows the slot UPWARD (single mode) or a
+// text-width run of Roman numerals sitting inside it (progression mode).
+// Ringing the container drew the same wide, short box either way — in single
+// mode that box is mostly empty space under the chord it claims to point at.
+//
+// Only one child is ever rendered, so "first one with a box" picks the right
+// one with no mode flag crossing over from app.js. Falls back to the annotated
+// element, which is also what happens before `enhanceAll()` has built a
+// dropdown's `.dd` wrapper.
+function ringFor(anchor) {
+  const sel = anchor.dataset?.helpRing;
+  if (!sel) return anchor;
+  for (const n of anchor.querySelectorAll(sel)) {
+    if (n.getClientRects().length) return n;
+  }
+  return anchor;
+}
+
 // Which help entry does a tap on this element belong to? Walks up, so tapping
 // the SVG inside a pill, the jewel inside a lamp or a cell inside the grid all
 // resolve to the annotated ancestor.
 export function helpTargetFor(node) {
-  const anchor = closestIn(node, "[data-help]");
-  if (!anchor) return null;
-  const key = anchor.dataset.help;
-  return HELP[key] ? { key, anchor, entry: HELP[key] } : null;
+  const el = closestIn(node, "[data-help]");
+  if (!el) return null;
+  const key = el.dataset.help;
+  return HELP[key] ? { key, anchor: ringFor(el), entry: HELP[key] } : null;
 }
 
 // Anchor the card to what was tapped: below it, flipped above when the bottom
@@ -171,8 +195,16 @@ export function createHelp({ doc = document, onChange, version = "" } = {}) {
     // doesn't fire one.
     if (e.type !== "click") return;
     const hit = helpTargetFor(e.target);
-    if (hit) show(hit.key, hit.anchor, hit.entry);
-    else close(); // tapping bare faceplate puts the card away
+    if (!hit) {
+      close(); // tapping bare faceplate puts the card away
+      return;
+    }
+    // Tapping the SAME thing again puts its card away, so every control is its
+    // own toggle. The card has no ✕ — it's dismissed by tapping it, tapping the
+    // faceplate, or tapping the thing it's about — and the last of those is the
+    // one you reach for without thinking, because your finger is already there.
+    if (pop?.dataset.helpKey === hit.key) close();
+    else show(hit.key, hit.anchor, hit.entry);
   };
 
   const onKey = (e) => {

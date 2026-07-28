@@ -16,7 +16,36 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.13.4) — HELP MODE
+## On the phone right now (v2.13.5) — HELP MODE, adjusted
+
+**Your verdict on v2.13.4 was "working well", and three things came out of it.**
+
+- **The highlight is now sized per mode.** It was drawing the reserved
+  full-width slot in both — `351×28` around a chord that's actually `25.3×40`,
+  i.e. mostly empty space *below* the letter in single mode. It now rings
+  whichever of the two is showing (the chord, or the numerals), sharing the one
+  explanation as you asked.
+- **The per-bar chord picker has its own card.** It was showing the *grid's*
+  card — the one place a card was actively wrong rather than just missing.
+- **Tapping the same thing again puts its card away**, so every control is its
+  own toggle.
+
+**Answered and closed:** Play stays as it is (a take keeps running; Play
+explains rather than stops), and Save/Load stay non-enterable in help mode.
+
+**Still only the phone can judge:** card placement under a thumb, and the
+wording — which is what `HELP_COPY.md` is for. All 30 cards' text is in that one
+file, grouped by where the control sits, and every rewrite is a data edit in
+`HELP` with no code moves and no layout to re-measure.
+
+**Still costs nothing in layout** — re-measured across five states (off, armed,
+card on the readout, card on a bar chord, disarmed): clearance 11.06px, no
+overflow, identical every time.
+
+<details>
+<summary>What v2.13.4 shipped, kept for reference</summary>
+
+### HELP MODE (v2.13.4)
 
 **The Guide is gone; the `?` is a mode now.** Tap it and it latches in like the
 Edit pencil, and from then on tapping anything on screen tells you what it does
@@ -54,8 +83,7 @@ the geometry is identical armed or not (clearance still 11.06px, no overflow).
 - **Whether the die and Play should be exempt** like the gear is. Currently they
   explain themselves, which is the rule as you specified it.
 
-**Next session is dedicated to adjusting this interface**, so bring whatever the
-drilling turns up.
+</details>
 
 ---
 

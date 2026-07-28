@@ -62,6 +62,14 @@ function buildHeader(chordId, barIdx, editableChords, showNumeral) {
       sel.appendChild(og);
     }
     header.appendChild(sel);
+    // Help mode annotates the HEADER, not the <select>: dropdown.js hides the
+    // native element and overlays a SIBLING `.dd-trigger`, so a tap never has
+    // the select as an ancestor, and this control used to fall through to the
+    // grid's own card — a confident explanation of the wrong thing. The header
+    // needs no `data-help-ring`: the numeral chip is positioned absolutely, so
+    // the header's box and the picker's are the same box (measured: both
+    // 164.5x28.8 at 4 bars), and the ring lands on the picker either way.
+    header.dataset.help = "bar-chord";
   }
   return header;
 }
