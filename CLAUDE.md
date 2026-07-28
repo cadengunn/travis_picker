@@ -183,14 +183,18 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   bottom-anchored Options sheet up 3.75px (measured both ways). Pinning
   `line-height` makes every inline box the same height whatever font serves the
   glyph. Watch for this on any new text that can contain them.
-- **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Generation** (chord mode +
-  capo, then the chord/key+progression row, then Thumb/Fingers/Pattern length —
-  the last of those is `.control-row.layers`, whose three slots are UNEVEN
-  because its menus' longest values are; see session 18) and
-  **Preferences** (the Sound lamp bank, note labels, theme, guide). You set all of
-  it sitting down, between takes. The split exists to buy height: one page had
-  ~27px spare at 375×553, so nothing new could be added. The gear always opens on
-  Generation. Three rules hold it together, each fixing something measured:
+- **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Setup** (chord format + capo,
+  then the chord/key+progression row, then Thumb/Fingers/Pattern length — that
+  one is `.control-row.layers`, whose three slots are UNEVEN because its menus'
+  longest values are; see session 18 — then the Swing slider) and
+  **Preferences** (the Sound lamp bank, note labels,
+  theme). You set all of it sitting down, between takes. **The pages are `Setup`
+  and `Preferences` as of v2.13.3** — "Generation" was the original name and
+  survives in the older session notes below; the ids are `tab-setup`/`page-setup`
+  to match. The chord-mode legend on page 1 is **`Format`**, not "Chords".
+  The split exists to buy height: one page had ~27px spare at 375×553, so
+  nothing new could be added. The gear always opens on
+  Setup. Three rules hold it together, each fixing something measured:
   **the tabs ride the sheet's TITLE line** (so the split costs no height at all —
   the version tag moved to the Guide to make the room); **both pages live in one
   CSS grid cell** with the inactive one hidden by `visibility`, so the panel is
@@ -1607,7 +1611,8 @@ and it's why the capo had nowhere to go. Split on the natural seam — what the
 - The **die rides the tab row** and goes `visibility: hidden` on Preferences —
   **not** the `hidden` attribute, which let the tabs stretch and made the pair
   change width between pages. A jumping control panel is a specific past complaint.
-- Page 1 = chord mode, chord/key+progression, thumb, chaos, pattern length, capo.
+- Page 1 = chord format, chord/key+progression, thumb, fingers, pattern length,
+  capo, swing.
   Page 2 = the Sound lamp bank, note labels, theme, guide. **The gear always opens
   on Generation** — muscle memory beats remembering where you were, and
   Preferences is set far more rarely.
@@ -1912,10 +1917,11 @@ Metronome section; what matters at this level:
 - **The control is a slider, not named stops** — he wants to hunt for the number
   by ear ("might take some trial and error with the guitar"), which is the
   argument that beat my earlier segmented-stops recommendation. It's on the
-  **Generation** page: swing is part of what you're *playing*, not how the app
+  **Setup** page (called "Generation" until v2.13.3): swing is part of what
+  you're *playing*, not how the app
   behaves. Not in the die's row — the die doesn't roll it.
 - **Sheet cost measured:** the panel goes 266 → **333px** at 375×553, leaving
-  220px of headroom, and the tab-to-tab jump stays 0 (Generation is now the
+  220px of headroom, and the tab-to-tab jump stays 0 (Setup is now the
   taller page, and the shared grid cell handles it).
 
 **v2.13.1 → v2.13.2 — the swing verdict, arrived at by playing it.** The end
@@ -1946,6 +1952,12 @@ of a fork rather than debating it.
   because a wrapped box *does* fit. Fixed with `white-space: nowrap` and a width
   measured off the rendered element — canvas under-reads, because it doesn't
   apply `tabular-nums`. **Take a screenshot; fit maths can lie.**
+
+**v2.13.3 — two label changes, his call.** The sheet's first page is **Setup**
+(was "Generation") and the chord-mode legend on it is **Format** (was "Chords").
+The ids were renamed with them (`tab-setup`/`page-setup`) so the code doesn't
+disagree with the screen; the Guide's own copy naming the two pages was updated
+too, which is the kind of thing a rename quietly leaves stale.
 
 **Next in his order after this: the Guide rewrite** — still blocked on him saying
 *what* bothers him about it (stale / too long / wrong shape / hard to find pull

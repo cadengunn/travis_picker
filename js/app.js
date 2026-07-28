@@ -63,7 +63,7 @@ const GLYPH_STOP = "■︎";
 
 // Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.13.2";
+const APP_VERSION = "v2.13.3";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -463,7 +463,7 @@ function forceRepaint(node) {
   requestAnimationFrame(() => { node.style.opacity = ""; });
 }
 
-// Re-roll the CHORD inputs (the ⚙ Generation die). Progression mode rolls a new
+// Re-roll the CHORD inputs (the ⚙ Setup die). Progression mode rolls a new
 // key + a progression valid in that key's mode; single mode rolls a new chord.
 // It never touches the right-hand pattern, so hand-drawn edits survive — no
 // discard confirmation needed (unlike Generate, which re-rolls the pattern).
@@ -891,7 +891,7 @@ function closeSheet() {
 // The Options sheet's two pages: what the PATTERN is, vs how the APP behaves.
 // The split exists to buy height — everything on one page left ~27px spare on an
 // SE, which is why the capo had nowhere to go (see index.html).
-const OPTIONS_PAGES = { "tab-generation": "page-generation", "tab-prefs": "page-prefs" };
+const OPTIONS_PAGES = { "tab-setup": "page-setup", "tab-prefs": "page-prefs" };
 function showOptionsPage(tabId) {
   for (const [tab, page] of Object.entries(OPTIONS_PAGES)) {
     const on = tab === tabId;
@@ -925,7 +925,7 @@ function renderHelp(body) {
   p("Tap the die to generate a fresh, playable pattern. In ⚙ Options, Thumb sets the bass style and the Chaos tier sets difficulty: Tame → Loose → Unruly get harder; Chaos is pure random discovery, off the curve.");
 
   h("Play & sound");
-  p("Play runs the loop after a one-bar count-in; the slider sets the tempo. Options has two pages: Generation is what the pattern is, Preferences is how the app behaves — the Metronome click, the Melody (hear the notes), the Count-in and the Button clicks each toggle on their own.");
+  p("Play runs the loop after a one-bar count-in; the slider sets the tempo. Options has two pages: Setup is what the pattern is, Preferences is how the app behaves — the Metronome click, the Melody (hear the notes), the Count-in and the Button clicks each toggle on their own.");
 
   h("Chords & keys");
   p("Single mode drills one chord. Progression mode gives a chord per bar, written as Nashville numbers in the key you choose, so the same progression transposes to any key. Raise Pattern length to let bars differ.");
@@ -1033,7 +1033,7 @@ function attach() {
     applySwing();
   });
 
-  // Options pages. The die belongs to Generation, so it goes with it.
+  // Options pages. The die belongs to Setup, so it goes with it.
   el("options-sheet").querySelector(".seg-tabs").addEventListener("click", (e) => {
     const tab = e.target.closest("[role=tab]");
     if (tab) showOptionsPage(tab.id);
@@ -1166,9 +1166,9 @@ function attach() {
   // Options sheet: generation inputs + preferences. Its controls are wired
   // above exactly as before — the sheet only changes where they live.
   el("open-options").addEventListener("click", () => {
-    // Always opens on Generation: gear -> the things you change between takes.
+    // Always opens on Setup: gear -> the things you change between takes.
     // Preferences is one tap away and is set far more rarely.
-    showOptionsPage("tab-generation");
+    showOptionsPage("tab-setup");
     el("options-sheet").hidden = false;
     syncSheetToViewport();
   });

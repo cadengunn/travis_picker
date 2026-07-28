@@ -4,7 +4,7 @@
 size, what's decided and what needs the user's call. This file is the session
 hand-off only.
 
-## Shipped this session — v2.12.0 → v2.13.2 (`CACHE` v59)
+## Shipped this session — v2.12.0 → v2.13.3 (`CACHE` v60)
 
 69/69 green (+4 net — two swing tests retired with the feature they guarded).
 Tree clean, nothing half-finished. Four items off his v2.11.x phone notes, then
@@ -35,6 +35,10 @@ stand (session 18)".
    the app ultimately" — it swings the thumb, and the thumb not moving is the
    technique), and the detents are **gone** in favour of a smooth 50–75 slider
    "similar to how Tempo already works". What's left is one slider at his 67%.
+10. **v2.13.3** — the Options sheet's first page is **Setup** (was "Generation")
+    and its chord-mode legend is **Format** (was "Chords"). Ids renamed with
+    them, and the Guide's own copy naming the pages updated — the thing a rename
+    quietly leaves stale.
 
 ## Worth carrying forward
 

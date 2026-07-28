@@ -14,7 +14,7 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.12.0)
+## On the phone right now (v2.13.3)
 
 Four things off your v2.11.x notes. Nothing here touched the generator.
 
@@ -34,6 +34,10 @@ Four things off your v2.11.x notes. Nothing here touched the generator.
 - **Three Thumb values were clipping, not just "Dead Thumb"** — "Alternating"
   and "Root–Fifth" too. The row's three slots are sized by content now; nothing
   clips in any of the three menus.
+- **Swing** (v2.13.2) — one smooth 50–75% slider on the Setup page, swinging the
+  **&s** only. 67% is set. See item 3.
+- **Labels** (v2.13.3) — the sheet's first page is **Setup** (was "Generation")
+  and its chord-mode legend is **Format** (was "Chords").
 
 **Swing is done and settled** (v2.13.2) — see item 3. Nothing outstanding on it.
 

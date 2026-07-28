@@ -114,8 +114,8 @@
       <header class="sheet-head">
         <h2 id="options-title">Options</h2>
         <div class="segmented seg-tabs" role="tablist" aria-label="Options pages">
-          <button type="button" role="tab" id="tab-generation" class="active"
-                  aria-controls="page-generation" aria-selected="true">Generation</button>
+          <button type="button" role="tab" id="tab-setup" class="active"
+                  aria-controls="page-setup" aria-selected="true">Setup</button>
           <button type="button" role="tab" id="tab-prefs"
                   aria-controls="page-prefs" aria-selected="false">Preferences</button>
         </div>
@@ -128,13 +128,13 @@
            `display`. -->
       <div class="sheet-pages">
 
-      <div class="sheet-page" id="page-generation" role="tabpanel" aria-labelledby="tab-generation">
+      <div class="sheet-page" id="page-setup" role="tabpanel" aria-labelledby="tab-setup">
 
       <!-- Row 1 is the instrument's CONTEXT — one chord or a progression, and
            where the capo is. Deliberately NOT the die's row (see row 2). -->
       <div class="control-row">
         <div class="field">
-          <span>Chords</span>
+          <span>Format</span>
           <div id="chord-mode" class="segmented" role="group" aria-label="Chord mode">
             <button type="button" data-mode="single" class="active">Single</button>
             <button type="button" data-mode="progression">Prog.</button>
@@ -207,7 +207,7 @@
         </label>
       </div>
 
-      <!-- Swing. On the Generation page rather than Preferences because this is
+      <!-- Swing. On the Setup page rather than Preferences because this is
            part of what you're PLAYING, not how the app behaves — the same
            reasoning that keeps chord and capo here. It is NOT a generation
            input: the die doesn't roll it and it isn't in the pattern, which is
@@ -228,7 +228,7 @@
         </label>
       </div>
 
-      </div><!-- /page-generation -->
+      </div><!-- /page-setup -->
 
       <div class="sheet-page is-away" id="page-prefs" role="tabpanel" aria-labelledby="tab-prefs">
 
