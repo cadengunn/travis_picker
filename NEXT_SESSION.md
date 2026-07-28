@@ -12,8 +12,8 @@ detail in CLAUDE.md "Where things stand (session 18)".
 
 1. **The empty name row is signed off** — closed, no placeholder.
 2. **"Chaos" left the UI.** The setting is **Fingers** (beside Thumb — the two
-   layers, named) and the outlier tier is **Wild card**, in a grouped menu:
-   **Complexity** (Tame/Loose/Unruly) · **Experimental** (Wild card). Internal
+   layers, named) and the outlier tier is **Wild Card**, in a grouped menu:
+   **Complexity** (Tame/Loose/Unruly) · **Experimental** (Wild Card). Internal
    ids unchanged — saved patterns store them.
 3. **Long-press no longer selects control text** — `user-select: none` +
    `touch-callout: none`, with `input` deliberately excluded so the save-name
@@ -29,7 +29,7 @@ detail in CLAUDE.md "Where things stand (session 18)".
    better because it pairs with Thumb and names the *layer* rather than the axis.
    Then "Experimental" as the group, explicitly so future off-curve generation
    ideas have somewhere to live. Offer the menu, don't defend it.
-2. **Check whether the fix moved the constraint.** Renaming Chaos → "Wild card"
+2. **Check whether the fix moved the constraint.** Renaming Chaos → "Wild Card"
    made it the *longest* Fingers value (70.1px vs "Unruly" 66), so the column
    split I'd sized minutes earlier clipped it by 1px. Caught by re-measuring
    after the rename, not before. Same class of thing: he reported one truncated

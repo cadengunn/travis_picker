@@ -20,7 +20,7 @@ Four things off your v2.11.x notes. Nothing here touched the generator.
 
 - **The "Chaos" menu is now "Fingers"**, sitting beside Thumb — the two layers,
   named. Its sections are **Complexity** (Tame / Loose / Unruly) and
-  **Experimental** (Wild card, formerly Chaos). Saved patterns are unaffected;
+  **Experimental** (Wild Card, formerly Chaos). Saved patterns are unaffected;
   only the words changed. Worth checking the grouped menu reads clearly at a
   glance mid-practice.
 - **Long-pressing a control no longer selects its text.** The save-name field is
@@ -252,7 +252,7 @@ majors). "Curate first, expand later."
   win is splitting it: architecture and invariants stay, the session-by-session
   history moves to a CHANGELOG. Offered, not yet done.
 - **"Chaos" is not a UI word any more** (v2.12.0) — the setting is **Fingers**
-  and the off-curve tier is **Wild card**, under an **Experimental** heading that
+  and the off-curve tier is **Wild Card**, under an **Experimental** heading that
   future off-curve ideas can join. The internal ids stay `chaos` because saved
   patterns store them.
 

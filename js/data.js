@@ -262,11 +262,11 @@ export const CHAOS_PRESETS = {
   },
   chaos: {
     id: "chaos",
-    // Named "Wild card", not "Chaos" — the word was doing two jobs. This tier is
+    // Named "Wild Card", not "Chaos" — the word was doing two jobs. This tier is
     // deliberately OFF the difficulty curve (session 6, user's call), so calling
     // both the setting and its outlier by the same name implied a ranking that
     // doesn't exist. The ID stays `chaos`: saved patterns store it.
-    name: "Wild card",
+    name: "Wild Card",
     maxRestrikes: Infinity, // fully random: anything goes
     minStrikes: 1, // fully random: uniform 1–8 total strike-times
     maxStrikes: 8,

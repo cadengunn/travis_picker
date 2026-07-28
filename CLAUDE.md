@@ -402,12 +402,12 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - **Two independent layers.** `thumbBars` and `trebleBars` are generated and stored separately, and the **finger layer is generated free of the thumb** (strings 1/2/3 only — the thumb is NOT seeded into the treble generator). They merge **per chord at resolve time** (`resolveMergedBar` → `enforceHardRule`, bass added first so it wins a same-slot collision). `regenerateBass()` re-rolls the thumb keeping the exact finger part, `regenerateTreble()` does the reverse — so the Thumb and Chaos controls each disturb only their own layer, and you can audition bass patterns under one right-hand part. Only Pattern-length and **Generate** re-roll everything.
   - **Fingers generate wherever they want; the bass overwrites string-3 collisions per chord** (session 10). A shared 1-bar cell over a D-key progression keeps its string-3 fingers in the G/A bars and lets D/Dm's alt bass overwrite only the D bars — before, a D reference chord seeded string 3 into the treble generator and starved every bar there. If a bar's whole finger part was string-3 pinches on a D/Dm alt-bass beat, `resolveMergedBar` rescues one finger onto a free string so no bar goes bare-thumb.
 - **The finger-density setting is called "Fingers" in the UI** (session 18), and
-  its outlier tier is **"Wild card"**, not "Chaos". The word was doing two jobs —
+  its outlier tier is **"Wild Card"**, not "Chaos". The word was doing two jobs —
   naming the whole setting *and* its one off-curve member, which implied a
   ranking that doesn't exist. The legend is `Fingers` because it sits beside
   `Thumb` and those are literally the two layers the generator keeps separate.
   The menu is grouped by `CHAOS_GROUPS`: **Complexity** (Tame/Loose/Unruly) and
-  **Experimental** (Wild card) — a caption states what a bare divider could only
+  **Experimental** (Wild Card) — a caption states what a bare divider could only
   imply, and "Experimental" leaves room for future off-curve generation ideas.
   **All internal ids are unchanged** (`chaos`, `CHAOS_PRESETS`, `state.chaos`):
   saved patterns store the id, so renaming it would break the library. A test

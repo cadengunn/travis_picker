@@ -925,11 +925,13 @@ main {
    thirds. At 375 an even split gave each menu a 75px label box and three Thumb
    values overflowed it — "Dead Thumb" needs 94px, "Alternating" 84, "Root–Fifth"
    78 — while Pattern's longest ("4 bars", 44.7) sat miles inside its own.
-   Measured minimum columns are 127.9 / 104.1 / 78.8 against 327px of track, so
-   there are 16.2px to spread; this split lands 133 / 108 / 86 and leaves every
-   menu 4–7px of slack. Re-measure if any VALUE gets longer — the binding one is
-   Thumb's "Dead Thumb", then Fingers' "Wild card". */
-.control-row.layers { grid-template-columns: 1.22fr 0.99fr 0.79fr; }
+   Measured longest values: Thumb "Dead Thumb" 94, Fingers "Wild Card" 72.8,
+   Pattern "4 bars" 44.7, each needing ~34px of chrome on top, against 327px of
+   track. This split lands 133 / 111 / 83 and leaves all three 4–5px of slack.
+   Re-measure if any VALUE gets longer — and note how little it takes:
+   capitalising "Wild card" → "Wild Card" alone cost 2.7px and took that column
+   from 3.9px of slack to 1.2px. */
+.control-row.layers { grid-template-columns: 1.22fr 1.02fr 0.76fr; }
 .span-2 { grid-column: span 2; }
 .field {
   min-width: 0;

@@ -361,7 +361,7 @@ check("chord groups partition the library exactly", () => {
 
 // 6c) Same contract for the Fingers menu's sections: every tier in exactly one
 //     group, no strays, and every group id real. The menu is grouped so that
-//     "Wild card" reads as OFF the Tame→Loose→Unruly curve rather than as its
+//     "Wild Card" reads as OFF the Tame→Loose→Unruly curve rather than as its
 //     top step — if a new tier were added and left out of CHAOS_GROUPS it would
 //     silently vanish from the menu while still being a legal saved value.
 check("chaos groups partition the tiers exactly", () => {

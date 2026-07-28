@@ -57,7 +57,7 @@ const GLYPH_STOP = "■︎";
 
 // Shown once, at the end of the Guide. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header.
-const APP_VERSION = "v2.12.0";
+const APP_VERSION = "v2.12.1";
 
 const state = {
   pattern: null,        // last generated (relative/absolute) pattern
@@ -733,7 +733,7 @@ function summarize(item) {
   const p = item.pattern || {};
   const bassName = BASS_PRESETS.find((b) => b.id === p.bass)?.name ?? p.bass;
   // The preset's NAME, not its stored id — the id is `chaos` but the menu says
-  // "Wild card", and a saved item that disagrees with the control is confusing.
+  // "Wild Card", and a saved item that disagrees with the control is confusing.
   const fingersName = CHAOS_PRESETS[p.chaos]?.name ?? p.chaos;
   const where =
     ctx.chordMode === "progression"
