@@ -1,8 +1,10 @@
 # Open items — Travis Picker
 
 A standing list of everything open, to think over between sessions. Rewritten at
-the end of session 17 (2026-07-27, v2.11.1) — completed items moved out to
-CLAUDE.md, the rest renumbered.
+the end of session 17 (2026-07-27, v2.11.1) — completed items moved out, the rest
+renumbered. **`NEXT_SESSION.md` was folded in here in session 19**; the docs are
+now three: `CLAUDE.md` (architecture + invariants), `CHANGELOG.md` (the
+session-by-session history), and this file (what's next).
 
 **How to read this:** each item says how big it is, what's already decided, and
 what (if anything) needs your call before it can be built. Items are grouped by
@@ -40,6 +42,12 @@ Four things off your v2.11.x notes. Nothing here touched the generator.
   and its chord-mode legend is **Format** (was "Chords").
 
 **Swing is done and settled** (v2.13.2) — see item 3. Nothing outstanding on it.
+
+**Two things only the phone can answer**, from the capo tag: whether the arrow
+reads as "shapes → sounding pitch" without being told, and whether having the
+*shape* key above the grid (`I–V–vi–IV · E`) and the *sounding* key up top
+(`CAPO 2 → F♯`) is ever confusing. The arrow is the whole thing carrying that
+distinction.
 
 **Next up:** the Guide rewrite (item 6 below — still needs the specific thing
 that annoyed you).
@@ -87,6 +95,28 @@ pass stands as shipped.
   lose the click during a take.
 - **The progression list** — fine so far, but you expect to revisit which
   progressions are curated. Add/drop/reorder is a one-line data edit each.
+
+---
+
+## Session 19 — the docs, not the app
+
+**No app file changed**, so there's nothing to test on the phone and no deploy.
+CLAUDE.md was **1,982 lines and half changelog**; it's now **867 lines of
+architecture and invariants**, with the session-by-session history moved to a new
+**`CHANGELOG.md`** (newest first, with markers where a later session overturned
+an entry). `NEXT_SESSION.md` is gone — its durable lessons merged into CLAUDE.md's
+"Working with this user", the rest into this file.
+
+The split wasn't a straight cut: a set of still-load-bearing facts lived **only**
+in session notes and would have stopped being loaded each session. Those were
+promoted into CLAUDE.md — `ui-sound.js` / `modal.js` / `dropdown.js` (missing
+from the file map entirely, along with `sw.js`, the manifest, `icons/` and
+`tools/`), both deploy footguns, the dev-box limits, the lamp-colour convention,
+the design-language statement, and `platform.js`'s four integrations. Six stale
+numbers were corrected against the code, and **the height-budget table was
+re-measured live** rather than carried forward: at 375×553 with 4 bars the grid
+is 384.8px, chrome 168.2px, and **11.1px of clearance under the grid** — no
+overflow. 69/69 green.
 
 ---
 
@@ -245,11 +275,9 @@ majors). "Curate first, expand later."
   removal into whatever session next touches those files, and do the real
   structural tidy **attached to** the chord-library refactor, which is the change
   that would rewrite `data.js` anyway.
-  **What genuinely does need it is the docs** — CLAUDE.md is ~1900 lines and is
-  now part architecture, part changelog, and it's the file every session loads
-  first, so its bloat costs time on every future session. The cheap standalone
-  win is splitting it: architecture and invariants stay, the session-by-session
-  history moves to a CHANGELOG. Offered, not yet done.
+  **What genuinely did need it was the docs** — **done, session 19.** CLAUDE.md
+  went 1,982 → 867 lines; the history is in `CHANGELOG.md`. The code cleanup
+  itself is still deferred to whatever session next touches those files.
 - **"Chaos" is not a UI word any more** (v2.12.0) — the setting is **Fingers**
   and the off-curve tier is **Wild Card**, under an **Experimental** heading that
   future off-curve ideas can join. The internal ids stay `chaos` because saved
