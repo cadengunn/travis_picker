@@ -65,7 +65,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v2.13.6";
+const APP_VERSION = "v2.13.7";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -864,6 +864,18 @@ async function loadSaved(id) {
   closeSheet();
 }
 
+// The Options sheet's open state, in ONE place. It used to be three bare
+// `hidden = ...` assignments (gear, ✕/backdrop, Escape), and the body class the
+// help "?" needs to stay above the scrim has to track all three or the pill
+// gets stranded above a closed sheet. Half the controls worth explaining live
+// in this sheet, so arming help mode from inside it is the common case, not an
+// edge one — you shouldn't have to close, arm, and reopen.
+function setOptionsOpen(open) {
+  el("options-sheet").hidden = !open;
+  document.body.classList.toggle("options-open", open);
+  if (open) syncSheetToViewport();
+}
+
 // iOS Safari positions `position: fixed` against the LAYOUT viewport, so a
 // bottom-anchored sheet stays put behind the on-screen keyboard when a field in
 // it is focused (the Save name input) — the panel appeared to run off the screen
@@ -1122,8 +1134,7 @@ function attach() {
     // Always opens on Setup: gear -> the things you change between takes.
     // Preferences is one tap away and is set far more rarely.
     showOptionsPage("tab-setup");
-    el("options-sheet").hidden = false;
-    syncSheetToViewport();
+    setOptionsOpen(true);
   });
 
   // Help "?" latches in like the pencil. `#open-help` is on help mode's own
@@ -1148,13 +1159,13 @@ function attach() {
     window.visualViewport.addEventListener("scroll", syncSheetToViewport);
   }
   el("options-sheet").addEventListener("click", (e) => {
-    if (e.target.closest("[data-close]")) el("options-sheet").hidden = true;
+    if (e.target.closest("[data-close]")) setOptionsOpen(false);
   });
 
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (!el("saved-sheet").hidden) closeSheet();
-    else el("options-sheet").hidden = true;
+    else setOptionsOpen(false);
   });
 }
 

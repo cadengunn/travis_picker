@@ -1811,6 +1811,58 @@ acheck("layout: the name row reserves its height when empty (or the grid jumps)"
     `the name row changes height with content (${empty}px empty vs ${filled}px filled) — the grid will jump on load/save`);
 });
 
+acheck("layout: the help ? stays above the Options scrim, and only then", async () => {
+  // Half the controls worth explaining live in the Options sheet, so arming help
+  // mode from inside it is the common case. The scrim covers the whole screen at
+  // z-index 20, so without a lift the "?" is both dimmed and untappable and you
+  // have to close the sheet, arm, and reopen it.
+  //
+  // Asserted with elementFromPoint rather than by reading z-index, because the
+  // value is only half the story: the rule works ONLY while nothing between the
+  // pill and the root creates a stacking context, and a `transform` added to
+  // .app-head some day would leave the z-index reading 30 and the pill buried.
+  // Hit-testing sees what a thumb sees.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:553px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<main><header class="app-head"><div class="ctx-row"><div class="grid-actions">' +
+    '<button id="open-help" class="pill pill-icon pill-help">?</button>' +
+    '</div></div></header></main>' +
+    '<div id="options-sheet" class="sheet"><div class="sheet-backdrop" data-close></div>' +
+    '<section class="sheet-panel"></section></div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const doc = frame.contentDocument;
+  const pill = doc.getElementById("open-help");
+  const r = pill.getBoundingClientRect();
+  const hit = () => doc.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  assert(r.width > 0 && r.height > 0, "the pill must actually lay out, or this test proves nothing");
+
+  // Sheet open, no lift: the scrim wins. This is the bug, reproduced.
+  const buried = hit();
+  assert(buried && buried.classList.contains("sheet-backdrop"),
+    `without body.options-open the scrim should cover the pill (got ${buried && buried.className})`);
+
+  // Sheet open, lift applied: the pill is reachable.
+  doc.body.classList.add("options-open");
+  const lifted = hit();
+  assert(lifted === pill || pill.contains(lifted),
+    `body.options-open must put the "?" above the scrim (got ${lifted && lifted.className})`);
+
+  // …and it must not outrank a dropdown panel opened FROM the sheet, which is
+  // the one thing that legitimately covers it.
+  const zPill = Number(frame.contentWindow.getComputedStyle(pill).zIndex);
+  const css = await (await fetch("css/styles.css")).text();
+  const zPanel = Number(css.match(/\.dd-panel\b[^}]*?z-index:\s*(\d+)/s)?.[1]);
+  assert(Number.isFinite(zPill) && Number.isFinite(zPanel), "both z-indexes should be readable");
+  assert(zPill < zPanel, `the pill (${zPill}) must stay under an open dropdown panel (${zPanel})`);
+
+  frame.remove();
+});
+
 acheck("type: every bundled face is declared, and the three voices stay separate", async () => {
   const css = await (await fetch("css/styles.css")).text();
 

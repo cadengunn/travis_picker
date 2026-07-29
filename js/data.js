@@ -583,6 +583,13 @@ export function detectProgression(chords, keyId) {
 //   * Two lines is the ceiling. Where one runs long the length is the signal
 //     that the thing itself is fiddly.
 //
+// TITLES follow the shape of the phrase, not one blanket rule (v2.13.7, his
+// call): a title-like one is Title Case ("Help Mode", "Pattern Length", "Bass
+// Warning"), a sentence-like one stays sentence case ("What you're playing
+// over", "The grid is your right hand"). Single words are unaffected either
+// way, which is most of them. "Count-in" keeps its lowercase particle — that's
+// title case for a hyphenated compound, and it matches the lamp's own label.
+//
 // A blank line in a `body` starts a new paragraph (`help.js` splits on it).
 // `HELP_COPY.md` is the same content laid out for review; it is generated from
 // this map, never the other way round.
@@ -592,7 +599,7 @@ export const HELP = {
   // of what changed. It carries the version, which used to sit at the foot of
   // the Guide this replaced.
   "help-mode": {
-    title: "Help mode",
+    title: "Help Mode",
     body: "Tap anything to find out what it does. Nothing you tap will change. The gear still opens Options. Tap ? again to leave.",
   },
 
@@ -614,7 +621,7 @@ export const HELP = {
     body: "The grid still shows the shapes you play. The arrow points at what they actually sound like.",
   },
   "loaded-name": {
-    title: "Pattern name",
+    title: "Pattern Name",
     body: "The saved pattern currently on screen.",
   },
 
@@ -651,7 +658,7 @@ export const HELP = {
     body: "Rolls a fresh pattern using the Thumb and Fingers settings in Options. It asks first if you have unsaved edits.",
   },
   "type-indicator": {
-    title: "Bass warning",
+    title: "Bass Warning",
     body: "The bass isn't following your chords. ABS means it's fixed to literal strings (Full Random, Climb, Descend). MIX means some notes follow and some don't.",
   },
 
@@ -689,7 +696,7 @@ export const HELP = {
     body: "How busy and how hard the finger part is. Changing this re-rolls only the fingers.",
   },
   pattern: {
-    title: "Pattern length",
+    title: "Pattern Length",
     body: "How many bars are different before the pattern repeats. Growing it copies what you have rather than re-rolling, so raise it when you want one bar to differ from the rest.",
   },
   swing: {
@@ -702,7 +709,7 @@ export const HELP = {
   "pattern-toggle": { title: "Melody", body: "Hear the pattern played back." },
   "count-in-toggle": { title: "Count-in", body: "One bar of counting before the loop starts." },
   "ui-sound-toggle": { title: "Buttons", body: "The mechanical click when you press a control. It stays quiet while the transport runs." },
-  "label-mode": { title: "Note labels", body: "What's written inside each note: fret number, picking finger, or nothing." },
+  "label-mode": { title: "Note Labels", body: "What's written inside each note: fret number, picking finger, or nothing." },
   theme: { title: "Theme", body: "The instrument's colours." },
 };
 

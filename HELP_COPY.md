@@ -6,7 +6,7 @@ thing actually sits on screen rather than by key order. A test asserts every
 annotated control has copy and every entry is reachable, so the *list* can't
 drift; the wording here is verified verbatim against the live map.
 
-Snapshot: **v2.13.6**, 28 entries (was 30 — Beat lamp folded into Tempo, Bar
+Snapshot: **v2.13.7**, 28 entries (was 30 — Beat lamp folded into Tempo, Bar
 chord into the Grid).
 
 ## The house rules
@@ -24,6 +24,13 @@ the map, so the next edit sees them:
 - Two lines is the ceiling. Where one runs long, the length is the signal that
   the thing itself is fiddly.
 
+**Titles follow the shape of the phrase:** a title-like one is Title Case
+("Help Mode", "Pattern Length", "Bass Warning"), a sentence-like one stays
+sentence case ("What you're playing over", "The grid is your right hand").
+Single words — most of them — are unaffected either way. "Count-in" keeps its
+lowercase particle, which is title case for a hyphenated compound and also
+matches the lamp's own label.
+
 **How to edit:** change the `body` in `js/data.js` — no code moves, no layout to
 re-measure. A blank line starts a new paragraph.
 
@@ -31,7 +38,7 @@ re-measure. A blank line starts a new paragraph.
 
 ## The mode itself
 
-### Help mode
+### Help Mode
 *Tap: the `?` pill — this is the card that opens the moment you arm it.*
 
 > Tap anything to find out what it does. Nothing you tap will change. The gear still opens Options. Tap ? again to leave.
@@ -62,7 +69,7 @@ re-measure. A blank line starts a new paragraph.
 
 > The grid still shows the shapes you play. The arrow points at what they actually sound like.
 
-### Pattern name
+### Pattern Name
 *Tap: the name line under the pills. Tappable even when it's blank.*
 
 > The saved pattern currently on screen.
@@ -108,7 +115,7 @@ re-measure. A blank line starts a new paragraph.
 
 > Rolls a fresh pattern using the Thumb and Fingers settings in Options. It asks first if you have unsaved edits.
 
-### Bass warning
+### Bass Warning
 *Tap: the ABS / MIX chip above the gear. Only on screen when it applies.*
 
 > The bass isn't following your chords. ABS means it's fixed to literal strings (Full Random, Climb, Descend). MIX means some notes follow and some don't.
@@ -157,7 +164,7 @@ re-measure. A blank line starts a new paragraph.
 
 > How busy and how hard the finger part is. Changing this re-rolls only the fingers.
 
-### Pattern length
+### Pattern Length
 *Tap: the Pattern menu.*
 
 > How many bars are different before the pattern repeats. Growing it copies what you have rather than re-rolling, so raise it when you want one bar to differ from the rest.
@@ -191,7 +198,7 @@ re-measure. A blank line starts a new paragraph.
 
 > The mechanical click when you press a control. It stays quiet while the transport runs.
 
-### Note labels
+### Note Labels
 *Tap: the Note labels menu.*
 
 > What's written inside each note: fret number, picking finger, or nothing.

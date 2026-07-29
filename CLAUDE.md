@@ -61,6 +61,12 @@ produced a wrong "verified" before:
   in-browser verification runs against an **rsync mirror** of the repo in the
   session scratchpad, wired up in `.claude/launch.json` (untracked). **Re-sync
   after every edit** before re-checking, or you're testing the previous copy.
+- **`computer{screenshot}` can return a STALE FRAME.** The preview tab runs
+  `visibilityState: "hidden"`, so the compositor may not repaint: three
+  screenshots in session 20 showed a closed Options sheet while the DOM reported
+  it open. Driving the page with **real `computer` clicks** produced live frames;
+  a JS-only state change did not. If a screenshot disagrees with a DOM read,
+  believe the DOM and re-drive with clicks.
 - **No touch, no ring switch, no lock screen.** The tap-highlight halo (v2.6.2),
   long-press selection, silent-mode audio and the wake lock are all invisible
   here; the most the dev box can do is read the computed property.
@@ -698,7 +704,25 @@ one place you can't compare the glyph to the thing.
   player (Nashville numbers, alternating bass, i/m/a all pass unexplained); no
   em dashes; two lines is the ceiling, and where one runs long the length is the
   signal that the thing itself is fiddly. The pass that set them cut the map
-  from 30 entries to 28 and roughly halved the average card.
+  from 30 entries to 28 and roughly halved the average card. **Titles follow the
+  shape of the phrase** (v2.13.7): title-like is Title Case ("Help Mode",
+  "Pattern Length"), sentence-like stays sentence case ("The grid is your right
+  hand").
+- **The `?` stays above the Options sheet's scrim** (`body.options-open`,
+  v2.13.7). Half the controls worth explaining live in that sheet, so arming
+  help mode *from inside it* is the common case — before this you had to close
+  the sheet, arm, and reopen. z-index **30**: clears `.sheet` (20), stays under
+  `.dd-panel` (40), the modals (60) and the card itself (70), so a dropdown
+  opened from the sheet still covers the pill. **This works with a plain
+  z-index only because nothing between the pill and the root creates a stacking
+  context** — the whole chain was checked (`.grid-actions`, `.ctx-row`,
+  `.app-head`, `main`, `body`: no z-index, transform, opacity, filter, isolation
+  or containment). Add a `transform` to any of them and this dies silently, so
+  **the test hit-tests with `elementFromPoint` rather than reading the z-index**,
+  which would still say 30 with the pill buried. The body class is set by
+  `setOptionsOpen()` in `app.js` — one place, because the sheet used to be opened
+  and closed by three bare `hidden =` assignments and a class tracking only two
+  of them strands the pill above a closed sheet.
 - **The copy is DATA** (`HELP` in `data.js`, keyed to `data-help` attributes),
   which is the same rule chords and themes follow and the direct fix for how the
   Guide rotted — it was prose inside `renderHelp()` and was still calling the
@@ -897,8 +921,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.13.6 — help-mode adjustments + his copy revision, on the phone.** 76/76
-checks green, tree clean. (v2.13.3 was the last version signed off on the
+**v2.13.7 — help-mode adjustments, his copy revision, and the `?` above the
+Options scrim; on the phone.** 77/77 checks green, tree clean. (v2.13.3 was the last version signed off on the
 guitar.) The build
 order in `travis-picker-workflow.md` is complete: generator + grid, progression
 mode, the Saved library, the manual editor, the metronome, PWA packaging,

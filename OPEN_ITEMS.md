@@ -16,7 +16,22 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.13.6) — HELP MODE, adjusted + your copy
+## On the phone right now (v2.13.7) — HELP MODE, adjusted + your copy
+
+**Two more off your last note.**
+
+- **Titles follow the shape of the phrase now** — Title Case for the title-like
+  ones (Help Mode, Pattern Name, Bass Warning, Pattern Length, Note Labels),
+  sentence case for the sentence-like ones (What you're playing over, The grid is
+  your right hand). Most are single words and unaffected. "Count-in" keeps its
+  lowercase particle, which is the standard for a hyphenated compound and matches
+  the lamp's label — say if you'd rather see "Count-In".
+- **You can arm help mode with Options already open.** The `?` stays out of the
+  scrim, bright and tappable, while everything else dims behind it; the sheet
+  stays open, and tapping any control in it explains that control. Tabs still
+  switch, ✕ still closes.
+
+---
 
 **Your revision pass is in, verbatim.** 30 cards → 28, and the house rules you
 wrote with it now sit in `data.js` above the map so the next edit reads them

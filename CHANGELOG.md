@@ -37,8 +37,62 @@ has the original build order.
 
 ## Where things stand (session 20, 2026-07-28)
 
-Two parts: the adjustments off his drilling (v2.13.5), then his revision pass
-over the copy itself (v2.13.6).
+Three parts: the adjustments off his drilling (v2.13.5), his revision pass over
+the copy itself (v2.13.6), then the title convention and reaching help mode from
+inside the Options sheet (v2.13.7).
+
+### Part 3 — v2.13.7, titles, and the "?" above the scrim
+
+**77/77 green (+1).**
+
+**Titles now follow the shape of the phrase**, his rule: title-like is Title
+Case, sentence-like stays sentence case. Five changed (Help Mode, Pattern Name,
+Bass Warning, Pattern Length, Note Labels); the two sentence-shaped ones stayed
+("What you're playing over", "The grid is your right hand") and the twenty-one
+single words are unaffected either way. **"Count-in" keeps its lowercase
+particle** — that *is* title case for a hyphenated compound, and it matches the
+lamp's own label. The convention is recorded in `data.js` with the house rules.
+
+**Help mode is now reachable while the Options sheet is open.** His report:
+you had to close the sheet, arm, and reopen it to get cards for the controls in
+there — which is backwards, since **half the controls worth explaining live in
+that sheet**. The `?` now stays out of the scrim, visually and functionally.
+
+The scrim is `.sheet` at z-index 20 covering the whole screen, so the pill was
+both dimmed and untappable. It gets **z-index 30**: above the sheet, below
+`.dd-panel` (40), the modals (60) and the help card (70) — so a dropdown opened
+from the sheet still covers the pill, which is the one thing that should.
+
+**The fragile part is worth naming.** A plain z-index only lifts the pill
+because *nothing* between it and the root creates a stacking context; the whole
+chain was checked (`.grid-actions`, `.ctx-row`, `.app-head`, `main`, `body` —
+no z-index, transform, opacity, filter, isolation or containment on any). Add a
+`transform` to `.app-head` some day and the rule dies silently with the computed
+z-index still reading 30. **So the test hit-tests with `elementFromPoint`
+instead of reading the value** — it asserts the scrim wins without the class and
+the pill wins with it, which is what a thumb actually experiences. Verified to
+fail with the rule deleted.
+
+**One place, not three.** The sheet was opened and closed by three bare
+`hidden = ...` assignments (gear, ✕/backdrop, Escape); a body class tracking only
+two of them would strand a lifted pill above a closed sheet. They now all go
+through `setOptionsOpen()`.
+
+The shadow is the pill's own with the outer cast deepened, restated in full
+rather than added to (box-shadow doesn't accumulate), so it reads as floating
+*on* the scrim rather than punched through it. Latched, it keeps the pressed-in
+face — a latched key isn't floating.
+
+**Verified with real taps, not synthetic clicks**: gear → sheet opens with the
+`?` bright above the scrim while Edit/Save/Load dim behind it; tap `?` → latches,
+sheet stays open; tap the Fingers menu → its card appears and the menu does not
+open; tabs still switch, ✕ still closes and clears the class.
+
+*Dev-box note for next time:* the preview tab runs `visibilityState: "hidden"`,
+so `computer{screenshot}` can return a **stale frame** — three screenshots showed
+a closed sheet while the DOM reported it open. Driving with real `computer`
+clicks produced live frames; a JS-only state change did not. Add it to the list
+of things this box can't be trusted on.
 
 ### Part 2 — v2.13.6, his copy revision
 
