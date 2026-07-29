@@ -1274,6 +1274,62 @@ main {
 }
 .field .dd-trigger:active { box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.5); }
 
+/* ---- the split chord field: two controls, one panel ----
+   The legends row and the trigger's two halves share one column template, so
+   CHORD sits over the root well and QUALITY over the quality well. It's still
+   one <button> over one <select>; the division is what the eye needs, not what
+   the DOM needs. */
+/* Two columns only. There is no column for the division line: it's drawn in the
+   GAP by .tl-quality::before, because a 1px grid track was a place the second
+   half could land in — and did, which clipped "Major" to "M". */
+.field-split { --split-cols: 1fr 1.3fr; }
+.field-split .split-legends,
+.field-split .dd-label {
+  display: grid;
+  grid-template-columns: var(--split-cols);
+  gap: 0 14px;
+}
+.field-split .dd-label { overflow: visible; }
+.field-split .tl-half {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+/* Each half wears its own caret, because each half is a thing you can spin.
+   Same triangle as .dd-trigger::after — one control language. */
+.field-split .tl-half::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  margin-top: -2px;
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--muted);
+  transition: transform 0.12s ease;
+}
+.field-split .dd-trigger[aria-expanded="true"] .tl-half::after {
+  transform: rotate(180deg);
+  border-top-color: var(--active);
+}
+/* the division line, machined into the well between the two halves */
+.field-split .tl-quality::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: -4px;
+  bottom: -4px;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 1px 0 0 var(--bevel-hi);
+}
+/* the trigger's own caret is redundant once each half carries one */
+.field-split .dd-trigger::after { display: none; }
+
 /* grid context: the per-bar chord picker */
 .dd-trigger.bar-chord {
   justify-content: center;
@@ -1352,22 +1408,71 @@ main {
    and --reel-visible are set from JS, which owns the geometry the scroll maths
    depends on. */
 .dd-wheel {
-  display: flex;
-  gap: 8px;
-  /* centred, because position() gives the panel the TRIGGER's width as a
-     min-width — a wide chord field would otherwise leave the mechanism hanging
-     off the left edge with dead housing beside it */
+  /* TWO DRUMS ON AN AXLE. The legends row and the drums row share one column
+     template, so each caption sits over its own cylinder. */
+  --drum-root: 88px;
+  --drum-quality: 108px;
+  display: grid;
   justify-content: center;
-  padding: 6px;
-  /* the barrel is a solid thing: the names roll, the housing doesn't scroll */
+  padding: 7px 9px 9px;
+  /* the barrels are solid things: the names roll, the housing doesn't scroll */
   overflow: hidden;
   /* NOTE: no `position` here. .dd-panel is already `fixed` (which is a
-     positioned ancestor for .reel-window), and this rule sits LATER in the file
-     at equal specificity — a `position: relative` here silently un-fixed the
-     panel, and it opened 350px down the page. */
+     positioned ancestor), and this rule sits LATER in the file at equal
+     specificity — a `position: relative` here silently un-fixed the panel, and
+     it opened 350px down the page. */
+}
+.wheel-legends,
+.wheel-drums {
+  display: grid;
+  grid-template-columns: var(--drum-root) 1px var(--drum-quality);
+  gap: 0 10px;
+}
+/* Silkscreened on the faceplate above each cylinder — the same object as every
+   other field label in the app, so it takes the panel legend voice. */
+.wheel-legend {
+  font-family: var(--legend);
+  font-size: var(--legend-size);
+  font-weight: var(--legend-weight);
+  letter-spacing: var(--legend-track);
+  /* pinned: no accidentals here today, but the row must not resize if one ever
+     lands in a legend */
+  line-height: 16px;
+  text-transform: uppercase;
+  color: var(--label);
+  padding-left: 2px;
+}
+/* The housing around one cylinder: rounded ends, a lit centre and shadowed
+   shoulders, so the drum reads as ROUND rather than as a column that fades. */
+.drum {
+  position: relative;
+  border-radius: 11px;
+  overflow: hidden;
+  /* the barrel is TALLER than its window of names, so the outermost pair sits
+     inside the housing instead of flush against its rounded ends */
+  padding: 5px 0;
+  background:
+    /* fine machining, so the barrel has a surface to catch the light */
+    repeating-linear-gradient(180deg, rgba(255, 245, 225, 0.035) 0 1px, transparent 1px 3px),
+    /* the curve: shoulders in shadow, a specular band across the middle */
+    linear-gradient(180deg,
+      rgba(0, 0, 0, 0.55) 0%,
+      rgba(0, 0, 0, 0.30) 18%,
+      rgba(255, 245, 225, 0.06) 50%,
+      rgba(0, 0, 0, 0.30) 82%,
+      rgba(0, 0, 0, 0.55) 100%),
+    var(--control);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 245, 225, 0.07),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+/* The axle line the two cylinders sit on. */
+.wheel-split {
+  align-self: stretch;
+  background: linear-gradient(180deg, transparent, var(--hardware) 18%, var(--hardware) 82%, transparent);
+  opacity: 0.75;
 }
 .reel {
-  flex: 0 0 auto;
   height: calc(var(--reel-item) * var(--reel-visible));
   overflow-y: scroll;
   scrollbar-width: none;
@@ -1386,13 +1491,11 @@ main {
      reel exactly, so a long ramp erases them — measured at 26/74 and 14/86, and
      both left three legible names and two ghosts, which undersells the
      cylinder. At 8/92 all five read and only the very edge falls away. */
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 6%, #000 94%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 6%, #000 94%, transparent 100%);
   outline: none;
 }
 .reel::-webkit-scrollbar { display: none; }
-.reel-root { min-width: 74px; }
-.reel-quality { min-width: 96px; }
 /* Half the window either side, so the first and last names can reach the centre. */
 .reel-pad { height: calc(var(--reel-item) * (var(--reel-visible) - 1) / 2); flex: none; }
 /* The STEP. Never transformed: a scroll-snap area is the element's transformed
@@ -1428,19 +1531,19 @@ main {
   color: var(--text);
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
 }
-/* The window: one bar across both reels, drawn on the housing rather than on
-   either reel, so the two read as one mechanism. */
-.reel-window {
+/* The aperture in one drum's housing — ONE PER CYLINDER, which is what says
+   they're two objects side by side rather than one list with a rule down it. */
+.drum-window {
   position: absolute;
-  left: 4px;
-  right: 4px;
+  left: 0;
+  right: 0;
   top: 50%;
   height: var(--reel-item);
   transform: translateY(-50%);
   pointer-events: none;
   border-top: 1px solid var(--hardware);
   border-bottom: 1px solid var(--hardware);
-  background: linear-gradient(180deg, rgba(255, 245, 225, 0.07), rgba(0, 0, 0, 0.10));
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.09), rgba(0, 0, 0, 0.12));
   z-index: 1;
 }
 

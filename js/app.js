@@ -50,8 +50,8 @@ import {
 import { setUiSoundEnabled, playPress, playRelease, playTick } from "./ui-sound.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { createHelp } from "./help.js";
-import { enhanceSelect, enhanceAll } from "./dropdown.js";
-import { createChordWheel } from "./wheel.js";
+import { enhanceSelect, enhanceAll, retargetOpenPanel } from "./dropdown.js";
+import { createChordWheel, chordSplitLabel } from "./wheel.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 
 const el = (id) => document.getElementById(id);
@@ -66,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v2.14.0";
+const APP_VERSION = "v2.14.1";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -138,8 +138,12 @@ const chordWheel = createChordWheel({
   // while the transport holds the audio category that overrides the ring switch.
   tick: () => { if (!metronome.running) playTick(); },
 });
+// The Options sheet's field shows the two halves separately under their own
+// legends; the per-bar chip shows the one chord name. Same panel either way.
 const chordPicker = (sel) =>
-  (sel.id === "chord" || sel.classList.contains("bar-chord")) ? chordWheel : null;
+  sel.id === "chord" ? { render: chordWheel, label: chordSplitLabel }
+  : sel.classList.contains("bar-chord") ? { render: chordWheel }
+  : null;
 
 // Key groups from data → the {value,label} shape fillSelectGrouped wants.
 const keyOptionGroups = () =>
@@ -398,6 +402,13 @@ function render() {
   // The per-bar chord <select>s are rebuilt every render; give them the same
   // wheel as the Options sheet's chord (idempotent per element).
   enhanceAll(el("grid"), chordPicker);
+  // ...and if a wheel is open on one of them, point it at the replacement.
+  // Picking a chord IS a render, so without this the panel stayed up over a
+  // select that no longer existed: one change, then nothing until you closed
+  // and reopened it.
+  retargetOpenPanel((old) => (old.classList.contains("bar-chord")
+    ? el("grid").querySelector(`select.bar-chord[data-bar="${old.dataset.bar}"]`)
+    : old));
   syncProgressionSelect();
   renderContext();
   // Re-rendering drops the playhead's cells; keep the loop length in sync too.

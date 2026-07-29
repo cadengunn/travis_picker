@@ -16,13 +16,30 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.0) — THE CHORD WHEEL
+## On the phone right now (v2.14.1) — THE CHORD WHEEL
 
 **Two cylinders, root × quality, in both chord pickers.** All 12 tones on the
-left reel; Major / Minor / 7 on the right. It commits as it settles and stays
-open, so you can spin one reel, hear it, then spin the other. Every reel is a
-real scroll container, so it has iOS momentum and rubber-banding — a flick spins
-the barrel and it coasts.
+left drum; Major / Minor / 7 on the right. It commits as it settles and stays
+open, so you can spin one drum, hear it, then spin the other. Each is a real
+scroll container, so it has iOS momentum and rubber-banding — a flick spins the
+barrel and it coasts.
+
+**Your three notes are in.** The drums are physically separated now — each has
+its own housing, its own window and its own legend, with an axle line between
+them, and the Options field is split to match (CHORD and QUALITY over two wells
+with a division line, each with its own caret). The per-bar chip stays a single
+name, and opening it shows the same two separated drums.
+
+**The barrel is rounder, and the fix was a subtraction.** The housing carries the
+curve now, but what actually made it read as a cylinder was deleting a
+`translateZ` that was magnifying the whole reel about its centre: a 38px step was
+rendering as 59px, which pushed the outermost names clean out of the housing.
+That's why it only ever showed three names. It shows five now.
+
+**The progression bug is fixed and it was exactly what you described.** Picking a
+chord re-renders the grid, which rebuilds the per-bar control — so the open wheel
+was left writing to an element that no longer existed. One change, then nothing.
+You can now spin root and quality as many times as you like from one opening.
 
 **The library is now 36 chords**, the full matrix. 14 open-position voicings are
 hand-written; the other 22 are derived from two movable templates (E-shape and
@@ -36,9 +53,9 @@ fret 8.
   times a second in a spin. Too loud, too quiet, or wrong material?
 - **The feel of the spin.** Five names visible, 38px a step, and the snap is the
   browser's own. Tapping a name one or two above the window steps to it.
-- **How many names should be legible.** The barrel's ends fall into shadow, and
-  where the fade starts is a taste call I made by measurement rather than by
-  eye — I could only see three names crisp at first and pulled the ramp back.
+- **Whether it's round enough.** The curve is three things you can each dial
+  independently: how far a name turns per step, the housing's shading, and how
+  fast the faces dim as they go. Say which way it wants to go.
 - **The die rolls all 36 now.** You may find you want the open chords back.
 
 **One deviation I took and want you to know about.** Inside an E-shape barre the

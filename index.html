@@ -175,8 +175,13 @@
            Its contents are the only ones that swap between chord modes, and both
            fill the same two slots, so nothing below ever shifts. -->
       <div class="control-row with-die">
-        <label class="field span-2" id="field-chord" data-help="field-chord">
-          <span>Chord</span>
+        <!-- TWO controls that open ONE panel (v2.14.1, his call): the chord and
+             its quality are separate cylinders, so they're separated here too —
+             two legends over two wells with a division line between them. The
+             <select> underneath is still one control holding one chord id; only
+             the trigger's face is split (see chordSplitLabel in wheel.js). -->
+        <label class="field span-2 field-split" id="field-chord" data-help="field-chord">
+          <span class="split-legends"><span>Chord</span><span>Quality</span></span>
           <select id="chord"></select>
         </label>
 

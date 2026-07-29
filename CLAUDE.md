@@ -330,7 +330,7 @@ SE-class, 4 bars, progression mode, the worst case:
 | `main` overflow | 0 — it fits |
 
 **That 11px is the entire remaining budget, and it is the number to protect.**
-(Re-measured at v2.14.0 with the chord wheel in: **identical** — 55.09 / 384.84 /
+(Re-measured at v2.14.1 with the chord wheel in: **identical** — 55.09 / 384.84 /
 11.06 / no overflow. The wheel is a body-level overlay, like the help card, so it
 costs nothing; and the 40px chord readout already pins its `line-height`, so a
 `C♯m` or `E♭7` doesn't grow its box either — checked across six chords, `gridTop`
@@ -524,15 +524,39 @@ Four dependency-free modules, all precached:
   renderer may return `{ onKey, afterOpen, cleanup }`; **`afterOpen` is called
   synchronously, not in a `rAF`**, because a hidden tab never runs rAF and the
   wheel sets its scroll positions there.
+  **A renderer MUST commit through the `commit` it is handed**, never through a
+  captured element — and `retargetOpenPanel(find)` is why. The per-bar chord
+  selects are rebuilt by every `render()`, and picking a chord *is* a render, so
+  an open panel's target is destroyed by its own first pick: the panel stayed up,
+  the reels still turned and ticked, and nothing happened until you closed and
+  reopened it. `app.js` calls `retargetOpenPanel` right after the post-render
+  `enhanceAll`, matching a bar select by its `data-bar`; the panel's DOM and
+  scroll positions are untouched, only the target moves, and a `find` that comes
+  back empty closes rather than leaving a live-looking panel wired to nothing.
+  A test drives two consecutive picks through a rebuild and fails without it.
 - **`wheel.js` — the chord picker is TWO CYLINDERS** (root × quality), his call,
   session 21. It is a **renderer, not a control**: the same hidden `<select>`
   holds all 36 chords as flat options and a settle calls `commit()`, so app.js's
   wiring and the `#grid` delegation never learn it exists. Both chord pickers use
   it — the Options sheet's and every per-bar one — which is why the grouped chord
   menus are gone.
+  - **TWO DRUMS ON AN AXLE, physically separated** (v2.14.1, his call): each
+    cylinder gets its own housing, its own aperture and its own legend, with a
+    hairline axle line between them. One aperture spanning both was the first
+    build and read as one list with a rule down it. In the **Options sheet** the
+    field is split to match — two legends (`Chord` / `Quality`) over two wells,
+    each with its own caret — via a `label` renderer on `enhanceSelect`; the
+    per-bar chip keeps the single name (`C♯m`), since there's no room to say it
+    twice on a bar.
   - **It's a real scroll container with CSS scroll-snap, not a hand-rolled drag**:
     that buys iOS momentum, rubber-banding and detents for free, and it's
     physically right (a flick spins the barrel and it coasts).
+  - **The facets ROTATE ONLY — never `translateZ`.** The scroll already puts each
+    name in the right place; a stand-off from the axis moves it *again*, and
+    under `perspective` that projection magnified the reel ~16% about its centre.
+    A 38px step rendered as 59px and the outer names were pushed clean out of the
+    housing, which is why the drum only ever showed three of its five. Rotation
+    alone foreshortens each face by cos θ, which is what a barrel does.
   - **The step and the facet are two elements** (`.reel-item` > `.reel-face`), and
     they have to be: a scroll-snap area is the element's **transformed** border
     box, so putting the cylinder's `rotateX` on the item moved its own detent and
@@ -1004,8 +1028,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.0 — the chord wheel: two cylinders, all 12 roots × Major/Minor/7; on the
-phone.** 80/80 checks green, tree clean. (v2.13.3 was the last version signed off on the
+**v2.14.1 — the chord wheel: two separated cylinders, all 12 roots ×
+Major/Minor/7; on the phone.** 81/81 checks green, tree clean. (v2.13.3 was the last version signed off on the
 guitar.) The build
 order in `travis-picker-workflow.md` is complete: generator + grid, progression
 mode, the Saved library, the manual editor, the metronome, PWA packaging,

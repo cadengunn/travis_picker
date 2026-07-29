@@ -22,13 +22,16 @@
 // tap catcher, Escape, and closing when the ground shifts — is the same job
 // whatever is drawn inside. So a caller can pass its own `render`, and the
 // scrolling list below is simply the default one. `wheel.js` supplies the other.
-// A renderer fills the panel and may return { onKey, afterOpen }.
+// A renderer fills the panel and may return { onKey, afterOpen, cleanup }.
+//
+// A renderer MUST commit through the `commit` it is handed, never by capturing
+// the select it was opened on — see retargetOpenPanel below for why.
 
 const valueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
 
 let openPanel = null; // the one panel that can be open at a time
 
-export function enhanceSelect(select, { render = renderList } = {}) {
+export function enhanceSelect(select, { render = renderList, label } = {}) {
   if (select.dataset.dd === "1") return;
   select.dataset.dd = "1";
 
@@ -48,8 +51,8 @@ export function enhanceSelect(select, { render = renderList } = {}) {
   for (const c of select.classList) if (c !== "dd-native") trigger.classList.add(c);
   trigger.setAttribute("aria-haspopup", "listbox");
   trigger.setAttribute("aria-expanded", "false");
-  const label = select.getAttribute("aria-label");
-  if (label) trigger.setAttribute("aria-label", label);
+  const aria = select.getAttribute("aria-label");
+  if (aria) trigger.setAttribute("aria-label", aria);
   // The label lives in its own span so a long option ellipsizes cleanly and the
   // CSS caret (::after) is never overwritten by syncLabel.
   const labelEl = document.createElement("span");
@@ -57,7 +60,11 @@ export function enhanceSelect(select, { render = renderList } = {}) {
   trigger.appendChild(labelEl);
   dd.appendChild(trigger);
 
+  // `label` lets a renderer draw its own trigger contents — the chord wheel's
+  // Options-sheet field shows the root and the quality as two separate wells,
+  // where the bar chip shows the one chord name.
   function syncLabel() {
+    if (label) { label(select, labelEl); return; }
     const opt = select.options[select.selectedIndex];
     labelEl.textContent = opt ? opt.textContent : "";
   }
@@ -78,11 +85,11 @@ export function enhanceSelect(select, { render = renderList } = {}) {
 }
 
 // Enhance every not-yet-enhanced <select> under `root` (default: document).
-// `pick(select)` may return a renderer for a given select — that's how app.js
-// hands the chord selects their wheel without knowing where each one is.
+// `pick(select)` may return per-select options ({ render, label }) — that's how
+// app.js hands the chord selects their wheel without knowing where each one is.
 export function enhanceAll(root = document, pick) {
   for (const s of root.querySelectorAll("select:not([data-dd])")) {
-    enhanceSelect(s, { render: pick?.(s) || renderList });
+    enhanceSelect(s, pick?.(s) || {});
   }
 }
 
@@ -93,6 +100,31 @@ export function commit(select, value) {
   select.value = value;
   select.dispatchEvent(new Event("change", { bubbles: true }));
   return true;
+}
+
+// POINT AN OPEN PANEL AT A REPLACEMENT <select>.
+//
+// The per-bar chord selects are rebuilt by every render(), and changing a chord
+// IS a render — so the first pick from an open wheel destroyed the very element
+// the panel was writing to. The panel stayed up (it lives on <body>), the reels
+// still turned and ticked, and nothing happened: you had to close and reopen to
+// make a second change, which is exactly the wrong behaviour on a control whose
+// whole point is spinning to the right answer.
+//
+// `find(oldSelect)` returns the element that replaced it, or null to give up
+// (then we close, rather than leave a live-looking panel wired to nothing).
+// The panel's DOM and scroll positions are untouched — only the target moves.
+export function retargetOpenPanel(find) {
+  if (!openPanel) return;
+  const next = find(openPanel.select);
+  if (!next) { closePanel(); return; }
+  if (next === openPanel.select) return;
+  openPanel.select = next;
+  const trigger = next.parentNode?.querySelector(".dd-trigger");
+  if (trigger) {
+    openPanel.trigger = trigger;
+    trigger.setAttribute("aria-expanded", "true");
+  }
 }
 
 function closePanel() {
@@ -106,7 +138,7 @@ function closePanel() {
 
 // The DEFAULT renderer: the scrolling list of options, mirroring the select's
 // own structure so an <optgroup> becomes a section header.
-function renderList(select, panel, { close }) {
+function renderList(select, panel, { close, commit: commitTo }) {
   panel.setAttribute("role", "listbox");
   let active = select.selectedIndex;
 
@@ -123,7 +155,7 @@ function renderList(select, panel, { close }) {
     }
     item.addEventListener("click", () => {
       if (opt.disabled) return;
-      commit(select, opt.value);
+      commitTo(opt.value);
       close();
     });
     panel.appendChild(item);
@@ -168,7 +200,13 @@ function open(select, trigger, render) {
   const panel = document.createElement("div");
   panel.className = "dd-panel";
 
-  const hooks = render(select, panel, { close: closePanel }) || {};
+  // `commit` reads openPanel.select at call time, not the one captured here, so
+  // a retarget (see retargetOpenPanel) is one assignment and the panel keeps
+  // working across the re-render its own pick caused.
+  const hooks = render(select, panel, {
+    close: closePanel,
+    commit: (value) => commit(openPanel?.select || select, value),
+  }) || {};
 
   document.body.appendChild(panel);
   position(panel, trigger);

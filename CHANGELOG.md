@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [21](#where-things-stand-session-21-2026-07-29) | v2.14.0 | the chord wheel: two cylinders, and the library became the full 12 × 3 matrix |
+| [21](#where-things-stand-session-21-2026-07-29) | v2.14.0 → v2.14.1 | the chord wheel: two cylinders, and the library became the full 12 × 3 matrix |
 | [20](#where-things-stand-session-20-2026-07-28) | v2.13.5 → v2.13.6 | help mode adjusted against his drilling, then his copy revision: 30 cards → 28 |
 | [19](#where-things-stand-session-19-2026-07-28) | v2.13.4 | the docs split into CLAUDE.md + this file; the Guide became help mode |
 | [18](#where-things-stand-session-18-2026-07-27) | v2.12.0 → v2.13.3 | naming (Fingers / Wild Card), capo tag, swing — trialled, spec'd, cut back |
@@ -104,6 +104,41 @@ nobody plays. Taking the playable one puts the ♭7 on the alt-bass string, so
 bass, but a departure from "dominant 7ths keep the parent major's bass". The
 alternative is a high A-shape barre (G♯7 at 11). One line in `BARRE_TEMPLATES`
 either way.
+
+
+### Round two, off his first look (v2.14.1)
+
+Three notes, two visual and one a real bug.
+
+**The two reels became two DRUMS.** "Imagine two cylinders mounted on an axel,
+right next to each other but spinning freely" — so each gets its own housing,
+its own aperture and its own legend, with a hairline axle between them. The
+first build had one window spanning both, which read as one list with a rule
+down it. The Options field is split to match: CHORD and QUALITY legends over two
+wells with a division line, each half carrying its own caret. The per-bar chip
+stays a single name — no room to say it twice on a bar.
+
+**The barrel got rounder, and the fix was a subtraction.** The housing now
+carries the curve (shadowed shoulders, a specular band, fine machining lines),
+but the thing that actually made it read as a cylinder was **deleting the
+`translateZ`**. The scroll already places each name; standing the facets off the
+axis moved them *again*, and under `perspective` that projection magnified the
+whole reel ~16% about its centre — a 38px step rendered as 59px, and the outer
+names were pushed clean out of the housing. That's why three sessions of mask
+tuning (26/74, 14/86, 8/92) never got five names on screen: the mask was never
+the problem. Rotation alone foreshortens each face by cos θ, which is what a
+barrel's surface does anyway.
+
+**The bug: in progression mode you got one change per opening.** Picking a chord
+re-renders the grid, which rebuilds the per-bar `<select>` — so the open panel
+was left writing to a detached element. The panel stayed up, the reels still
+turned and ticked, and nothing happened. Fixed by making the renderer commit
+through a `commit` handed to it rather than a captured element, plus
+`retargetOpenPanel()`, which app.js calls after each render to point an open
+panel at the replacement select. Scroll positions and DOM are untouched; only
+the target moves. The test drives two consecutive picks through a rebuild and,
+without the fix, reproduces the reported symptom exactly (first pick lands,
+second doesn't).
 
 ### Measured
 

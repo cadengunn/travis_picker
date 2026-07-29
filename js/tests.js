@@ -69,7 +69,7 @@ import {
   SWING_MAX,
   DEFAULT_SWING,
 } from "./metronome.js";
-import { enhanceSelect } from "./dropdown.js";
+import { enhanceSelect, retargetOpenPanel } from "./dropdown.js";
 import { createChordWheel } from "./wheel.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { isNav, helpTargetFor, createHelp, NAV_SELECTOR } from "./help.js";
@@ -1378,9 +1378,14 @@ acheck("wheel: two reels write one chord id, and the panel stays open", async ()
   assert(rootCells.map((c) => c.textContent).join(" ") === ROOTS.map((r) => r.name).join(" "),
     "the root reel is printed in wheel order");
   assert(!panel.querySelector(".dd-option"), "no list options are rendered alongside the reels");
-  // The window is drawn on the housing, not on a reel — that's what makes the
-  // two read as one mechanism rather than two adjacent lists.
-  assert(panel.querySelector(":scope > .reel-window"), "the window spans both reels");
+  // TWO DRUMS, not one split list (his call): each cylinder gets its own
+  // housing, its own aperture and its own legend, with an axle line between.
+  assert(panel.querySelectorAll(".drum").length === 2, "two separate drums");
+  assert(panel.querySelector(".drum-root .drum-window") && panel.querySelector(".drum-quality .drum-window"),
+    "each drum has its own aperture");
+  assert(panel.querySelector(".wheel-split"), "an axle line runs between them");
+  assert([...panel.querySelectorAll(".wheel-legend")].map((l) => l.textContent).join("|") === "Chord||Quality",
+    "each drum is captioned, and the axle column keeps the captions aligned");
 
   // A reel commits by settling, which a tap sets in motion; the test drives the
   // settle directly because a smooth scroll never completes in a hidden tab.
@@ -1400,6 +1405,58 @@ acheck("wheel: two reels write one chord id, and the panel stays open", async ()
   assert(changes === 1, `one bubbling change per settle, got ${changes}`);
   assert(document.querySelector(".dd-wheel"), "the panel stays open after a pick");
   assert(host.querySelector(".dd-label").textContent === "Em", "the trigger follows");
+  document.querySelector(".dd-catcher").click();
+  host.remove();
+});
+
+// The per-bar chord selects are rebuilt by every render(), and picking a chord
+// IS a render — so the first pick from an open wheel destroyed the element the
+// panel was writing to. The panel stayed up, the reels still turned and ticked,
+// and nothing happened: one change, then you had to close and reopen. Exactly
+// the wrong behaviour on a control whose point is spinning to the right answer.
+acheck("wheel: a pick that rebuilds the select keeps the panel working", async () => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+
+  // Stand in for renderGrid: throw the select away and build a fresh one.
+  const build = (value) => {
+    host.replaceChildren();
+    const sel = document.createElement("select");
+    sel.className = "bar-chord";
+    sel.dataset.bar = "1";
+    for (const id of CHORD_IDS) {
+      const o = document.createElement("option");
+      o.value = id; o.textContent = CHORDS[id].name;
+      sel.appendChild(o);
+    }
+    sel.value = value;
+    host.appendChild(sel);
+    enhanceSelect(sel, { render: createChordWheel() });
+    // …and re-point any open panel at the replacement, the way app.js does.
+    retargetOpenPanel((old) => host.querySelector(`select.bar-chord[data-bar="${old.dataset.bar}"]`));
+    return sel;
+  };
+
+  let current = build("E");
+  const rebuild = () => { current = build(current.value); };
+  host.addEventListener("change", rebuild);
+
+  host.querySelector(".dd-trigger").click();
+  const panel = document.querySelector(".dd-panel.dd-wheel");
+  const root = panel.querySelector(".reel-root");
+  const spin = async (i) => {
+    Object.defineProperty(root, "scrollTop", { value: i * 38, writable: true, configurable: true });
+    root.dispatchEvent(new Event("scroll"));
+    await new Promise((r) => setTimeout(r, 200));
+  };
+
+  await spin(5); // E -> F
+  assert(current.value === "F", `first pick should land on F, got ${current.value}`);
+  await spin(7); // …and again, from the SAME open panel
+  assert(current.value === "G",
+    `second pick from the same panel should land on G, got ${current.value} (the panel lost its select)`);
+  assert(document.querySelector(".dd-wheel"), "and the panel is still open");
+
   document.querySelector(".dd-catcher").click();
   host.remove();
 });

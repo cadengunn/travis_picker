@@ -6,7 +6,7 @@ thing actually sits on screen rather than by key order. A test asserts every
 annotated control has copy and every entry is reachable, so the *list* can't
 drift; the wording here is verified verbatim against the live map.
 
-Snapshot: **v2.14.0**, 28 entries (was 30 — Beat lamp folded into Tempo, Bar
+Snapshot: **v2.14.1**, 28 entries (was 30 — Beat lamp folded into Tempo, Bar
 chord into the Grid).
 
 ## The house rules
@@ -135,7 +135,7 @@ re-measure. A blank line starts a new paragraph.
 > Changes the sounding key, like putting on a capo or tuning down.
 
 ### Chord
-*Tap: the Chord wheel. Single mode only.*
+*Tap: the Chord / Quality wheel. Single mode only.*
 
 > The one chord the whole pattern is played over. Every root has a major, a minor and a 7.
 

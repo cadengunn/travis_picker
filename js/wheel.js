@@ -19,19 +19,24 @@
 // file adds on top is the cylinder's 3D and the two things a scroller can't say
 // on its own — which name is in the window, and when it stopped moving.
 
-import { commit } from "./dropdown.js";
 import { ROOTS, QUALITIES, CHORDS, chordIdFor, splitChordId } from "./data.js";
 
 const ITEM_H = 38;   // px per name; JS owns it and hands it to CSS (--reel-item)
 const VISIBLE = 5;   // names in the window at once — an odd number has a centre
 const SETTLE_MS = 110; // quiet time after the last scroll event before committing
 
-// How far the barrel has turned by the time a name leaves the window. 20° a step
-// over two steps each way reads as a curve without the edge names going illegible.
-const DEG_PER_STEP = 20;
+// How far the barrel has turned by the time a name leaves the window.
+//
+// ROTATION ONLY — no translateZ. The scroll already puts each name in the right
+// place; a stand-off from the axis moves it AGAIN, and under `perspective` that
+// projection magnified the whole reel by ~16% about its centre. A 38px step
+// rendered as 59px and the outermost names were pushed clean out of the housing,
+// which is why the drum only ever showed three. Rotation alone foreshortens each
+// face by cos θ, which is what a barrel's surface actually does.
+const DEG_PER_STEP = 26;
 
 export function createChordWheel({ tick = () => {} } = {}) {
-  return function renderChordWheel(select, panel, { close }) {
+  return function renderChordWheel(select, panel, { commit }) {
     panel.classList.add("dd-wheel");
     panel.style.setProperty("--reel-item", `${ITEM_H}px`);
     panel.style.setProperty("--reel-visible", String(VISIBLE));
@@ -39,43 +44,76 @@ export function createChordWheel({ tick = () => {} } = {}) {
     const start = splitChordId(select.value) || { root: ROOTS[0].id, quality: QUALITIES[0].id };
     const chosen = { root: start.root, quality: start.quality };
 
-    // The window the names roll through: one bar across both reels, so the two
-    // read as one mechanism rather than two lists that happen to be adjacent.
-    const window_ = document.createElement("div");
-    window_.className = "reel-window";
-    panel.appendChild(window_);
+    // TWO DRUMS ON ONE AXLE (his call): the chord and its quality are separate
+    // cylinders sitting next to each other and spinning freely, not two columns
+    // of one list. Each gets its own housing, its own window and its own legend,
+    // and a hairline axle line runs between them.
+    const legends = document.createElement("div");
+    legends.className = "wheel-legends";
+    const drums = document.createElement("div");
+    drums.className = "wheel-drums";
+    panel.append(legends, drums);
 
     const reels = [
-      buildReel({
-        cls: "reel-root",
-        label: "Root",
+      buildDrum({
+        cls: "root",
+        legend: "Chord",
         items: ROOTS.map((r) => ({ value: r.id, label: r.name })),
         value: chosen.root,
         onSettle: (v) => { chosen.root = v; apply(); },
       }),
-      buildReel({
-        cls: "reel-quality",
-        label: "Quality",
+      split(),
+      buildDrum({
+        cls: "quality",
+        legend: "Quality",
         items: QUALITIES.map((q) => ({ value: q.id, label: q.name })),
         value: chosen.quality,
         onSettle: (v) => { chosen.quality = v; apply(); },
       }),
     ];
-    for (const r of reels) panel.appendChild(r.el);
+
+    function split() {
+      const rule = document.createElement("div");
+      rule.className = "wheel-split";
+      const spacer = document.createElement("span");
+      spacer.className = "wheel-legend wheel-legend-gap";
+      legends.appendChild(spacer);
+      drums.appendChild(rule);
+      return { open() {}, cleanup() {} };
+    }
 
     // The reels commit as they snap and the panel STAYS OPEN (his call): every
     // root × quality is a real chord, so there's no invalid half-set state to
     // protect against, and you can spin one reel, hear it, then spin the other.
+    // `commit` comes from dropdown.js and targets whatever select is CURRENT —
+    // in progression mode a pick re-renders the grid and replaces the one we
+    // opened on, and capturing it here is what broke the second spin.
     function apply() {
-      commit(select, chordIdFor(chosen.root, chosen.quality));
+      commit(chordIdFor(chosen.root, chosen.quality));
     }
 
-    function buildReel({ cls, label, items, value, onSettle }) {
+    function buildDrum({ cls, legend, items, value, onSettle }) {
+      const cap = document.createElement("span");
+      cap.className = "wheel-legend";
+      cap.textContent = legend;
+      legends.appendChild(cap);
+
+      const drum = document.createElement("div");
+      drum.className = `drum drum-${cls}`;
+      drums.appendChild(drum);
+
       const el = document.createElement("div");
-      el.className = `reel ${cls}`;
+      el.className = `reel reel-${cls}`;
       el.tabIndex = 0;
       el.setAttribute("role", "listbox");
-      el.setAttribute("aria-label", label);
+      el.setAttribute("aria-label", legend);
+      drum.appendChild(el);
+
+      // The aperture, drawn on THIS drum's housing — one per cylinder, which is
+      // what says they're two objects rather than one split list.
+      const aperture = document.createElement("div");
+      aperture.className = "drum-window";
+      drum.appendChild(aperture);
 
       const pad = document.createElement("div");
       pad.className = "reel-pad";
@@ -112,8 +150,8 @@ export function createChordWheel({ tick = () => {} } = {}) {
           const d = i - centre / ITEM_H;
           const away = Math.abs(d);
           const { cell, face } = faces[i];
-          face.style.transform = `rotateX(${(-d * DEG_PER_STEP).toFixed(2)}deg) translateZ(${(ITEM_H * 1.6).toFixed(1)}px)`;
-          face.style.opacity = String(Math.max(0, 1 - away * 0.22));
+          face.style.transform = `rotateX(${(-d * DEG_PER_STEP).toFixed(2)}deg)`;
+          face.style.opacity = String(Math.max(0, 1 - away * 0.17));
           cell.classList.toggle("in-window", away < 0.5);
           cell.setAttribute("aria-selected", away < 0.5 ? "true" : "false");
         }
@@ -144,7 +182,6 @@ export function createChordWheel({ tick = () => {} } = {}) {
       });
 
       return {
-        el,
         // Position and paint AFTER the panel is in the document — a scroll
         // container has no scrollTop until it has a height.
         open() { scrollToIndex(index, false); paint(); },
@@ -155,11 +192,25 @@ export function createChordWheel({ tick = () => {} } = {}) {
     return {
       afterOpen() { for (const r of reels) r.open(); },
       cleanup() { for (const r of reels) r.cleanup(); },
-      onKey(e) { if (e.key === "Enter") close(); },
     };
   };
 }
 
-// What the trigger shows. Exported so app.js and the grid can label a chord the
+// The Options sheet's chord field shows the two halves SEPARATELY, under their
+// own legends, because they're two controls that happen to open one panel. The
+// per-bar chip keeps the single chord name (`C♯m`) — it's a chip on a bar, and
+// there's no room to say it twice.
+export function chordSplitLabel(select, labelEl) {
+  const at = splitChordId(select.value);
+  const root = document.createElement("span");
+  root.className = "tl-half tl-root";
+  root.textContent = at ? ROOTS.find((r) => r.id === at.root)?.name : select.value;
+  const quality = document.createElement("span");
+  quality.className = "tl-half tl-quality";
+  quality.textContent = at ? QUALITIES.find((q) => q.id === at.quality)?.name : "";
+  labelEl.replaceChildren(root, quality);
+}
+
+// What a chord is called. Exported so app.js and the grid can label a chord the
 // same way the wheel spells it (C♯m, not C#m).
 export const chordLabel = (id) => CHORDS[id]?.name || id;
