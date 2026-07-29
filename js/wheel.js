@@ -44,15 +44,21 @@ export function createChordWheel({ tick = () => {} } = {}) {
     const start = splitChordId(select.value) || { root: ROOTS[0].id, quality: QUALITIES[0].id };
     const chosen = { root: start.root, quality: start.quality };
 
+    // The panel HUGS the drums: dropdown.js's position() otherwise gives a panel
+    // the trigger's width as a min-width, which is right for a list (it lines up
+    // under the field) and wrong for a mechanism — the Options field is 289px
+    // and left the two drums swimming in housing.
+    panel.dataset.hug = "1";
+
     // TWO DRUMS ON ONE AXLE (his call): the chord and its quality are separate
     // cylinders sitting next to each other and spinning freely, not two columns
-    // of one list. Each gets its own housing, its own window and its own legend,
-    // and a hairline axle line runs between them.
-    const legends = document.createElement("div");
-    legends.className = "wheel-legends";
+    // of one list. Each gets its own housing and its own window, with a hairline
+    // axle line between them. NO captions in here (his call, v2.14.2) — the
+    // Options field already says Chord / Quality directly above, and on a bar
+    // chip the drums are self-evident. The reels keep their `aria-label`s.
     const drums = document.createElement("div");
     drums.className = "wheel-drums";
-    panel.append(legends, drums);
+    panel.append(drums);
 
     const reels = [
       buildDrum({
@@ -75,9 +81,6 @@ export function createChordWheel({ tick = () => {} } = {}) {
     function split() {
       const rule = document.createElement("div");
       rule.className = "wheel-split";
-      const spacer = document.createElement("span");
-      spacer.className = "wheel-legend wheel-legend-gap";
-      legends.appendChild(spacer);
       drums.appendChild(rule);
       return { open() {}, cleanup() {} };
     }
@@ -93,11 +96,6 @@ export function createChordWheel({ tick = () => {} } = {}) {
     }
 
     function buildDrum({ cls, legend, items, value, onSettle }) {
-      const cap = document.createElement("span");
-      cap.className = "wheel-legend";
-      cap.textContent = legend;
-      legends.appendChild(cap);
-
       const drum = document.createElement("div");
       drum.className = `drum drum-${cls}`;
       drums.appendChild(drum);

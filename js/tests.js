@@ -1384,8 +1384,13 @@ acheck("wheel: two reels write one chord id, and the panel stays open", async ()
   assert(panel.querySelector(".drum-root .drum-window") && panel.querySelector(".drum-quality .drum-window"),
     "each drum has its own aperture");
   assert(panel.querySelector(".wheel-split"), "an axle line runs between them");
-  assert([...panel.querySelectorAll(".wheel-legend")].map((l) => l.textContent).join("|") === "Chord||Quality",
-    "each drum is captioned, and the axle column keeps the captions aligned");
+  // Nothing but the mechanism in the housing (his call): the Options field
+  // already says Chord / Quality above the trigger. The reels keep their
+  // aria-labels, which is where that naming has to survive.
+  assert(!panel.textContent.includes("Quality"), "no captions inside the panel");
+  assert(panel.querySelector(".reel-quality").getAttribute("aria-label") === "Quality",
+    "…but the reel is still named for assistive tech");
+  assert(panel.dataset.hug === "1", "the panel sizes to its drums, not to the trigger it came from");
 
   // A reel commits by settling, which a tap sets in motion; the test drives the
   // settle directly because a smooth scroll never completes in a hidden tab.

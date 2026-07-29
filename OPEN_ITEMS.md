@@ -16,7 +16,7 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.1) — THE CHORD WHEEL
+## On the phone right now (v2.14.2) — THE CHORD WHEEL
 
 **Two cylinders, root × quality, in both chord pickers.** All 12 tones on the
 left drum; Major / Minor / 7 on the right. It commits as it settles and stays
@@ -24,11 +24,12 @@ open, so you can spin one drum, hear it, then spin the other. Each is a real
 scroll container, so it has iOS momentum and rubber-banding — a flick spins the
 barrel and it coasts.
 
-**Your three notes are in.** The drums are physically separated now — each has
-its own housing, its own window and its own legend, with an axle line between
-them, and the Options field is split to match (CHORD and QUALITY over two wells
-with a division line, each with its own caret). The per-bar chip stays a single
-name, and opening it shows the same two separated drums.
+**Your notes are in.** The drums are physically separated — each has its own
+housing and window, with an axle line between them — and the Options field is
+split to match (CHORD and QUALITY over two wells with a division line, each with
+its own caret). The panel itself carries no captions and sizes to the drums
+rather than to the control that opened it, so the Options and bar-chip cases now
+open the identical 237px object. The per-bar chip stays a single name.
 
 **The barrel is rounder, and the fix was a subtraction.** The housing carries the
 curve now, but what actually made it read as a cylinder was deleting a
@@ -73,6 +74,23 @@ Flats for E♭/B♭, sharps for C♯/F♯/G♯.
 
 **Costs nothing in layout** — re-measured at 375×553 with 4 bars: header 55.09px,
 grid 384.84px, clearance 11.06px, no overflow. Identical to before.
+
+---
+
+## Next session — the shortlist
+
+**Item 2, pre-loaded patterns, is still the best-value thing on the list** and
+the only big-ish one with nothing blocking it. Design is settled (read-only
+"Built-in" data in the Load sheet, "save a copy", never seeded into
+localStorage). The one thing it needs from you is **the patterns themselves** —
+either a handful you've saved and like, or a nod for me to pick a spread across
+the tiers. It now inherits the 36-chord library and the capo field for free.
+
+Riding along, cheap, whenever you want them:
+- The two help-copy reversions you flagged in v2.13.7 (Wild Card's
+  off-the-curve line, and "Count-In").
+- Anything off drilling with the wheel — the detent's voice, the curve, the
+  die's pool, and the F7 / F♯7 / G♯7 bass question above.
 
 ---
 

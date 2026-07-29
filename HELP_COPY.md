@@ -6,7 +6,7 @@ thing actually sits on screen rather than by key order. A test asserts every
 annotated control has copy and every entry is reachable, so the *list* can't
 drift; the wording here is verified verbatim against the live map.
 
-Snapshot: **v2.14.1**, 28 entries (was 30 — Beat lamp folded into Tempo, Bar
+Snapshot: **v2.14.2**, 28 entries (was 30 — Beat lamp folded into Tempo, Bar
 chord into the Grid).
 
 ## The house rules

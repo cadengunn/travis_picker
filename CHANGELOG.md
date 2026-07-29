@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [21](#where-things-stand-session-21-2026-07-29) | v2.14.0 → v2.14.1 | the chord wheel: two cylinders, and the library became the full 12 × 3 matrix |
+| [21](#where-things-stand-session-21-2026-07-29) | v2.14.0 → v2.14.2 | the chord wheel: two cylinders, and the library became the full 12 × 3 matrix |
 | [20](#where-things-stand-session-20-2026-07-28) | v2.13.5 → v2.13.6 | help mode adjusted against his drilling, then his copy revision: 30 cards → 28 |
 | [19](#where-things-stand-session-19-2026-07-28) | v2.13.4 | the docs split into CLAUDE.md + this file; the Guide became help mode |
 | [18](#where-things-stand-session-18-2026-07-27) | v2.12.0 → v2.13.3 | naming (Fingers / Wild Card), capo tag, swing — trialled, spec'd, cut back |
@@ -139,6 +139,18 @@ panel at the replacement select. Scroll positions and DOM are untouched; only
 the target moves. The test drives two consecutive picks through a rebuild and,
 without the fix, reproduces the reported symptom exactly (first pick lands,
 second doesn't).
+
+### Round three, and the session closed (v2.14.2)
+
+Two nits, both subtractions. **The captions came out of the panel** — the
+Options field already names both halves directly above the trigger, and on a bar
+chip two drums need no explaining; the reels keep their `aria-label`s, so the
+naming survives where it has to. And **the panel now sizes to its drums**
+(`data-hug`): `position()` hands a panel the trigger's width as a min-width,
+which is right for a list lining up under its field and wrong for a mechanism —
+the 289px chord field left the drums swimming in housing while the 164px bar
+chip looked correct, which is exactly what he spotted. Both entry points now
+open the same 237px object.
 
 ### Measured
 

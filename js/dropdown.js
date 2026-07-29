@@ -260,7 +260,11 @@ function open(select, trigger, render) {
 function position(panel, trigger) {
   const r = trigger.getBoundingClientRect();
   const margin = 6;
-  panel.style.minWidth = `${Math.ceil(r.width)}px`;
+  // A list lines up under the field it came from, so it takes the trigger's
+  // width. A panel that opts out (`data-hug`) sizes to its own contents instead
+  // — the chord wheel is a mechanism, not a menu, and the 289px chord field left
+  // its two drums swimming in housing.
+  if (!panel.dataset.hug) panel.style.minWidth = `${Math.ceil(r.width)}px`;
   const ph = panel.offsetHeight;
   const room = window.innerHeight - r.bottom;
   const flipUp = room < ph + margin && r.top > room;

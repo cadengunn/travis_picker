@@ -330,7 +330,7 @@ SE-class, 4 bars, progression mode, the worst case:
 | `main` overflow | 0 — it fits |
 
 **That 11px is the entire remaining budget, and it is the number to protect.**
-(Re-measured at v2.14.1 with the chord wheel in: **identical** — 55.09 / 384.84 /
+(Re-measured at v2.14.2 with the chord wheel in: **identical** — 55.09 / 384.84 /
 11.06 / no overflow. The wheel is a body-level overlay, like the help card, so it
 costs nothing; and the 40px chord readout already pins its `line-height`, so a
 `C♯m` or `E♭7` doesn't grow its box either — checked across six chords, `gridTop`
@@ -541,13 +541,22 @@ Four dependency-free modules, all precached:
   it — the Options sheet's and every per-bar one — which is why the grouped chord
   menus are gone.
   - **TWO DRUMS ON AN AXLE, physically separated** (v2.14.1, his call): each
-    cylinder gets its own housing, its own aperture and its own legend, with a
-    hairline axle line between them. One aperture spanning both was the first
-    build and read as one list with a rule down it. In the **Options sheet** the
-    field is split to match — two legends (`Chord` / `Quality`) over two wells,
-    each with its own caret — via a `label` renderer on `enhanceSelect`; the
-    per-bar chip keeps the single name (`C♯m`), since there's no room to say it
-    twice on a bar.
+    cylinder gets its own housing and its own aperture, with a hairline axle line
+    between them. One aperture spanning both was the first build and read as one
+    list with a rule down it. In the **Options sheet** the field is split to
+    match — two legends (`Chord` / `Quality`) over two wells, each with its own
+    caret — via a `label` renderer on `enhanceSelect`; the per-bar chip keeps the
+    single name (`C♯m`), since there's no room to say it twice on a bar.
+  - **Nothing but the mechanism inside the housing** (v2.14.2, his call): no
+    captions in the panel. The Options field names both halves directly above
+    the trigger, and on a bar chip the two drums are self-evident. The reels keep
+    their `aria-label`s, which is where that naming has to survive — a test pins
+    both halves of that.
+  - **The panel sizes to its DRUMS, not to the trigger** (`data-hug`, v2.14.2).
+    `position()` gives a panel the trigger's width as a min-width, which is right
+    for a list (it lines up under its field) and wrong for a mechanism: the 289px
+    chord field left the drums swimming in housing. Both entry points now open
+    the same 237px object.
   - **It's a real scroll container with CSS scroll-snap, not a hand-rolled drag**:
     that buys iOS momentum, rubber-banding and detents for free, and it's
     physically right (a flick spins the barrel and it coasts).
@@ -1028,7 +1037,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.1 — the chord wheel: two separated cylinders, all 12 roots ×
+**v2.14.2 — the chord wheel: two separated cylinders, all 12 roots ×
 Major/Minor/7; on the phone.** 81/81 checks green, tree clean. (v2.13.3 was the last version signed off on the
 guitar.) The build
 order in `travis-picker-workflow.md` is complete: generator + grid, progression
