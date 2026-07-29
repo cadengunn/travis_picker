@@ -51,11 +51,16 @@ export function capoLabel(capo) {
   return capo === -1 ? "half-step down" : capo === -2 ? "whole step down" : `${-capo} semitones down`;
 }
 
-// Pitch class -> the name a guitarist would say. Flat-preferred, except F♯ —
-// the usual convention ("capo 3 with G shapes sounds in B♭", not "A♯"). The
-// pretty glyphs match the Roman numerals' ♭/♯, so anywhere these are shown needs
-// a pinned line-height (they fall back off Fraunces).
-const PC_NAME = ["C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
+// Pitch class -> the name a guitarist would say. ONE spelling per pitch, used
+// everywhere a note is printed: the chord wheel's root reel, every chord's
+// display name, and the capo tag. That single-source rule is the whole point —
+// before the wheel this table said "D♭" while the library said "C#", so with a
+// capo the same pitch could be spelled two ways on one screen.
+// WHICH spelling per pitch is a guitarist's habit, not a rule: flats for E♭/B♭,
+// sharps for C♯/F♯/G♯ (nobody says "D♭ minor" or "A♭ shapes" on a guitar).
+// The pretty glyphs match the Roman numerals' ♭/♯, so anywhere these are shown
+// needs a pinned line-height (they fall back off Fraunces).
+const PC_NAME = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "G♯", "A", "B♭", "B"];
 
 // Transpose a chord or key id by `capo` semitones and return it spelled for
 // display, keeping the quality suffixes (Am + 2 -> "Bm", C7 + 3 -> "E♭7").
@@ -87,42 +92,143 @@ export function getBassPreset(id) {
   return BASS_PRESETS.find((p) => p.id === id) || BASS_PRESETS[0];
 }
 
-// ----- Chord library (role resolution) -----
-// Each role points at a string; `fifthFret` overrides the shape fret for the
-// fifth when the open shape doesn't cover it (spec: C's fifth = string 6 fret 3).
-// Bass roles per chord. Barre chords assume a full barre, so the low string is
-// available as a bass note even where the "textbook" voicing mutes it (the same
-// convention C already uses: its fifth is string 6 fret 3).
-export const CHORDS = {
+// ----- Chord library: the full ROOT × QUALITY matrix -----
+// The picker is two wheels (root, quality), so the library has to be DENSE — a
+// wheel with dead cells would be a lie. That's 12 roots × 3 qualities = 36
+// chords, and it's why the barre chords are derived from movable templates
+// below instead of being hand-written 22 more times.
+//
+// An id is literally root + quality suffix ("C", "C#m", "Eb7"), which is what a
+// saved pattern stores; `name` is what's PRINTED, spelled from PC_NAME so the
+// wheel, the chord readout and the capo tag never disagree about a pitch.
+const ROOT_ID = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "G#", "A", "Bb", "B"];
+export const ROOTS = ROOT_ID.map((id, pc) => ({ id, pc, name: PC_NAME[pc] }));
+
+// The quality reel. Ordered as it reads on the wheel. Adding a fourth quality
+// means adding its templates below and a shape for any open-position voicing —
+// deliberately NOT done yet: three is enough to judge the wheel by.
+export const QUALITIES = [
+  { id: "major", suffix: "",  name: "Major" },
+  { id: "minor", suffix: "m", name: "Minor" },
+  { id: "dom7",  suffix: "7", name: "7" },
+];
+
+export const chordIdFor = (rootId, qualityId) =>
+  rootId + (QUALITIES.find((q) => q.id === qualityId)?.suffix ?? "");
+
+// Chord id -> { root, quality } for the wheel to point its two reels at. Reads
+// the LONGEST matching suffix first so "m" and "7" can't be confused with a root.
+export function splitChordId(id) {
+  for (const q of [...QUALITIES].sort((a, b) => b.suffix.length - a.suffix.length)) {
+    if (q.suffix && id.endsWith(q.suffix)) {
+      const root = id.slice(0, -q.suffix.length);
+      if (ROOT_ID.includes(root)) return { root, quality: q.id };
+    }
+  }
+  return ROOT_ID.includes(id) ? { root: id, quality: "major" } : null;
+}
+
+// ----- Open-position chords: hand-declared, because they're VOICINGS -----
+// These are the shapes you actually play in first position, and no template
+// produces them (open strings only exist at the nut). Everything else is derived.
+// Each role points at a string; `fifthFret` gives the fret for the fifth role,
+// which can sit on a string the shape doesn't fret (C's fifth is string 6 fret 3).
+const OPEN_CHORDS = {
   // --- majors ---
-  C:    { name: "C",   root: 5, alt: 4, fifth: 6, fifthFret: 3 },
-  G:    { name: "G",   root: 6, alt: 4, fifth: 5, fifthFret: 2 },
-  D:    { name: "D",   root: 4, alt: 3, fifth: 5, fifthFret: 0 },
-  A:    { name: "A",   root: 5, alt: 4, fifth: 6, fifthFret: 0 },
-  E:    { name: "E",   root: 6, alt: 4, fifth: 5, fifthFret: 2 },
-  F:    { name: "F",   root: 6, alt: 4, fifth: 5, fifthFret: 3 },
-  "F#": { name: "F#",  root: 6, alt: 4, fifth: 5, fifthFret: 4 }, // E-shape barre @2 (the II of E)
-  Bb:   { name: "Bb",  root: 5, alt: 4, fifth: 6, fifthFret: 1 }, // A-shape barre @1 (the ♭VII of C)
-  B:    { name: "B",   root: 5, alt: 4, fifth: 6, fifthFret: 2 },
-  // --- dominant 7ths (the I7 of each major key) ---
-  // Bass roles are identical to the parent major; the b7 lives on a FINGER string
-  // in every shape, so the alternating bass is unchanged and the 7th sounds as a
-  // finger colour. (E7 uses the 020130 voicing precisely to keep this true — the
-  // common 020100 shape would drop the b7 onto string 4, the alt-bass string.)
-  C7:   { name: "C7",  root: 5, alt: 4, fifth: 6, fifthFret: 3 },
-  G7:   { name: "G7",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
-  D7:   { name: "D7",  root: 4, alt: 3, fifth: 5, fifthFret: 0 },
-  A7:   { name: "A7",  root: 5, alt: 4, fifth: 6, fifthFret: 0 },
-  E7:   { name: "E7",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
+  C:  { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 2, 3: 0, 2: 1, 1: 0 } },
+  D:  { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 2 } },
+  E:  { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 0,    5: 2, 4: 2, 3: 1, 2: 0, 1: 0 } },
+  G:  { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 3 } },
+  A:  { root: 5, alt: 4, fifth: 6, fifthFret: 0, shape: { 6: null, 5: 0, 4: 2, 3: 2, 2: 2, 1: 0 } },
   // --- minors ---
-  Am:   { name: "Am",  root: 5, alt: 4, fifth: 6, fifthFret: 0 },
-  Em:   { name: "Em",  root: 6, alt: 4, fifth: 5, fifthFret: 2 },
-  Bm:   { name: "Bm",  root: 5, alt: 4, fifth: 6, fifthFret: 2 },
-  Dm:   { name: "Dm",  root: 4, alt: 3, fifth: 5, fifthFret: 0 },
-  "F#m": { name: "F#m", root: 6, alt: 4, fifth: 5, fifthFret: 4 },
-  "C#m": { name: "C#m", root: 5, alt: 4, fifth: 6, fifthFret: 4 },
-  "G#m": { name: "G#m", root: 6, alt: 4, fifth: 5, fifthFret: 6 },
+  Am: { root: 5, alt: 4, fifth: 6, fifthFret: 0, shape: { 6: null, 5: 0, 4: 2, 3: 2, 2: 1, 1: 0 } },
+  Dm: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 1 } },
+  Em: { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 0,    5: 2, 4: 2, 3: 0, 2: 0, 1: 0 } },
+  // --- dominant 7ths ---
+  // These five keep the parent major's bass exactly: the ♭7 sits on a FINGER
+  // string in every one of these voicings, so the alternating bass is unchanged
+  // and the 7th sounds as a finger colour. E7 uses 020130 precisely to keep that
+  // true — the common 020100 drops the ♭7 onto string 4, the alt-bass string.
+  C7: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 2, 3: 3, 2: 1, 1: 0 } }, // ♭7 on 3
+  D7: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 1, 1: 2 } }, // ♭7 on 2
+  E7: { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 0,    5: 2, 4: 2, 3: 1, 2: 3, 1: 0 } }, // ♭7 on 2
+  G7: { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 1 } }, // ♭7 on 1
+  A7: { root: 5, alt: 4, fifth: 6, fifthFret: 0, shape: { 6: null, 5: 0, 4: 2, 3: 0, 2: 2, 1: 0 } }, // ♭7 on 3
+  // B7 is the open x21202 rather than an A-shape barre at 2: it's the chord you
+  // actually play, and its ♭7 (A) is on string 3, a finger string. String 6 is
+  // fretted at 2 (F♯) so the fifth role has its note — the same "the low string
+  // is available as a bass note even where the textbook voicing mutes it"
+  // convention the barre chords use.
+  B7: { root: 5, alt: 4, fifth: 6, fifthFret: 2, shape: { 6: 2,    5: 2, 4: 1, 3: 2, 2: 0, 1: 2 } },
 };
+
+// ----- Movable barre templates: one shape slid up the neck -----
+// A barre chord is a fixed hand shape at a fret, so BOTH the frets and the bass
+// roles are constant relative to the barre. That's what lets two templates cover
+// all twelve roots — and it isn't a new convention: "E-shape or A-shape,
+// whichever barres lower" reproduces every barre chord the library used to hand-
+// declare (F@1, F♯@2, Gm@3, G♯m@4, B♭@1, B@2, Bm@2, C♯m@4), which a test pins.
+//
+// Frets are OFFSETS from the barre fret; string 6 is always the barre itself in
+// the A-shapes, per that same available-low-string convention.
+//
+// ⚠️ The E-shape dominant 7th is the one place a derived chord's bass differs
+// from its parent major: the ♭7 has only two homes inside an E-shape — string 4
+// at the barre (the everyday 131211 F7) or string 2 three frets up (a four-
+// finger stretch nobody plays). Taking the playable one puts the ♭7 on the
+// ALT-BASS string, so F7 / F♯7 / G♯7 alternate root ↔ ♭7 rather than root ↔
+// octave. It's a real ragtime bass and the shape is the one you'd actually
+// fret; flipping it is a one-line change to this template.
+const BARRE_TEMPLATES = {
+  E: {
+    rootPc: 4, root: 6, alt: 4, fifth: 5,
+    shapes: {
+      major: { 6: 0, 5: 2, 4: 2, 3: 1, 2: 0, 1: 0 },
+      minor: { 6: 0, 5: 2, 4: 2, 3: 0, 2: 0, 1: 0 },
+      dom7:  { 6: 0, 5: 2, 4: 0, 3: 1, 2: 0, 1: 0 }, // ♭7 on string 4 — see above
+    },
+  },
+  A: {
+    rootPc: 9, root: 5, alt: 4, fifth: 6,
+    shapes: {
+      major: { 6: 0, 5: 0, 4: 2, 3: 2, 2: 2, 1: 0 },
+      minor: { 6: 0, 5: 0, 4: 2, 3: 2, 2: 1, 1: 0 },
+      dom7:  { 6: 0, 5: 0, 4: 2, 3: 0, 2: 2, 1: 0 }, // ♭7 on string 3, a finger string
+    },
+  },
+};
+
+// Where a template's barre lands for a root. The two are always 5 semitones
+// apart, so they never tie.
+const barreFret = (template, pc) => (((pc - template.rootPc) % 12) + 12) % 12;
+
+// Derive one barre chord: pick the template that barres LOWER (the shape a
+// player would actually reach for), then slide it.
+function deriveBarreChord(root, quality) {
+  const t = barreFret(BARRE_TEMPLATES.E, root.pc) <= barreFret(BARRE_TEMPLATES.A, root.pc)
+    ? BARRE_TEMPLATES.E
+    : BARRE_TEMPLATES.A;
+  const at = barreFret(t, root.pc);
+  const shape = {};
+  for (const [string, offset] of Object.entries(t.shapes[quality.id])) shape[string] = at + offset;
+  return { root: t.root, alt: t.alt, fifth: t.fifth, fifthFret: shape[t.fifth], shape };
+}
+
+// The library, built root by root so CHORD_IDS is in wheel order (C, Cm, C7,
+// C♯, C♯m, C♯7, …). An open voicing wins wherever one exists.
+export const CHORDS = {};
+export const CHORD_SHAPES = {};
+for (const root of ROOTS) {
+  for (const quality of QUALITIES) {
+    const id = root.id + quality.suffix;
+    // NOTE `root`/`alt`/`fifth` on a chord are STRING NUMBERS, not notes — the
+    // root NOTE is `rootId`. Two different senses of the word, and the generator
+    // means the string.
+    const { shape, ...chord } = OPEN_CHORDS[id] || deriveBarreChord(root, quality);
+    CHORDS[id] = { name: root.name + quality.suffix, rootId: root.id, quality: quality.id, ...chord };
+    CHORD_SHAPES[id] = shape;
+  }
+}
 
 export const CHORD_IDS = Object.keys(CHORDS);
 
@@ -146,34 +252,6 @@ export function thumbLegalStrings(chordId) {
 // D), a tapped note is inferred as thumb on beat slots (1,3,5,7) and finger on
 // offbeat slots. Labels always come from each note's stored `finger` field,
 // never re-inferred from the grid row.
-
-// ----- Open chord shapes: string(6..1) -> fret. null = string not fretted in
-// this shape (still playable open; Fret mode shows 0). -----
-export const CHORD_SHAPES = {
-  //          6        5     4     3     2     1
-  C:     { 6: 3,    5: 3, 4: 2, 3: 0, 2: 1, 1: 0 },
-  G:     { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 3 },
-  D:     { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 2 },
-  A:     { 6: null, 5: 0, 4: 2, 3: 2, 2: 2, 1: 0 },
-  E:     { 6: 0,    5: 2, 4: 2, 3: 1, 2: 0, 1: 0 },
-  F:     { 6: 1,    5: 3, 4: 3, 3: 2, 2: 1, 1: 1 },
-  "F#":  { 6: 2,    5: 4, 4: 4, 3: 3, 2: 2, 1: 2 }, // E-shape barre @2
-  Bb:    { 6: 1,    5: 1, 4: 3, 3: 3, 2: 3, 1: 1 }, // A-shape barre @1
-  B:     { 6: 2,    5: 2, 4: 4, 3: 4, 2: 4, 1: 2 }, // barre @2
-  // dominant 7ths: b7 on a finger string, bass unchanged from the parent major
-  C7:    { 6: 3,    5: 3, 4: 2, 3: 3, 2: 1, 1: 0 }, // b7 (Bb) on string 3
-  G7:    { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 1 }, // b7 (F) on string 1
-  D7:    { 6: null, 5: 0, 4: 0, 3: 2, 2: 1, 1: 2 }, // b7 (C) on string 2
-  A7:    { 6: null, 5: 0, 4: 2, 3: 0, 2: 2, 1: 0 }, // b7 (G) on string 3
-  E7:    { 6: 0,    5: 2, 4: 2, 3: 1, 2: 3, 1: 0 }, // 020130 — b7 (D) on string 2, alt bass stays E
-  Am:    { 6: null, 5: 0, 4: 2, 3: 2, 2: 1, 1: 0 },
-  Em:    { 6: 0,    5: 2, 4: 2, 3: 0, 2: 0, 1: 0 },
-  Bm:    { 6: 2,    5: 2, 4: 4, 3: 4, 2: 3, 1: 2 }, // barre @2
-  Dm:    { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 1 },
-  "F#m": { 6: 2,    5: 4, 4: 4, 3: 2, 2: 2, 1: 2 }, // barre @2
-  "C#m": { 6: 4,    5: 4, 4: 6, 3: 6, 2: 5, 1: 4 }, // barre @4
-  "G#m": { 6: 4,    5: 6, 4: 6, 3: 4, 2: 4, 1: 4 }, // barre @4
-};
 
 // Fret for a string in a chord shape. Falls back to 0 (open) when the shape
 // doesn't specify the string. Thumb "fifth" role uses the chord's fifthFret.
@@ -280,7 +358,7 @@ export const CHAOS_PRESETS = {
 
 export const CHAOS_IDS = ["tame", "loose", "unruly", "chaos"];
 
-// Menu sections for the Fingers selector, same idiom as CHORD_GROUPS/KEY_GROUPS.
+// Menu sections for the Fingers selector, same idiom as KEY_GROUPS.
 // The split is the point: Tame → Loose → Unruly is a curve you climb, and Wild
 // card isn't on it. A bare divider would only imply that; the caption says it,
 // and "Experimental" leaves room for future off-curve generation ideas.
@@ -352,25 +430,11 @@ export const KEY_GROUPS = [
   { label: "Minor", ids: KEY_IDS.filter((k) => KEYS[k].mode === "minor") },
 ];
 
-// Chord selector grouped by family — the per-bar picker in progression mode,
-// where you reach for a chord by its harmonic role. Every CHORD_ID is in exactly
-// one group (a test asserts the partition).
-export const CHORD_GROUPS = [
-  { label: "Major",       ids: ["C", "G", "D", "A", "E", "F", "F#", "Bb", "B"] },
-  { label: "Dominant 7",  ids: ["C7", "G7", "D7", "A7", "E7"] },
-  { label: "Minor",       ids: ["Am", "Em", "Bm", "Dm", "F#m", "C#m", "G#m"] },
-];
-
-// The SINGLE-chord picker leads with the core seven open-position "campfire"
-// chords — what you actually drill — and files the barre chords, dominant 7ths
-// and rarer minors below under a "more" section. Also a full partition of the
-// library.
-export const SINGLE_CHORD_GROUPS = [
-  { label: "Open chords", ids: ["C", "G", "D", "A", "E", "Am", "Em", "Dm"] },
-  { label: "More majors", ids: ["F", "F#", "Bb", "B"] },
-  { label: "Dominant 7",  ids: ["C7", "G7", "D7", "A7", "E7"] },
-  { label: "More minors", ids: ["Bm", "F#m", "C#m", "G#m"] },
-];
+// (There were two grouped chord menus here — "Open chords / More majors /
+// Dominant 7 / More minors" for the single picker and a Major/Dom7/Minor
+// partition for the per-bar one. Both existed to make a 21-item list findable.
+// Root × quality IS the organisation now, and it's the same two wheels in both
+// places, so the groups went with the lists.)
 
 // Preset progressions, curated by STYLE (the value a fingerstyle player actually
 // reaches for), so the dropdown groups them under those headers. EVERY preset is
@@ -530,9 +594,10 @@ export function randomKeyProgression(currentKey, currentProgId, rng = Math.rando
   return null;
 }
 
-// A random single chord. Defaults to the open-position "campfire" chords — the
-// point is a playable drill, not a barre-chord lottery.
-export function randomChord(currentChord, rng = Math.random, pool = SINGLE_CHORD_GROUPS[0].ids) {
+// A random single chord, from the WHOLE library (his call, with the wheel): the
+// die used to roll only the open "campfire" chords, but a picker that offers all
+// 36 with equal ceremony should have a die that does the same.
+export function randomChord(currentChord, rng = Math.random, pool = CHORD_IDS) {
   return pickDifferent(pool, (c) => c === currentChord, rng);
 }
 
@@ -673,7 +738,7 @@ export const HELP = {
   },
   "field-chord": {
     title: "Chord",
-    body: "The one chord the whole pattern is played over. Open chords are listed first.",
+    body: "The one chord the whole pattern is played over. Every root has a major, a minor and a 7.",
   },
   "field-key": {
     title: "Key",

@@ -16,12 +16,19 @@
 // the re-roll reverts…) don't fire `change`, so we wrap the element's own `value`
 // setter to also refresh the trigger label. That keeps the button honest without
 // scattering refresh calls through app.js.
+//
+// THE PANEL IS PLUGGABLE (the chord wheel, session 21). Everything around the
+// panel — the trigger, the value-setter wrap, one-panel-at-a-time, the outside-
+// tap catcher, Escape, and closing when the ground shifts — is the same job
+// whatever is drawn inside. So a caller can pass its own `render`, and the
+// scrolling list below is simply the default one. `wheel.js` supplies the other.
+// A renderer fills the panel and may return { onKey, afterOpen }.
 
 const valueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
 
 let openPanel = null; // the one panel that can be open at a time
 
-export function enhanceSelect(select) {
+export function enhanceSelect(select, { render = renderList } = {}) {
   if (select.dataset.dd === "1") return;
   select.dataset.dd = "1";
 
@@ -66,13 +73,26 @@ export function enhanceSelect(select) {
 
   trigger.addEventListener("click", () => {
     if (openPanel && openPanel.select === select) { closePanel(); return; }
-    open(select, trigger);
+    open(select, trigger, render);
   });
 }
 
 // Enhance every not-yet-enhanced <select> under `root` (default: document).
-export function enhanceAll(root = document) {
-  for (const s of root.querySelectorAll("select:not([data-dd])")) enhanceSelect(s);
+// `pick(select)` may return a renderer for a given select — that's how app.js
+// hands the chord selects their wheel without knowing where each one is.
+export function enhanceAll(root = document, pick) {
+  for (const s of root.querySelectorAll("select:not([data-dd])")) {
+    enhanceSelect(s, { render: pick?.(s) || renderList });
+  }
+}
+
+// Commit a pick: write through the wrapped setter (which refreshes the label)
+// and fire the same bubbling `change` a native pick would. Shared by renderers.
+export function commit(select, value) {
+  if (select.value === value) return false;
+  select.value = value;
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+  return true;
 }
 
 function closePanel() {
@@ -84,18 +104,12 @@ function closePanel() {
   openPanel = null;
 }
 
-function open(select, trigger) {
-  closePanel();
-
-  const panel = document.createElement("div");
-  panel.className = "dd-panel";
+// The DEFAULT renderer: the scrolling list of options, mirroring the select's
+// own structure so an <optgroup> becomes a section header.
+function renderList(select, panel, { close }) {
   panel.setAttribute("role", "listbox");
-
   let active = select.selectedIndex;
 
-  // Walk the select's own structure (not the flat .options collection) so an
-  // <optgroup> renders as a non-selectable section header. The native select
-  // stays the source of truth; we mirror its groups.
   const buildOption = (opt) => {
     const item = document.createElement("button");
     item.type = "button";
@@ -109,11 +123,8 @@ function open(select, trigger) {
     }
     item.addEventListener("click", () => {
       if (opt.disabled) return;
-      if (select.value !== opt.value) {
-        select.value = opt.value; // fires syncLabel via the wrapped setter
-        select.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-      closePanel();
+      commit(select, opt.value);
+      close();
     });
     panel.appendChild(item);
   };
@@ -130,6 +141,35 @@ function open(select, trigger) {
     }
   }
 
+  return {
+    onKey(e) {
+      const items = [...panel.querySelectorAll(".dd-option:not(:disabled)")];
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      e.preventDefault();
+      active = Math.max(0, Math.min(items.length - 1,
+        items.indexOf(document.activeElement) + (e.key === "ArrowDown" ? 1 : -1)));
+      items[active]?.focus();
+    },
+    // Focus the selected option so keyboard + VoiceOver land somewhere sensible,
+    // and bring it into view when the list is long.
+    afterOpen() {
+      requestAnimationFrame(() => {
+        const sel = panel.querySelector(".dd-option.selected") || panel.querySelector(".dd-option");
+        sel?.focus();
+        sel?.scrollIntoView({ block: "nearest" });
+      });
+    },
+  };
+}
+
+function open(select, trigger, render) {
+  closePanel();
+
+  const panel = document.createElement("div");
+  panel.className = "dd-panel";
+
+  const hooks = render(select, panel, { close: closePanel }) || {};
+
   document.body.appendChild(panel);
   position(panel, trigger);
   trigger.setAttribute("aria-expanded", "true");
@@ -141,15 +181,8 @@ function open(select, trigger) {
   document.body.appendChild(catcher);
 
   const onKey = (e) => {
-    const items = [...panel.querySelectorAll(".dd-option:not(:disabled)")];
-    if (e.key === "Escape") { e.stopPropagation(); closePanel(); trigger.focus(); }
-    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      active = Math.max(0, Math.min(items.length - 1,
-        items.indexOf(document.activeElement) + (e.key === "ArrowDown" ? 1 : -1)));
-      if (active < 0) active = 0;
-      items[active]?.focus();
-    }
+    if (e.key === "Escape") { e.stopPropagation(); closePanel(); trigger.focus(); return; }
+    hooks.onKey?.(e);
   };
   document.addEventListener("keydown", onKey, true);
 
@@ -174,16 +207,14 @@ function open(select, trigger) {
       window.removeEventListener("resize", reflow);
       window.removeEventListener("scroll", reflow, true);
       if (window.visualViewport) window.visualViewport.removeEventListener("resize", reflow);
+      hooks.cleanup?.();
     },
   };
 
-  // Focus the selected option so keyboard + VoiceOver land somewhere sensible,
-  // and bring it into view when the list is long.
-  requestAnimationFrame(() => {
-    const sel = panel.querySelector(".dd-option.selected") || panel.querySelector(".dd-option");
-    sel?.focus();
-    sel?.scrollIntoView({ block: "nearest" });
-  });
+  // Synchronous, NOT in a rAF: the wheel sets its reels' scroll positions here,
+  // and rAF never fires in a hidden tab (which is what the preview runs as), so
+  // a rAF'd wheel would open blank whenever it was being checked.
+  hooks.afterOpen?.();
 }
 
 // Anchor under the trigger; flip above when the bottom edge is closer. Clamp

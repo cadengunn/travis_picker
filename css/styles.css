@@ -1346,6 +1346,104 @@ main {
 .dd-option:active { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4); }
 .dd-option:disabled { opacity: 0.4; cursor: default; }
 
+/* ---- the chord wheel: two cylinders in one housing (see js/wheel.js) ----
+   The panel is the same .dd-panel shell, so it inherits the faceplate, the
+   hardware border and the positioning; only the contents differ. --reel-item
+   and --reel-visible are set from JS, which owns the geometry the scroll maths
+   depends on. */
+.dd-wheel {
+  display: flex;
+  gap: 8px;
+  /* centred, because position() gives the panel the TRIGGER's width as a
+     min-width — a wide chord field would otherwise leave the mechanism hanging
+     off the left edge with dead housing beside it */
+  justify-content: center;
+  padding: 6px;
+  /* the barrel is a solid thing: the names roll, the housing doesn't scroll */
+  overflow: hidden;
+  /* NOTE: no `position` here. .dd-panel is already `fixed` (which is a
+     positioned ancestor for .reel-window), and this rule sits LATER in the file
+     at equal specificity — a `position: relative` here silently un-fixed the
+     panel, and it opened 350px down the page. */
+}
+.reel {
+  flex: 0 0 auto;
+  height: calc(var(--reel-item) * var(--reel-visible));
+  overflow-y: scroll;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  /* pan-y, not manipulation: this control's whole job is a vertical drag */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: y mandatory;
+  /* the cylinder — the items are facets turned away from the viewer, and the
+     perspective origin is the window, not the top of the reel */
+  perspective: 340px;
+  transform-style: preserve-3d;
+  /* The barrel's ends fall into shadow, which is what makes it read as round
+     rather than as a list that fades out. The ramp is SHORT on purpose: with 5
+     names visible, the outermost pair occupies the top and bottom fifth of the
+     reel exactly, so a long ramp erases them — measured at 26/74 and 14/86, and
+     both left three legible names and two ghosts, which undersells the
+     cylinder. At 8/92 all five read and only the very edge falls away. */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  outline: none;
+}
+.reel::-webkit-scrollbar { display: none; }
+.reel-root { min-width: 74px; }
+.reel-quality { min-width: 96px; }
+/* Half the window either side, so the first and last names can reach the centre. */
+.reel-pad { height: calc(var(--reel-item) * (var(--reel-visible) - 1) / 2); flex: none; }
+/* The STEP. Never transformed: a scroll-snap area is the element's transformed
+   border box, so turning the item itself moved its own detent and the reel
+   snapped half a name off. The 3D lives on .reel-face inside it. */
+.reel-item {
+  display: block;
+  width: 100%;
+  height: var(--reel-item);
+  scroll-snap-align: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+/* The printed name — this is the facet of the barrel. */
+.reel-face {
+  display: block;
+  height: 100%;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  /* fixed for the same reason as .dd-option: C♯ and E♭ fall back off Fraunces
+     to a taller face, and a reel whose steps aren't all --reel-item tall would
+     drift out of step with the scroll maths */
+  line-height: var(--reel-item);
+  color: var(--muted);
+  white-space: nowrap;
+  text-align: center;
+  transition: color 90ms linear;
+}
+.reel-item.in-window .reel-face {
+  color: var(--text);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+/* The window: one bar across both reels, drawn on the housing rather than on
+   either reel, so the two read as one mechanism. */
+.reel-window {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  height: var(--reel-item);
+  transform: translateY(-50%);
+  pointer-events: none;
+  border-top: 1px solid var(--hardware);
+  border-bottom: 1px solid var(--hardware);
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.07), rgba(0, 0, 0, 0.10));
+  z-index: 1;
+}
+
 /* ---- confirm / prompt modal (replaces native confirm()/prompt()) ---- */
 .tp-modal {
   position: fixed;

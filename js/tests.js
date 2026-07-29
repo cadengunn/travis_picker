@@ -14,8 +14,10 @@ import {
   thumbLegalStrings,
   KEYS,
   KEY_IDS,
-  CHORD_GROUPS,
-  SINGLE_CHORD_GROUPS,
+  ROOTS,
+  QUALITIES,
+  chordIdFor,
+  splitChordId,
   CHAOS_GROUPS,
   CHAOS_IDS,
   CHAOS_PRESETS,
@@ -68,6 +70,7 @@ import {
   DEFAULT_SWING,
 } from "./metronome.js";
 import { enhanceSelect } from "./dropdown.js";
+import { createChordWheel } from "./wheel.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { isNav, helpTargetFor, createHelp, NAV_SELECTOR } from "./help.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
@@ -80,6 +83,13 @@ function check(name, fn) {
   } catch (e) {
     results.push({ name, ok: false, msg: e.message });
   }
+}
+
+// Checks that have to await something (fetch, or a timer the code under test
+// uses). Collected here and run — awaited — by runTests before it reports.
+const asyncChecks = [];
+function acheck(name, fn) {
+  asyncChecks.push({ name, fn });
 }
 function assert(cond, msg) {
   if (!cond) throw new Error(msg || "assertion failed");
@@ -354,17 +364,88 @@ check("chord library: every chord has a shape covering its role strings", () => 
   }
 });
 
-// 6b) The chord-family groups partition the library exactly (every id in one
-//     group, no strays) — the single-chord and per-bar pickers rely on this.
-check("chord groups partition the library exactly", () => {
-  for (const [name, groups] of [["CHORD_GROUPS", CHORD_GROUPS], ["SINGLE_CHORD_GROUPS", SINGLE_CHORD_GROUPS]]) {
-    const grouped = groups.flatMap((g) => g.ids);
-    assert(grouped.length === CHORD_IDS.length,
-      `${name} lists ${grouped.length} chords, library has ${CHORD_IDS.length}`);
-    assert(new Set(grouped).size === grouped.length, `${name}: a chord appears in two groups`);
-    for (const id of grouped) assert(CHORDS[id], `${name} references unknown chord ${id}`);
-    for (const id of CHORD_IDS) assert(grouped.includes(id), `${name}: chord ${id} is in no group`);
+// 6b) THE WHEEL'S MATRIX IS DENSE. Two reels promise that every root has every
+//     quality; a gap would be a cell you can spin to that isn't a chord. This
+//     replaced the old "the chord groups partition the library" check, which was
+//     the same guarantee for the grouped lists the wheel retired.
+check("chord library: every root × quality exists, and nothing else does", () => {
+  assert(ROOTS.length === 12, `expected 12 roots, got ${ROOTS.length}`);
+  assert(CHORD_IDS.length === ROOTS.length * QUALITIES.length,
+    `library is ${CHORD_IDS.length} chords, the matrix is ${ROOTS.length * QUALITIES.length}`);
+  for (const r of ROOTS) {
+    for (const q of QUALITIES) {
+      const id = chordIdFor(r.id, q.id);
+      assert(CHORDS[id], `no chord for ${r.name} ${q.name} (id "${id}")`);
+      assert(CHORDS[id].rootId === r.id && CHORDS[id].quality === q.id,
+        `${id} doesn't report itself as ${r.id}/${q.id}`);
+    }
   }
+  // Every reachable id round-trips back to the two reel positions that made it —
+  // this is what lets the wheel open pointing at the current chord.
+  for (const id of CHORD_IDS) {
+    const split = splitChordId(id);
+    assert(split, `splitChordId can't read "${id}"`);
+    assert(chordIdFor(split.root, split.quality) === id,
+      `${id} round-tripped to ${chordIdFor(split.root, split.quality)}`);
+  }
+  assert(splitChordId("H7") === null, "an unknown root reads as null rather than guessing");
+});
+
+// 6c) THE TEMPLATES REPRODUCE THE HAND-WRITTEN VOICINGS. The 22 barre chords are
+//     derived (E-shape or A-shape, whichever barres lower) instead of being typed
+//     out. These eight are the ones the library hand-declared before the wheel,
+//     frozen here as the fixture: if the derivation is wrong, it's wrong against
+//     voicings that were played on a real guitar.
+check("chord library: movable templates reproduce the hand-declared barre chords", () => {
+  const expected = {
+    F:     { root: 6, alt: 4, fifth: 5, fifthFret: 3, shape: { 6: 1, 5: 3, 4: 3, 3: 2, 2: 1, 1: 1 } },
+    "F#":  { root: 6, alt: 4, fifth: 5, fifthFret: 4, shape: { 6: 2, 5: 4, 4: 4, 3: 3, 2: 2, 1: 2 } },
+    Bb:    { root: 5, alt: 4, fifth: 6, fifthFret: 1, shape: { 6: 1, 5: 1, 4: 3, 3: 3, 2: 3, 1: 1 } },
+    B:     { root: 5, alt: 4, fifth: 6, fifthFret: 2, shape: { 6: 2, 5: 2, 4: 4, 3: 4, 2: 4, 1: 2 } },
+    Bm:    { root: 5, alt: 4, fifth: 6, fifthFret: 2, shape: { 6: 2, 5: 2, 4: 4, 3: 4, 2: 3, 1: 2 } },
+    "F#m": { root: 6, alt: 4, fifth: 5, fifthFret: 4, shape: { 6: 2, 5: 4, 4: 4, 3: 2, 2: 2, 1: 2 } },
+    "C#m": { root: 5, alt: 4, fifth: 6, fifthFret: 4, shape: { 6: 4, 5: 4, 4: 6, 3: 6, 2: 5, 1: 4 } },
+    "G#m": { root: 6, alt: 4, fifth: 5, fifthFret: 6, shape: { 6: 4, 5: 6, 4: 6, 3: 4, 2: 4, 1: 4 } },
+  };
+  for (const [id, want] of Object.entries(expected)) {
+    const got = CHORDS[id];
+    for (const role of ["root", "alt", "fifth", "fifthFret"]) {
+      assert(got[role] === want[role],
+        `${id}.${role}: expected ${want[role]}, derived ${got[role]}`);
+    }
+    for (const s of [6, 5, 4, 3, 2, 1]) {
+      assert(CHORD_SHAPES[id][s] === want.shape[s],
+        `${id} string ${s}: expected fret ${want.shape[s]}, derived ${CHORD_SHAPES[id][s]}`);
+    }
+  }
+  // Playability: "whichever barres lower" is the rule, so nothing should land
+  // above the 8th fret. (The worst is the A-shape at 6 — the E♭ family.)
+  for (const id of CHORD_IDS) {
+    for (const s of [6, 5, 4, 3, 2, 1]) {
+      const fret = CHORD_SHAPES[id][s];
+      assert(fret == null || fret <= 8, `${id} needs fret ${fret} on string ${s} — off the practical neck`);
+    }
+  }
+});
+
+// 6d) ONE spelling per pitch, everywhere. The wheel's root reel, the chord's
+//     display name and the capo tag all read from PC_NAME, so a pitch can't be
+//     "C♯" on the wheel and "D♭" in the header — which it was before the wheel.
+check("chord names: one spelling per pitch, shared with the capo readout", () => {
+  for (const r of ROOTS) {
+    // Both sides read PC_NAME, so what this really pins is that the capo readout
+    // can PARSE every root id the wheel can produce — a root spelled in a way
+    // chordRootPc doesn't know would come back null and silently blank the tag.
+    assert(soundingName(r.id, 0) === r.name,
+      `${r.id}: the reel says "${r.name}", the capo readout says "${soundingName(r.id, 0)}"`);
+    for (const q of QUALITIES) {
+      const id = chordIdFor(r.id, q.id);
+      assert(CHORDS[id].name === r.name + q.suffix,
+        `${id} is displayed as "${CHORDS[id].name}", not "${r.name + q.suffix}"`);
+    }
+  }
+  assert(CHORDS["C#m"].name === "C♯m" && CHORDS["Eb7"].name === "E♭7",
+    "accidentals are printed as ♯/♭, not # and b");
 });
 
 // 6c) Same contract for the Fingers menu's sections: every tier in exactly one
@@ -514,16 +595,17 @@ check("randomisers: valid, mode-matched, and never a no-op roll", () => {
   assert(share > 0.18 && share < 0.42,
     `minor keys should be ~2/7 of rolls, got ${(share * 100).toFixed(1)}%`);
 
-  // single-chord roll: from the open-chord pool, and never the current chord
-  const open = SINGLE_CHORD_GROUPS[0].ids;
+  // single-chord roll: the WHOLE library now (his call, with the wheel — it used
+  // to be the open "campfire" chords only), and never the current chord.
   const rolled = new Set();
-  for (let seed = 1; seed <= 200; seed++) {
+  for (let seed = 1; seed <= 600; seed++) {
     const c = randomChord("E", seeded(seed * 29 + 7));
-    assert(open.includes(c), `single roll produced "${c}", outside the open-chord pool`);
+    assert(CHORDS[c], `single roll produced "${c}", which isn't a chord`);
     assert(c !== "E", "single roll handed back the current chord");
     rolled.add(c);
   }
-  assert(rolled.size === open.length - 1, `single roll reached ${rolled.size}/${open.length - 1} other open chords`);
+  assert(rolled.size === CHORD_IDS.length - 1,
+    `single roll reached ${rolled.size}/${CHORD_IDS.length - 1} of the other chords`);
 });
 
 // 7c) detectProgression round-trips presets IN THEIR MODE and reports custom edits.
@@ -1141,8 +1223,11 @@ check("capo: shape-first transposition names the concert key a guitarist would s
   // The everyday cases: a shape plus a capo sounds somewhere else.
   assert(soundingName("G", 2) === "A", "G shapes at capo 2 sound in A");
   assert(soundingName("G", 3) === "B♭", "capo 3 spells the flat, not A♯");
-  assert(soundingName("E", 4) === "A♭", "flat-preferred spelling throughout");
-  assert(soundingName("C", 6) === "F♯", "F♯ is the one sharp we keep, by convention");
+  // One spelling per pitch, and it's the guitarist's habit rather than a rule:
+  // flats for E♭/B♭, sharps for C♯/F♯/G♯. Shared with the chord wheel's reel.
+  assert(soundingName("E", 4) === "G♯", "pc 8 is G♯ here and on the wheel, not A♭");
+  assert(soundingName("C", 1) === "C♯", "pc 1 is C♯ here and on the wheel, not D♭");
+  assert(soundingName("C", 6) === "F♯", "F♯ by convention");
   assert(soundingName("G", 0) === "G", "capo 0 is the shape itself");
   // Quality suffixes survive: it's still a minor / still a dominant 7th.
   assert(soundingName("Am", 2) === "Bm", "a minor key stays minor");
@@ -1259,6 +1344,66 @@ check("dropdown: renders optgroup section headers", () => {
   host.remove();
 });
 
+// ---- the chord wheel (DOM) ----
+// It's a RENDERER over the same hidden <select>, so the contract it has to keep
+// is the dropdown's contract: the select stays the source of truth and a pick
+// fires exactly one bubbling `change`. What's specific to the wheel is that a
+// chord is TWO positions, and that the panel deliberately stays open after a
+// pick (his call — every root × quality is valid, so you can spin one reel,
+// hear it, then spin the other).
+acheck("wheel: two reels write one chord id, and the panel stays open", async () => {
+  const sel = document.createElement("select");
+  for (const id of CHORD_IDS) {
+    const o = document.createElement("option");
+    o.value = id; o.textContent = CHORDS[id].name;
+    sel.appendChild(o);
+  }
+  sel.value = "E";
+  const host = document.createElement("div");
+  host.appendChild(sel);
+  document.body.appendChild(host);
+
+  let ticks = 0;
+  enhanceSelect(sel, { render: createChordWheel({ tick: () => { ticks++; } }) });
+  const trigger = host.querySelector(".dd-trigger");
+  trigger.click();
+
+  const panel = document.querySelector(".dd-panel.dd-wheel");
+  assert(panel, "the chord select opens the wheel, not a list");
+  const rootCells = [...panel.querySelectorAll(".reel-root .reel-item")];
+  const qualityCells = [...panel.querySelectorAll(".reel-quality .reel-item")];
+  assert(rootCells.length === 12, `root reel carries 12 names, got ${rootCells.length}`);
+  assert(qualityCells.length === QUALITIES.length,
+    `quality reel carries ${QUALITIES.length} names, got ${qualityCells.length}`);
+  assert(rootCells.map((c) => c.textContent).join(" ") === ROOTS.map((r) => r.name).join(" "),
+    "the root reel is printed in wheel order");
+  assert(!panel.querySelector(".dd-option"), "no list options are rendered alongside the reels");
+  // The window is drawn on the housing, not on a reel — that's what makes the
+  // two read as one mechanism rather than two adjacent lists.
+  assert(panel.querySelector(":scope > .reel-window"), "the window spans both reels");
+
+  // A reel commits by settling, which a tap sets in motion; the test drives the
+  // settle directly because a smooth scroll never completes in a hidden tab.
+  let changes = 0;
+  sel.addEventListener("change", () => { changes++; });
+  // Drive the reel to the "Minor" detent. scrollTop is overridden rather than
+  // assigned because this page carries no stylesheet (by design — see the
+  // name-row check), so the reel has no height and nothing to scroll. What's
+  // under test is the wheel's own logic: which name is in the window, the
+  // detent, and the settle.
+  const reel = panel.querySelector(".reel-quality");
+  Object.defineProperty(reel, "scrollTop", { value: 1 * 38, writable: true }); // ITEM_H in wheel.js
+  reel.dispatchEvent(new Event("scroll"));
+  assert(ticks === 1, `a name passing the window ticks once, got ${ticks}`);
+  await new Promise((r) => setTimeout(r, 200));
+  assert(sel.value === "Em", `settling on Minor over root E should give Em, got ${sel.value}`);
+  assert(changes === 1, `one bubbling change per settle, got ${changes}`);
+  assert(document.querySelector(".dd-wheel"), "the panel stays open after a pick");
+  assert(host.querySelector(".dd-label").textContent === "Em", "the trigger follows");
+  document.querySelector(".dd-catcher").click();
+  host.remove();
+});
+
 // ---- platform integrations (wake lock / audio session / app updater) ----
 // All three take injected `nav`/`doc` for exactly this reason: the real APIs are
 // device-only (and the wake lock can't even be observed from a hidden preview
@@ -1314,12 +1459,8 @@ check("platform: playback ends when the page stops being visible", () => {
 });
 
 // ---- async PWA checks ----
-// The sync `check()`s above run at import time; these need fetch(), so they run
-// (awaited) inside runTests before the report renders. Served by serve.py.
-const asyncChecks = [];
-function acheck(name, fn) {
-  asyncChecks.push({ name, fn });
-}
+// (`acheck` itself is declared beside `check` at the top, so an async check can
+// sit next to the sync ones it belongs with — the wheel's does.)
 
 acheck("platform: wake lock is re-acquired after the app goes to the background", async () => {
   let requests = 0;

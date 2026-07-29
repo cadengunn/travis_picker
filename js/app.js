@@ -4,7 +4,7 @@
 
 import {
   CHORDS,
-  SINGLE_CHORD_GROUPS,
+  CHORD_IDS,
   DEFAULT_CHORD,
   BASS_PRESETS,
   CHAOS_GROUPS,
@@ -47,10 +47,11 @@ import {
   SWING_MIN,
   clampSwing,
 } from "./metronome.js";
-import { setUiSoundEnabled, playPress, playRelease } from "./ui-sound.js";
+import { setUiSoundEnabled, playPress, playRelease, playTick } from "./ui-sound.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { createHelp } from "./help.js";
 import { enhanceSelect, enhanceAll } from "./dropdown.js";
+import { createChordWheel } from "./wheel.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 
 const el = (id) => document.getElementById(id);
@@ -65,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v2.13.7";
+const APP_VERSION = "v2.14.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -128,9 +129,19 @@ function fillSelectGrouped(select, groups, extra) {
   }
 }
 
-// Chord/key groups from data → the {value,label} shape fillSelectGrouped wants.
-const chordOptionGroups = () =>
-  SINGLE_CHORD_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((c) => ({ value: c, label: CHORDS[c].name })) }));
+// Every chord select — the Options sheet's and every per-bar one — opens the
+// two-reel wheel instead of a list; everything else keeps the standard dropdown.
+// The <select> itself is unchanged and still holds all 36 as flat options, so
+// it remains the source of truth (see wheel.js).
+const chordWheel = createChordWheel({
+  // The detent obeys the same silent-switch policy as the buttons: no UI sound
+  // while the transport holds the audio category that overrides the ring switch.
+  tick: () => { if (!metronome.running) playTick(); },
+});
+const chordPicker = (sel) =>
+  (sel.id === "chord" || sel.classList.contains("bar-chord")) ? chordWheel : null;
+
+// Key groups from data → the {value,label} shape fillSelectGrouped wants.
 const keyOptionGroups = () =>
   KEY_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((k) => ({ value: k, label: KEYS[k].name })) }));
 const chaosOptionGroups = () =>
@@ -140,7 +151,7 @@ const keyMode = () => KEYS[state.key]?.mode || "major";
 const CUSTOM_OPTION = { value: CUSTOM_PROGRESSION_ID, label: "Custom" };
 
 function initControls() {
-  fillSelectGrouped(el("chord"), chordOptionGroups());
+  fillSelect(el("chord"), CHORD_IDS, (id) => id, (id) => CHORDS[id].name);
   fillSelectGrouped(el("key"), keyOptionGroups());
   fillSelect(el("bass"), BASS_PRESETS, (p) => p.id, (p) => p.name);
   fillSelectGrouped(el("chaos"), chaosOptionGroups());
@@ -385,8 +396,8 @@ function render() {
     editable: state.editing,
   });
   // The per-bar chord <select>s are rebuilt every render; give them the same
-  // custom dropdown as the rest (idempotent per element).
-  enhanceAll(el("grid"));
+  // wheel as the Options sheet's chord (idempotent per element).
+  enhanceAll(el("grid"), chordPicker);
   syncProgressionSelect();
   renderContext();
   // Re-rendering drops the playhead's cells; keep the loop length in sync too.
@@ -1027,6 +1038,11 @@ function attach() {
   const pressStrength = (e) => {
     const b = e.target.closest("button, .lamp, .dd-trigger, .dd-option");
     if (!b || b.disabled || b.getAttribute("aria-disabled") === "true") return null;
+    // A name on the chord wheel is a facet of a barrel, not a key: it's a
+    // <button> so it can be tapped and focused, but its voice is the DETENT
+    // (playTick, as it rolls past the window). Without this it would ka-chunk
+    // on top of the tick, and also click on the first frame of a drag.
+    if (b.classList.contains("reel-item")) return null;
     return b.classList.contains("btn-roll") ? 1.15
       : b.classList.contains("btn-icon") || b.classList.contains("btn-primary") ? 1.0
       : 0.82;
@@ -1203,7 +1219,7 @@ function registerServiceWorker() {
 // ----- boot -----
 async function boot() {
   initControls();
-  enhanceAll(); // custom dropdowns for every static <select> (theme fills later)
+  enhanceAll(document, chordPicker); // custom dropdowns / the chord wheel (theme fills later)
   const stored = loadAudioPrefs();
   el("click-toggle").checked = audioPrefs.click;
   el("pattern-toggle").checked = audioPrefs.pattern;

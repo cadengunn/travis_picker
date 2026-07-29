@@ -16,7 +16,50 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.13.7) — HELP MODE, adjusted + your copy
+## On the phone right now (v2.14.0) — THE CHORD WHEEL
+
+**Two cylinders, root × quality, in both chord pickers.** All 12 tones on the
+left reel; Major / Minor / 7 on the right. It commits as it settles and stays
+open, so you can spin one reel, hear it, then spin the other. Every reel is a
+real scroll container, so it has iOS momentum and rubber-banding — a flick spins
+the barrel and it coasts.
+
+**The library is now 36 chords**, the full matrix. 14 open-position voicings are
+hand-written; the other 22 are derived from two movable templates (E-shape and
+A-shape, whichever barres lower). That rule reproduces all eight barre chords the
+library used to hand-declare, which is now the test fixture. Nothing lands above
+fret 8.
+
+**What only the phone can judge:**
+- **The detent.** It ticks as each name passes the window, and it's a new voice —
+  lighter and drier than the button ka-chunk, no tail, since it fires several
+  times a second in a spin. Too loud, too quiet, or wrong material?
+- **The feel of the spin.** Five names visible, 38px a step, and the snap is the
+  browser's own. Tapping a name one or two above the window steps to it.
+- **How many names should be legible.** The barrel's ends fall into shadow, and
+  where the fade starts is a taste call I made by measurement rather than by
+  eye — I could only see three names crisp at first and pulled the ramp back.
+- **The die rolls all 36 now.** You may find you want the open chords back.
+
+**One deviation I took and want you to know about.** Inside an E-shape barre the
+♭7 has only two homes: string 4 at the barre (the everyday `131211` F7) or string
+2 three frets up, which is a stretch nobody plays. I took the playable one, which
+puts the ♭7 on the alt-bass string — so **F7, F♯7 and G♯7 alternate root ↔ ♭7**
+rather than root ↔ octave. It's a real ragtime bass and the shape is the one
+you'd actually fret, but it does break "dominant 7ths keep the parent major's
+bass". The alternative is a high A-shape barre (G♯7 at fret 11). One line either
+way — say which you'd rather hear.
+
+**Spelling is now single-source**: the wheel, every chord name and the capo tag
+all read one table, so a pitch can't be `C♯` in one place and `D♭` in another.
+Flats for E♭/B♭, sharps for C♯/F♯/G♯.
+
+**Costs nothing in layout** — re-measured at 375×553 with 4 bars: header 55.09px,
+grid 384.84px, clearance 11.06px, no overflow. Identical to before.
+
+---
+
+## Previously on the phone (v2.13.7) — HELP MODE, adjusted + your copy
 
 **Two more off your last note.**
 
@@ -237,19 +280,28 @@ pass stands as shipped.
 
 ## Big — design session first
 
-### 1. Chord library expansion + Root × Quality picker — NEEDS A CALL
-Elliott: add m7, maj7, ♭5, diminished, augmented — and split the chord menu into
-a **root** dropdown and a **quality** dropdown.
+### 1. Chord library + picker — THE PICKER IS DONE (v2.14.0); MORE QUALITIES IS THE OPEN HALF
 
-**Size:** the biggest thing on the list, and it's really two items.
-- *The picker refactor* is worth doing on its own terms — 21 chords is already a
-  long menu, and root × quality collapses it into two short ones. The Options
-  sheet has room for it now that it's two pages, which it didn't before.
-- *The library* is the hard half. Every chord hand-declares its bass roles and its
-  shape. 12 roots × 7 qualities = 84 hand-written entries: that stops being a data
-  edit and becomes a data problem. The way out is deriving chords from movable
-  shape templates (CAGED-ish: template + root fret ⇒ shape and roles), which is a
-  real architecture change to `data.js`.
+**Done:** the root × quality picker, as two cylinders, and the library expanded to
+the full 12 roots × Major/Minor/7. The templates refactor that item 1 called "a
+real architecture change" turned out to be six templates and a rule, because
+"whichever barres lower" was already the convention the hand-written barre chords
+followed — see this session's CHANGELOG entry.
+
+**Still open: more qualities.** Elliott's list was m7, maj7, ♭5, diminished,
+augmented. Deliberately not started — your call was to see how three feels first,
+and the wheel is built so a fourth quality is a template plus any open voicing,
+applied to all 12 roots at once. Nothing structural.
+
+Two things to weigh when you come back to it:
+- **The generator never sees quality.** A chord reaches it as three role strings
+  and a fret shape, so this is a left-hand and audio feature, not a right-hand
+  one. Elliott hedged himself here ("maybe unnecessary, this is really a right
+  hand exercise") and he had a point.
+- **For this idiom, `sus2`/`sus4` and `add9` probably earn a slot before
+  `maj7`/`m7`,** and `dim`/`aug` earn it least — they're also the only two with a
+  model wrinkle (no perfect fifth, so the `fifth` role points at a ♭5/♯5 or
+  collapses to root-only).
 
 **Already answered:** your closed-voicing worry has a clean solution *in the
 existing model, with no generator change* — a chord that declares root, alt and
@@ -257,11 +309,12 @@ fifth on the same string/fret makes the Travis preset alternate between identica
 notes, i.e. exactly the thumb-on-root-only behaviour you proposed. So the jazz
 shapes are a data convention, not new code.
 
-**Needs from you — the framing question:** do you want to **drill your right hand
-over richer harmony** (a dozen curated additions: m7, maj7, a couple of dim/aug —
-small), or do you want a **chord dictionary** (all roots × all qualities — the
-templates refactor)? Elliott hedged himself here ("maybe unnecessary, this is
-really a right hand exercise"), which is worth weighing.
+**One thing the parsers will need first.** `chordRootPc` reads an id by stripping
+`7` then `m`, which survives all 36 of today's chords. `Cmaj7` breaks it (strips
+to `Cmaj`, no pitch class ⇒ the numeral reads `?` and the capo tag blanks), and
+`Am7` breaks it silently (the suffix regex sees the `7` first, so capo 2 reports
+`B7`). The fix is small and contained: chords already carry `rootId` and
+`quality`, so those two functions read the fields instead of re-parsing the id.
 
 ---
 
@@ -338,11 +391,18 @@ the novelty/discovery setting, per the spec and your session-6 call. Not a bug.
 the fix is constraints on its column shapes, and it becomes "Unruly+" instead of
 "random".
 
-### 9. Chord shape diagram (Elliott) — DEFERRED, with a trigger
-You called it redundant given the fret-number labels, and I agree — *today*. It
-stops being redundant the moment the chord library grows unfamiliar shapes, and
-then it belongs in the **chord picker** (where you're choosing), never near the
-grid. So: revisit if and only if item 1 happens.
+### 9. Chord shape diagram (Elliott) — ITS TRIGGER HAS FIRED (v2.14.0)
+You called it redundant given the fret-number labels, and I agreed — *while every
+chord was one you already knew*. The condition I wrote was "revisit if and only if
+the library grows unfamiliar shapes", and it just grew 22 barre chords: the grid
+tells you which frets the notes you *pick* are on, which is not the same as
+knowing where to put your left hand for E♭m.
+
+Not urgent, and not obviously worth the height — but it belongs in the **wheel**
+(where you're choosing), never near the grid, and the wheel's panel is a
+body-level overlay, so a small diagram beside the two reels costs nothing in
+layout. Worth a look once you've drilled with the new chords and know whether you
+actually reach for the unfamiliar ones.
 
 ### 10. Saved-name crowding — OPEN, only if it bites
 Three buttons per saved item (Load / Rename / Delete) narrow the name column, so
@@ -396,6 +456,15 @@ majors). "Curate first, expand later."
   **What genuinely did need it was the docs** — **done, session 19.** CLAUDE.md
   went 1,982 → 867 lines; the history is in `CHANGELOG.md`. The code cleanup
   itself is still deferred to whatever session next touches those files.
+- **The chord picker is two cylinders, not a grid** (v2.14.0, your call) — a
+  barrel that rolls under the thumb reads as part of the instrument; a grid of
+  cells reads as a menu. Both chord pickers use it, so they can't diverge.
+- **One spelling per pitch, app-wide** (v2.14.0) — flats for E♭/B♭, sharps for
+  C♯/F♯/G♯, from one table that the wheel, the chord names and the capo tag all
+  read.
+- **The die rolls the whole library** (v2.14.0) — it used to roll open chords
+  only. A picker that offers all 36 with equal ceremony should have a die that
+  does the same.
 - **"Chaos" is not a UI word any more** (v2.12.0) — the setting is **Fingers**
   and the off-curve tier is **Wild Card**, under an **Experimental** heading that
   future off-curve ideas can join. The internal ids stay `chaos` because saved

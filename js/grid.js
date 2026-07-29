@@ -6,7 +6,7 @@
 // already resolved (each event has string+fret). See generator.resolvePhrase /
 // resolvePattern+expandToPhrase.
 
-import { CHORDS, CHORD_GROUPS } from "./data.js";
+import { CHORDS, CHORD_IDS } from "./data.js";
 
 const STRING_ROWS = [1, 2, 3, 4, 5, 6]; // top->bottom: high E (1) ... low E (6)
 const SLOTS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -49,17 +49,16 @@ function buildHeader(chordId, barIdx, editableChords, showNumeral) {
     const sel = document.createElement("select");
     sel.className = "bar-chord";
     sel.dataset.bar = String(barIdx);
-    for (const group of CHORD_GROUPS) {
-      const og = document.createElement("optgroup");
-      og.label = group.label;
-      for (const c of group.ids) {
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = CHORDS[c].name;
-        if (c === chordId) opt.selected = true;
-        og.appendChild(opt);
-      }
-      sel.appendChild(og);
+    // Flat, and in wheel order: the chord picker is two reels now (root ×
+    // quality), so the <select> is pure source-of-truth and its option ORDER is
+    // never seen. It still holds every chord, because that's what makes
+    // select.value assignable to any of them.
+    for (const c of CHORD_IDS) {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = CHORDS[c].name;
+      if (c === chordId) opt.selected = true;
+      sel.appendChild(opt);
     }
     header.appendChild(sel);
     // No `data-help` here, deliberately (v2.13.6, his call). The picker had its

@@ -88,6 +88,21 @@ export function playPress(strength = 1) {
   tick(ac, t, { freq: 3900, q: 1.3, level: s * 0.95, dur: 0.011 });
 }
 
+// "Tick" — a DETENT, not a button: the chord wheel's barrel indexing as each
+// name passes through the window. Same materials, much less of them — a third
+// the level of a press, a shorter body and a drier contact, because a detent is
+// a sprung ball dropping into a notch, not a key travelling. It fires several
+// times a second during a spin, so anything with a tail would smear.
+export function playTick() {
+  if (!enabled) return;
+  const ac = ensureCtx();
+  if (!ac) return;
+  if (ac.state === "suspended") ac.resume();
+  const t = ac.currentTime;
+  body(ac, t, { f0: 320, drop: 160, level: 0.035, attack: 0.001, dur: 0.014 });
+  tick(ac, t, { freq: 5200, q: 2.2, level: 0.05, dur: 0.007 });
+}
+
 // "Chunk" — the release. Deeper, fuller and a hair longer: the spring seating the
 // mechanism home. This is the satisfying half.
 export function playRelease(strength = 1) {

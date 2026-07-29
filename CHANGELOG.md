@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [21](#where-things-stand-session-21-2026-07-29) | v2.14.0 | the chord wheel: two cylinders, and the library became the full 12 × 3 matrix |
 | [20](#where-things-stand-session-20-2026-07-28) | v2.13.5 → v2.13.6 | help mode adjusted against his drilling, then his copy revision: 30 cards → 28 |
 | [19](#where-things-stand-session-19-2026-07-28) | v2.13.4 | the docs split into CLAUDE.md + this file; the Guide became help mode |
 | [18](#where-things-stand-session-18-2026-07-27) | v2.12.0 → v2.13.3 | naming (Fingers / Wild Card), capo tag, swing — trialled, spec'd, cut back |
@@ -32,6 +33,85 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 21, 2026-07-29)
+
+**v2.14.0 — the chord picker became two cylinders, and the library became the
+full 12 × 3 matrix.** 80/80 green. His design, brought whole: two wheels with the
+names printed on the side, "as opposed to a clock face type wheel", because a
+barrel "feels more mechanical and thus fits the general feel of the app". All 12
+tones on the root reel; Major / Minor / 7 on the quality reel, stopping there
+deliberately so the *shape* can be judged before more qualities ride on it. Both
+chord pickers use it — the Options sheet's and the per-bar ones in progression
+mode — for consistency, his call.
+
+### What the session actually turned on
+
+The framing question in `OPEN_ITEMS` item 1 was "richer harmony or a chord
+dictionary", and it was the wrong axis. Reading the code first turned up three
+things that changed the shape of the work:
+
+- **The picker was already the problem, independent of the library.** 21 chords
+  in 4 groups is ~1,000px of list in a panel capped at 52vh — about 3.5
+  panel-heights of scrolling to reach `G#m`.
+- **The generator never sees quality.** A chord reaches it as three role strings
+  and a fret shape, so adding qualities is a left-hand and audio feature, not a
+  right-hand one. Worth being blunt about, since it's the whole cost/benefit.
+- **"Whichever barres lower" was already the convention**, just written out
+  longhand: E-shape vs A-shape by lowest barre reproduces all eight hand-declared
+  barre chords exactly. That turned "22 more hand-written entries" into six
+  templates, and the eight became the test fixture.
+
+### The five calls he made
+
+Spelling (**align** `PC_NAME` to the wheel, so a pitch isn't `C♯` on one screen
+and `D♭` on another); **commit on settle, panel stays open**; the die **rolls all
+36** now, not just the open chords; **a detent tick, definitely**; and the
+grouped chord menus retire. He also lifted the saved-pattern compatibility
+constraint — nobody has a library yet — which as it happened cost nothing, since
+ids were already `root + suffix` and the only new root is `Eb`.
+
+### What the dev box caught that reasoning wouldn't have
+
+- **`.dd-wheel { position: relative }` silently un-fixed the panel.** `.dd-panel`
+  is `position: fixed`; my rule sat later in the file at equal specificity and
+  won on source order, so the wheel opened 350px down the page. Found by
+  measuring the rect against `style.top`, which disagreed.
+- **The `rotateX` moved each name's own detent.** A scroll-snap area is the
+  element's *transformed* border box, so the reel snapped half a name off
+  (scrollTop 171.5 where 152 was correct). Fixed by splitting the step from the
+  facet: `.reel-item` never transforms, `.reel-face` inside it does.
+- **The mask ate the outer names.** 26/74 and 14/86 both left three legible names
+  and two ghosts; the stops have to be cut to the step grid, and 8/92 reads as
+  five.
+- **`.reel-item` is a `<button>`,** so it was picking up the delegated ka-chunk on
+  top of the tick — and on the first frame of a drag. Excluded in
+  `pressStrength()`.
+
+Two limits of the box showed up again: smooth scrolling doesn't animate in a
+hidden tab (so tap-a-neighbour can't be verified here, only dragged behaviour
+can), and two of the mask screenshots were **stale frames** — the computed style
+said 8% while the picture still showed the old ramp. Believed the DOM.
+
+### One deviation, flagged rather than buried
+
+Inside an E-shape barre the ♭7 has only two homes: string 4 at the barre (the
+everyday `131211` F7) or string 2 three frets up, which is a four-finger stretch
+nobody plays. Taking the playable one puts the ♭7 on the alt-bass string, so
+**F7 / F♯7 / G♯7 alternate root ↔ ♭7** rather than root ↔ octave — a real ragtime
+bass, but a departure from "dominant 7ths keep the parent major's bass". The
+alternative is a high A-shape barre (G♯7 at 11). One line in `BARRE_TEMPLATES`
+either way.
+
+### Measured
+
+Height budget at 375×553, 4 bars, progression mode: `.app-head` 55.09px, grid
+384.84px, clearance **11.06px**, no overflow — identical to the v2.13.3 baseline.
+The wheel is a body-level overlay, and the 40px chord readout already pins its
+`line-height`, so `C♯m` and `E♭7` don't move the grid either (`gridTop` 166.45
+across six chords).
 
 ---
 

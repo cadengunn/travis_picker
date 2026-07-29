@@ -158,6 +158,8 @@ js/synth.js       Karplus-Strong plucked-string voice (no deps) — pattern audi
 js/ui-sound.js    the two-phase button "ka-chunk" (no deps) — see UI components
 js/modal.js       confirm / prompt modals in the app's own language
 js/dropdown.js    custom dropdowns OVER the native <select> — read the invariant
+js/wheel.js       the chord picker: two cylinders (root × quality). A dropdown.js
+                  panel RENDERER, not a control of its own
 js/help.js        help mode: the "?" latches and every tap explains instead of acting
 js/platform.js    OS integrations: wake lock, iOS audio session, SW auto-update,
                   playback guard
@@ -210,9 +212,9 @@ root's interval to the tonic + its quality, so a non-diatonic bar reads as a rea
 numeral (`♯iv`, `♭ii`, `VI7`) rather than `?`. The computed value reproduces the
 map token for diatonic chords, and the tritone spells `♯IV` by convention. Menus group by data: keys by `KEYS[].mode`, progressions by
 `PROGRESSIONS[].style` (Foundations / Classic Country / Traditional Folk /
-Modern Acoustic / Classic Standards / Minor), the single-chord picker by
-`SINGLE_CHORD_GROUPS` (Open chords first), the per-bar picker by `CHORD_GROUPS`.
-`dropdown.js` renders `<optgroup>` labels as section headers.
+Modern Acoustic / Classic Standards / Minor). `dropdown.js` renders `<optgroup>`
+labels as section headers. **Chords have no grouped menu** — both chord pickers
+are the wheel (below), so `CHORD_GROUPS`/`SINGLE_CHORD_GROUPS` are gone.
 
 **No scrolling, ever:** every bar must be visible at once — you're holding a
 guitar and can't swipe mid-pattern. `grid.js` sets `data-bars` on the track and
@@ -328,6 +330,11 @@ SE-class, 4 bars, progression mode, the worst case:
 | `main` overflow | 0 — it fits |
 
 **That 11px is the entire remaining budget, and it is the number to protect.**
+(Re-measured at v2.14.0 with the chord wheel in: **identical** — 55.09 / 384.84 /
+11.06 / no overflow. The wheel is a body-level overlay, like the help card, so it
+costs nothing; and the 40px chord readout already pins its `line-height`, so a
+`C♯m` or `E♭7` doesn't grow its box either — checked across six chords, `gridTop`
+unmoved at 166.45.)
 Any further chrome must be measured at 375×553 before shipping. `main` has
 `overflow: auto`, so the failure mode is **silent** — the grid scrolls inside its
 own box rather than anything visibly breaking, and the laptop will not show you
@@ -494,7 +501,7 @@ Load / Rename / Delete. `save()` de-dupes names Finder-style via `uniqueName()`:
 the original keeps its plain name, later saves become `Name (2)`, `Name (3)`.
 
 **UI components — we draw our own, because iOS draws the OS's** (session 11).
-Three dependency-free modules, all precached:
+Four dependency-free modules, all precached:
 - **`dropdown.js` — KEY INVARIANT: the native `<select>` stays in the DOM
   (`display: none`) as the source of truth.** Value, options and the `change`
   event are unchanged, so every `app.js` wiring and the `#grid` change-delegation
@@ -509,6 +516,42 @@ Three dependency-free modules, all precached:
   app gets its captions. The panel flips up near the bottom edge, clamps into the
   viewport, and closes on outside-tap / Escape / external scroll — but **not** on
   its own open-time `scrollIntoView`. A test guards the contract.
+  **The PANEL is pluggable** (session 21): `enhanceSelect(select, { render })`
+  takes a renderer, and the scrolling list is simply the default one. Everything
+  around the panel — trigger, value-setter wrap, one-panel-at-a-time, catcher,
+  Escape, close-on-reflow — is the same job whatever is drawn inside, and that
+  refactor is what let the chord wheel exist without a second copy of it. A
+  renderer may return `{ onKey, afterOpen, cleanup }`; **`afterOpen` is called
+  synchronously, not in a `rAF`**, because a hidden tab never runs rAF and the
+  wheel sets its scroll positions there.
+- **`wheel.js` — the chord picker is TWO CYLINDERS** (root × quality), his call,
+  session 21. It is a **renderer, not a control**: the same hidden `<select>`
+  holds all 36 chords as flat options and a settle calls `commit()`, so app.js's
+  wiring and the `#grid` delegation never learn it exists. Both chord pickers use
+  it — the Options sheet's and every per-bar one — which is why the grouped chord
+  menus are gone.
+  - **It's a real scroll container with CSS scroll-snap, not a hand-rolled drag**:
+    that buys iOS momentum, rubber-banding and detents for free, and it's
+    physically right (a flick spins the barrel and it coasts).
+  - **The step and the facet are two elements** (`.reel-item` > `.reel-face`), and
+    they have to be: a scroll-snap area is the element's **transformed** border
+    box, so putting the cylinder's `rotateX` on the item moved its own detent and
+    the reel snapped half a name off. Measured, not reasoned about.
+  - **`.dd-wheel` must not set `position`.** `.dd-panel` is already `fixed` (and
+    is therefore the positioned ancestor `.reel-window` needs); a `position:
+    relative` here won at equal specificity on source order and the panel opened
+    350px down the page.
+  - **The mask's stops are cut to the step grid, not chosen by eye.** With 5
+    visible names the outer pair occupies exactly the top and bottom fifth, so a
+    long ramp erases them — 26/74 and 14/86 both left three legible names and two
+    ghosts. 8/92 reads as five.
+  - **It commits on SETTLE and the panel stays open** (his call): every root ×
+    quality is a real chord, so there's no half-set state to guard, and you can
+    spin one reel, hear it, then spin the other. `SETTLE_MS` is the quiet time
+    after the last scroll event.
+  - **Its voice is the detent, not the button** — `playTick()` per name through
+    the window, and `pressStrength()` in app.js explicitly excludes `.reel-item`
+    so a tap doesn't ka-chunk over the tick or click on the first frame of a drag.
 - **`modal.js`** — Promise-based `confirmModal()` / `promptModal()`, replacing
   `confirm()`/`prompt()`, so callers are `async`. (There was an `infoModal` too;
   it existed only for the Guide, and went with it in v2.13.4.) Destructive actions wear the app's fixed red
@@ -519,8 +562,12 @@ Three dependency-free modules, all precached:
   **`playPress`** ("ka") on `pointerdown` as the key travels in, and a deeper
   **`playRelease`** ("chunk") on `pointerup` as the spring seats. Fired by ONE
   delegated listener pair in `app.js` over `button, .lamp, .dd-trigger,
-  .dd-option`; sliders, text inputs and grid cells are excluded. Own on/off lamp,
+  .dd-option`; sliders, text inputs, grid cells and **the chord wheel's names**
+  are excluded. Own on/off lamp,
   persisted in `tp-audio`. All knobs are the two objects passed to `body`/`tick`.
+  A third voice, **`playTick`**, is the chord wheel's DETENT — same materials,
+  about a third the level, no tail (it fires several times a second during a
+  spin, and anything with a tail would smear).
   - **The silent-switch policy lives in `app.js`, not here** (v2.8.2): **no button
     sound while the transport is running.** The web cannot read the iOS ring
     switch, and playback is the only window in which we hold the audio category
@@ -897,7 +944,43 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
   `simple_alt`, `dead_thumb`, `root_fifth` (relative, follow the chord), `climb`
   and `descend` (absolute integer walks that ignore the chord — texture tools,
   show the "absolute bass" indicator), and `full_random`.
-- **Chord library** is 21 chords (session 13): the 14 open/barre majors+minors, plus the dominant-7 family `C7/G7/D7/A7/E7`, `F#` (E's II), and `Bb` (C's ♭VII). Covers every token across the major keys C/G/D/A/E and the minor keys Am/Em. **Dominant 7ths keep the parent major's bass** — the ♭7 sits on a *finger* string in every shape (E7 uses the `020130` voicing precisely so its alt bass stays E rather than dropping to the ♭7), so `I7` alternates exactly like `I` with the 7th as a finger colour. Barre chords assume a *full* barre, so the low string is available as a bass note even where the textbook voicing mutes it — the same convention C already used (its fifth is string 6 fret 3). A test asserts every chord's role strings are covered by its shape, and that `CHORD_GROUPS`/`SINGLE_CHORD_GROUPS` each partition the library.
+- **Chord library is the FULL 12 × 3 MATRIX** — 36 chords, every root in Major /
+  Minor / 7 (session 21, his call; it was 21 curated chords through session 20).
+  **The matrix has to be dense because the picker is two wheels**: a cell you can
+  spin to that isn't a chord would be a lie, and a test pins it. Three qualities
+  is deliberately where it stops — enough to judge the wheel by, and adding a
+  fourth is templates + any open voicing, nothing structural.
+  - **Ids are `root + suffix`** (`C`, `C#m`, `Eb7`) — what a saved pattern stores,
+    and what `chordIdFor`/`splitChordId` convert to and from the two reel
+    positions. `name` is what's PRINTED and comes from `PC_NAME`.
+  - **14 open-position chords are hand-declared, the other 22 are derived** from
+    two movable templates (E-shape and A-shape, × the three qualities). Open
+    chords can't be templated (open strings only exist at the nut) and they're
+    the voicings you actually play. **The rule is "whichever barres lower", and
+    it isn't a new convention: it reproduces every barre chord the library used
+    to hand-declare** — F@1, F♯@2, Gm@3, G♯m@4, B♭@1, B@2, Bm@2, C♯m@4. Those
+    eight are frozen in a test as the fixture, so a wrong template fails against
+    voicings that were played on a real guitar. Nothing lands above fret 8.
+  - **One exception to the dom7 bass rule, and it's flagged in the data.** The
+    five open 7ths keep the parent major's bass (the ♭7 on a *finger* string;
+    E7 uses `020130` precisely so its alt bass stays E). Inside an **E-shape**
+    barre the ♭7 has only two homes — string 4 at the barre (the everyday
+    `131211` F7) or string 2 three frets up (a stretch nobody plays) — so
+    **F7 / F♯7 / G♯7 alternate root ↔ ♭7** rather than root ↔ octave. Playable
+    shape over tidy rule; it's a one-line template change to flip.
+  - Barre chords assume a *full* barre, so the low string is available as a bass
+    note even where the textbook voicing mutes it — the same convention C already
+    used (its fifth is string 6 fret 3). B7 is hand-voiced (`x21202`) with string
+    6 fretted at 2 for the same reason.
+  - **`PC_NAME` is the single source for how a pitch is SPELLED** — the wheel's
+    root reel, every chord name, and the capo tag all read it, so a pitch can't be
+    `C♯` on the wheel and `D♭` in the header (it was, before the wheel). Which
+    spelling per pitch is a guitarist's habit, not a rule: flats for E♭/B♭,
+    sharps for C♯/F♯/G♯. A test pins it.
+  - A test asserts every chord's role strings are covered by its shape.
+  - **🎲 rolls the whole library** (his call, with the wheel) — it used to roll the
+    open "campfire" chords only, but a picker that offers all 36 with equal
+    ceremony should have a die that does the same.
 - **Pattern length** (`PATTERN_LENGTHS`, 1/2/4) is the *only* length dial: how many **distinct** bars of picking. Bars on screen are derived — single mode shows exactly that many; progression mode shows the progression's bars and cycles the pattern across them. Changing it **extends** rather than re-rolls (`setPatternBars`): growing duplicates the existing bars so hand-drawn work survives, and the copies are independent from then on; shrinking keeps the first n. Only **Generate** re-rolls. This replaced a separate Loop + Phrase-length pair whose only useful combinations were "displayed == distinct"; the rest just redrew the same bar. Don't reintroduce a display-length control without that reasoning changing.
 
 ## Conventions
@@ -921,8 +1004,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.13.7 — help-mode adjustments, his copy revision, and the `?` above the
-Options scrim; on the phone.** 77/77 checks green, tree clean. (v2.13.3 was the last version signed off on the
+**v2.14.0 — the chord wheel: two cylinders, all 12 roots × Major/Minor/7; on the
+phone.** 80/80 checks green, tree clean. (v2.13.3 was the last version signed off on the
 guitar.) The build
 order in `travis-picker-workflow.md` is complete: generator + grid, progression
 mode, the Saved library, the manual editor, the metronome, PWA packaging,
