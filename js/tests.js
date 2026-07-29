@@ -1432,16 +1432,11 @@ acheck("help: every data-help target has copy, and every entry is reachable", as
   const res = await fetch("index.html");
   assert(res.ok, "index.html should be served");
   const html = await res.text();
-  // Two sources, because not every annotated control is in the markup: the
-  // per-bar chord picker is built at render time, so grid.js sets its key in
-  // JS. Scanning only index.html would report that entry as unreachable copy.
-  const gridRes = await fetch("js/grid.js");
-  assert(gridRes.ok, "js/grid.js should be served");
-  const gridSrc = await gridRes.text();
-  const used = [
-    ...[...html.matchAll(/data-help="([^"]+)"/g)].map((m) => m[1]),
-    ...[...gridSrc.matchAll(/dataset\.help\s*=\s*"([^"]+)"/g)].map((m) => m[1]),
-  ];
+  // Every annotated control is in the markup again as of v2.13.6. It briefly
+  // wasn't: the per-bar chord picker carried a key set in grid.js, and this
+  // scan had to read that file too. If a RENDERED control is ever annotated
+  // again, widen the scan or its entry reads as unreachable copy.
+  const used = [...html.matchAll(/data-help="([^"]+)"/g)].map((m) => m[1]);
 
   assert(used.length > 20, `expected help on most controls, found ${used.length}`);
   const dupes = used.filter((k, i) => used.indexOf(k) !== i);
@@ -1641,6 +1636,64 @@ check("help: the highlight rings the visible child, not the reserved slot", () =
   } finally {
     host.remove();
   }
+});
+
+check("help: an unannotated indicator falls through to the control it sits in", () => {
+  // Two things have no card ON PURPOSE and rely on where they're nested: the
+  // beat lamp resolves to Tempo, and a bar's chord picker resolves to the grid.
+  // Both are one DOM move away from being dead taps in a mode whose promise is
+  // "tap anything", and the old Guide's failure was exactly this kind of drift.
+  const frag = document.createElement("div");
+  frag.innerHTML =
+    '<div class="slider-wrap" data-help="bpm"><input type="range">' +
+    '<div class="bpm-readout"><span id="beat-lamp"></span><output>90</output> BPM</div></div>' +
+    '<section id="grid" data-help="grid"><div class="grid-track"><div class="bar">' +
+    '<div class="bar-header"><span class="bar-num">1</span>' +
+    '<span class="dd"><select class="bar-chord"></select><button class="dd-trigger">C</button></span>' +
+    "</div></div></div></section>";
+
+  const lamp = helpTargetFor(frag.querySelector("#beat-lamp"));
+  assert(lamp && lamp.key === "bpm", "the beat lamp must resolve to the Tempo card, not nothing");
+
+  // The picker is reached through the OVERLAY button, never the hidden <select>:
+  // dropdown.js makes the trigger a SIBLING of the select, so only the ancestors
+  // of the trigger matter here.
+  const picker = helpTargetFor(frag.querySelector(".dd-trigger"));
+  assert(picker && picker.key === "grid", "a bar's chord picker must resolve to the grid card");
+  assert(helpTargetFor(frag.querySelector(".bar-num")).key === "grid", "so must the bar number");
+  // …and the grid's copy has to actually COVER them, or this is the v2.13.4 bug
+  // again: the picker fell through to a card that said nothing about chords.
+  assert(/chord/i.test(HELP.grid.body),
+    "the grid card must mention the per-bar chords, since they fall through to it");
+});
+
+check("help: a blank line in a body becomes a real paragraph", () => {
+  // The grid's card is two paragraphs — the picking rows, then the per-bar chord
+  // pickers. Rendered as one <p> the blank line collapses and they run together.
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-9999px;top:0";
+  host.innerHTML = '<button id="open-help" data-help="help-mode">?</button>' +
+    '<button id="g" data-help="grid">grid</button>' +
+    '<button id="one" data-help="play">play</button>';
+  document.body.appendChild(host);
+
+  const helper = createHelp({ version: "vTEST" });
+  try {
+    helper.arm();
+    host.querySelector("#g").click();
+    const paras = [...document.querySelectorAll(".help-pop-body")].map((p) => p.textContent);
+    assert(paras.length === 2, `the grid card should render 2 paragraphs, got ${paras.length}`);
+    assert(paras.every((t) => t && !/^\s|\s$/.test(t)), "each paragraph is trimmed");
+    assert(!paras.some((t) => t.includes("\n")), "a paragraph must not still carry its own break");
+
+    // A single-paragraph body is unaffected — one <p>, same as before.
+    host.querySelector("#one").click();
+    assert(document.querySelectorAll(".help-pop-body").length === 1,
+      "a one-paragraph body still renders as exactly one paragraph");
+  } finally {
+    helper.disarm();
+  }
+  host.remove();
 });
 
 check("help: tapping the same control again puts its card away", () => {

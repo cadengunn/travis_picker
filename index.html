@@ -92,7 +92,10 @@
       <div class="slider-wrap" data-help="bpm">
         <input id="bpm" class="bpm-slider" type="range" min="40" max="240" step="1" value="90"
                aria-label="Tempo in beats per minute" />
-        <div class="bpm-readout"><span id="beat-lamp" class="beat-lamp" data-help="beat-lamp" aria-hidden="true"></span><output id="bpm-value" class="bpm-value" for="bpm">90</output> BPM</div>
+        <div class="bpm-readout"><!-- No data-help: the lamp sits INSIDE .slider-wrap, so a tap on it walks up
+             to the Tempo card. It's a jewel blinking beside a number marked BPM,
+             and its one non-obvious job (counting you in) is Play's card. -->
+        <span id="beat-lamp" class="beat-lamp" aria-hidden="true"></span><output id="bpm-value" class="bpm-value" for="bpm">90</output> BPM</div>
       </div>
       <button id="generate" class="btn-icon btn-roll" type="button" data-help="generate"
               aria-label="Generate a new pattern" title="Generate">

@@ -1441,6 +1441,9 @@ main {
   line-height: 1.25;
   color: var(--accent);
 }
+/* A body can be more than one paragraph (help.js splits a blank line into real
+   <p>s). Paragraph spacing, not a blank line — the card has room for one and
+   not the other. */
 .help-pop-body {
   margin: 0;
   font-family: var(--serif);
@@ -1448,6 +1451,7 @@ main {
   line-height: 1.45;
   color: var(--text);
 }
+.help-pop-body + .help-pop-body { margin-top: 8px; }
 /* Version, quiet at the foot of the card help mode opens with. It has been in
    the header and in the Options sheet before this; both cost width that the
    readout beside them needed. */

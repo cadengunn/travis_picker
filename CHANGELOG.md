@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [20](#where-things-stand-session-20-2026-07-28) | v2.13.5 | help mode adjusted against his drilling: the ring, the bar chord, tap-to-dismiss |
+| [20](#where-things-stand-session-20-2026-07-28) | v2.13.5 → v2.13.6 | help mode adjusted against his drilling, then his copy revision: 30 cards → 28 |
 | [19](#where-things-stand-session-19-2026-07-28) | v2.13.4 | the docs split into CLAUDE.md + this file; the Guide became help mode |
 | [18](#where-things-stand-session-18-2026-07-27) | v2.12.0 → v2.13.3 | naming (Fingers / Wild Card), capo tag, swing — trialled, spec'd, cut back |
 | [17](#where-things-stand-session-17-2026-07-27) | v2.10.4 → v2.11.1 | the stale-precache bug; the typography pass (Jost) |
@@ -37,8 +37,86 @@ has the original build order.
 
 ## Where things stand (session 20, 2026-07-28)
 
-**v2.13.5 — help mode, adjusted against a session of real drilling.** 74/74
-green (+2). His verdict on the mode itself was "working well", and the three
+Two parts: the adjustments off his drilling (v2.13.5), then his revision pass
+over the copy itself (v2.13.6).
+
+### Part 2 — v2.13.6, his copy revision
+
+He rewrote all 30 cards and handed back a marked-up sheet. **76/76 green (+2).**
+The rewrite is his, verbatim; what follows is what it cost in code, because
+three of his edits weren't copy changes at all.
+
+**The house rules came with it**, and they're now in `data.js` above the map so
+the next edit sees them rather than re-deriving them: say what it does plus
+anything that would surprise you, then stop; cut anything visible on screen,
+anything explaining *why* the app works that way, and anything you'd discover in
+one tap; **assume a guitar player** (Nashville numbers, alternating bass, i/m/a
+and "whole step down" all pass unexplained — only app-specific behaviour gets
+spelled out); no em dashes; two lines is the ceiling, and where one runs long
+the length is the signal that the thing itself is fiddly. The result is **30
+entries → 28** and roughly half the words.
+
+**Two entries were dropped, and neither was a pure data edit.**
+
+**The beat lamp** is gone. His argument: it's a jewel blinking beside a number
+marked BPM, and its one non-obvious job (counting you in) is Play's card. He
+flagged the trap himself — the annotation has to come off the element too, or
+the test fails on an annotated control with no copy — and asked for the tap to
+fall through to Tempo "if that's cheap". It was free: the lamp already sits
+inside `.slider-wrap`, which is what carries `data-help="bpm"`, so removing the
+attribute makes `closest()` walk up to exactly the right card. Confirmed in the
+app (lamp → "Tempo", ring on `.slider-wrap`), and the trap he named was
+confirmed caught: leaving the attribute in place fails the coverage check with
+*"controls point at missing help copy: beat-lamp"*.
+
+**The bar chord** he rolled into the grid's card — which **undoes part 1 of this
+same session**, and is right. The v2.13.4 fall-through was a bug because the
+grid's copy said nothing about chords; his revision adds a second paragraph that
+does ("In progression mode, the chords are indicated above each bar. These can
+be edited manually."), so the fall-through becomes the correct behaviour and the
+separate entry becomes redundant. The `data-help` comes back off `grid.js`, and
+the coverage test's scan of that file goes with it. **The dependency is now
+pinned by a test** (`HELP.grid.body` must mention chords), because the two
+halves are only correct together and nothing else on screen says so.
+
+**One structural change: a blank line in a `body` now starts a new paragraph.**
+His grid entry is two paragraphs, and a single `<p>` collapses them into one run
+of prose. Rendered as real `<p>`s rather than `white-space: pre-line`, which
+would open a full blank line where the card only has room for paragraph spacing
+(8px). Single-paragraph bodies are unchanged.
+
+**Checked, because the house rules touch things the project already has rules
+about:** his Format card uses curly quotes, and **Fraunces has “ ” and ’** —
+measured by glyph-width against a monospace fallback, with ♭/♯ as the control
+(they correctly report as falling back, which is what validates the method). So
+no fallback font, no line-box growth, and the pinned-`line-height` rule doesn't
+come into play. No new copy contains ♭ or ♯.
+
+**Both new tests verified to fail without their fix**: stripping the chord
+paragraph from the grid entry fails *"the grid card must mention the per-bar
+chords"*, and reverting to the single-`<p>` renderer fails *"the grid card
+should render 2 paragraphs, got 1"*.
+
+**Layout unchanged again** — 375×553, 4 bars, armed / grid card up / disarmed:
+head 55.09px, grid 384.84px, clearance 11.06px, no overflow. The two-paragraph
+card is 300×188.7, still an overlay, still zero cost.
+
+**Two mismatches between his notes and his copy, resolved toward the copy** (the
+copy is the deliverable; the notes were commentary on an earlier draft):
+his house-rules note lists Thumb and Fingers among the four that "run long", but
+in the actual copy he cut both to two short sentences — that drops the preset
+descriptions and Wild Card's off-the-curve status from the cards, which is
+consistent with his own "you'd discover it in one tap" rule since both menus are
+grouped and labelled. And his note says "Tempo now carries the blink" while the
+Tempo copy he wrote doesn't mention blinking; read as "the lamp now lands on the
+Tempo card", which is what the rest of that note describes. Titles were
+normalised to sentence case — he Title-Cased only the entries he happened to
+retype, and the other 26 were already sentence case.
+
+### Part 1 — v2.13.5, adjustments off his drilling
+
+**74/74 green (+2)** at this point. His verdict on the mode itself was "working
+well", and the three
 open questions from session 19 came back answered: **Play's behaviour is fine as
 is** (arming mid-take leaves the take running, and Play explains rather than
 stops), and **Save and Load stay non-enterable** — their contents are words, not

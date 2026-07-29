@@ -144,10 +144,19 @@ export function createHelp({ doc = document, onChange, version = "" } = {}) {
     const h = doc.createElement("h3");
     h.className = "help-pop-title";
     h.textContent = entry.title;
-    const p = doc.createElement("p");
-    p.className = "help-pop-body";
-    p.textContent = entry.body;
-    pop.append(h, p);
+    pop.appendChild(h);
+
+    // A blank line in a `body` starts a new paragraph. Real <p>s rather than
+    // `white-space: pre-line`, which would open a full blank line where the
+    // card only has room for paragraph spacing. Only the grid's card uses this
+    // today: it explains the picking rows, then the per-bar chord pickers,
+    // which are two different things sharing one card.
+    for (const para of String(entry.body).split(/\n\s*\n/)) {
+      const p = doc.createElement("p");
+      p.className = "help-pop-body";
+      p.textContent = para.trim();
+      pop.appendChild(p);
+    }
 
     // The version rides the mode's own card. It used to sit at the foot of the
     // Guide modal this replaced — and before that in the Options sheet header,

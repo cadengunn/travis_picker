@@ -16,7 +16,36 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.13.5) — HELP MODE, adjusted
+## On the phone right now (v2.13.6) — HELP MODE, adjusted + your copy
+
+**Your revision pass is in, verbatim.** 30 cards → 28, and the house rules you
+wrote with it now sit in `data.js` above the map so the next edit reads them
+instead of re-deriving them. `HELP_COPY.md` is regenerated to match.
+
+Three of your edits weren't copy changes, so they're worth knowing:
+- **The beat lamp's card is gone and a tap on it lands on Tempo.** Free, as you
+  hoped: the lamp already sits inside the tempo control. And the trap you called
+  out is real and caught — leaving the annotation behind fails the test with
+  *"controls point at missing help copy: beat-lamp"*.
+- **Rolling the bar chord into the grid card undoes part of what I did earlier
+  this session, and you're right.** The v2.13.4 fall-through was only a bug
+  because the grid card said nothing about chords; your second paragraph fixes
+  that, so the fall-through becomes correct and the separate card redundant.
+  There's now a test pinning the two together, since they're only right as a pair.
+- **A blank line in a card is a real paragraph now** — your grid entry is the
+  only one that uses it.
+
+**Two places your notes and your copy disagreed**, both resolved toward the copy:
+you list Thumb and Fingers among the cards that "run long", but you actually cut
+both to two short sentences (which drops Wild Card's off-the-curve status from
+the card — consistent with your own "you'd discover it in one tap" rule, since
+the menu groups it under Experimental, but say if you want it back). And "Tempo
+now carries the blink" — your Tempo copy doesn't mention blinking, so I read
+that as "the lamp lands on the Tempo card".
+
+---
+
+### The v2.13.5 adjustments, still unsigned-off
 
 **Your verdict on v2.13.4 was "working well", and three things came out of it.**
 

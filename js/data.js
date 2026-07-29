@@ -570,8 +570,22 @@ export function detectProgression(chords, keyId) {
 // entry is dead copy, and a control pointing at a missing entry is a tap that
 // does nothing, which is worse in help mode than anywhere else.
 //
-// Keep `body` to two or three sentences. This is a card floating over a 375px
-// screen, and anything longer is the manual again.
+// THE HOUSE RULES, his, from the v2.13.6 revision pass — these are what keep a
+// card a card instead of the manual this replaced:
+//
+//   * Say what it does, plus anything that would surprise you. Stop.
+//   * Cut anything visible on screen, anything explaining WHY the app works
+//     that way, and anything you'd discover in one tap.
+//   * Assume a guitar player. Nashville numbers, alternating bass, i/m/a and
+//     "whole step down" all pass without explanation; only app-specific
+//     behaviour gets spelled out.
+//   * No em dashes.
+//   * Two lines is the ceiling. Where one runs long the length is the signal
+//     that the thing itself is fiddly.
+//
+// A blank line in a `body` starts a new paragraph (`help.js` splits on it).
+// `HELP_COPY.md` is the same content laid out for review; it is generated from
+// this map, never the other way round.
 export const HELP = {
   // The mode announcing itself. Shown anchored to the "?" the moment you arm
   // help mode, so you're never looking at a changed screen with no explanation
@@ -579,119 +593,117 @@ export const HELP = {
   // the Guide this replaced.
   "help-mode": {
     title: "Help mode",
-    body: "Tap anything on the screen to find out what it does — nothing you tap will change your pattern or your settings. The gear still opens Options so you can reach the controls in there. Tap ? again to leave.",
+    body: "Tap anything to find out what it does. Nothing you tap will change. The gear still opens Options. Tap ? again to leave.",
   },
 
   // --- header ---
   "edit-toggle": {
     title: "Edit",
-    body: "Arms manual editing: the grid goes dashed and a red lamp lights on this button, and then tapping a cell adds or removes a note. It's off by default so a stray tap can't nudge a pattern while you're playing. Editing a bar that repeats changes every repeat — raise Pattern length first if you want one bar to differ.",
+    body: "Tapping a cell adds or removes a note. Editing a bar that repeats changes every repeat, so raise Pattern length first if you want one to differ.",
   },
   "open-save": {
     title: "Save",
-    body: "Names the current pattern and keeps it in your library on this device, along with its chords, key and capo. Nothing leaves the phone and there's no account.",
+    body: "Names the current pattern and saves it to this device, along with its chords, key and capo.",
   },
   "open-load": {
     title: "Load",
-    body: "Opens your saved patterns. Each one can be loaded, renamed or deleted. Loading brings back the pattern and the chords it was written over — it never re-rolls anything.",
+    body: "Your saved patterns. Load, rename or delete any of them. Loading brings back the chords it was written over.",
   },
   "capo-tag": {
     title: "Capo",
-    body: "Only appears when you've set a capo. It reads \"CAPO 2 → F♯\": the shapes on the grid are still the ones you play, and the arrow points at what they actually sound like. \"Whole step down\" instead means a down-tuned guitar.",
+    body: "The grid still shows the shapes you play. The arrow points at what they actually sound like.",
   },
   "loaded-name": {
     title: "Pattern name",
-    body: "The saved pattern currently on screen. Blank means this one is unsaved — the line is held open either way so the grid never shifts when you save or load.",
+    body: "The saved pattern currently on screen.",
   },
 
   // --- the stage ---
   "chord-head": {
     title: "What you're playing over",
-    body: "The chord in Single mode, or the progression's Nashville numbers and key in Progression mode. With a capo set, this is the shape key — the sounding key is the tag at the top of the screen.",
+    body: "The chord in Single mode, or the progression's numbers and key in Progression mode.",
   },
+  // Two paragraphs, and the second is load-bearing: the per-bar chord pickers
+  // sit inside the grid and have no card of their own, so a tap on one falls
+  // through to here (v2.13.6, his call). They briefly had a separate entry —
+  // see CHANGELOG session 20.
   grid: {
     title: "The grid is your right hand",
-    body: "Each column is an eighth note and each row is a string, read left to right. The notes on the bottom rows are your thumb — the alternating bass — and the ones on the top rows are your fingers: i, m, a on strings 3, 2 and 1. Notes stacked in one column are struck together.",
-  },
-  // Lives on the bar HEADER (see grid.js) rather than on the <select>, which
-  // dropdown.js hides behind an overlay button — an annotation on the select
-  // itself would never be an ancestor of the tap.
-  "bar-chord": {
-    title: "Bar chord",
-    body: "Changes the chord for this one bar without touching the others, and the thumb's bass follows it there. Doing that makes the progression stop matching a preset, so the readout above the grid reads Custom and shows the bars' own numbers. The chip beside it is the bar's position in the phrase.",
+    body:
+      "Each column is an eighth note, each row a string. The bottom rows are your thumb, the bass. The top rows are your fingers: i, m, a on strings 3, 2 and 1.\n\n" +
+      "In progression mode, the chords are indicated above each bar. These can be edited manually.",
   },
 
   // --- transport ---
   play: {
     title: "Play",
-    body: "Runs the loop after a one-bar count-in, and the button stays pressed in while it plays. What you hear — the metronome click, the picked notes, the count-in — is set by the lamps on the Preferences page.",
+    body: "Runs the loop after a one-bar count-in. What you hear is set on the Preferences page.",
   },
+  // The beat lamp is deliberately NOT annotated: it's nested inside this
+  // control, so a tap on it lands here. It's a jewel blinking beside a number
+  // marked BPM, and its one non-obvious job (counting you in) is Play's card.
   bpm: {
     title: "Tempo",
-    body: "40 to 240 beats per minute. The lamp beside the number blinks on every beat, with a bigger pulse on the downbeat, so it works as a silent metronome when the click is off.",
-  },
-  "beat-lamp": {
-    title: "Beat lamp",
-    body: "Blinks on each beat while the transport runs — a bigger pulse on the downbeat — so you can keep time by eye with the click turned off. It also counts you in.",
+    body: "Drag to set the tempo, 40 to 240 bpm.",
   },
   generate: {
     title: "Generate",
-    body: "Rolls a fresh pattern using the Thumb and Fingers settings in Options. This is the one control that re-rolls everything, so it asks first if you have unsaved hand-drawn edits.",
+    body: "Rolls a fresh pattern using the Thumb and Fingers settings in Options. It asks first if you have unsaved edits.",
   },
   "type-indicator": {
     title: "Bass warning",
-    body: "Appears only when the bass won't follow your chords. ABS means the whole bass line is fixed to literal strings (Full Random, Climb and Descend do this); MIX means some notes follow the chords and some don't. Fine in Single mode, worth knowing in a progression.",
+    body: "The bass isn't following your chords. ABS means it's fixed to literal strings (Full Random, Climb, Descend). MIX means some notes follow and some don't.",
   },
 
   // --- Options: Setup ---
   "chord-mode": {
     title: "Format",
-    body: "Single drills one chord for the whole loop. Prog. gives you a chord per bar, written as Nashville numbers in a key, so the same progression transposes anywhere.",
+    body: "\u201CSingle\u201D drills one chord for the whole loop. \u201CProg.\u201D gives you a chord per bar.",
   },
   capo: {
     title: "Capo",
-    body: "Shifts what the shapes sound like. The grid doesn't change, because the fret numbers on it are shape frets — which is what your fingers actually do — so only the pitch you hear and the readout at the top move. Negative values are a guitar tuned down instead.",
+    body: "Changes the sounding key, like putting on a capo or tuning down.",
   },
   "field-chord": {
     title: "Chord",
-    body: "The one chord the whole pattern is played over. Open chords are listed first. The thumb's bass notes follow whichever chord you pick.",
+    body: "The one chord the whole pattern is played over. Open chords are listed first.",
   },
   "field-key": {
     title: "Key",
-    body: "The key the progression's numbers are realised in. Changing key inside major or inside minor transposes what you already have, including bars you edited by hand; crossing between major and minor starts you on that side's first progression, because the two don't share numbers.",
+    body: "The key the progression is played in. Changing key within major or within minor transposes what you have, edited bars included. Changing from major to minor resets to the default progression.",
   },
   "field-prog": {
     title: "Progression",
-    body: "A chord per bar, grouped by style. Every one is four bars: a two-chord idea repeats and a three-chord idea holds its last chord. Change a single bar's chord on the grid and this reads Custom.",
+    body: "A chord per bar, grouped by style. Every one is four bars: a two-chord idea repeats, a three-chord idea holds its last chord.",
   },
   "randomize-chords": {
-    title: "Random chords",
-    body: "Rolls a new key and progression, or a new chord in Single mode. It only touches what's in this row — your pattern, your capo and your settings are left alone, so hand-drawn work is safe.",
+    title: "Randomize",
+    body: "Rolls a new key and progression, or a new chord in Single mode. Your pattern and settings are left alone.",
   },
   bass: {
     title: "Thumb",
-    body: "The bass line your thumb plays. Travis alternates root–alt–fifth–alt; Dead Thumb stays on one string; Climb and Descend walk the strings and ignore the chord. Changing this re-rolls only the bass and keeps your finger part exactly as it is.",
+    body: "The bass line your thumb plays. Changing this re-rolls only the bass.",
   },
   chaos: {
     title: "Fingers",
-    body: "How busy and how hard the finger part is. Tame → Loose → Unruly is the difficulty curve, measured in how many separate times your fingers attack in a bar. Wild Card sits off the curve on purpose — it's fully random, for finding ideas rather than for drilling. Changing this re-rolls only the fingers.",
+    body: "How busy and how hard the finger part is. Changing this re-rolls only the fingers.",
   },
   pattern: {
     title: "Pattern length",
-    body: "How many bars of picking are actually different before the pattern repeats. Growing it copies what you have rather than re-rolling, so hand-drawn work survives — and it's what you raise when you want one bar of a progression to differ from the rest.",
+    body: "How many bars are different before the pattern repeats. Growing it copies what you have rather than re-rolling, so raise it when you want one bar to differ from the rest.",
   },
   swing: {
     title: "Swing",
-    body: "Delays the \"&\"s between the beats, from straight up to a triplet feel. The beats themselves never move, so your thumb stays metronomic and the click keeps giving you a straight quarter pulse to play against. Drag it while the loop runs and you'll hear it change.",
+    body: "Delays the &s between the beats. Drag it while the loop runs and you'll hear it change.",
   },
 
   // --- Options: Preferences ---
-  "click-toggle": { title: "Metronome", body: "The click on every beat. Independent of the picked notes, so you can practise against the click alone." },
-  "pattern-toggle": { title: "Melody", body: "Hear the pattern itself played back, so you can check what a roll sounds like before you try it." },
-  "count-in-toggle": { title: "Count-in", body: "One bar of counting before the loop starts, with the grid dimmed. The count-in always clicks even with the metronome off, so you get an audible 1-2-3-4." },
-  "ui-sound-toggle": { title: "Buttons", body: "The mechanical click when you press a control. It stays silent while the transport is running, which is also what keeps the app quiet on a silenced phone." },
-  "label-mode": { title: "Note labels", body: "What's written inside each note: the fret number, the picking finger (p, i, m, a) or nothing at all." },
-  theme: { title: "Theme", body: "The instrument's colours. Each one is named for a player, and the choice is remembered." },
+  "click-toggle": { title: "Metronome", body: "The click on every beat." },
+  "pattern-toggle": { title: "Melody", body: "Hear the pattern played back." },
+  "count-in-toggle": { title: "Count-in", body: "One bar of counting before the loop starts." },
+  "ui-sound-toggle": { title: "Buttons", body: "The mechanical click when you press a control. It stays quiet while the transport runs." },
+  "label-mode": { title: "Note labels", body: "What's written inside each note: fret number, picking finger, or nothing." },
+  theme: { title: "Theme", body: "The instrument's colours." },
 };
 
 export const HELP_KEYS = Object.keys(HELP);

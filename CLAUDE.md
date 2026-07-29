@@ -677,15 +677,28 @@ one place you can't compare the glyph to the thing.
   measured at 375×553, `351×28` against a chord actually occupying `25.3×40`, so
   in single mode the outline was mostly empty space *below* the chord it claimed
   to point at. One entry, two shapes, and no mode flag has to reach `help.js`.
-- **The per-bar chord picker is annotated on its HEADER, in `grid.js`** — the one
-  control whose card was actively wrong rather than merely missing (v2.13.5). It
-  fell through to the grid's own card, because `dropdown.js` hides the native
-  `<select>` and overlays a **sibling** `.dd-trigger`, so the annotated select was
-  never an ancestor of the tap. It needs no `data-help-ring`: the numeral chip is
-  positioned absolutely, so the header's box and the picker's are the same box
-  (measured, both `164.5×28.8` at 4 bars). **It is also the first `data-help` set
-  in JS rather than markup**, so the coverage test scans `js/grid.js` alongside
-  `index.html` — otherwise its entry reads as unreachable copy.
+- **Two things have NO card and fall through to their parent, on purpose**
+  (v2.13.6, his call) — the **beat lamp** → Tempo, and a bar's **chord picker**
+  and **number chip** → the grid. Both are one DOM move from being dead taps in
+  a mode whose promise is "tap anything", so **a test pins each fall-through**.
+  The picker's is the subtle one: it was an actual bug in v2.13.4 (the grid card
+  said nothing about chords, so it explained the wrong thing), it got its own
+  entry in v2.13.5, and the entry was then folded back into the grid's card as a
+  second paragraph. **It is correct now only because that copy covers it** —
+  hence the test asserting `HELP.grid.body` mentions chords. Note the picker is
+  reached through an overlay button that is a **sibling** of the hidden
+  `<select>` (`dropdown.js`), so annotating the select would do nothing at all.
+- **A blank line in a `body` starts a new paragraph**, rendered as real `<p>`s
+  rather than `white-space: pre-line` — the card has room for paragraph spacing
+  and not for a blank line. Only the grid's card uses it.
+- **The copy has HOUSE RULES, his, and they live in `data.js` above the map**
+  (v2.13.6) so the next edit sees them: say what it does plus anything that
+  would surprise you, then stop; cut anything visible on screen, anything
+  explaining *why*, and anything you'd discover in one tap; assume a guitar
+  player (Nashville numbers, alternating bass, i/m/a all pass unexplained); no
+  em dashes; two lines is the ceiling, and where one runs long the length is the
+  signal that the thing itself is fiddly. The pass that set them cut the map
+  from 30 entries to 28 and roughly halved the average card.
 - **The copy is DATA** (`HELP` in `data.js`, keyed to `data-help` attributes),
   which is the same rule chords and themes follow and the direct fix for how the
   Guide rotted — it was prose inside `renderHelp()` and was still calling the
@@ -884,8 +897,9 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.13.5 — help-mode adjustments, on the phone.** 74/74 checks green, tree
-clean. (v2.13.3 was the last version signed off on the guitar.) The build
+**v2.13.6 — help-mode adjustments + his copy revision, on the phone.** 76/76
+checks green, tree clean. (v2.13.3 was the last version signed off on the
+guitar.) The build
 order in `travis-picker-workflow.md` is complete: generator + grid, progression
 mode, the Saved library, the manual editor, the metronome, PWA packaging,
 pattern audio, the visual identity (structure then colour), keys / chords /
