@@ -262,8 +262,10 @@ function position(panel, trigger) {
   const margin = 6;
   // A list lines up under the field it came from, so it takes the trigger's
   // width. A panel that opts out (`data-hug`) sizes to its own contents instead
-  // — the chord wheel is a mechanism, not a menu, and the 289px chord field left
-  // its two drums swimming in housing.
+  // — the chord wheel is a mechanism, not a menu, and the chord field (289px at
+  // the time) left its two drums swimming in housing. The field is now cut to the
+  // panel's own width instead, and `left = r.left` below is what makes that pay
+  // off: each barrel opens directly under its half of the field.
   if (!panel.dataset.hug) panel.style.minWidth = `${Math.ceil(r.width)}px`;
   const ph = panel.offsetHeight;
   const room = window.innerHeight - r.bottom;

@@ -125,9 +125,9 @@ re-measure. A blank line starts a new paragraph.
 ## Options → Setup
 
 ### Format
-*Tap: the Single / Prog. segmented control.*
+*Tap: the Single / Progression segmented control.*
 
-> “Single” drills one chord for the whole loop. “Prog.” gives you a chord per bar.
+> “Single” drills one chord for the whole loop. “Progression” gives you a chord per bar.
 
 ### Capo
 *Tap: the capo stepper. Its −/+ work even at an end stop.*

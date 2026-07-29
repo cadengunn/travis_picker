@@ -2066,6 +2066,141 @@ acheck("layout: the help ? stays above the Options scrim, and only then", async 
   frame.remove();
 });
 
+acheck("layout: the chord field is cut to the wheel it opens", async () => {
+  // His note (v2.14.3): "the chord/quality button should be the same size as the
+  // drum". The field used to fill both flexible slots of its row — 289px against
+  // a panel that hugs its two barrels at 237px — so a wide control opened a
+  // narrow mechanism. Both are cut from the same :root geometry now, and since
+  // dropdown.js anchors a panel to the trigger's LEFT edge, each barrel lands
+  // directly under its own half of the field. That pairing is what this pins:
+  // change --drum-root without changing the split, and it fails.
+  //
+  // Measured in an iframe with the real stylesheet, for the same reason the
+  // name-row check is: tests.html carries no stylesheet, and booting the app here
+  // would touch the user's localStorage.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:300px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="sheet-panel"><div class="control-row with-die">' +
+    '<label class="field span-2 field-split" id="field-chord">' +
+    '<span class="split-legends"><span>Chord</span><span>Quality</span></span>' +
+    '<button class="dd-trigger" type="button"><span class="dd-label">' +
+    '<span class="tl-half tl-root">C♯</span><span class="tl-half tl-quality">Major</span>' +
+    '</span></button></label>' +
+    '<div class="field field-die"></div></div></div>' +
+    // the panel as dropdown.js builds it, minus the reels (JS owns their height,
+    // and it's the WIDTH that has to agree with the field)
+    '<div class="dd-panel dd-wheel"><div class="wheel-drums">' +
+    '<div class="drum drum-root"></div><div class="wheel-split"></div>' +
+    '<div class="drum drum-quality"></div></div></div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const doc = frame.contentDocument;
+  const field = doc.getElementById("field-chord");
+  const panel = doc.querySelector(".dd-panel");
+  const row = doc.querySelector(".control-row");
+  const w = (el) => el.getBoundingClientRect().width;
+
+  assert(w(panel) > 0 && w(field) > 0, "both the field and the panel must lay out, or this proves nothing");
+  // The field is deliberately NARROWER than the span it sits in — if the row
+  // itself had shrunk to 237px the widths would match for the wrong reason.
+  assert(w(row) > w(field) + 40,
+    `the field should no longer fill its row (row ${w(row)}px, field ${w(field)}px)`);
+  assert(Math.abs(w(field) - w(panel)) < 0.5,
+    `the chord field (${w(field)}px) must be the width of the wheel it opens (${w(panel)}px)`);
+
+  // …and each half over its own barrel.
+  const pairs = [["tl-root", "drum-root"], ["tl-quality", "drum-quality"]];
+  for (const [half, drum] of pairs) {
+    const a = w(doc.querySelector(`.${half}`));
+    const b = w(doc.querySelector(`.${drum}`));
+    assert(Math.abs(a - b) < 0.5, `.${half} (${a}px) must be as wide as .${drum} (${b}px)`);
+  }
+
+  // The legends row sits OUTSIDE the well, so it needs the well's padding added
+  // back or each caption drifts left of the half it names (measured 10px).
+  const legends = doc.querySelectorAll(".split-legends span");
+  const halves = [doc.querySelector(".tl-root"), doc.querySelector(".tl-quality")];
+  const centre = (el) => { const b = el.getBoundingClientRect(); return b.left + b.width / 2; };
+  ["Chord", "Quality"].forEach((name, i) => {
+    const off = centre(legends[i]) - centre(halves[i]);
+    assert(Math.abs(off) < 0.5,
+      `the ${name} legend is ${off.toFixed(1)}px off the well it names`);
+  });
+
+  frame.remove();
+});
+
+acheck('layout: the Format control spells "Progression" on one line', async () => {
+  // His note (v2.14.3): the empty third slot of this row was holding slack, so
+  // the second mode can be spelled out instead of reading "Prog.". The segmented
+  // buttons have NO horizontal padding, so the button is exactly the text box.
+  //
+  // TWO asserts because there are two failure modes, and running this against a
+  // deliberately broken stylesheet is what showed which one is live: with
+  // `white-space: nowrap` a too-narrow button OVERFLOWS (the reported failure was
+  // "needs 82.5px in a 82px button"), and without it the word WRAPS, which in a
+  // bottom-anchored sheet doesn't clip — it lifts the whole panel. The line-box
+  // count catches the second; note that `scrollWidth <= clientWidth` would not,
+  // because a wrapped box does fit.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:300px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="sheet-panel"><div class="control-row format-capo">' +
+    '<div class="field"><span id="format-legend">Format</span>' +
+    '<div class="segmented"><button type="button" class="active">Single</button>' +
+    '<button type="button" id="prog-mode">Progression</button></div></div>' +
+    '<div class="field"><span>Capo</span><div class="stepper">' +
+    '<button type="button">−</button><output>0</output><button type="button">+</button>' +
+    '</div></div><div class="field"></div></div>' +
+    // a second row, so the legend tier can be compared against a row that never
+    // had a class of its own
+    '<div class="control-row layers"><label class="field">' +
+    '<span id="thumb-legend">Thumb</span><select></select></label></div></div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const doc = frame.contentDocument;
+  // Fraunces is WIDER than the fallback, so measuring before it arrives would
+  // pass vacuously. Ask for it explicitly (fonts.ready can hang in a hidden tab)
+  // and fail loudly if it never lands, rather than measuring Georgia.
+  await Promise.race([
+    doc.fonts.load("600 14px Fraunces"),
+    new Promise((r) => setTimeout(r, 3000)),
+  ]);
+  assert(doc.fonts.check("600 14px Fraunces"),
+    "Fraunces did not load in the harness — this measurement would be against the fallback");
+
+  // ONE legend tier, which is also the guard against this row's class colliding
+  // with an existing one: naming it `.context` inherited the grid readout's
+  // 26px line-height and centring, doubled both legends and grew the row
+  // 59px → 72px, which pushes the bottom-anchored sheet up.
+  const legendH = (id) => doc.getElementById(id).getBoundingClientRect().height;
+  assert(Math.abs(legendH("format-legend") - legendH("thumb-legend")) < 0.5,
+    `the Format legend is ${legendH("format-legend")}px against ${legendH("thumb-legend")}px elsewhere — this row's class is inheriting something`);
+
+  const btn = doc.getElementById("prog-mode");
+  const range = doc.createRange();
+  range.selectNodeContents(btn);
+  const lines = range.getClientRects().length;
+  const textW = range.getBoundingClientRect().width;
+  const boxW = btn.clientWidth;
+  frame.remove();
+
+  assert(lines === 1,
+    `"Progression" wraps to ${lines} lines in a ${boxW}px button — the Options sheet will jump`);
+  assert(textW < boxW,
+    `"Progression" needs ${textW.toFixed(1)}px in a ${boxW}px button`);
+  // Not just "fits": it has to look like a label, not a wall-to-wall word.
+  assert(boxW - textW >= 8,
+    `only ${(boxW - textW).toFixed(1)}px of air around "Progression" (${textW.toFixed(1)}px in ${boxW}px)`);
+});
+
 acheck("type: every bundled face is declared, and the three voices stay separate", async () => {
   const css = await (await fetch("css/styles.css")).text();
 

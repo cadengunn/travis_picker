@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [22](#where-things-stand-session-22-2026-07-29) | v2.14.3 | two of his UI notes: the chord field cut to the wheel, and "Progression" spelled out |
 | [21](#where-things-stand-session-21-2026-07-29) | v2.14.0 → v2.14.2 | the chord wheel: two cylinders, and the library became the full 12 × 3 matrix |
 | [20](#where-things-stand-session-20-2026-07-28) | v2.13.5 → v2.13.6 | help mode adjusted against his drilling, then his copy revision: 30 cards → 28 |
 | [19](#where-things-stand-session-19-2026-07-28) | v2.13.4 | the docs split into CLAUDE.md + this file; the Guide became help mode |
@@ -33,6 +34,77 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 22, 2026-07-29)
+
+**v2.14.3 — two small UI notes of his, and a third thing that only measurement
+found.** 83/83 green. No generator change, no new data, nothing outside the
+Options sheet.
+
+### The two notes
+
+**"The chord/quality button should be the same size as the drum."** It was 289px
+against a 237px panel. Rather than hard-code 237 twice, the drum geometry moved
+into `:root` and both the panel and the field now derive from it — and it lands on
+one number because the field's well contributes the same 9px padding + 1px border
+per side that the housing contributes around the drums. Two things came free:
+the field's halves are now the two *barrels* (88 / 108) instead of a `1fr 1.3fr`
+guess, and because `position()` anchors a panel to the trigger's left edge, each
+barrel opens exactly over its own half. Measured: panel and trigger both
+`16 → 253`, drums and halves both `26/88` and `135/108`.
+
+**"We have negative space to the right of capo, so spell out Progression."**
+Right — the dead third slot was holding the slack. The row is content-sized now
+(189.7 / 109 / 28.3), with the capo deliberately still `1fr` so its stepper keeps
+the width it had. "Progression" measures 82.5px in a 93.8px button, i.e. ~11px of
+air. `white-space: nowrap` went on the segmented buttons because those buttons
+have no horizontal padding at all — the button *is* the text box — and a wrap in
+this row wouldn't clip, it would lift the whole bottom-anchored sheet.
+
+### What measurement caught that looking didn't
+
+**Naming the row `.control-row.context` collided with `.context`**, the chord/
+progression readout above the grid — which pins `line-height: 26px`,
+`text-align: center` and `top: -4px`. The row inherited all three: both legends
+doubled to 26px and the row grew **59px → 72px**, pushing the sheet up with it.
+The screenshot looked fine; the row height didn't. Renamed `.format-capo`, and
+there's now a test comparing that row's legend height against a row with no class
+of its own, which is a guard against the whole class of mistake rather than this
+instance of it.
+
+**And each split legend sat 10px left of the well it names** (CHORD at `16→104`
+over a root well at `26→114`), because the legends row is outside the well and
+wasn't inset by its padding. Fixed, and pinned by comparing centres.
+
+### Verification
+
+Three new tests, all confirmed to fail without their fixes by breaking the
+stylesheet in the preview mirror and re-running: the field/panel/legend width
+chain (`the chord field (289px) must be the width of the wheel it opens (237px)`,
+then `the Chord legend is -10.0px off the well it names`), and the Format control
+(`"Progression" needs 82.5px in a 82px button`, then `the Format legend is 26px
+against 13px elsewhere`).
+
+Worth recording about that second one: **with `nowrap` the live failure mode is
+overflow, not wrapping.** The test keeps both asserts, because they cover the two
+different ways it can break — remove `nowrap` and it wraps, keep it and it
+overflows — and a line-box count is the only thing that catches the first
+(`scrollWidth <= clientWidth` reports a wrapped box as fitting, because it does).
+
+Height budget re-measured at 375×553, worst case (4 bars, progression, capo 2,
+`I–♭VII–IV · C`): **55.09 / 384.84 / 11.06 / no overflow** — identical to v2.14.2.
+The Options sheet measured 333px in both chord modes, before and after.
+
+### Also this session
+
+**The two help-copy reversions were built and then reverted, and that's now
+settled.** "Count-In" and Wild Card's off-the-curve line had been flagged open
+since v2.13.7; both went in, he read them and said *"I was happy with the help
+cards before"*, so both are back out with a **SETTLED** note in `data.js` so
+they don't get re-proposed a third time. The only surviving copy change is the
+one the button forced: the Format card had to stop saying "Prog.".
 
 ---
 

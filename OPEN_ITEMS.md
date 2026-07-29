@@ -16,7 +16,40 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.2) — THE CHORD WHEEL
+## On the phone right now (v2.14.3) — two of your UI notes
+
+**The chord field is the size of the wheel it opens.** 289px → 237px, and not by
+hard-coding it twice: the drum geometry is one set of `:root` values that both the
+panel and the field derive from. Two things fell out of it — the field's halves
+are now the two barrels (88 / 108) rather than a guessed ratio, and because a
+panel anchors to its trigger's left edge, each barrel opens exactly over its own
+half. Also fixed while measuring: each legend was sitting 10px left of the well it
+names.
+
+**Format spells "Progression" out.** The dead third slot gave up its slack;
+the capo stepper keeps exactly the width it had.
+
+**One thing to know**, because it nearly shipped: naming that row `.context`
+collided with the grid readout's `.context` rule, which doubled both its legends
+and grew the row 13px. The screenshot looked right; the row height didn't. Renamed,
+and there's a test comparing legend heights across rows now.
+
+**The height budget is untouched** — re-measured at 375×553, worst case: 55.09 /
+384.84 / 11.06 / no overflow, identical to v2.14.2. The sheet is 333px in both
+chord modes, same as before.
+
+**The help cards are back to how they were.** "Count-In" and Wild Card's
+off-the-curve line are both out again and marked SETTLED so they stop coming
+back. The one copy change that stayed is the Format card, which had to stop
+saying "Prog.".
+
+**Still owed from you on the wheel** (v2.14.0–.2, unchanged and unjudged): the
+detent's voice, the feel of the spin, whether it's round enough, whether the die
+should still roll all 36, and the F7 / F♯7 / G♯7 bass call below.
+
+---
+
+## Previously on the phone (v2.14.2) — THE CHORD WHEEL
 
 **Two cylinders, root × quality, in both chord pickers.** All 12 tones on the
 left drum; Major / Minor / 7 on the right. It commits as it settles and stays

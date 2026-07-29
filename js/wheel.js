@@ -46,8 +46,10 @@ export function createChordWheel({ tick = () => {} } = {}) {
 
     // The panel HUGS the drums: dropdown.js's position() otherwise gives a panel
     // the trigger's width as a min-width, which is right for a list (it lines up
-    // under the field) and wrong for a mechanism — the Options field is 289px
-    // and left the two drums swimming in housing.
+    // under the field) and wrong for a mechanism — the Options field was 289px
+    // and left the two drums swimming in housing. The hug is still what decides
+    // the width; since v2.14.3 the FIELD follows it (--wheel-w in styles.css),
+    // not the reverse, so the two now open as one object.
     panel.dataset.hug = "1";
 
     // TWO DRUMS ON ONE AXLE (his call): the chord and its quality are separate

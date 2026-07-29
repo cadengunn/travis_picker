@@ -141,12 +141,12 @@
 
       <!-- Row 1 is the instrument's CONTEXT — one chord or a progression, and
            where the capo is. Deliberately NOT the die's row (see row 2). -->
-      <div class="control-row">
+      <div class="control-row format-capo">
         <div class="field" data-help="chord-mode">
           <span>Format</span>
           <div id="chord-mode" class="segmented" role="group" aria-label="Chord mode">
             <button type="button" data-mode="single" class="active">Single</button>
-            <button type="button" data-mode="progression">Prog.</button>
+            <button type="button" data-mode="progression">Progression</button>
           </div>
         </div>
 
@@ -162,11 +162,13 @@
             <button type="button" data-capo-step="1" aria-label="Capo up">+</button>
           </div>
         </div>
-        <!-- The third slot is deliberately EMPTY. The "sounds in" readout used to
-             live here; it moved into the header's capo tag (v2.12.0), where the
-             capo state is already reported, so the two halves of one fact stopped
-             living on two different screens. The slot stays so the row keeps its
-             fixed 3-slot geometry. -->
+        <!-- The third slot is deliberately EMPTY, and NARROW since v2.14.3 — the
+             slack it was holding went to Format, which now spells "Progression"
+             out instead of abbreviating it (see .control-row.format-capo). The
+             "sounds in" readout used to live here; it moved into the header's
+             capo tag (v2.12.0), where the capo state is already reported, so the
+             two halves of one fact stopped living on two different screens. The
+             slot stays so the row keeps its fixed 3-slot geometry. -->
         <div class="field"></div>
       </div>
 

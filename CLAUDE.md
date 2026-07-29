@@ -300,7 +300,17 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   theme). You set all of it sitting down, between takes. **The pages are `Setup`
   and `Preferences` as of v2.13.3** — "Generation" was the original name and
   survives in the older notes in `CHANGELOG.md`; the ids are `tab-setup`/`page-setup`
-  to match. The chord-mode legend on page 1 is **`Format`**, not "Chords".
+  to match. The chord-mode legend on page 1 is **`Format`**, not "Chords", and its
+  values are **`Single` / `Progression`** — spelled out since v2.14.3, paid for by
+  shrinking the row's dead third slot (`.control-row.format-capo`: 189.7 / 109 /
+  28.3 at 375, the capo deliberately still `1fr` so its stepper keeps its width).
+  **The segmented buttons have no horizontal padding, so the button IS the text
+  box**; `white-space: nowrap` is what stops a long value wrapping, because a wrap
+  in this row doesn't clip, it lifts the bottom-anchored sheet.
+  **That row must not be called `.context`** — it was, for one build, and silently
+  inherited the grid readout's `.context` rule (26px `line-height`, centred text,
+  `top: -4px`): both legends doubled in height and the row grew 59px → 72px. A test
+  compares its legend's height against a row that has no class of its own.
   The split exists to buy height: one page had ~27px spare at 375×553, so
   nothing new could be added. The gear always opens on
   Setup. Three rules hold it together, each fixing something measured:
@@ -334,7 +344,10 @@ SE-class, 4 bars, progression mode, the worst case:
 11.06 / no overflow. The wheel is a body-level overlay, like the help card, so it
 costs nothing; and the 40px chord readout already pins its `line-height`, so a
 `C♯m` or `E♭7` doesn't grow its box either — checked across six chords, `gridTop`
-unmoved at 166.45.)
+unmoved at 166.45. Re-measured again at **v2.14.3**, worst case — 4 bars,
+progression mode, capo 2, `I–♭VII–IV · C`: **identical again**, 55.09 / 384.84 /
+11.06 / no overflow. Both v2.14.3 changes are inside the Options sheet, and the
+sheet itself measured **333px in both chord modes**, the same as before them.)
 Any further chrome must be measured at 375×553 before shipping. `main` has
 `overflow: auto`, so the failure mode is **silent** — the grid scrolls inside its
 own box rather than anything visibly breaking, and the laptop will not show you
@@ -557,6 +570,20 @@ Four dependency-free modules, all precached:
     for a list (it lines up under its field) and wrong for a mechanism: the 289px
     chord field left the drums swimming in housing. Both entry points now open
     the same 237px object.
+  - **…AND THE OPTIONS FIELD IS CUT TO THAT SAME OBJECT** (v2.14.3, his call: "the
+    chord/quality button should be the same size as the drum"). The drum geometry
+    lives in **`:root`** (`--drum-root` 88, `--drum-quality` 108, `--drum-gap` 10,
+    `--drum-axle` 1 ⇒ `--drums-w` 217, `--wheel-w` 237) and both the panel and
+    `.field-split` derive from it, so they can't drift. It works out as one number
+    because the field's well contributes the same 9px padding + 1px border per side
+    that the housing contributes around the drums. Two things fall out for free:
+    the field's halves are the two **barrels** (88 / 108) rather than a `1fr 1.3fr`
+    guess, and since `position()` anchors a panel to the trigger's **left** edge,
+    each barrel opens exactly over its own half — measured, panel and trigger both
+    `16 → 253`, drums and halves both `26/88` and `135/108`. The **legends row is
+    outside the well and must be inset by that 10px** or each caption starts left
+    of the barrel it names; a test pins the centres. Three tests cover this bullet
+    (field == panel, half == drum, legend == half).
   - **It's a real scroll container with CSS scroll-snap, not a hand-rolled drag**:
     that buys iOS momentum, rubber-banding and detents for free, and it's
     physically right (a flick spins the barrel and it coasts).
@@ -1037,9 +1064,11 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.2 — the chord wheel: two separated cylinders, all 12 roots ×
-Major/Minor/7; on the phone.** 81/81 checks green, tree clean. (v2.13.3 was the last version signed off on the
-guitar.) The build
+**v2.14.3 — the chord field is the size of the wheel it opens, and Format spells
+"Progression"; on the phone.** 83/83 checks green, tree clean. (v2.13.3 was the
+last version signed off on the guitar; the wheel of v2.14.0–.2 is still awaiting
+his notes on the detent, the spin, the curve, the die's pool and the F7/F♯7/G♯7
+bass.) The build
 order in `travis-picker-workflow.md` is complete: generator + grid, progression
 mode, the Saved library, the manual editor, the metronome, PWA packaging,
 pattern audio, the visual identity (structure then colour), keys / chords /

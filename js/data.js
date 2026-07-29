@@ -654,6 +654,9 @@ export function detectProgression(chords, keyId) {
 // over", "The grid is your right hand"). Single words are unaffected either
 // way, which is most of them. "Count-in" keeps its lowercase particle — that's
 // title case for a hyphenated compound, and it matches the lamp's own label.
+// SETTLED, v2.14.3: this was flagged as an open reversion from v2.13.7 through
+// v2.14.2, changed to "Count-In", and reverted the same session on his read —
+// "I was happy with the help cards before". The copy stands as it is.
 //
 // A blank line in a `body` starts a new paragraph (`help.js` splits on it).
 // `HELP_COPY.md` is the same content laid out for review; it is generated from
@@ -730,7 +733,7 @@ export const HELP = {
   // --- Options: Setup ---
   "chord-mode": {
     title: "Format",
-    body: "\u201CSingle\u201D drills one chord for the whole loop. \u201CProg.\u201D gives you a chord per bar.",
+    body: "\u201CSingle\u201D drills one chord for the whole loop. \u201CProgression\u201D gives you a chord per bar.",
   },
   capo: {
     title: "Capo",
@@ -758,6 +761,11 @@ export const HELP = {
   },
   chaos: {
     title: "Fingers",
+    // SETTLED, v2.14.3: Wild Card's off-the-curve line stays OUT. It was flagged
+    // as an open reversion since v2.13.7, restored, and he cut it again on
+    // reading it — "I was happy with the help cards before". His own v2.13.6 rule
+    // covers it: the menu groups Wild Card under Experimental, so you'd discover
+    // it in one tap. Don't re-propose.
     body: "How busy and how hard the finger part is. Changing this re-rolls only the fingers.",
   },
   pattern: {

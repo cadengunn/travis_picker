@@ -99,6 +99,21 @@
   --legend-size: 10px;
   --legend-track: 0.16em;
   --legend-weight: 500;
+
+  /* THE CHORD WHEEL'S GEOMETRY lives here, not in .dd-wheel, because two places
+     have to agree on it (v2.14.3, his call): the panel's two barrels, and the
+     Options chord field, which is cut to the same width so the control you press
+     is the size of the mechanism it opens. The field's well contributes 9px of
+     padding + 1px of border per side, which is exactly what the housing
+     contributes around the drums — so ONE number serves both, and since
+     dropdown.js anchors a panel to the trigger's left edge, each barrel opens
+     directly under its own half of the field. */
+  --drum-root: 88px;
+  --drum-quality: 108px;
+  --drum-gap: 10px;   /* clear space either side of the axle line */
+  --drum-axle: 1px;
+  --drums-w: calc(var(--drum-root) + var(--drum-quality) + var(--drum-gap) * 2 + var(--drum-axle));
+  --wheel-w: calc(var(--drums-w) + 20px);
 }
 
 * { box-sizing: border-box; }
@@ -932,6 +947,23 @@ main {
    capitalising "Wild card" → "Wild Card" alone cost 2.7px and took that column
    from 3.9px of slack to 1.2px. */
 .control-row.layers { grid-template-columns: 1.22fr 1.02fr 0.76fr; }
+/* Format / Capo / (empty), sized to their CONTENT for the same reason .layers is.
+   An even split gave Format 109px — 53.5px a button, and the segmented buttons
+   have NO horizontal padding, so the button is exactly the text box, which is
+   why the second mode had to read "Prog.". The dead third slot was holding the
+   slack that fixes it (his note, v2.14.3): over 327px of track this lands
+   189.7 / 109 / 28.3, so Format's buttons are 93.8px each and the capo stepper
+   keeps the width it already had. Capo is deliberately still 1fr for that
+   reason. How much air the longest word actually gets is MEASURED by the
+   "Progression on one line" test, not asserted here.
+
+   NAMED `.format-capo`, NOT `.context`: that was the first name, and `.context`
+   is already the chord/progression readout above the grid — which pins
+   `line-height: 26px`, `text-align: center` and `top: -4px`. The row inherited
+   all three, its legends doubled in height, and it grew 59px → 72px, pushing the
+   bottom-anchored sheet up with it. Caught by measuring the row, not by looking
+   at it. */
+.control-row.format-capo { grid-template-columns: 1.74fr 1fr 0.26fr; }
 .span-2 { grid-column: span 2; }
 .span-3 { grid-column: span 3; }
 .field {
@@ -1089,6 +1121,11 @@ main {
   font-family: var(--serif);
   font-size: 14px;
   font-weight: 600;
+  /* A value must never wrap. This row sits above three others in a
+     bottom-anchored sheet, so one wrapped word lifts the whole panel — and with
+     no horizontal padding here, the button IS the text box (see
+     .control-row.format-capo, which is sized from exactly that). */
+  white-space: nowrap;
 }
 .segmented button.active {
   color: var(--bg);
@@ -1282,13 +1319,32 @@ main {
 /* Two columns only. There is no column for the division line: it's drawn in the
    GAP by .tl-quality::before, because a 1px grid track was a place the second
    half could land in — and did, which clipped "Major" to "M". */
-.field-split { --split-cols: 1fr 1.3fr; }
+/* THE FIELD IS THE SIZE OF THE MECHANISM (v2.14.3, his call). It used to take
+   both flexible slots of its row — 289px against a 237px panel, so pressing a
+   wide button opened a narrow object. Both are now cut from the same :root
+   geometry, and the two halves are the two BARRELS rather than a 1fr/1.3fr
+   guess, so CHORD sits over the root drum and QUALITY over the quality drum,
+   each exactly as wide. The row keeps its 3-slot geometry; the field just no
+   longer fills its span, which is why the die stays put. */
+.field-split {
+  width: var(--wheel-w);
+  --split-cols: var(--drum-root) var(--drum-quality);
+  /* the gap is the axle plus its clear space, so the division line below lands
+     where the axle line does */
+  --split-gap: calc(var(--drum-gap) * 2 + var(--drum-axle));
+}
 .field-split .split-legends,
 .field-split .dd-label {
   display: grid;
   grid-template-columns: var(--split-cols);
-  gap: 0 14px;
+  gap: 0 var(--split-gap);
 }
+/* The legends row is OUTSIDE the well, so it has to be inset by the well's own
+   9px padding + 1px border, or each caption starts 10px left of the half it
+   names — measured, CHORD at 16→104 over a root well at 26→114. With the inset
+   the two boxes are identical (26→114 and 135→243), which is the point: the
+   caption is the same width as the barrel it names. */
+.field-split .split-legends { padding-inline: 10px; }
 .field-split .dd-label { overflow: visible; }
 .field-split .tl-half {
   position: relative;
@@ -1320,7 +1376,7 @@ main {
 .field-split .tl-quality::before {
   content: "";
   position: absolute;
-  left: -7px;
+  left: calc((var(--drum-gap) + var(--drum-axle) / 2) * -1);
   top: -4px;
   bottom: -4px;
   width: 1px;
@@ -1409,9 +1465,9 @@ main {
    depends on. */
 .dd-wheel {
   /* TWO DRUMS ON AN AXLE, and nothing else in the housing: the captions live on
-     the Options field above the trigger (his call, v2.14.2), not in here. */
-  --drum-root: 88px;
-  --drum-quality: 108px;
+     the Options field above the trigger (his call, v2.14.2), not in here.
+     --drum-* / --drums-w are in :root, because the Options field is cut to the
+     same geometry (v2.14.3) — see the note there. */
   display: grid;
   justify-content: center;
   /* min-width: 128px on .dd-panel would pad this out; the wheel sizes to its
@@ -1427,8 +1483,8 @@ main {
 }
 .wheel-drums {
   display: grid;
-  grid-template-columns: var(--drum-root) 1px var(--drum-quality);
-  gap: 0 10px;
+  grid-template-columns: var(--drum-root) var(--drum-axle) var(--drum-quality);
+  gap: 0 var(--drum-gap);
 }
 /* The housing around one cylinder: rounded ends, a lit centre and shadowed
    shoulders, so the drum reads as ROUND rather than as a column that fades. */
