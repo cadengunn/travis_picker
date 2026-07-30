@@ -2319,6 +2319,75 @@ acheck("layout: the page tabs don't read as the Format control", async () => {
   assert(jewel("t-off").backgroundImage === "none", "the other page's jewel is dark");
 
   frame.remove();
+
+  // NO FLASH ON RELEASE (his note, v2.14.6). The tapped key went `:active` (deep
+  // inset) → for one frame NEITHER `:active` nor `.active` → `.active`, and that one
+  // raised frame was the flash. Pressing a latching key IS seating it, so the two
+  // states are declared in ONE rule and there is no frame to see. Asserted against
+  // the source, because a computed style can't show you that they're the same rule
+  // — only that they happen to agree right now.
+  const css = await (await fetch("css/styles.css")).text();
+  assert(/\.segmented\.seg-tabs button:active,\s*\.segmented\.seg-tabs button\.active\s*\{/.test(css),
+    "the tabs' pressed and seated looks must be ONE rule, or a release flashes the raised state");
+  const base = css.match(/\.segmented\.seg-tabs button \{[^}]*\}/s)?.[0] || "";
+  assert(/transition:\s*box-shadow/.test(base),
+    "ease the tabs' shadow, or the other key SNAPS back on pop-out (the .btn-roll lesson)");
+});
+
+acheck("layout: a list panel is a housing, and the selected row is its aperture", async () => {
+  // His call (v2.14.6): bring the five remaining list menus (Thumb, Fingers,
+  // Pattern, Note Labels, Theme) into the drum's design language. They stay lists —
+  // short unordered sets, where a barrel would be ceremony — but the panel is a
+  // shaded housing now and the current value sits in an aperture rather than on a
+  // lit accent slab, which is how a drum says "this is the one in the window".
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:400px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="dd-panel dd-list" style="position:static;width:160px">' +
+    '<div class="dd-group">Complexity</div>' +
+    '<button class="dd-option selected" id="on">Tame</button>' +
+    '<button class="dd-option" id="off">Loose</button></div>' +
+    // …and the wheel's panel, which must NOT pick the housing up twice
+    '<div class="dd-panel dd-wheel" id="wheel" style="position:static"></div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const doc = frame.contentDocument;
+  const win = frame.contentWindow;
+  const panel = doc.querySelector(".dd-list");
+  const on = doc.getElementById("on");
+  const off = doc.getElementById("off");
+  const cs = (el) => win.getComputedStyle(el);
+
+  // The aperture is CUT EDGE TO EDGE: its hairlines reach the housing walls, the
+  // way the drum's do. `width: auto` doesn't do it — .dd-option is a <button>, and a
+  // button shrink-to-fits (measured: a 77px row in a 123px panel).
+  const pr = panel.getBoundingClientRect();
+  const sr = on.getBoundingClientRect();
+  // the walls are the PADDING box — inside the housing's own hardware border
+  const bw = parseFloat(cs(panel).borderLeftWidth);
+  const wall = { left: pr.left + bw, right: pr.right - bw };
+  assert(Math.abs(sr.left - wall.left) < 0.5 && Math.abs(sr.right - wall.right) < 0.5,
+    `the selected row must bleed to both walls (walls ${wall.left}–${wall.right}, row ${sr.left}–${sr.right})`);
+  assert(/1px/.test(cs(on).borderTopWidth) && /1px/.test(cs(on).borderBottomWidth),
+    "the aperture is framed top and bottom");
+  // …and framing it must not change its height, or every row below it shifts.
+  assert(Math.abs(sr.height - off.getBoundingClientRect().height) < 0.5,
+    `the framed row is ${sr.height}px against ${off.getBoundingClientRect().height}px unframed — the list will jump`);
+
+  // The housing shading goes on the panel because a scroll container's own
+  // background doesn't travel with its content — but it must not land on the wheel,
+  // which brings its own per-cylinder housings.
+  assert(cs(panel).backgroundImage.split("gradient").length > cs(doc.getElementById("wheel")).backgroundImage.split("gradient").length,
+    "the list panel wears the housing shading and the wheel's panel does not");
+
+  // A section caption names values from outside them, which is the legend voice.
+  assert(/Jost/.test(cs(doc.querySelector(".dd-group")).fontFamily),
+    `an optgroup caption is silkscreened, got ${cs(doc.querySelector(".dd-group")).fontFamily}`);
+
+  frame.remove();
 });
 
 acheck("layout: the die's row is the same geometry in both chord modes", async () => {

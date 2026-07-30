@@ -319,7 +319,10 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   CSS grid cell** with the inactive one hidden by `visibility`, so the panel is
   always the height of the taller page and switching tabs can't make the
   bottom-anchored sheet jump; and **the die sits in the chord row and nothing
-  else**, because that adjacency is the only thing that says what its scope is —
+  else** — and it wears a **tilted six**, the same pip layout and −13deg as the
+  transport's die (v2.14.6, his note), so the two read as one object; only the form
+  factor differs (an engraved outline on a flat key, not the cream Bakelite face) —
+  because that adjacency is the only thing that says what its scope is —
   and since v2.14.4 it sits directly **beside** the chord rather than out at the
   row's edge, which is where a 3-slot grid had pinned it once the field shrank to
   the wheel's 237px. That row is now **one centred flex group** (`237 + 8 + 46 =
@@ -349,6 +352,14 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   cap highlight *removed*, a fill darker than the plate, and a hairline of bounce
   along the bottom edge. The change made the sheet 2.5px shorter (333 → 330.5),
   which is a gain, not a cost.
+  **`:active` and `.active` are ONE RULE** (v2.14.6, his note: "a little flash upon
+  release"). Pressing a latching key *is* seating it, and with the two declared
+  separately the tapped key went `:active` (deep inset) → one frame of **neither** →
+  `.active`, and that raised frame was the flash. They now share a rule, so there is
+  no frame to see; a test asserts the *shared selector* rather than the computed
+  values, since agreeing today isn't the same as being the same rule. The other half
+  is `transition: box-shadow 0.07s ease`, which is **the same fix `.btn-roll` and
+  `.dd-trigger` already carry** — the snap on pop-out reads as a flicker.
 - **There is no app bar.** A title told you nothing the home-screen icon doesn't,
   and its 53px was the difference between the 4-bar grid fitting and not.
 
@@ -541,6 +552,26 @@ the original keeps its plain name, later saves become `Name (2)`, `Name (3)`.
 
 **UI components — we draw our own, because iOS draws the OS's** (session 11).
 Four dependency-free modules, all precached:
+- **A LIST PANEL IS A HOUSING TOO** (`.dd-list`, v2.14.6, his call). The five
+  remaining list menus (Thumb, Fingers, Pattern, Note Labels, Theme) were the last
+  panels speaking a different dialect — a flat plate, where the two drum pickers
+  open a shaded housing with a lit aperture. They **stay lists** (short unordered
+  sets; a barrel would be ceremony) but wear the same material, and **the selected
+  row is an aperture, not a lit accent slab** — hardware hairlines above and below,
+  glass lit, type bright, squared off and bled to the housing walls. The old accent
+  capsule was the same object a *pressed button* wears, so it read as "the one you
+  just hit" rather than "the one in the window".
+  Three things to know before touching it: the shading goes on `.dd-panel` **even
+  though the panel is the scroll container**, because an element's own background
+  and inset shadows paint against its padding box and don't travel with scrolled
+  content (same reason the drum's machining is on `.drum`, not `.reel`); the bleed
+  is `calc(100% + var(--dd-pad) * 2)` and **not `width: auto`**, because
+  `.dd-option` is a `<button>` and a button shrink-to-fits — `auto` gave a 77px row
+  in a 123px panel; and framing the row must not change its height (42px either
+  way) or every row below it shifts. `.dd-list` is added by `renderList`, so none
+  of it lands on `.dd-wheel`, which brings its own per-cylinder housings.
+  Riding along: **`.dd-group` is silkscreened now**, not serif — it was the one
+  caption in the app still speaking in the value voice.
 - **`dropdown.js` — KEY INVARIANT: the native `<select>` stays in the DOM
   (`display: none`) as the source of truth.** Value, options and the `change`
   event are unchanged, so every `app.js` wiring and the `#grid` change-delegation
@@ -1146,8 +1177,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.5 — Key × Progression became the second drum picker, and the page tabs
-became a latching key pair; on the phone.** 87/87 checks green, tree clean. **The wheel is signed off** (v2.14.0–.2: the detent, the
+**v2.14.6 — the list panels joined the drums' design language; the tab flash fixed;
+the Options die is a tilted six; on the phone.** 88/88 checks green, tree clean. **The wheel is signed off** (v2.14.0–.2: the detent, the
 spin, the curve, the die's pool and the F7/F♯7/G♯7 ♭7 bass are all "good as is" —
 his call, don't revisit unless he raises it), as are Wild Card and Unruly.
 (v2.13.3 was the last version signed off on the guitar as a whole.) The build

@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [25](#where-things-stand-session-25-2026-07-29) | v2.14.6 | the list panels joined the drums' language; the tab flash; the Options die |
 | [24](#where-things-stand-session-24-2026-07-29) | v2.14.5 | Key × Progression became the second drum picker; the page tabs became a latching key pair |
 | [23](#where-things-stand-session-23-2026-07-29) | v2.14.4 | his v2.14.3 notes: one width for both chord modes, the die back beside the chord, the document locked |
 | [22](#where-things-stand-session-22-2026-07-29) | v2.14.3 | two of his UI notes: the chord field cut to the wheel, and "Progression" spelled out |
@@ -36,6 +37,80 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 25, 2026-07-29)
+
+**v2.14.6 — four notes off his v2.14.5 pass.** 88/88 green. All four small; two of
+them have reasoning worth keeping.
+
+### "A little flash upon release of the setup and preferences buttons"
+
+He added: *"We had something similar on other buttons in the past."* He was right,
+and the precedent was findable — `.btn-roll` carries `transition: box-shadow 0.07s
+ease` with the comment *"so the raised state doesn't SNAP back on release — the snap
+read as a flicker on pop-out."* My new tabs had no transition, so that was half of
+it.
+
+The other half was worse and specific to a latching key: the tapped tab went
+`:active` (deep inset) → **one frame of neither `:active` nor `.active`** →
+`.active`. That raised frame was the flash. Pressing a latching key *is* seating it,
+so the two states are one rule now and there's no frame to see. The test asserts the
+**shared selector** rather than the computed values, because two rules agreeing today
+isn't the same thing as being one rule.
+
+### The list panels join the drums' language
+
+His call, and he corrected my count: it's **five**, not four — Note Labels is a
+dropdown too. Thumb, Fingers, Pattern, Note Labels, Theme.
+
+They stay lists (short unordered sets; a barrel would be ceremony) but the material
+matches now, and **the selected row became an aperture** rather than a lit accent
+slab. That was the substantive part: the accent capsule is the same object a
+*pressed button* wears, so it read as "the one you just hit" instead of "the one in
+the window", which is what a drum's aperture says.
+
+Three things the implementation turned on:
+- **The shading goes on the panel even though the panel is the scroll container.**
+  An element's own background and inset shadows paint against its padding box and
+  don't travel with scrolled content — so the housing stays put while the names move
+  through it. Same reason the drum's machining is on `.drum` and not `.reel`.
+- **`width: auto` doesn't bleed a row to the walls, because `.dd-option` is a
+  `<button>`** and a button shrink-to-fits its content. Measured: a 77px row in a
+  123px panel. It's `calc(100% + var(--dd-pad) * 2)` with the panel's padding named,
+  so the bleed and the padding can't drift apart.
+- **Framing the row must not change its height.** 42px either way, or every row
+  below the selection shifts by 2px.
+
+Riding along: `.dd-group` is silkscreened now. It was the one caption left in the
+app still set in the serif, and a caption naming values from outside them is exactly
+the legend voice's job.
+
+### The Options die
+
+Now a **tilted six** — the same pip layout and the same −13deg as the transport's
+die, so the two read as one object. Only the form factor stays this button's own: an
+engraved outline on a flat key, not the cream Bakelite face. Note the press stays a
+1px translate here; `.btn-roll` had to sink straight in because the tilted die *is*
+that button's face, whereas this is a rectangular key with a die drawn on it.
+
+### Help copy
+
+The "Custom at the end is a readout…" sentence is out of the Key and Progression
+card, as asked.
+
+### Verification
+
+Two new asserts, both confirmed against a broken mirror: *the tabs' pressed and
+seated looks must be ONE rule*, and *the selected row must bleed to both walls
+(walls 1–159, row 1–149)*. One of my own asserts was wrong first time — it compared
+the row against the panel's **border** box when the walls are the padding box, which
+is a reminder that a failing new test needs reading before it's believed.
+
+Budget re-measured at 375×553 worst case: **55.09 / 384.84 / 11.06 / no overflow**,
+document still unscrollable, sheet 330.5px in both chord modes, and all three
+remaining Setup lists frame their selection without shifting a row.
 
 ---
 

@@ -747,7 +747,7 @@ export const HELP = {
   // behind one trigger, so there is one tap target and it has to cover both.
   "field-keyprog": {
     title: "Key and Progression",
-    body: "Two drums: the key on the left, the progression on the right. Every progression is four bars, so a two-chord idea repeats and a three-chord idea holds its last chord.\n\nChanging key within major or within minor transposes what you have, edited bars included. Crossing between major and minor resets to that mode's first progression. “Custom” at the end of the drum is a readout, not a choice: it lights up once you edit a bar's chord.",
+    body: "Two drums: the key on the left, the progression on the right. Every progression is four bars, so a two-chord idea repeats and a three-chord idea holds its last chord.\n\nChanging key within major or within minor transposes what you have, edited bars included. Crossing between major and minor resets to that mode's first progression.",
   },
   "randomize-chords": {
     title: "Randomize",

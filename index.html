@@ -213,7 +213,13 @@
         <div class="field field-die">
           <button id="randomize-chords" class="die-btn" type="button" data-help="randomize-chords"
                   aria-label="Random key and progression" title="Random key &amp; progression">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.4" cy="7.4" r="1.5"/><circle cx="8.4" cy="16.6" r="1.5"/><circle cx="15.6" cy="7.4" r="1.5"/><circle cx="15.6" cy="16.6" r="1.5"/><circle cx="12" cy="12" r="1.5"/></svg>
+            <!-- A SIX, and tilted, to match the transport's die (v2.14.6, his
+                 note). Same pip layout and radii as #generate's — two columns of
+                 three — so the two dice read as the same object; the tilt is on
+                 the svg in CSS, like the transport's. The form factor stays this
+                 button's own: an engraved outline on a flat key, not the cream
+                 Bakelite face. -->
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.4" cy="7.4" r="1.4"/><circle cx="8.4" cy="12" r="1.4"/><circle cx="8.4" cy="16.6" r="1.4"/><circle cx="15.6" cy="7.4" r="1.4"/><circle cx="15.6" cy="12" r="1.4"/><circle cx="15.6" cy="16.6" r="1.4"/></svg>
           </button>
         </div>
       </div>

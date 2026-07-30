@@ -16,7 +16,35 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.5) — the second drum, and the page tabs
+## On the phone right now (v2.14.6) — your v2.14.5 notes
+
+All four done.
+
+- **The tab flash is fixed, and you were right that we'd seen it before** — the die
+  already carries the same eased shadow for the same "flicker on pop-out". But there
+  was a second cause specific to a latching key: the tapped tab showed one frame of
+  the *raised* state between the press and the latch. Pressing one of these keys is
+  seating it, so those are one look now and there's no frame to see.
+- **All five list menus wear the drums' material**, and the selected row is an
+  aperture rather than a lit slab — hairlines above and below, glass lit, bled to the
+  housing walls. That last part is the bit worth judging: the old accent capsule was
+  the same object a pressed button wears, so it said "the one you just hit" instead
+  of "the one in the window". Thanks for the correction on the count — Note Labels
+  makes five.
+- **The Options die is a tilted six**, same pips and same angle as the transport's,
+  keeping its own engraved-on-a-flat-key form factor.
+- **The "Custom is a readout" sentence is out** of the Key and Progression card.
+
+Riding along, since it was the one caption left speaking in the wrong voice: the
+section headers inside a list (COMPLEXITY / EXPERIMENTAL) are silkscreened now
+rather than serif.
+
+**Budget untouched** — 375×553, 4 bars, worst case: 55.09 / 384.84 / 11.06 / no
+overflow. Sheet 330.5px in both chord modes.
+
+---
+
+## Previously on the phone (v2.14.5) — the second drum, and the page tabs
 
 **Key × Progression is a drum picker now**, and your reframing is why: read as
 *style* × progression the axes have holes, but key × progression is the thought you
@@ -560,12 +588,8 @@ are unrelated words you scan. Both cross-products are now drums. What's left:
 
 - **Thumb, Fingers, Pattern, Theme** stay lists. They're short unordered sets; a
   barrel would be ceremony.
-- **The materials still don't match**, and that's the live question. A list panel is
-  a flat plate; a drum panel is a housing. Giving the ordinary panel the drum's
-  border and shaded shoulders — with the selected row in an aperture-style
-  highlight — would make them read as parts of one machine without pretending a
-  short list is a mechanism. Small and contained, and it lifts all four remaining
-  menus at once. **Say the word and I'll do it.**
+- **The materials now match — DONE (v2.14.6, your call).** All five list panels wear
+  the housing, with the selected row in an aperture. See the top.
 - **A correction to what I told you earlier:** I said Key was a good drum candidate
   because it's 12 roots × a mode axis. It isn't today — there are only 7 curated
   keys — and the key drum you now have is a 7-name reel with one groove in it. It

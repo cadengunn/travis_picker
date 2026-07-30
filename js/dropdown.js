@@ -152,6 +152,10 @@ function closePanel() {
 // own structure so an <optgroup> becomes a section header.
 function renderList(select, panel, { close, commit: commitTo }) {
   panel.setAttribute("role", "listbox");
+  // `.dd-list` so CSS can give a LIST panel the drum's housing (his call,
+  // v2.14.6: bring the five remaining list menus into the same design language)
+  // without that treatment landing on the wheel, which brings its own housings.
+  panel.classList.add("dd-list");
   let active = select.selectedIndex;
 
   const buildOption = (opt) => {
