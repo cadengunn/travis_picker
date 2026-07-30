@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 | a full hardware-polish pass: sliders → faders, Sound toggles → latching keys, primary buttons → carved accent keys |
+| [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 → v2.14.10 | a full hardware-polish pass: sliders → faders, Sound toggles → latching keys, primary buttons → carved accent keys; then the fader slides not seats, and an edit-mode "thock" |
 | [27](#where-things-stand-session-27-2026-07-30) | v2.14.8 | the control-materials pass built (die + Format → wells); the tabs act on release, not on press |
 | [26](#where-things-stand-session-26-2026-07-30) | v2.14.7 | the tab flash (pointerdown, for real this time); the Play press de-weighted; a consistency mockup |
 | [25](#where-things-stand-session-25-2026-07-29) | v2.14.6 | the list panels joined the drums' language; the tab flash; the Options die |
@@ -44,6 +44,24 @@ has the original build order.
 ---
 
 ## Where things stand (session 28, 2026-07-30)
+
+**v2.14.10 — two follow-ups off his v2.14.9 read (below the v2.14.9 pass).**
+89/89 green.
+
+- **The faders SLIDE, they don't push in.** My fader gave the cap an `:active`
+  inset (it looked like it seated while dragging); a fader glides, so that rule is
+  gone and the cap keeps its raised look the whole travel. His note.
+- **Edit mode has a "thock."** Placing or deleting a dot now plays a felt-bottomed
+  chess-piece sound (his image), so editing has the same tactile confirmation the
+  rest of the app does. A new `playPlace()` in `ui-sound.js`: the woody `body` of a
+  click, but the contact is low and low-Q — a muffled felt cushion, not the bright
+  plastic tick. One sound for both place and delete. Fired from the grid edit-click
+  handler, gated like the buttons (silent while the transport runs, and off when the
+  ui-sound lamp is off — grid cells are excluded from `pressStrength`, so it's their
+  only voice). Verified by counting starts: one `body` + one `tick` per tap, zero
+  when the lamp is off.
+
+---
 
 **v2.14.9 — a picky visual pass across every surface, then the last non-hardware
 elements brought into the language.** 89/89 green. He asked for a full audit and

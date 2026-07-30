@@ -16,10 +16,22 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.9) — the hardware-polish pass
+## On the phone right now (v2.14.10) — the polish pass, plus two of your notes
 
-Off your "take a full picky visual pass and recommend" ask. Audited every surface;
-three things were the last non-hardware elements, and you took all of them.
+**Two follow-ups off your v2.14.9 read:**
+
+- **The faders slide now, they don't push in.** The cap kept a pressed-in look while
+  dragging; a fader glides, so that's gone. It just travels.
+- **Edit mode has a "thock."** Placing or deleting a dot plays a felt-bottomed
+  chess-piece sound — your image exactly. It follows the same rules as the other
+  feedback: off when the Buttons lamp is off, silent during a take. Judge whether the
+  felt/wood balance is right on the phone (it's two numbers to tune if not).
+
+---
+
+**The v2.14.9 pass, off your "take a full picky visual pass and recommend" ask.**
+Audited every surface; three things were the last non-hardware elements, and you
+took all of them.
 
 - **The two sliders are FADERS now.** BPM (on the transport) and Swing (in its well)
   are a machined slot with the traveled portion filled in the accent and a raised

@@ -103,6 +103,23 @@ export function playTick() {
   tick(ac, t, { freq: 5200, q: 2.2, level: 0.05, dur: 0.007 });
 }
 
+// "Thock" — placing or removing a note in edit mode. A felt-bottomed chess piece
+// set down on a board (his ask, session 28): a low woody knock, but the contact is
+// SOFT and muffled — a low, damped thud rather than the bright plastic tick of a
+// button, because felt cushions the strike. Same materials, tuned for wood-on-felt.
+// One sound for both place and delete: you're setting or lifting a piece either way.
+// Tune by ear on a phone — f0/drop for the wood, the tick freq/level for the felt.
+export function playPlace() {
+  if (!enabled) return;
+  const ac = ensureCtx();
+  if (!ac) return;
+  if (ac.state === "suspended") ac.resume();
+  const t = ac.currentTime;
+  body(ac, t, { f0: 190, drop: 130, level: 0.13, attack: 0.002, dur: 0.055 });
+  // the felt: low, soft, low-Q so it reads as a muffled cushion, not a click
+  tick(ac, t, { freq: 430, q: 0.6, level: 0.05, dur: 0.03 });
+}
+
 // "Chunk" — the release. Deeper, fuller and a hair longer: the spring seating the
 // mechanism home. This is the satisfying half.
 export function playRelease(strength = 1) {

@@ -47,7 +47,7 @@ import {
   SWING_MIN,
   clampSwing,
 } from "./metronome.js";
-import { setUiSoundEnabled, playPress, playRelease, playTick } from "./ui-sound.js";
+import { setUiSoundEnabled, playPress, playRelease, playTick, playPlace } from "./ui-sound.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { createHelp } from "./help.js";
 import { enhanceSelect, enhanceAll, retargetOpenPanel, commit } from "./dropdown.js";
@@ -66,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v2.14.9";
+const APP_VERSION = "v2.14.10";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1197,6 +1197,11 @@ function attach() {
       string: Number(cell.dataset.string),
       chordId: chords[screenBar],
     });
+    // A felt-on-board "thock" on every place/delete, so editing has the same
+    // tactile confirmation the rest of the app does. Silenced while the transport
+    // runs, exactly like the button ka-chunk (the ring-switch rule) — grid cells
+    // are excluded from pressStrength(), so this is their only voice.
+    if (!metronome.running) playPlace();
     state.unsavedEdits = true;
     markDirty();
     render();

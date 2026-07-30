@@ -853,9 +853,8 @@ main {
     var(--control);
   box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.22), 0 2px 3px rgba(0, 0, 0, 0.4);
 }
-/* the cap sinks a touch while dragging */
-.bpm-slider:active::-webkit-slider-thumb,
-.swing-slider:active::-webkit-slider-thumb { box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4); }
+/* NO press-in on the cap: a fader SLIDES, it doesn't seat like a button (his note,
+   session 28). The cap keeps its raised look the whole time it travels. */
 .bpm-readout {
   text-align: center;
   font-family: var(--numeral);

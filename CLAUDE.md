@@ -758,6 +758,15 @@ Four dependency-free modules, all precached:
   A third voice, **`playTick`**, is the chord wheel's DETENT — same materials,
   about a third the level, no tail (it fires several times a second during a
   spin, and anything with a tail would smear).
+  A fourth, **`playPlace`** (session 28, his ask), is the edit-mode **"thock"** —
+  a felt-bottomed chess piece set on a board: the same woody `body`, but the
+  contact `tick` is LOW and low-Q (a muffled cushion, not the bright plastic click),
+  because felt damps the strike. Fired from the `#grid` edit-click handler in
+  `app.js` on every place AND delete (one sound for both — you're setting or lifting
+  a piece either way), gated the same way as the buttons: `if (!metronome.running)`,
+  and by the `enabled` flag. Grid cells are excluded from `pressStrength`, so the
+  thock is their only voice — no ka-chunk doubles it. Verified by counting starts:
+  one `body` + one `tick` per tap, zero while the ui-sound lamp is off.
   - **The silent-switch policy lives in `app.js`, not here** (v2.8.2): **no button
     sound while the transport is running.** The web cannot read the iOS ring
     switch, and playback is the only window in which we hold the audio category
@@ -872,6 +881,8 @@ rgba because it's texture, not hue**, so it rides every theme.
   groove (a 90deg gradient hairline). `height: 24px` stays for the touch target;
   the native drag is untouched (a test drags BPM to 239 and reads the fill). BPM is
   bare on the transport; Swing rides inside its `.slider-well`.
+  **The cap has NO `:active` press-in** (his note, session 28) — a fader SLIDES, it
+  doesn't seat like a button, so the cap keeps its raised look the whole travel.
 - **Note tokens are 3D DOMES**, not chips — a poker-chip treatment (flat face +
   extruded edge) was built, tried and rejected. Signed off; don't re-propose.
 - **Grid legibility beats decoration:** no per-cell borders. Strings read from
