@@ -2276,10 +2276,12 @@ acheck("layout: the page tabs don't read as the Format control", async () => {
   // pressable: "a more narrow rectangular button to suit the font. You press one,
   // it pops in, light comes on. The other pops out and light off."
   //
-  // Pinned as the two things that make them different KINDS of object, rather than
-  // as any particular shade: the tabs speak in the legend face, not the serif; and
-  // the current page is HELD IN while a chosen value is LIT UP, so the two active
-  // states must not share a fill.
+  // Since session 27 the Format control is ALSO a seated key in a well (the capo
+  // language, his call), so "held-in vs lit-up" is no longer what separates them —
+  // both are held-in now. The two things that keep them from reading as the same
+  // kind of object, and are pinned here: the tabs speak in the LEGEND face, the
+  // Format control in the serif; and the LIT JEWEL is the tabs' signature alone —
+  // the Format value carries no lamp (the capo it matches has none either).
   const frame = document.createElement("iframe");
   frame.setAttribute("aria-hidden", "true");
   frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:200px;border:0";
@@ -2305,18 +2307,22 @@ acheck("layout: the page tabs don't read as the Format control", async () => {
     `the tabs must speak in the legend face, got ${tabOn.fontFamily}`);
   assert(!/Jost/.test(fmtOn.fontFamily),
     "…and the Format control must not, or they're the same voice again");
-  assert(tabOn.backgroundImage !== fmtOn.backgroundImage,
-    "the active tab and the active Format value must not share a fill");
 
   // HELD IN vs standing proud: the seated key loses the cap highlight and gains a
-  // deep inset, and only the active one has a lit jewel. Compared against its own
-  // inactive twin, so a theme change can't make this vacuous.
+  // deep inset. Compared against its own inactive twin, so a theme change can't
+  // make this vacuous. (Both tabs and Format seat now — that's the point; they're
+  // one hardware family. The jewel below is what still tells them apart.)
   assert(tabOn.boxShadow !== tabOff.boxShadow,
     "the current page must look pressed in relative to the other one");
   assert(/inset/.test(tabOn.boxShadow), `the seated tab needs an inset shadow, got ${tabOn.boxShadow}`);
-  const jewel = (id, state) => win.getComputedStyle(frame.contentDocument.getElementById(id), "::before");
+  const jewel = (id) => win.getComputedStyle(frame.contentDocument.getElementById(id), "::before");
   assert(jewel("t-on").backgroundImage !== "none", "the current page's jewel is lit");
   assert(jewel("t-off").backgroundImage === "none", "the other page's jewel is dark");
+  // THE LAMP IS THE TABS' ALONE — the Format value must carry none, or a seated
+  // serif key with a lit jewel is just a fat tab. This is the differentiator that
+  // replaced "must not share a fill" once Format started seating too.
+  assert(jewel("f-on").backgroundImage === "none",
+    "the active Format value must have no lamp — the lit jewel is the page tabs' signature");
 
   frame.remove();
 
@@ -2333,16 +2339,22 @@ acheck("layout: the page tabs don't read as the Format control", async () => {
   assert(/transition:\s*box-shadow/.test(base),
     "ease the tabs' shadow, or the other key SNAPS back on pop-out (the .btn-roll lesson)");
 
-  // Even with ONE rule, the flash came back (v2.14.7): the shared rule only helps
-  // if `.active` is present the whole time the finger is down, and switching the
-  // page on `click` leaves a bare frame between the browser dropping `:active` at
-  // pointerup and click firing. The fix is to switch on POINTERDOWN. Asserted at
-  // the source because app.js glue isn't imported here and the regression is
-  // silent — the page still switches on click, it just flashes.
+  // A latching key holds while the finger is down and acts on RELEASE, like every
+  // other button (his note, session 27). So the switch is on POINTERUP, not
+  // pointerdown (v2.14.7, which committed on press and flipped the page under the
+  // finger) and not `click` alone (v2.14.6, which flashed). Pointerup keeps both:
+  // release-activation, and no flash — because adding `.active` in the pointerup
+  // handler runs synchronously within the same release, before any paint, so
+  // `.active` is present the instant the browser drops `:active`. The click path's
+  // flash came precisely from those being two SEPARATE events with a paintable gap.
+  // Asserted at the source because app.js glue isn't imported here and the
+  // regression is silent — the page still switches, it just acts on the wrong edge.
   const appjs = await (await fetch("js/app.js")).text();
   const tabWiring = appjs.match(/seg-tabs[\s\S]{0,400}/)?.[0] || "";
-  assert(/addEventListener\(\s*["']pointerdown["']/.test(tabWiring),
-    "the Options tabs must switch on pointerdown, or releasing one flashes its raised state");
+  assert(/addEventListener\(\s*["']pointerup["']/.test(tabWiring),
+    "the Options tabs must switch on pointerup — hold while pressed, act on release, and no release flash");
+  assert(!/addEventListener\(\s*["']pointerdown["']/.test(tabWiring),
+    "the tabs must NOT switch on pointerdown, or they commit on press instead of release");
 });
 
 acheck("layout: a list panel is a housing, and the selected row is its aperture", async () => {
@@ -2425,7 +2437,9 @@ acheck("layout: the die's row is the same geometry in both chord modes", async (
     '<button class="dd-trigger" type="button"><span class="dd-label">' +
     '<span class="tl-half tl-key">C</span><span class="tl-half tl-prog">I–♭VII–IV</span>' +
     '</span></button></label>' +
-    '<div class="field field-die"><button id="die" class="die-btn" type="button"></button></div>' +
+    // The die is a key inside a recessed well since session 27 — the well is the
+    // sized 46px element, so geometry is measured from `.die-well`.
+    '<div class="field field-die"><div class="die-well"><button id="die" class="die-btn" type="button"></button></div></div>' +
     '</div></div>';
   document.body.appendChild(frame);
   await new Promise((resolve) => { frame.onload = resolve; });
@@ -2435,10 +2449,10 @@ acheck("layout: the die's row is the same geometry in both chord modes", async (
   const chord = doc.getElementById("field-chord");
   const keyprog = doc.getElementById("field-keyprog");
 
-  const single = { die: box("#die"), groupL: box("#field-chord").l, groupR: box("#die").r };
+  const single = { die: box(".die-well"), groupL: box("#field-chord").l, groupR: box(".die-well").r };
   const row = box(".control-row");
   chord.hidden = true; keyprog.hidden = false;
-  const progression = { die: box("#die"), groupL: box("#field-keyprog").l, groupR: box("#die").r };
+  const progression = { die: box(".die-well"), groupL: box("#field-keyprog").l, groupR: box(".die-well").r };
   const pair = box("#field-keyprog").r - box("#field-keyprog").l;
   const chordW = single.groupR - single.groupL;
   frame.remove();

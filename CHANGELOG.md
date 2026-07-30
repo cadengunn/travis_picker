@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [27](#where-things-stand-session-27-2026-07-30) | v2.14.8 | the control-materials pass built (die + Format → wells); the tabs act on release, not on press |
 | [26](#where-things-stand-session-26-2026-07-30) | v2.14.7 | the tab flash (pointerdown, for real this time); the Play press de-weighted; a consistency mockup |
 | [25](#where-things-stand-session-25-2026-07-29) | v2.14.6 | the list panels joined the drums' language; the tab flash; the Options die |
 | [24](#where-things-stand-session-24-2026-07-29) | v2.14.5 | Key × Progression became the second drum picker; the page tabs became a latching key pair |
@@ -38,6 +39,79 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 27, 2026-07-30)
+
+**v2.14.8 — the consistency fork got built, and the tabs learned to act on
+release.** Three UI notes off his read of v2.14.7. 88/88 green.
+
+### The control-materials pass (his item-13 call: "get the die and format in line with the capo")
+
+The v2.14.7 mockup offered current vs. everything-in-the-capo-language. He picked
+it — but the mockup didn't show the page tabs, and applied for real the approved
+Format treatment (**seated key + lit lamp**) is the exact language of the tabs,
+which in v2.14.5 he'd *deliberately* separated from Format ("looks too similar to
+single/progression"). There's even a test pinning "the active tab and the active
+Format value must not share a fill." So the mockup partly re-collides them.
+
+I flagged it and rendered three options against the real stylesheet with the tabs
+shown: **A** current gold slab, **B** seated + lamp (the mockup), **C** seated, no
+lamp. He chose **C**, which is also the truest reading of "in line with the *capo*
+selector" — the capo has no lamp; the lamp was my addition, and it's the tabs'
+signature. So:
+
+- **The die is a carved key sunk into a recessed well** (`.die-well` + `.die-btn`),
+  identical material to a capo stepper key, sinking straight in on press. The well
+  is the sized 46px element; the key fills it. This **diverges from the proud cream
+  Generate die** on the transport on purpose — two dice, two treatments, because
+  this one sits among wells. He accepted that trade in approving the mockup.
+- **Format (single/progression) is two carved keys in one well**, no lamp: the
+  selected key seats with bright text, the other stands proud. It replaced the flat
+  gold slab, the last non-well material in the sheet besides the die.
+- **The test that pinned "must not share a fill" was rewritten**: both seat now, so
+  that's no longer the distinction. The differentiators are the Jost/serif voice
+  (kept) and **the lit jewel being the tabs' alone** — the Format value carries no
+  lamp, so a lit jewel means "page tab."
+
+The die and Format wells cost nothing in layout (all inside the overlay sheet):
+375×553, 4 bars, progression, capo 2 — grid 384.84, header 55.09, no overflow,
+identical to v2.14.7. The 1px divider I added between the Format keys trims the
+second button, so the "Progression on one line" test still guards the fit (it
+passed).
+
+### The tabs act on RELEASE now (his note)
+
+His v2.14.7 pointerdown fix killed the flash but committed on *press* — the page
+flipped under your finger. A latching key should hold while pressed and act on
+release, like every other button. **Switched to `pointerup`** (+ `click` for the
+keyboard). That keeps *both* properties: release-activation, and no flash — because
+adding `.active` in the pointerup handler runs synchronously within the same
+release, before any paint, so `.active` is present the instant `:active` drops. The
+click path's flash was precisely those being two *separate* events with a paintable
+gap; pointerup collapses it to one. Verified on the DOM: a lone pointerdown leaves
+the page unchanged, pointerup switches it. The flash itself is still his phone's to
+judge (the dev box can't paint a hidden tab).
+
+**Format got the identical treatment**, because C makes it a seated key
+(pressed == selected) with the same flash risk: `:active`/`.active` one rule, commit
+on pointerup, guarded to the actual mode change so the trailing click is a no-op.
+
+**Help mode needed one line:** pointerup is an activation edge now, so a non-nav
+seated-key control (Format) would switch state in help mode. The single
+event-type-generic `swallow` handler now also listens on `pointerup` — nav (the
+tabs) through, everything else neutralised.
+
+### Dropdowns as wells vs buttons (his item-3 discussion, no action)
+
+My argument for keeping them wells: the bevel language is *recessed = holds a
+standing value* (grid, selects, capo), *raised = things you strike mid-play*
+(transport). A dropdown shows a persistent value, so it's a well; the press-in on
+tap is universal tactile feedback, not a claim it's an action button. And this
+session *reinforces* wells — once the die and Format become keys-in-wells, the whole
+sheet is one bank of recessed wells, and raising the dropdowns would drag the
+transport's material into the settings panel. Left as-is pending his read.
 
 ---
 

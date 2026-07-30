@@ -237,6 +237,11 @@ export function createHelp({ doc = document, onChange, version = "" } = {}) {
   const listen = (add) => {
     const fn = add ? "addEventListener" : "removeEventListener";
     doc[fn]("pointerdown", swallow, true);
+    // pointerup is an activation edge now (session 27): the Options tabs and the
+    // Format control both act on release, so a non-nav control left with a live
+    // pointerup would switch state in help mode. `swallow` lets nav through and
+    // neutralises everything else, whatever the event type.
+    doc[fn]("pointerup", swallow, true);
     doc[fn]("click", swallow, true);
     doc[fn]("keydown", onKey, true);
     window[fn]("resize", reflow);

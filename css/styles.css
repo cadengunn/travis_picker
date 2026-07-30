@@ -912,44 +912,48 @@ main {
 }
 .sheet-sec:first-of-type { margin-top: 0; }
 
-/* The chord randomiser, now the last slot of the row it re-rolls. Same raised /
-   press-in bevel language as the transport and the Guide "?"; height matched to
-   the selects beside it so the row reads as one unit. */
+/* The chord randomiser, in the capo/stepper language since session 27 (his call):
+   a carved KEY sunk into a recessed WELL, so the Options sheet is one hardware
+   family. The well is the sized 46px element (the track the die used to get from
+   the grid); the key fills it. Two elements for the same reason the capo needs
+   them — a single element can't read as both a recessed frame AND a proud key.
+   This DIVERGES from the transport's proud cream Generate die on purpose: two
+   dice, two treatments, because this one sits among wells. */
+.die-well {
+  /* An EXPLICIT 46px since v2.14.4 — `width: 100%` collapsed to 21px once the row
+     stopped being a grid handing it a track. The well now carries that width and
+     the key fills it. */
+  width: 46px;
+  height: 42px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 9px;
+  overflow: hidden;
+  /* identical recessed frame to `.stepper` and `.field select` */
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 var(--bevel-hi);
+}
 .die-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* An EXPLICIT width since v2.14.4. It was `width: 100%`, which worked only
-     because the row was a grid handing it a 46px track; once the row became a
-     centred flex group the slot was content-sized and the button collapsed to
-     21px — the svg plus its border. 46px is the track it used to get. */
-  width: 46px;
-  height: 42px;
+  width: 100%;
+  height: 100%;
   padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: none;
   color: var(--glyph);
   cursor: pointer;
-  background:
-    radial-gradient(120% 120% at 50% 32%, rgba(0, 0, 0, 0.16), transparent 62%),
-    linear-gradient(180deg, rgba(255, 245, 225, 0.12), rgba(0, 0, 0, 0.14)),
-    var(--control);
-  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.18),
-              inset 0 -2px 5px rgba(0, 0, 0, 0.26),
-              0 2px 3px rgba(0, 0, 0, 0.36);
+  /* the same cap-lit-from-above key material as a stepper button */
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.16)), var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16);
   transition: box-shadow 0.07s ease;
 }
 /* Tilted to the same -13deg as the transport's die (v2.14.6, his note): the two
-   dice are the same object, so they should sit at the same angle. Only the glyph
-   matches — this one stays an engraved outline on a flat key rather than the
-   transport's cream Bakelite face. Note the press stays a 1px translate here:
-   .btn-roll had to sink straight in because the tilted die IS that button's face,
-   whereas this is a rectangular key with a die drawn on it. */
+   dice share a glyph, so they sit at the same angle. Only the material differs
+   now — this is an engraved outline on a recessed key rather than a cream face. */
 .die-btn svg { width: 19px; height: 19px; fill: currentColor; transform: rotate(-13deg); }
-.die-btn:active {
-  transform: translateY(1px);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
-}
+/* Sinks straight IN like a stepper key — no translate (a lateral shift reads as
+   the key sliding rather than seating; the same reason .btn-roll sinks in). */
+.die-btn:active { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 /* the die's slot has no caption, so pin it to the row's baseline */
 .field-die { justify-content: flex-end; }
 
@@ -1266,16 +1270,28 @@ main {
    it merged into the header's capo tag, so the capo's state and what it does are
    one string in one place. Its slot in the row is now empty, not removed.) */
 
+/* The Format control (single/progression) is now two carved KEYS in one recessed
+   WELL, in the capo/stepper language (session 27, his call — variant C of the
+   consistency mockup). It replaced a flat lit-gold slab, which was one of the two
+   materials in the sheet that stood apart from the recessed-well majority.
+   The selected key is SEATED (pressed in, text bright); the other stands proud.
+   NO lamp — a lamp is the page tabs' signature (v2.14.5), and the capo, the
+   control this is matching, has none either; the seated-vs-proud read is the
+   "which is on". The Jost/serif split and the lamp being tab-only are what still
+   keep the tabs from reading as this control (pinned in a test).
+   `.seg-tabs` overrides every one of these rules at higher specificity, so this
+   is the Format control alone. */
 .segmented {
   display: flex;
   border: 1px solid rgba(0, 0, 0, 0.4);
   border-radius: 9px;
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  /* the same recessed well as .stepper and .field select */
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 var(--bevel-hi);
 }
 .segmented button {
   flex: 1;
-  background: var(--control);
   color: var(--muted);
   border: none;
   padding: 10px 0;
@@ -1287,13 +1303,27 @@ main {
      no horizontal padding here, the button IS the text box (see
      .control-row.format-capo, which is sized from exactly that). */
   white-space: nowrap;
+  /* raised key: the cap-lit-from-above material shared with the stepper keys */
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.16)), var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16);
+  /* ease the shadow so the OTHER key doesn't SNAP as it pops out on a switch —
+     the .btn-roll lesson, same as the tabs carry */
+  transition: box-shadow 0.07s ease;
 }
+.segmented button + button { border-left: 1px solid rgba(0, 0, 0, 0.4); }
+/* SEATED == SELECTED, so `:active` and `.active` are ONE rule — pressing a key is
+   seating it, and declaring the two together is what stops the release flash (the
+   v2.14.6/.7 lesson: a bare frame of the raised state between them). The switch is
+   committed on pointerup (app.js) so `.active` lands the instant `:active` drops.
+   The cap highlight is removed (a sunk key doesn't catch top light) and a hairline
+   of bounce runs along the bottom — the underside of the recess lit, which says
+   "in". */
+.segmented button:active,
 .segmented button.active {
-  color: var(--bg);
-  background: linear-gradient(180deg, var(--accent-hi), var(--accent) 70%);
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0.12)), var(--control);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 -1px 0 var(--bevel-hi);
 }
-/* every button pushes IN when pressed — the same carved-tactile feel as Edit */
-.segmented button:active { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 
 /* Click / Pattern — amp pilot lamps. Native checkbox drives a jewel that lights
    when the layer is on; the checkbox itself is visually hidden but still the

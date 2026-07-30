@@ -306,7 +306,14 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   28.3 at 375, the capo deliberately still `1fr` so its stepper keeps its width).
   **The segmented buttons have no horizontal padding, so the button IS the text
   box**; `white-space: nowrap` is what stops a long value wrapping, because a wrap
-  in this row doesn't clip, it lifts the bottom-anchored sheet.
+  in this row doesn't clip, it lifts the bottom-anchored sheet. (Since v2.14.8 the
+  Format control is **two carved keys in one recessed well** — the capo language,
+  not the old flat gold slab — with a 1px divider between them; the selected key is
+  **seated with bright text**, the other proud, and there is **no lamp** (the lamp
+  is the page tabs' signature; the capo it matches has none). It commits on
+  **`pointerup`** for the same reason the tabs do — see the tabs block below. The
+  1px divider trims the second button, so the "Progression on one line" test still
+  guards the fit.)
   **That row must not be called `.context`** — it was, for one build, and silently
   inherited the grid readout's `.context` rule (26px `line-height`, centred text,
   `top: -4px`): both legends doubled in height and the row grew 59px → 72px. A test
@@ -321,7 +328,10 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   bottom-anchored sheet jump; and **the die sits in the chord row and nothing
   else** — and it wears a **tilted six**, the same pip layout and −13deg as the
   transport's die (v2.14.6, his note), so the two read as one object; only the form
-  factor differs (an engraved outline on a flat key, not the cream Bakelite face) —
+  factor differs — and since v2.14.8 it's a **carved key sunk into a recessed well**
+  (the capo language, an engraved outline on the key), NOT the cream Bakelite face,
+  which is a deliberate divergence from the proud Generate die on the transport
+  (two dice, two treatments — this one sits among wells) —
   because that adjacency is the only thing that says what its scope is —
   and since v2.14.4 it sits directly **beside** the chord rather than out at the
   row's edge, which is where a 3-slot grid had pinned it once the field shrank to
@@ -330,10 +340,11 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   progression mode's Key + Progression sum to exactly `--wheel-w` (90 / 139, from
   `--key-w`), so switching modes moves nothing: measured, the group spans 42 → 333
   and the die 287 → 333 in *both*. A test compares the two modes and the centring.
-  Watch two things if you touch it: the die needed an **explicit `width: 46px`**
-  (`width: 100%` only worked because a grid track was feeding it, and it collapsed
-  to 21px), and the Progression well's longest value (`I–♭VII–IV`, 77px + 34px of
-  well chrome) is what sets the 90/139 split.
+  Watch two things if you touch it: the die's **`.die-well` carries the explicit
+  `width: 46px`** now and the key fills it (`width: 100%` collapsed to 21px when the
+  row stopped being a grid; the well is the sized element since v2.14.8), and the
+  Progression well's longest value (`I–♭VII–IV`, 77px + 34px of well chrome) is what
+  sets the 90/139 split.
   `.segmented.seg-tabs button` is double-classed for specificity — `.segmented
   button` is defined later in the file and won on source order, leaving the tabs
   at `padding: 10px 0` with the two words butted together.
@@ -346,8 +357,9 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   jewel from the existing lamp family; the current page is **held in** with its
   lamp lit while the other stands proud, dark. The two things that make them a
   different *kind* of object are what the test pins — the face is Jost where the
-  Format control's is the serif, and a chosen value is **lit up** where a current
-  page is **pressed in**, so the two active states must not share a fill. It also
+  Format control's is the serif, and **the lit jewel is the tabs' alone** (since
+  v2.14.8 the Format control seats too, so "held-in vs lit-up" no longer separates
+  them — the Format value carries no lamp, so a lit jewel means "page tab"). It also
   took more contrast than the first pass gave it: at 10px the seated key needs its
   cap highlight *removed*, a fill darker than the plate, and a hairline of bounce
   along the bottom edge. The change made the sheet 2.5px shorter (333 → 330.5),
@@ -364,14 +376,27 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   again), because it only helps while `.active` is *present*, and the page was
   switched on `click`: between the browser dropping `:active` at pointerup and the
   click firing, the tab you pressed has **neither** class and paints its raised state
-  for a frame. The real fix is **switching the page on `pointerdown`** (`switchTab`
-  wired to both `pointerdown` and `click` in app.js — pointerdown for the flashless
-  pointer path, click for the keyboard). `.active` is then added while the finger is
-  still down, so it overlaps `:active` the whole time and there's never a bare frame.
-  A **source-level test** asserts the `pointerdown` wiring, because the regression is
-  silent (the page still switches, it just flashes) and app.js glue isn't imported by
-  `tests.js`. This is safe with help mode: the tabs are on its `NAV_SELECTOR`, so its
-  capture-phase `pointerdown` swallow skips them.
+  for a frame. v2.14.7 fixed it by switching on `pointerdown` — but that **committed
+  on press**, so the page flipped under your finger, which he flagged (session 27):
+  a latching key should hold while pressed and act on **release**, like every button.
+  **So the switch is on `pointerup` now** (`switchTab` wired to `pointerup` +
+  `click` in app.js — pointerup for the pointer path, click for the keyboard, which
+  emits no pointer events). Pointerup keeps *both* properties: release-activation,
+  and no flash — because adding `.active` in the pointerup handler runs
+  synchronously within the same release, before any paint, so `.active` is present
+  the instant `:active` drops. The click path's flash was precisely those being two
+  **separate** events with a paintable gap; pointerup collapses it to one. A
+  **source-level test** asserts the `pointerup` wiring (and the absence of
+  `pointerdown`), because the regression is silent — the page still switches, it just
+  acts on the wrong edge — and app.js glue isn't imported by `tests.js`.
+  **The Format control (v2.14.8) works the same way**, because it's a seated key too
+  (pressed == selected), so it carries the identical flash risk and the identical
+  fix: `:active`/`.active` one rule, commit on `pointerup`, guarded to the actual
+  mode change so the trailing `click` is a no-op.
+  This is safe with help mode: the tabs are on its `NAV_SELECTOR`, so its
+  capture-phase swallow lets their pointer events through; and help now swallows
+  **`pointerup` too** (session 27), so a non-nav seated-key control like Format
+  can't switch state in help mode on the new activation edge.
 - **There is no app bar.** A title told you nothing the home-screen icon doesn't,
   and its 53px was the difference between the 4-bar grid fitting and not.
 
@@ -809,9 +834,15 @@ fixed tweed weave + sheen + edge vignette over `--faceplate`, all in **fixed
 rgba because it's texture, not hue**, so it rides every theme.
 - **One consistent bevel language:** the grid is **recessed** into the faceplate,
   transport buttons and pills are **raised + carved** (dished radial + chamfer
-  bevel + a debossed intaglio glyph), Options selects are **recessed wells**.
-  Everything presses in on `:active`; the tilted Bakelite die sinks straight IN
-  (`transform: none`), because a lateral 1px translate read as sliding.
+  bevel + a debossed intaglio glyph), and the whole **Options sheet is a bank of
+  recessed wells** — the selects, the capo stepper, the die (a carved key in a
+  well since v2.14.8), and the Format toggle (two carved keys in a well) — some
+  wells plain value-displays you tap to open, some holding carved keys you press.
+  The raised/proud material is reserved for the transport (Play, the Generate die,
+  BPM), the things you strike mid-play. Everything presses in on `:active`; keys in
+  a well **sink straight IN** via a deeper inset (`transform: none`), because a
+  lateral 1px translate read as sliding — true of both the transport's tilted
+  Bakelite die and the Options keys.
   **A latched/pressed-in look is ONE clean top-weighted inset plus a hairline of
   BOTTOM bounce**, not a stack of top shadows. The playing Play button
   (`.btn-play[aria-pressed]`) piled a dark top-radial and two top insets and read as
@@ -896,7 +927,12 @@ one place you can't compare the glyph to the thing.
   help mode armed, dragging the BPM slider ran it **90 → 240**. A capture-phase
   click listener *does* stop a `<label>` toggling its hidden checkbox (the Sound
   lamps), and does *not* stop a native range drag. Cancelling the pointerdown is
-  what does. `keydown` is intercepted too.
+  what does. `keydown` is intercepted too. **`pointerup` is swallowed as well since
+  session 27**: it became an activation edge when the tabs and the Format control
+  started committing on release, so a non-nav seated-key control left with a live
+  pointerup would switch state in help mode. The one `swallow` handler is
+  event-type-generic — nav through, everything else neutralised — so adding the
+  edge was one line.
 - **A DISABLED control emits no click at all**, so it would be a dead tap — and
   this is not a corner case: **the Load pill is disabled whenever the library is
   empty**, i.e. the first-run state, i.e. exactly the person most likely to be
@@ -1196,11 +1232,18 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.7 — the tab flash actually fixed (pointerdown), and the Play button's
-pressed-in shadow de-weighted; on the phone.** 88/88 checks green, tree clean. **An
-open design fork:** whether every Options control should adopt the capo stepper's
-carved-key-in-a-well language (the die and the segmented are the two outliers) — a
-mockup is out for his call, nothing built. See `OPEN_ITEMS.md` item 13. **The wheel is signed off** (v2.14.0–.2: the detent, the
+**v2.14.8 — the Options controls speak one hardware language, and the tabs (and
+Format) act on release.** 88/88 checks green. The **die and the Format toggle** are
+now carved keys in recessed wells (the capo language, his call — variant C of the
+consistency mockup: Format seats with bright text, **no lamp**, the lamp staying the
+page tabs' signature). The **page tabs switch on `pointerup` not `pointerdown`**, so
+they hold on press and act on release like every other button, while keeping the
+no-flash property; **Format** got the same treatment because it's now a seated key
+too. Waiting on his phone: the flash (dev box can't judge paint) and the feel. The
+open fork from v2.14.7 (item 13, control materials) is now **answered and built** —
+the one remaining discussion is whether the dropdowns should become raised buttons,
+which I argued against (they hold a standing value ⇒ they belong with the wells).
+**The wheel is signed off** (v2.14.0–.2: the detent, the
 spin, the curve, the die's pool and the F7/F♯7/G♯7 ♭7 bass are all "good as is" —
 his call, don't revisit unless he raises it), as are Wild Card and Unruly.
 (v2.13.3 was the last version signed off on the guitar as a whole.) The build

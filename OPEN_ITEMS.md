@@ -16,26 +16,35 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.7) — two fixes, one thing to decide
+## On the phone right now (v2.14.8) — the materials pass, and act-on-release
 
-- **The setup/preferences flash is actually fixed this time.** Last round's fix was
-  half of it; the other half was that the page switched on *click*, which left one
-  bare frame at release where the tab had lost its pressed look but not yet gained
-  its selected look. It switches on *press* now, so there's no gap. Please confirm
-  it's gone on the phone.
-- **The Play button's pressed-in look is lighter on top.** It was stacking a dark
-  top-radial and two top shadows, which piled up as a heavy bar. Now it's one clean
-  top shadow plus a hairline of light along the bottom — the far wall of the recess
-  catching light, which is what actually reads as "pushed in". Judge the feel on the
-  phone.
+- **The control-materials pass is built (you picked C).** The **die** is now a
+  carved key in a recessed well, and **single/progression** is two carved keys in a
+  well — both in the capo language, so the whole Options sheet is one family of
+  recessed wells. Format seats with bright text and **no lamp** (the lamp stays the
+  page tabs' signature, and the capo it's matching has none either). The one trade,
+  which you accepted in the mockup: the options die now differs from the proud cream
+  Generate die on the transport. Judge the seated read on the phone — is "which mode
+  is on" clear enough without the gold?
+- **The setup/preferences tabs act on release now, not on press.** You were right —
+  the pointerdown fix killed the flash but committed on press, so the page flipped
+  under your finger. They switch on *pointerup*, which holds while pressed and acts
+  on release like every button, and still no flash. **Single/Progression works the
+  same way** now (it's a seated key too). Confirm the flash is still gone and the
+  release feel is right.
 
-**One thing to decide — the control materials (item 13).** I looked, and you're
-right there are several. The recessed-well family (capo, dropdowns, swing) is already
-consistent; the two that stand apart are the **die** (a proud raised key) and the
-**single/progression** active cell (a flat gold slab). I sent a mockup: current on
-top, and a version with everything in your favourite capo-key language on the bottom.
-Nothing's built — tell me if you want it, and whether the die going recessed (it
-would then differ from the big Generate die, which is proud on purpose) sits right.
+**A note on why C, not the mockup you approved:** the mockup gave Format a lit lamp,
+but I hadn't shown it next to the page tabs — and a seated key + lamp *is* the tabs'
+language, which you'd deliberately separated Format from in v2.14.5. So I rendered
+A/B/C with the tabs alongside and you picked the no-lamp one. That keeps the lamp
+meaning "page tab" and nothing else.
+
+**Still open for discussion (item 3): dropdowns as buttons.** You wondered whether
+the dropdowns, since they click in, should look like buttons too. My read: keep them
+wells — a dropdown holds a standing value, and this pass makes the whole sheet a bank
+of recessed wells, so raising the dropdowns would pull the transport's strike-it
+material into the settings panel. No action taken; say if you want to see a raised
+version.
 
 ---
 
@@ -620,15 +629,17 @@ are unrelated words you scan. Both cross-products are now drums. What's left:
   point root × mode is 12 × 2. **So item 12 and a Key×mode drum are one job or
   neither.**
 
-**One material question is still OPEN (v2.14.7, your note): the button forms.** The
-list *panels* match the drums now, but the *controls* in the Options sheet still
-speak in a few materials, and you flagged it. The recessed-well family (capo,
-dropdowns, swing) is consistent; the outliers are the **die** (raised proud key) and
-the **single/progression** active cell (flat gold slab). Mockup sent v2.14.7:
-current vs. everything in the capo-key language (die → carved key in a well;
-single/prog → two seated-key toggles with a lamp). **Decision needed:** do you want
-it, and is the options die going recessed OK given it would then differ from the
-proud Generate die on the transport? Nothing built.
+**The button-forms question is ANSWERED and BUILT (v2.14.8, your call: C).** The
+list *panels* joined the drums in v2.14.6; the *controls* now join the capo. The two
+outliers — the **die** (was a proud raised key) and the **single/progression** active
+cell (was a flat gold slab) — are both carved keys in recessed wells now, so the
+whole Options sheet is one family. You picked **C** (seated, no lamp) over the
+mockup's B (seated + lamp), because a lit lamp is the page tabs' signature and the
+capo has none. The one accepted trade: the options die diverges from the proud
+Generate die on the transport. On the phone for your read of the seated look.
+
+**What's still an open discussion (item 3): the dropdowns.** Wells or buttons? My
+argument for wells is at the top and in the CHANGELOG; no action taken.
 
 ### 12. More keys — DEFERRED by your call
 All 12 keys, and sharp minor keys (Bm / F♯m / C♯m — these pull in new barre

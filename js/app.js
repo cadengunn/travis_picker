@@ -66,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v2.14.7";
+const APP_VERSION = "v2.14.8";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1005,10 +1005,19 @@ function attach() {
   el("key").addEventListener("change", (e) => setKey(e.target.value));
   el("progression").addEventListener("change", (e) => applyProgressionPreset(e.target.value));
 
-  el("chord-mode").addEventListener("click", (e) => {
+  // Format is a seated-key toggle now (session 27), so pressed == selected — the
+  // same shape as the page tabs, and it acts on RELEASE for the same reason:
+  // committing on pointerup (not click) keeps `.active` present the instant the
+  // browser drops `:active`, so there's no bare raised frame between them. Guarded
+  // to the actual mode change so the trailing `click` (which fires after our
+  // pointerup) is a no-op rather than a second re-render. `click` stays for the
+  // keyboard, which emits no pointer events.
+  const switchMode = (e) => {
     const btn = e.target.closest("[data-mode]");
-    if (btn) setChordMode(btn.dataset.mode);
-  });
+    if (btn && btn.dataset.mode !== state.chordMode) setChordMode(btn.dataset.mode);
+  };
+  el("chord-mode").addEventListener("pointerup", switchMode);
+  el("chord-mode").addEventListener("click", switchMode);
 
   // The capo changes what you HEAR and what the readouts say — never the
   // pattern — so it re-renders without touching state.pattern. Nothing to
@@ -1037,15 +1046,24 @@ function attach() {
   // seated LOOK also needs `.active`. If `.active` is added on click, then between
   // the browser dropping `:active` at pointerup and the click firing, the tab has
   // neither and paints its raised state for a frame — the flash he kept seeing.
-  // Adding `.active` on pointerdown means the two overlap the whole time the
-  // finger is down, so there's never a bare frame. `click` stays for the keyboard
-  // (Enter/Space don't emit pointerdown); switching to the same page is a no-op.
+  // Switch on POINTERUP, not pointerdown (his note, session 27): a latching key
+  // should hold while the finger is down and act on release, like every other
+  // button in the app. Pointerdown (v2.14.7) fixed the flash but committed on
+  // press, which read wrong — the page flipped under your finger. Pointerup keeps
+  // BOTH properties: it's release-activation, and it still kills the flash the
+  // click path had. The flash was a two-EVENT gap — the browser dropped `:active`
+  // at pointerup and `.active` wasn't added until the later `click`, leaving one
+  // raised frame between them. Adding `.active` in the pointerup handler itself
+  // closes that gap: it runs synchronously within the same release, before the
+  // browser paints, so `.active` is present the instant `:active` goes. `click`
+  // stays for the keyboard (Enter/Space emit no pointer events); it re-sets the
+  // same page, which is a no-op.
   const tabs = el("options-sheet").querySelector(".seg-tabs");
   const switchTab = (e) => {
     const tab = e.target.closest("[role=tab]");
     if (tab) showOptionsPage(tab.id);
   };
-  tabs.addEventListener("pointerdown", switchTab);
+  tabs.addEventListener("pointerup", switchTab);
   tabs.addEventListener("click", switchTab);
 
   // Per-bar chord edits, delegated so they survive re-renders.
