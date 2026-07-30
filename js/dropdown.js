@@ -31,7 +31,13 @@ const valueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "
 
 let openPanel = null; // the one panel that can be open at a time
 
-export function enhanceSelect(select, { render = renderList, label } = {}) {
+// `watch` names OTHER selects whose value also appears on this trigger's face —
+// the Key × Progression field is one control over two selects, and its face shows
+// both. They get the same treatment the owning select gets (a `change` listener
+// AND a wrapped `value` setter), because the reason the wrap exists applies
+// identically to them: a transpose, a load or a die roll sets a value
+// programmatically and fires no `change`, so without it the face goes stale.
+export function enhanceSelect(select, { render = renderList, label, watch = [] } = {}) {
   if (select.dataset.dd === "1") return;
   select.dataset.dd = "1";
 
@@ -72,11 +78,17 @@ export function enhanceSelect(select, { render = renderList, label } = {}) {
   select.addEventListener("change", syncLabel);
 
   // Refresh the trigger even when app.js sets .value programmatically.
-  Object.defineProperty(select, "value", {
+  const wrapValue = (sel) => Object.defineProperty(sel, "value", {
     configurable: true,
     get() { return valueDesc.get.call(this); },
     set(v) { valueDesc.set.call(this, v); syncLabel(); },
   });
+  wrapValue(select);
+  for (const other of watch) {
+    if (!other) continue;
+    wrapValue(other);
+    other.addEventListener("change", syncLabel);
+  }
 
   trigger.addEventListener("click", () => {
     if (openPanel && openPanel.select === select) { closePanel(); return; }

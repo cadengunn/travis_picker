@@ -16,7 +16,41 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.4) — your v2.14.3 notes
+## On the phone right now (v2.14.5) — the second drum, and the page tabs
+
+**Key × Progression is a drum picker now**, and your reframing is why: read as
+*style* × progression the axes have holes, but key × progression is the thought you
+actually have, and it's total within a mode. So progression mode wears the same
+split field as single mode and opens the same 237px housing — two drums, key on the
+left, progression on the right.
+
+- **The style groups survive as engraved grooves**, your idea. One at each style
+  change, one before Custom, and one on the key drum between the major and minor
+  keys.
+- **Crossing major/minor re-cuts the progression drum** — that's the one hole in
+  the product, and it's the same boundary where the app already resets to that
+  mode's first progression.
+- **Custom behaves exactly as you spec'd, and needed no code**: picking it leaves
+  the grid alone, and editing a bar chord puts the drum on it next time you open.
+  Both were already true; I verified rather than assumed.
+
+**The page tabs are a latching key pair** — C with B's flavour, as you asked. Narrow
+engraved keys in the silkscreen font, each with a jewel; the current page is held in
+with its lamp lit, the other stands proud and dark. The seated look needed more
+contrast than my first pass gave it (at 10px it only reads once the cap highlight is
+removed), so judge it on the phone. The sheet came out 2.5px shorter as a side
+effect.
+
+**What only the phone can judge:** whether the key drum's 72px face feels cramped
+next to the progression's 124px, whether the groove is visible enough at arm's
+length, and whether the tab keys read as pressable now.
+
+**Budget untouched** — 375×553, 4 bars, worst case: 55.09 / 384.84 / 11.06 / no
+overflow. Both chord modes measure pixel-identically.
+
+---
+
+## Previously on the phone (v2.14.4) — your v2.14.3 notes
 
 Four of the five actioned; the two you weren't ready to commit on are further down
 as **item 13**, untouched.
@@ -515,30 +549,29 @@ common for people you share it with, a dismissible hint is a small piece of work
 and the home-screen install is also what protects saved patterns from iOS's
 storage eviction, so it's not purely cosmetic.
 
-### 13. Two you're not ready to commit on — OPEN FOR DISCUSSION (v2.14.4, yours)
+### 13. Drums elsewhere, and the page tabs — BOTH ANSWERED (v2.14.5)
 
-Nothing built for either; both are here so they don't evaporate.
+**The tabs are done** — a latching key pair, your C-with-B's-flavour. See the top.
 
-- **Should the drum/cylinder selector replace other dropdowns?** My read: it earns
-  its place where the data is a **cross-product or a continuum** and loses to a list
-  where the values are unrelated words you scan. Chord = root × quality is the
-  cross-product case, which is why it fits. **Key** is the one other real candidate
-  (12 roots, and a mode axis, so it's the same shape). **Progression** should stay a
-  list — the values are named ideas grouped by style, and a barrel hides the section
-  captions that do the explaining. Thumb, Fingers, Pattern and Theme are short
-  unordered lists; a drum would be ceremony. Cheap to prototype Key if you want to
-  feel it, since the wheel is a pluggable panel renderer.
-- **The Setup / Preferences tabs read as the same object as Single / Progression.**
-  Agreed, and I think the diagnosis is that they're both a two-up segmented control
-  in the same faceplate language, ~50px apart. Three directions, cheapest first:
-  make them **not a segmented control at all** (two plain words with the active one
-  underlined or lit, no capsule) — this is my pick, since a page tab isn't a value
-  you're setting, it's a place you're going, and the app has no other tab to be
-  consistent with; or make them a **different material** (recessed/engraved rather
-  than the raised capsule); or move them **out of the title line** into their own
-  strip, which costs height we don't have. Worth noting the tabs ride the title line
-  precisely so the two-page split costs zero height, so option 3 is the expensive
-  one.
+**Drums elsewhere is mostly answered too**, by your own reframing. The rule that
+came out of it: a drum earns its place where the axes are a **cross-product you'd
+say out loud** ("an E major", "a 1-4-5 in C"), and loses to a list where the values
+are unrelated words you scan. Both cross-products are now drums. What's left:
+
+- **Thumb, Fingers, Pattern, Theme** stay lists. They're short unordered sets; a
+  barrel would be ceremony.
+- **The materials still don't match**, and that's the live question. A list panel is
+  a flat plate; a drum panel is a housing. Giving the ordinary panel the drum's
+  border and shaded shoulders — with the selected row in an aperture-style
+  highlight — would make them read as parts of one machine without pretending a
+  short list is a mechanism. Small and contained, and it lifts all four remaining
+  menus at once. **Say the word and I'll do it.**
+- **A correction to what I told you earlier:** I said Key was a good drum candidate
+  because it's 12 roots × a mode axis. It isn't today — there are only 7 curated
+  keys — and the key drum you now have is a 7-name reel with one groove in it. It
+  becomes a genuine two-axis picker only if item 12 (all 12 keys) ships, at which
+  point root × mode is 12 × 2. **So item 12 and a Key×mode drum are one job or
+  neither.**
 
 ### 12. More keys — DEFERRED by your call
 All 12 keys, and sharp minor keys (Bm / F♯m / C♯m — these pull in new barre

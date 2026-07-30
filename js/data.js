@@ -743,13 +743,11 @@ export const HELP = {
     title: "Chord",
     body: "The one chord the whole pattern is played over. Every root has a major, a minor and a 7.",
   },
-  "field-key": {
-    title: "Key",
-    body: "The key the progression is played in. Changing key within major or within minor transposes what you have, edited bars included. Changing from major to minor resets to the default progression.",
-  },
-  "field-prog": {
-    title: "Progression",
-    body: "A chord per bar, grouped by style. Every one is four bars: a two-chord idea repeats, a three-chord idea holds its last chord.",
+  // ONE card for the merged field (v2.14.5): key and progression are two drums
+  // behind one trigger, so there is one tap target and it has to cover both.
+  "field-keyprog": {
+    title: "Key and Progression",
+    body: "Two drums: the key on the left, the progression on the right. Every progression is four bars, so a two-chord idea repeats and a three-chord idea holds its last chord.\n\nChanging key within major or within minor transposes what you have, edited bars included. Crossing between major and minor resets to that mode's first progression. “Custom” at the end of the drum is a readout, not a choice: it lights up once you edit a bar's chord.",
   },
   "randomize-chords": {
     title: "Randomize",

@@ -196,13 +196,18 @@
           <select id="chord"></select>
         </label>
 
-        <label class="field" id="field-key" data-help="field-key" hidden>
-          <span>Key</span>
-          <select id="key"></select>
-        </label>
-        <label class="field" id="field-prog" data-help="field-prog" hidden>
-          <span>Progression</span>
-          <select id="progression"></select>
+        <!-- ONE field over TWO selects (v2.14.5, his call): key × progression is a
+             cross-product the same way root × quality is — "let's play a 1-4-5 in
+             C" — so it wears the same split field and opens the same two-drum
+             panel. #key carries `dd-native data-dd="1"` so enhanceAll SKIPS it:
+             there is one trigger here, owned by #progression, and the key reel
+             writes to #key through the commitKey handed to the renderer. Both
+             selects stay the source of truth and app.js's two `change` listeners
+             are untouched. -->
+        <label class="field field-split" id="field-keyprog" data-help="field-keyprog" hidden>
+          <span class="split-legends"><span>Key</span><span>Progression</span></span>
+          <select id="key" class="dd-native" data-dd="1" aria-label="Key"></select>
+          <select id="progression" aria-label="Progression"></select>
         </label>
 
         <div class="field field-die">

@@ -334,6 +334,21 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   `.segmented.seg-tabs button` is double-classed for specificity — `.segmented
   button` is defined later in the file and won on source order, leaving the tabs
   at `padding: 10px 0` with the two words butted together.
+  **The tabs are a LATCHING KEY PAIR, not a segmented control** (v2.14.5, his call
+  after three mockups). They *were* a second `.segmented` — the same lit gold
+  capsule as the Format control 50px below — and he flagged it: *"the page selector
+  sort of blends with the controls… looks too similar to single/progression."* They
+  are now narrow engraved keys in the **legend voice** (Jost caps: a page name is
+  what the machine *calls* a place, not a value you're setting), each carrying a
+  jewel from the existing lamp family; the current page is **held in** with its
+  lamp lit while the other stands proud, dark. The two things that make them a
+  different *kind* of object are what the test pins — the face is Jost where the
+  Format control's is the serif, and a chosen value is **lit up** where a current
+  page is **pressed in**, so the two active states must not share a fill. It also
+  took more contrast than the first pass gave it: at 10px the seated key needs its
+  cap highlight *removed*, a fill darker than the plate, and a hairline of bounce
+  along the bottom edge. The change made the sheet 2.5px shorter (333 → 330.5),
+  which is a gain, not a cost.
 - **There is no app bar.** A title told you nothing the home-screen icon doesn't,
   and its 53px was the difference between the 4-bar grid fitting and not.
 
@@ -558,12 +573,43 @@ Four dependency-free modules, all precached:
   scroll positions are untouched, only the target moves, and a `find` that comes
   back empty closes rather than leaving a live-looking panel wired to nothing.
   A test drives two consecutive picks through a rebuild and fails without it.
-- **`wheel.js` — the chord picker is TWO CYLINDERS** (root × quality), his call,
-  session 21. It is a **renderer, not a control**: the same hidden `<select>`
-  holds all 36 chords as flat options and a settle calls `commit()`, so app.js's
-  wiring and the `#grid` delegation never learn it exists. Both chord pickers use
-  it — the Options sheet's and every per-bar one — which is why the grouped chord
-  menus are gone.
+- **`wheel.js` — TWO DRUM PICKERS over one mechanism.** Chord = root × quality
+  (his call, session 21) and **Key × Progression** (his call, v2.14.5: *"I see Key
+  and Progression as a cross product similar to Chord and Quality. 'Let's play an
+  E Major', 'Let's play a 1-4-5 in C'. Both very common guitar thoughts."*). That
+  reframing is what made the second one buildable — read as *style* × progression
+  the axes have holes (the styles hold 4/3/2/3/2 members) and it was rightly
+  rejected; key × progression is total **within a mode**. Both are **renderers,
+  not controls**: the hidden `<select>`s stay the source of truth and a settle
+  calls `commit()`, so app.js's wiring and the `#grid` delegation never learn they
+  exist. Every chord picker uses the wheel — the Options sheet's and every per-bar
+  one — which is why the grouped chord menus are gone.
+  - **ONE FIELD OVER TWO SELECTS is the only structural difference.** Chord's two
+    reels write one composite id; Key × Progression writes two independent
+    selects, so `#key` carries `dd-native data-dd="1"` (enhanceAll **skips** it),
+    the single trigger is owned by `#progression`, and the key reel writes through
+    a `commitKey` handed to the renderer. `enhanceSelect`'s **`watch`** option
+    exists for this: the trigger's face shows both halves, and a transpose, a load
+    or a die roll sets `#key` programmatically with no `change` event — the same
+    reason the value-setter wrap exists at all.
+  - **Crossing the major/minor line RE-CUTS the progression reel.** It's the one
+    hole in the product, and the same boundary at which app.js already resets to
+    that mode's first preset. The renderer re-reads the select after committing a
+    key and rebuilds the reel only if the option set actually changed. A test
+    drives a cross both ways.
+  - **A curated list keeps its sections as ENGRAVED GROOVES, not captions**
+    (v2.14.5, his call) — the housing carries nothing but the mechanism, and a real
+    selector barrel has index marks anyway. Drawn on `.reel-face` (so the groove
+    foreshortens with the surface it's cut into) and **absolutely positioned**, for
+    two separate reasons: anything altering `.reel-item`'s geometry moves its own
+    scroll-snap detent, and a `border-top` on the face would push its line of type
+    down 1px. Grooves land at each progression style change, before the ungrouped
+    `Custom`, and between the major and minor keys.
+  - **`Custom` rides the end of the progression drum and is a READOUT, not a
+    choice** (his call): picking it leaves the grid's chords exactly as they are,
+    which is already what `applyProgressionPreset` does. Editing a bar chord makes
+    `syncProgressionSelect` set the select to Custom, so the drum opens on it. Both
+    halves verified live.
   - **TWO DRUMS ON AN AXLE, physically separated** (v2.14.1, his call): each
     cylinder gets its own housing and its own aperture, with a hairline axle line
     between them. One aperture spanning both was the first build and read as one
@@ -583,9 +629,14 @@ Four dependency-free modules, all precached:
     the same 237px object.
   - **…AND THE OPTIONS FIELD IS CUT TO THAT SAME OBJECT** (v2.14.3, his call: "the
     chord/quality button should be the same size as the drum"). The drum geometry
-    lives in **`:root`** (`--drum-root` 88, `--drum-quality` 108, `--drum-gap` 10,
-    `--drum-axle` 1 ⇒ `--drums-w` 217, `--wheel-w` 237) and both the panel and
-    `.field-split` derive from it, so they can't drift. It works out as one number
+    lives in **`:root`**, and since v2.14.5 **`--drums-w` (217px) is the primary
+    constant** with each pair naming its first face and *deriving* the second
+    (`--drum-root` 88 ⇒ quality 108; `--drum-key` 72 ⇒ prog 124; `--wheel-w` 237).
+    That inversion is what lets both pickers open the identical housing — and they
+    must, or the field would change width between chord modes, which is exactly
+    what v2.14.4 stopped doing. The 72/124 split is measured: `I–♭VII–IV` is the
+    widest label on any drum at ~87px in the reel's 17px serif. Both the panel and
+    `.field-split` derive from these, so they can't drift. It works out as one number
     because the field's well contributes the same 9px padding + 1px border per side
     that the housing contributes around the drums. Two things fall out for free:
     the field's halves are the two **barrels** (88 / 108) rather than a `1fr 1.3fr`
@@ -1095,9 +1146,8 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.4 — his v2.14.3 notes: the die back beside the chord, both modes cut to
-one width, and the document locked against zoom and scroll; on the phone.** 85/85
-checks green, tree clean. **The wheel is signed off** (v2.14.0–.2: the detent, the
+**v2.14.5 — Key × Progression became the second drum picker, and the page tabs
+became a latching key pair; on the phone.** 87/87 checks green, tree clean. **The wheel is signed off** (v2.14.0–.2: the detent, the
 spin, the curve, the die's pool and the F7/F♯7/G♯7 ♭7 bass are all "good as is" —
 his call, don't revisit unless he raises it), as are Wild Card and Unruly.
 (v2.13.3 was the last version signed off on the guitar as a whole.) The build

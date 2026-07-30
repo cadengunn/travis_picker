@@ -50,8 +50,8 @@ import {
 import { setUiSoundEnabled, playPress, playRelease, playTick } from "./ui-sound.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { createHelp } from "./help.js";
-import { enhanceSelect, enhanceAll, retargetOpenPanel } from "./dropdown.js";
-import { createChordWheel, chordSplitLabel } from "./wheel.js";
+import { enhanceSelect, enhanceAll, retargetOpenPanel, commit } from "./dropdown.js";
+import { createChordWheel, createKeyProgWheel, chordSplitLabel, keyProgSplitLabel } from "./wheel.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 
 const el = (id) => document.getElementById(id);
@@ -66,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v2.14.4";
+const APP_VERSION = "v2.14.5";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -140,9 +140,25 @@ const chordWheel = createChordWheel({
 });
 // The Options sheet's field shows the two halves separately under their own
 // legends; the per-bar chip shows the one chord name. Same panel either way.
+// Key × Progression is the same mechanism over two selects (v2.14.5, his call
+// that these are a cross-product like root × quality). The key reel can't go
+// through the panel's own `commit` — that targets #progression — so it gets its
+// own committer, looked up at call time rather than captured.
+const keyProgWheel = createKeyProgWheel({
+  tick: () => { if (!metronome.running) playTick(); },
+  keySelect: () => el("key"),
+  commitKey: (v) => commit(el("key"), v),
+});
 const chordPicker = (sel) =>
   sel.id === "chord" ? { render: chordWheel, label: chordSplitLabel }
   : sel.classList.contains("bar-chord") ? { render: chordWheel }
+  : sel.id === "progression" ? {
+      render: keyProgWheel,
+      label: keyProgSplitLabel(() => el("key")),
+      // the face shows the key too, and a transpose/load/die-roll sets it with no
+      // `change` event — so the trigger has to watch it
+      watch: [el("key")],
+    }
   : null;
 
 // Key groups from data → the {value,label} shape fillSelectGrouped wants.
@@ -469,8 +485,7 @@ function setChordMode(mode) {
   state.chordMode = mode;
   const prog = mode === "progression";
   el("field-chord").hidden = prog;
-  el("field-key").hidden = !prog;
-  el("field-prog").hidden = !prog;
+  el("field-keyprog").hidden = !prog;
   for (const b of el("chord-mode").querySelectorAll("[data-mode]")) {
     b.classList.toggle("active", b.dataset.mode === mode);
   }

@@ -108,19 +108,28 @@
      contributes around the drums — so ONE number serves both, and since
      dropdown.js anchors a panel to the trigger's left edge, each barrel opens
      directly under its own half of the field. */
-  --drum-root: 88px;
-  --drum-quality: 108px;
+  /* --drums-w is the PRIMARY constant since v2.14.5, and the two pickers derive
+     their splits from it — chord × quality and key × progression must open the
+     identical housing, or the field would have to change width between chord
+     modes, which is the thing he asked us to stop doing in v2.14.4. */
+  --drums-w: 217px;   /* the housing's inside width */
   --drum-gap: 10px;   /* clear space either side of the axle line */
   --drum-axle: 1px;
-  --drums-w: calc(var(--drum-root) + var(--drum-quality) + var(--drum-gap) * 2 + var(--drum-axle));
+  --drum-span: calc(var(--drums-w) - var(--drum-gap) * 2 - var(--drum-axle));
+  /* Each pair names its FIRST face and derives the second, so a pair can never
+     stop summing to the housing. Measured at the reel's 17px serif: "I–♭VII–IV"
+     is the widest label anywhere on a drum at ~87px, which is why the progression
+     face gets 124 and the key face (widest "Am", ~29px) gets 72. */
+  --drum-root: 88px;
+  --drum-quality: calc(var(--drum-span) - var(--drum-root));
+  --drum-key: 72px;
+  --drum-prog: calc(var(--drum-span) - var(--drum-key));
   --wheel-w: calc(var(--drums-w) + 20px);
 
   /* One gap for every control row, referenced rather than repeated because the
      die's row now computes a member's width FROM it (v2.14.4) — two copies of 8px
      would let the Key/Progression pair stop summing to --wheel-w. */
   --row-gap: 8px;
-  /* Key's share of that pair. See .control-row.with-die for the measurements. */
-  --key-w: 90px;
 }
 
 * { box-sizing: border-box; }
@@ -938,15 +947,81 @@ main {
 /* The tabs ride the sheet's title line — the split costs no height that way.
    Compact type: they share the row with the title and the ✕. */
 .seg-tabs { margin-left: auto; flex: 0 0 auto; }
-/* Doubled-up class for SPECIFICITY: `.segmented button` is defined later in this
-   file, and with a bare `.seg-tabs button` it won on source order — leaving the
-   tabs at `padding: 10px 0`, so the two words butted straight into each other. */
+/* THE PAGE TABS ARE A LATCHING KEY PAIR (v2.14.5, his call after seeing three
+   mockups). They used to be a second `.segmented` — the same lit gold capsule as
+   the Format control 50px below, which is why they read as the same kind of
+   thing: "the page selector sort of blends with the controls."
+   His brief: keep the silkscreened voice and the jewel, but make it obviously
+   pressable — "a more narrow rectangular button to suit the font. You press one,
+   it pops in, light comes on. The other pops out and light off."
+   So: two narrow keys in the LEGEND voice (Jost caps, because a page name is what
+   the machine CALLS a place, not a value you're setting), each carrying a jewel
+   from the existing lamp family. The current page is HELD IN — debossed, no drop
+   shadow, jewel lit; the other stands proud with its jewel dark. Nothing else in
+   the sheet is a small engraved key with a lamp, so it can't be confused with a
+   control again.
+   Doubled-up class for SPECIFICITY: `.segmented button` is defined later in this
+   file, and with a bare `.seg-tabs button` it won on source order. */
+.segmented.seg-tabs {
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: none;
+  box-shadow: none;
+  gap: 6px;
+}
 .segmented.seg-tabs button {
   flex: 0 0 auto;
-  padding: 9px 11px;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  /* a narrow rectangle, not a capsule — the 5px radius is a machined key, and it
+     deliberately does not echo the 9px capsule the Format control wears */
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-family: var(--legend);
+  font-size: 10px;
+  letter-spacing: var(--legend-track);
+  font-weight: var(--legend-weight);
+  text-transform: uppercase;
   white-space: nowrap;
+  color: var(--muted);
+  /* raised: the same cap-lit-from-above material as the die and the pills */
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.16)), var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16), 0 2px 3px rgba(0, 0, 0, 0.34);
 }
+/* the jewel, dark. Same body as the Sound lamps so it reads as the same family. */
+.segmented.seg-tabs button::before {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--jewel-off);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+/* HELD IN. No `transform` — a translate would read as the key sliding rather than
+   seating, the same reason the die sinks straight in. */
+/* The seated state has to carry at 10px, which took more contrast than the first
+   pass gave it: the cap's own top highlight is REMOVED (a raised key catches the
+   light, a sunk one doesn't), the fill goes darker than the surrounding plate, and
+   the inset runs deep with a hairline of bounce along the bottom edge — the
+   underside of the recess catching light, which is what says "in" rather than
+   "dark". Judged on a screenshot at 375 wide, which is where it has to work. */
+.segmented.seg-tabs button.active {
+  color: var(--text);
+  border-color: rgba(0, 0, 0, 0.5);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.16)), var(--control);
+  box-shadow:
+    inset 0 3px 7px rgba(0, 0, 0, 0.62),
+    inset 0 -1px 0 var(--bevel-hi);
+}
+.segmented.seg-tabs button.active::before {
+  background: radial-gradient(circle at 50% 35%, var(--lamp-hot), var(--active) 60%);
+  box-shadow: inset 0 0 0 1px var(--lamp-rim), 0 0 5px var(--lamp-glow);
+}
+.segmented.seg-tabs button:active { box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.55); }
 
 /* BOTH pages sit in the same grid cell, so the panel is always as tall as the
    taller one — otherwise switching tabs made the bottom-anchored sheet jump up
@@ -990,14 +1065,10 @@ main {
    nothing should shrink — and a shrunk well is how a progression label starts
    ellipsizing without anything else looking wrong. */
 .control-row.with-die > * { flex: none; }
-/* Progression mode splits the SAME 237px the chord field occupies, so the group's
-   width can't differ between modes. Measured for the split: the Progression menu's
-   longest value ("I–♭VII–IV") needs 77px of type plus 34px of well chrome (2px
-   border + 18px padding + an 8px caret and its 6px gap) = 111px, and its own
-   legend needs 87.1px; Key's longest ("Am") needs 25.4 + 34 = 59.4px, legend
-   22.7px. 90 / 139 clears both by ~28px. Re-measure if a label gets longer. */
-#field-key { width: var(--key-w); }
-#field-prog { width: calc(var(--wheel-w) - var(--key-w) - var(--row-gap)); }
+/* Progression mode used to be two separate fields here, sized to sum to the chord
+   field's width. Since v2.14.5 it's a single `.field-split` (#field-keyprog) over
+   two selects, so it takes that width from `.field-split` like the chord field
+   does and there is nothing left to size in this row. */
 /* Thumb / Fingers / Pattern, sized to their CONTENT rather than into three equal
    thirds. At 375 an even split gave each menu a 75px label box and three Thumb
    values overflowed it — "Dead Thumb" needs 94px, "Alternating" 84, "Root–Fifth"
@@ -1455,6 +1526,11 @@ main {
 /* the trigger's own caret is redundant once each half carries one */
 .field-split .dd-trigger::after { display: none; }
 
+/* Key × Progression wears the same split field, cut to ITS pair of drums so each
+   half again sits over the barrel it opens (v2.14.5). Same total, so the field is
+   the same width in both chord modes — which is what v2.14.4 established. */
+#field-keyprog { --split-cols: var(--drum-key) var(--drum-prog); }
+
 /* grid context: the per-bar chord picker */
 .dd-trigger.bar-chord {
   justify-content: center;
@@ -1555,6 +1631,10 @@ main {
   grid-template-columns: var(--drum-root) var(--drum-axle) var(--drum-quality);
   gap: 0 var(--drum-gap);
 }
+/* Key × Progression: the same housing, a different split (see :root). */
+.dd-wheel.wheel-keyprog .wheel-drums {
+  grid-template-columns: var(--drum-key) var(--drum-axle) var(--drum-prog);
+}
 /* The housing around one cylinder: rounded ends, a lit centre and shadowed
    shoulders, so the drum reads as ROUND rather than as a column that fades. */
 .drum {
@@ -1628,6 +1708,8 @@ main {
 .reel-face {
   display: block;
   height: 100%;
+  /* for the engraved group groove below — see .reel-face.group-start */
+  position: relative;
   font-family: var(--serif);
   font-size: 17px;
   font-weight: 600;
@@ -1639,6 +1721,28 @@ main {
   white-space: nowrap;
   text-align: center;
   transition: color 90ms linear;
+}
+/* ENGRAVED GROUP DIVISIONS (v2.14.5, his call). A curated list keeps its sections
+   on a drum as a machined groove rather than a caption — the housing carries
+   nothing but the mechanism, and a real selector barrel has engraved index marks
+   anyway. The progression reel gets one at each style change (and before Custom);
+   the key reel gets one between the major and minor keys.
+
+   It rides the FACE, not the item, for two separate reasons: the face is what
+   carries the cylinder's rotateX, so the groove foreshortens with the surface it's
+   cut into; and a scroll-snap area is the ITEM's transformed border box, so
+   anything that changed the item's geometry would move its own detent (measured in
+   v2.14.0 — the reel snapped half a name off). Absolutely positioned so it adds no
+   height either: a border-top here would push the line of type down 1px. */
+.reel-face.group-start::before {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.55) 22%, rgba(0, 0, 0, 0.55) 78%, transparent);
+  box-shadow: 0 1px 0 var(--bevel-hi);
 }
 .reel-item.in-window .reel-face {
   color: var(--text);

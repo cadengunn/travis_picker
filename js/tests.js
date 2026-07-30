@@ -70,7 +70,7 @@ import {
   DEFAULT_SWING,
 } from "./metronome.js";
 import { enhanceSelect, retargetOpenPanel } from "./dropdown.js";
-import { createChordWheel } from "./wheel.js";
+import { createChordWheel, createKeyProgWheel, keyProgSplitLabel } from "./wheel.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { isNav, helpTargetFor, createHelp, NAV_SELECTOR } from "./help.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
@@ -1414,6 +1414,140 @@ acheck("wheel: two reels write one chord id, and the panel stays open", async ()
   host.remove();
 });
 
+// KEY × PROGRESSION is the same mechanism over TWO selects (v2.14.5, his call:
+// "I see Key and Progression as a cross product similar to Chord and Quality.
+// 'Let's play an E Major', 'Let's play a 1-4-5 in C'"). Two things make it differ
+// from the chord wheel and both are pinned here: the key reel writes to a second
+// select through its own committer, and the pair is only total WITHIN a mode — so
+// crossing the major/minor line has to re-cut the progression reel.
+acheck("wheel: key × progression drives two selects, and re-cuts on a mode change", async () => {
+  const MAJOR = [["maj_1_5", "I–V"], ["maj_1_4", "I–IV"]];
+  const MINOR = [["min_1_7", "i–VII"], ["min_1_7_6", "i–VII–VI"]];
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+
+  const keySel = document.createElement("select");
+  // grouped, so the drum can engrave a groove at the major/minor boundary
+  for (const [label, ids] of [["Major", ["C", "G"]], ["Minor", ["Am"]]]) {
+    const g = document.createElement("optgroup");
+    g.label = label;
+    for (const k of ids) {
+      const o = document.createElement("option");
+      o.value = k; o.textContent = k;
+      g.appendChild(o);
+    }
+    keySel.appendChild(g);
+  }
+  keySel.value = "C";
+
+  const progSel = document.createElement("select");
+  const fill = (rows) => {
+    const g = document.createElement("optgroup");
+    g.label = "Foundations";
+    progSel.replaceChildren(g);
+    for (const [v, t] of rows) {
+      const o = document.createElement("option");
+      o.value = v; o.textContent = t;
+      g.appendChild(o);
+    }
+    const custom = document.createElement("option");
+    custom.value = "custom"; custom.textContent = "Custom";
+    progSel.appendChild(custom); // ungrouped, so it gets its own groove
+  };
+  fill(MAJOR);
+  progSel.value = "maj_1_5";
+  host.append(keySel, progSel);
+
+  // Stand in for app.js's setKey: crossing the mode line refills the progression
+  // menu and lands on that mode's first preset, exactly as the real one does.
+  let keyCommits = 0;
+  const commitKey = (v) => {
+    if (keySel.value === v) return false;
+    const wasMinor = keySel.value === "Am";
+    keySel.value = v;
+    keyCommits++;
+    const isMinor = v === "Am";
+    if (isMinor !== wasMinor) {
+      fill(isMinor ? MINOR : MAJOR);
+      progSel.value = (isMinor ? MINOR : MAJOR)[0][0];
+    }
+    return true;
+  };
+
+  enhanceSelect(progSel, {
+    render: createKeyProgWheel({ keySelect: () => keySel, commitKey }),
+    label: keyProgSplitLabel(() => keySel),
+    watch: [keySel],
+  });
+  host.querySelector(".dd-trigger").click();
+  const panel = document.querySelector(".dd-panel.dd-wheel");
+  assert(panel, "the progression select opens the wheel, not a list");
+  assert(panel.classList.contains("wheel-keyprog"), "the panel declares its variant so CSS can re-split the drums");
+  assert(panel.querySelectorAll(".drum").length === 2, "two drums");
+
+  const groove = (reelCls) => [...panel.querySelectorAll(`.reel-${reelCls} .reel-item`)]
+    .map((c) => c.querySelector(".reel-face").classList.contains("group-start"));
+  // ENGRAVED GROUP DIVISIONS (his call): the housing carries no captions, so a
+  // curated list keeps its sections as machined grooves. Never on the first name.
+  assert(groove("key").join() === "false,false,true",
+    `the key drum grooves at the major/minor boundary, got ${groove("key")}`);
+  assert(groove("prog").join() === "false,false,true",
+    `the progression drum grooves before the ungrouped Custom, got ${groove("prog")}`);
+
+  // This page carries no stylesheet (by design — see the name-row check), so the
+  // reels have no height and nothing to scroll; scrollTop has to be stubbed. It's
+  // stubbed as a real ACCESSOR with scrollTo wired to it, not as a fixed value:
+  // the wheel re-cuts a reel by calling scrollTo, and a shadowing data property
+  // silently swallowed that — the reel kept the scroll position of the previous,
+  // longer list. What's under test is the wheel's own logic (which name is in the
+  // window, the detent, the settle), so the stub has to behave like a scroller.
+  const stub = (reel) => {
+    let top = 0;
+    Object.defineProperty(reel, "scrollTop", {
+      configurable: true,
+      get: () => top,
+      set: (v) => { top = v; },
+    });
+    reel.scrollTo = ({ top: t }) => { top = t; };
+  };
+  for (const r of panel.querySelectorAll(".reel")) stub(r);
+
+  const spin = async (reelCls, i) => {
+    const reel = panel.querySelector(`.reel-${reelCls}`);
+    reel.scrollTop = i * 38; // ITEM_H in wheel.js
+    reel.dispatchEvent(new Event("scroll"));
+    await new Promise((r) => setTimeout(r, 200));
+  };
+
+  // The progression reel writes the panel's OWN select.
+  await spin("prog", 1);
+  assert(progSel.value === "maj_1_4", `progression reel should set the progression, got ${progSel.value}`);
+  assert(keySel.value === "C", "…and must not touch the key");
+
+  // The key reel writes the OTHER one, through commitKey.
+  await spin("key", 1);
+  assert(keySel.value === "G" && keyCommits === 1, `key reel should set the key, got ${keySel.value}`);
+
+  // Crossing into minor re-cuts the progression reel. Without that, the drum keeps
+  // showing major progressions the select can no longer hold.
+  await spin("key", 2);
+  assert(keySel.value === "Am", `key reel should reach Am, got ${keySel.value}`);
+  const names = [...panel.querySelectorAll(".reel-prog .reel-item")].map((c) => c.textContent);
+  assert(names.join() === "i–VII,i–VII–VI,Custom",
+    `the progression drum must be re-cut for the new mode, got ${names}`);
+  const inWindow = panel.querySelector(".reel-prog .reel-item.in-window");
+  assert(inWindow && inWindow.textContent === "i–VII",
+    `the re-cut reel sits on the new selection, got ${inWindow && inWindow.textContent}`);
+
+  // The face shows BOTH halves, and the key one refreshes even though nothing
+  // fired a `change` on it (that's what `watch` is for).
+  const halves = [...host.querySelectorAll(".dd-label .tl-half")].map((h) => h.textContent);
+  assert(halves.join() === "Am,i–VII", `the trigger shows both halves, got ${halves}`);
+
+  document.querySelector(".dd-catcher").click();
+  host.remove();
+});
+
 // The per-bar chord selects are rebuilt by every render(), and picking a chord
 // IS a render — so the first pick from an open wheel destroyed the element the
 // panel was writing to. The panel stayed up, the reels still turned and ticked,
@@ -2134,6 +2268,59 @@ acheck("layout: the chord field is cut to the wheel it opens", async () => {
   frame.remove();
 });
 
+acheck("layout: the page tabs don't read as the Format control", async () => {
+  // His note (v2.14.4): "Setup / preferences page selector sort of blends with
+  // controls … looks too similar to single/progression selector maybe." They were
+  // literally the same object — a second `.segmented`, same lit gold capsule, 50px
+  // apart. After three mockups he picked the silkscreened one with the jewel, made
+  // pressable: "a more narrow rectangular button to suit the font. You press one,
+  // it pops in, light comes on. The other pops out and light off."
+  //
+  // Pinned as the two things that make them different KINDS of object, rather than
+  // as any particular shade: the tabs speak in the legend face, not the serif; and
+  // the current page is HELD IN while a chosen value is LIT UP, so the two active
+  // states must not share a fill.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:200px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="sheet-panel"><header class="sheet-head"><h2>Options</h2>' +
+    '<div class="segmented seg-tabs"><button id="t-on" class="active">Setup</button>' +
+    '<button id="t-off">Preferences</button></div></header>' +
+    '<div class="control-row format-capo"><div class="field"><span>Format</span>' +
+    '<div class="segmented"><button id="f-off">Single</button>' +
+    '<button id="f-on" class="active">Progression</button></div></div>' +
+    '<div class="field"></div><div class="field"></div></div></div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const win = frame.contentWindow;
+  const cs = (id) => win.getComputedStyle(frame.contentDocument.getElementById(id));
+  const tabOn = cs("t-on");
+  const tabOff = cs("t-off");
+  const fmtOn = cs("f-on");
+
+  assert(/Jost/.test(tabOn.fontFamily),
+    `the tabs must speak in the legend face, got ${tabOn.fontFamily}`);
+  assert(!/Jost/.test(fmtOn.fontFamily),
+    "…and the Format control must not, or they're the same voice again");
+  assert(tabOn.backgroundImage !== fmtOn.backgroundImage,
+    "the active tab and the active Format value must not share a fill");
+
+  // HELD IN vs standing proud: the seated key loses the cap highlight and gains a
+  // deep inset, and only the active one has a lit jewel. Compared against its own
+  // inactive twin, so a theme change can't make this vacuous.
+  assert(tabOn.boxShadow !== tabOff.boxShadow,
+    "the current page must look pressed in relative to the other one");
+  assert(/inset/.test(tabOn.boxShadow), `the seated tab needs an inset shadow, got ${tabOn.boxShadow}`);
+  const jewel = (id, state) => win.getComputedStyle(frame.contentDocument.getElementById(id), "::before");
+  assert(jewel("t-on").backgroundImage !== "none", "the current page's jewel is lit");
+  assert(jewel("t-off").backgroundImage === "none", "the other page's jewel is dark");
+
+  frame.remove();
+});
+
 acheck("layout: the die's row is the same geometry in both chord modes", async () => {
   // His note (v2.14.4): "put dice back adjacent to chord / quality, center chord /
   // quality / dice group in its row … same on progression mode so nothing moves
@@ -2151,10 +2338,13 @@ acheck("layout: the die's row is the same geometry in both chord modes", async (
     '<button class="dd-trigger" type="button"><span class="dd-label">' +
     '<span class="tl-half tl-root">C</span><span class="tl-half tl-quality">Major</span>' +
     '</span></button></label>' +
-    '<label class="field" id="field-key" hidden><span>Key</span>' +
-    '<button class="dd-trigger" type="button"><span class="dd-label">C</span></button></label>' +
-    '<label class="field" id="field-prog" hidden><span>Progression</span>' +
-    '<button class="dd-trigger" type="button"><span class="dd-label">I–♭VII–IV</span></button></label>' +
+    // progression mode is ONE split field over two selects since v2.14.5, exactly
+    // like the chord field — so "both modes are the same width" is now structural
+    '<label class="field field-split" id="field-keyprog" hidden>' +
+    '<span class="split-legends"><span>Key</span><span>Progression</span></span>' +
+    '<button class="dd-trigger" type="button"><span class="dd-label">' +
+    '<span class="tl-half tl-key">C</span><span class="tl-half tl-prog">I–♭VII–IV</span>' +
+    '</span></button></label>' +
     '<div class="field field-die"><button id="die" class="die-btn" type="button"></button></div>' +
     '</div></div>';
   document.body.appendChild(frame);
@@ -2163,14 +2353,13 @@ acheck("layout: the die's row is the same geometry in both chord modes", async (
   const doc = frame.contentDocument;
   const box = (sel) => { const b = doc.querySelector(sel).getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width }; };
   const chord = doc.getElementById("field-chord");
-  const key = doc.getElementById("field-key");
-  const prog = doc.getElementById("field-prog");
+  const keyprog = doc.getElementById("field-keyprog");
 
   const single = { die: box("#die"), groupL: box("#field-chord").l, groupR: box("#die").r };
   const row = box(".control-row");
-  chord.hidden = true; key.hidden = false; prog.hidden = false;
-  const progression = { die: box("#die"), groupL: box("#field-key").l, groupR: box("#die").r };
-  const pair = box("#field-prog").r - box("#field-key").l;
+  chord.hidden = true; keyprog.hidden = false;
+  const progression = { die: box("#die"), groupL: box("#field-keyprog").l, groupR: box("#die").r };
+  const pair = box("#field-keyprog").r - box("#field-keyprog").l;
   const chordW = single.groupR - single.groupL;
   frame.remove();
 
@@ -2184,7 +2373,7 @@ acheck("layout: the die's row is the same geometry in both chord modes", async (
   assert(Math.abs(single.die.l - progression.die.l) < 0.5,
     `the die moves between modes (${single.die.l} vs ${progression.die.l})`);
   assert(Math.abs(pair - (chordW - single.die.w - 8)) < 0.5,
-    `Key + Progression (${pair}px) must span exactly what the chord field does`);
+    `the Key/Progression field (${pair}px) must span exactly what the chord field does`);
 
   // Centred, not left- or right-aligned: equal air either side.
   const left = single.groupL - row.l;

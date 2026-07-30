@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [24](#where-things-stand-session-24-2026-07-29) | v2.14.5 | Key × Progression became the second drum picker; the page tabs became a latching key pair |
 | [23](#where-things-stand-session-23-2026-07-29) | v2.14.4 | his v2.14.3 notes: one width for both chord modes, the die back beside the chord, the document locked |
 | [22](#where-things-stand-session-22-2026-07-29) | v2.14.3 | two of his UI notes: the chord field cut to the wheel, and "Progression" spelled out |
 | [21](#where-things-stand-session-21-2026-07-29) | v2.14.0 → v2.14.2 | the chord wheel: two cylinders, and the library became the full 12 × 3 matrix |
@@ -35,6 +36,102 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 24, 2026-07-29)
+
+**v2.14.5 — the second drum picker, and the page tabs stopped pretending to be a
+control.** 87/87 green.
+
+### His reframing is the whole session
+
+I had looked at "progression as a barrel" and rejected it on the grounds that it
+isn't a cross-product: the five styles hold 4/3/2/3/2 progressions, so a Style reel
+plus a Progression reel means the second one's contents depend on the first, and
+that's a cascading menu wearing a drum costume. He replied that I had the axes
+wrong: *"I see Key and Progression as a cross product similar to Chord and Quality.
+'Let's play an E Major', 'Let's play a 1-4-5 in C'. Both very common guitar
+thoughts."* Which is correct, and it's the thought a player actually has —
+**key × progression is total within a mode**, and the style groups were never an
+axis at all.
+
+That collapsed two items into one. There is no standalone progression drum; the
+progression reel is the right-hand cylinder of a key×progression picker, and his
+"engraved divisions" idea is how the style groups survive on it.
+
+### What it took
+
+**One field over two selects** is the only structural difference from the chord
+wheel, and it's the part worth remembering: chord's two reels write one composite
+id, so `commit` reaches everything. Here `#key` and `#progression` are independent,
+so `#key` carries `dd-native data-dd="1"` (enhanceAll skips it), the single trigger
+belongs to `#progression`, and the key reel writes through a `commitKey` handed to
+the renderer. `enhanceSelect` gained a **`watch`** option because the trigger's face
+shows both halves and a transpose, a load or a die roll sets `#key` with no `change`
+event — which is the same reason its value-setter wrap exists in the first place.
+
+**`--drums-w` became the primary constant.** It used to be computed from
+`--drum-root + --drum-quality`; now it's 217px and each pair names its first face
+and derives the second (88 ⇒ 108, and 72 ⇒ 124). Without that inversion the two
+pickers could open different-width housings, and the field would change width
+between chord modes — the exact thing v2.14.4 was about. The 72/124 split is
+measured: `I–♭VII–IV` is the widest label on any drum, ~87px at the reel's 17px.
+
+**The grooves ride the FACE, absolutely positioned**, for two independent reasons:
+the face is what carries the cylinder's `rotateX`, so the groove foreshortens with
+the surface it's cut into; and anything that altered `.reel-item`'s geometry would
+move its own scroll-snap detent (the v2.14.0 lesson). A `border-top` was the obvious
+implementation and it would have pushed the line of type down 1px.
+
+**Custom needed no code.** His spec — picking it leaves the grid alone, and editing
+a bar chord makes the drum sit on it — was already the behaviour:
+`applyProgressionPreset` returns early for Custom ("a readout, not a choice") and
+`syncProgressionSelect` sets the select after any edit, which the drum reads on
+open. Verified both halves live rather than assumed.
+
+### The page tabs
+
+Three mockups went out (plain words / engraved / silkscreened-with-a-jewel); he
+picked the third and asked for B's flavour back: *"everything else pressable very
+clearly reads as a button… maybe a more narrow rectangular button to suit the font.
+You press one, it pops in, light comes on. The other pops out and light off."*
+
+So they're narrow engraved keys in the legend voice, each with a jewel, and the
+current page is held in with its lamp lit. Two notes: the seated state needed more
+contrast than the first pass gave it — at 10px it only reads once the cap highlight
+is *removed*, the fill goes darker than the plate, and a hairline of bounce sits
+along the bottom edge — and the test deliberately pins the two things that make
+these a different *kind* of object (Jost where the Format control is serif; pressed
+in where a value is lit up) rather than any particular shade.
+
+The sheet came out 2.5px shorter (333 → 330.5). A gain, not a cost.
+
+### Verification
+
+Two new tests, and one existing one rewritten for the merged field. All three new
+asserts confirmed against a deliberately broken mirror: `the key drum grooves at
+the major/minor boundary, got false,false,false`; `the progression drum must be
+re-cut for the new mode, got I–V,I–IV,Custom`; and `the tabs must speak in the
+legend face, got Fraunces…`.
+
+Also worth recording, because it nearly produced a false pass: the wheel test stubs
+`scrollTop` (the tests page has no stylesheet, so the reels have no height). The
+existing stub was a fixed data property, which **shadowed** the reel's own
+`scrollTo` — so when the re-cut called it, the reel silently kept the scroll
+position of the previous, longer list and the test failed for the wrong reason. It's
+a real accessor with `scrollTo` wired to it now.
+
+Driven live end to end: prog spin → bars C,G,Am,F; key → Am re-cuts to the 4 minor
+entries and lands on i–VII; a minor spin; key → G re-cuts back to 15. Budget
+re-measured at 375×553 worst case: **55.09 / 384.84 / 11.06 / no overflow**, and
+both chord modes measure identically (field 42→279, die 287→333, sheet 330.5).
+
+### Cleaned up on the way
+
+`#field-key` / `#field-prog`'s width rules and `--key-w` went with the merged field.
+Worth noting they'd have gone on passing their test vacuously — the harness built
+the old ids, so it was measuring dead CSS.
 
 ---
 
