@@ -319,7 +319,18 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   CSS grid cell** with the inactive one hidden by `visibility`, so the panel is
   always the height of the taller page and switching tabs can't make the
   bottom-anchored sheet jump; and **the die sits in the chord row and nothing
-  else**, because that adjacency is the only thing that says what its scope is.
+  else**, because that adjacency is the only thing that says what its scope is —
+  and since v2.14.4 it sits directly **beside** the chord rather than out at the
+  row's edge, which is where a 3-slot grid had pinned it once the field shrank to
+  the wheel's 237px. That row is now **one centred flex group** (`237 + 8 + 46 =
+  291px` in 327px of track) and **both chord modes are cut to the same total** —
+  progression mode's Key + Progression sum to exactly `--wheel-w` (90 / 139, from
+  `--key-w`), so switching modes moves nothing: measured, the group spans 42 → 333
+  and the die 287 → 333 in *both*. A test compares the two modes and the centring.
+  Watch two things if you touch it: the die needed an **explicit `width: 46px`**
+  (`width: 100%` only worked because a grid track was feeding it, and it collapsed
+  to 21px), and the Progression well's longest value (`I–♭VII–IV`, 77px + 34px of
+  well chrome) is what sets the 90/139 split.
   `.segmented.seg-tabs button` is double-classed for specificity — `.segmented
   button` is defined later in the file and won on source order, leaving the tabs
   at `padding: 10px 0` with the two words butted together.
@@ -724,6 +735,26 @@ rgba because it's texture, not hue**, so it rides every theme.
   are icon-only.
 - **Anything typed that isn't in a bundled face must be DRAWN.** The sheet's `✕`
   was U+2715 and rendered in Arial — the one system-font element in the app.
+- **THE DOCUMENT IS LOCKED** (v2.14.4, his call — "generally disable scrolling and
+  double tap / pinch to zoom across the board"). This **reverses** the earlier
+  decision to scope `touch-action` to controls and leave the viewport zoomable.
+  `html, body { overflow: hidden; overscroll-behavior: none; touch-action: pan-y }`
+  plus `user-scalable=no, maximum-scale=1` on the viewport meta.
+  **`pan-y`, never `none`** — `none` looks like the stronger version of the same
+  idea and silently forbids panning in every descendant that is *supposed* to
+  scroll: the wheel's reels, a dropdown panel, the saved list, and `main`, which is
+  the safety valve that lets the grid scroll inside its own box at 320×454. `pan-y`
+  still rules out pinch **and** double-tap zoom, because both are only offered for
+  `auto`/`manipulation`. A test asserts `pan-y` and asserts the absence of `none`.
+  Verified here: the BPM slider still drags 90 → 240 under a real pointer drag, the
+  reels still scroll (0 → 418), a list panel still scrolls, and the document
+  doesn't. **Not** verifiable here: pinch and long-press, since the dev box has no
+  touch. Note iOS Safari has ignored `user-scalable=no` in a browser *tab* since
+  iOS 10 but honours it in a standalone install, so `touch-action` is what carries
+  the tab case.
+- **A READOUT needs the same `user-select: none` a control does.** `.bpm-readout`
+  was in neither touch list — it isn't a button — so a long-press on "90 BPM"
+  selected it and raised the callout (v2.14.4, his note). Any new readout too.
 - **Touch hygiene, all learned from real bugs:** `touch-action: manipulation` and
   `-webkit-tap-highlight-color: transparent` on every interactive control (we
   draw our own feedback; WebKit's default blue halo was invisible on dark
@@ -1064,11 +1095,12 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.3 — the chord field is the size of the wheel it opens, and Format spells
-"Progression"; on the phone.** 83/83 checks green, tree clean. (v2.13.3 was the
-last version signed off on the guitar; the wheel of v2.14.0–.2 is still awaiting
-his notes on the detent, the spin, the curve, the die's pool and the F7/F♯7/G♯7
-bass.) The build
+**v2.14.4 — his v2.14.3 notes: the die back beside the chord, both modes cut to
+one width, and the document locked against zoom and scroll; on the phone.** 85/85
+checks green, tree clean. **The wheel is signed off** (v2.14.0–.2: the detent, the
+spin, the curve, the die's pool and the F7/F♯7/G♯7 ♭7 bass are all "good as is" —
+his call, don't revisit unless he raises it), as are Wild Card and Unruly.
+(v2.13.3 was the last version signed off on the guitar as a whole.) The build
 order in `travis-picker-workflow.md` is complete: generator + grid, progression
 mode, the Saved library, the manual editor, the metronome, PWA packaging,
 pattern audio, the visual identity (structure then colour), keys / chords /

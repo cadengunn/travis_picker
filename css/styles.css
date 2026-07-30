@@ -114,6 +114,13 @@
   --drum-axle: 1px;
   --drums-w: calc(var(--drum-root) + var(--drum-quality) + var(--drum-gap) * 2 + var(--drum-axle));
   --wheel-w: calc(var(--drums-w) + 20px);
+
+  /* One gap for every control row, referenced rather than repeated because the
+     die's row now computes a member's width FROM it (v2.14.4) — two copies of 8px
+     would let the Key/Progression pair stop summing to --wheel-w. */
+  --row-gap: 8px;
+  /* Key's share of that pair. See .control-row.with-die for the measurements. */
+  --key-w: 90px;
 }
 
 * { box-sizing: border-box; }
@@ -138,8 +145,11 @@ button, select, input, .cell, .lamp, .stepper, .segmented {
    select the word "Unruly" off a knob. NOTE the deliberate absence of `input`
    from this list (unlike the rule above): the save-name field needs selection
    and paste. Prose stays selectable too — the Guide is for reading. */
+/* `.bpm-readout` is here as of v2.14.4 (his note): it's a READOUT, not a control,
+   so it was in neither list and long-pressing "90 BPM" selected it and raised the
+   callout. The `<output>` inside it inherits. Any new readout needs the same. */
 button, select, .cell, .lamp, .stepper, .segmented, .dd-trigger, .dd-option,
-.pill, .capo-tag, .context, .bar-header, .bar-num {
+.pill, .capo-tag, .context, .bar-header, .bar-num, .bpm-readout {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -148,7 +158,31 @@ button, select, .cell, .lamp, .stepper, .segmented, .dd-trigger, .dd-option,
 /* must beat display:flex etc so hidden controls actually hide */
 [hidden] { display: none !important; }
 
-html, body { margin: 0; height: 100%; }
+/* THE DOCUMENT IS LOCKED: no page scroll, no rubber-band, no pinch or double-tap
+   zoom (v2.14.4, his call — "generally disable scrolling and double tap / pinch to
+   zoom across the board"). This REVERSES the earlier scoping decision, which put
+   `touch-action` on individual controls and deliberately left the viewport
+   zoomable; the app is a fixed one-screen instrument and nothing should slide
+   under your thumb mid-take.
+
+   `pan-y` rather than `none`, deliberately: `none` here would also forbid panning
+   inside the descendants that are SUPPOSED to scroll — the wheel's reels, a
+   dropdown panel, the saved list, and `main` itself, which is the silent safety
+   valve that lets the grid scroll inside its own box on a screen too small for it
+   (320×454). `pan-y` still rules out pinch-zoom AND double-tap zoom, because both
+   are only offered for `auto` and `manipulation`.
+
+   Paired with `user-scalable=no, maximum-scale=1` on the viewport meta. Note iOS
+   Safari has ignored `user-scalable=no` in a browser TAB since iOS 10 but honours
+   it in a standalone install, so `touch-action` is what carries the tab case. None
+   of this is verifiable on the dev box — there is no touch there. */
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pan-y;
+}
 
 body {
   color: var(--text);
@@ -873,7 +907,11 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  /* An EXPLICIT width since v2.14.4. It was `width: 100%`, which worked only
+     because the row was a grid handing it a 46px track; once the row became a
+     centred flex group the slot was content-sized and the button collapsed to
+     21px — the svg plus its border. 46px is the track it used to get. */
+  width: 46px;
   height: 42px;
   padding: 0;
   border: 1px solid var(--line);
@@ -929,13 +967,37 @@ main {
 .control-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: var(--row-gap);
   align-items: end;
 }
-/* The chord row gives its last slot to the die instead of a third control, so
-   the die sits IN the row it re-rolls and nothing else. Single mode's chord
-   select spans the two flexible columns that Key + Progression share. */
-.control-row.with-die { grid-template-columns: 1fr 1fr 46px; }
+/* THE DIE'S ROW IS ONE CENTRED GROUP (v2.14.4, his notes): "put dice back
+   adjacent to chord / quality, center chord / quality / dice group in its row …
+   same on progression mode so nothing moves between the two."
+
+   It was a 3-slot grid (`1fr 1fr 46px`), which left the die pinned at the row's
+   right edge — 60px away from the field it re-rolls, once the field shrank to the
+   wheel's width in v2.14.3. Flex + `justify-content: center` instead, and BOTH
+   modes are cut to the same total: single mode is the 237px chord field, and
+   progression mode's Key + Progression sum to exactly the same 237 (see below).
+   So the group is 237 + 8 + 46 = 291px, centred in 327px of track, in both modes
+   — the die and every well land on the same pixel when you switch. */
+.control-row.with-die {
+  display: flex;
+  justify-content: center;
+  align-items: end;
+}
+/* `flex: none` on every member: the group fits its track with 36px to spare, so
+   nothing should shrink — and a shrunk well is how a progression label starts
+   ellipsizing without anything else looking wrong. */
+.control-row.with-die > * { flex: none; }
+/* Progression mode splits the SAME 237px the chord field occupies, so the group's
+   width can't differ between modes. Measured for the split: the Progression menu's
+   longest value ("I–♭VII–IV") needs 77px of type plus 34px of well chrome (2px
+   border + 18px padding + an 8px caret and its 6px gap) = 111px, and its own
+   legend needs 87.1px; Key's longest ("Am") needs 25.4 + 34 = 59.4px, legend
+   22.7px. 90 / 139 clears both by ~28px. Re-measure if a label gets longer. */
+#field-key { width: var(--key-w); }
+#field-prog { width: calc(var(--wheel-w) - var(--key-w) - var(--row-gap)); }
 /* Thumb / Fingers / Pattern, sized to their CONTENT rather than into three equal
    thirds. At 375 an even split gave each menu a 75px label box and three Thumb
    values overflowed it — "Dead Thumb" needs 94px, "Alternating" 84, "Root–Fifth"
@@ -962,9 +1024,16 @@ main {
    `line-height: 26px`, `text-align: center` and `top: -4px`. The row inherited
    all three, its legends doubled in height, and it grew 59px → 72px, pushing the
    bottom-anchored sheet up with it. Caught by measuring the row, not by looking
-   at it. */
-.control-row.format-capo { grid-template-columns: 1.74fr 1fr 0.26fr; }
-.span-2 { grid-column: span 2; }
+   at it.
+
+   The EMPTY slot is the MIDDLE one since v2.14.4, which is what right-aligns the
+   capo (his note) while leaving its legend over its own stepper rather than
+   floating left of it. The slot order is the whole mechanism, so the numbers below
+   read Format / spacer / capo — same three widths as before, reordered. */
+.control-row.format-capo { grid-template-columns: 1.74fr 0.26fr 1fr; }
+/* `.span-2` went with the die's row becoming a flex group (v2.14.4) — the chord
+   field no longer spans grid tracks, it has an explicit width. `.span-3` is still
+   the Swing row. */
 .span-3 { grid-column: span 3; }
 .field {
   min-width: 0;

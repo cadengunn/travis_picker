@@ -16,7 +16,43 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.3) — two of your UI notes
+## On the phone right now (v2.14.4) — your v2.14.3 notes
+
+Four of the five actioned; the two you weren't ready to commit on are further down
+as **item 13**, untouched.
+
+- **Both chord modes are one width now.** Key + Progression sum to exactly what the
+  chord field occupies, so the wells line up when you switch. The split is 90 / 139
+  because the Progression menu's longest value (`I–♭VII–IV`) needs 111px of well and
+  its legend needs 87px; it clears by ~28px.
+- **The die is back beside the chord**, the whole group is centred, and the group is
+  pixel-identical in both modes (42 → 333, die 287 → 333, both ways).
+- **The capo is right-aligned**, done by moving the row's empty slot into the middle
+  — which keeps its legend over its own stepper instead of floating left of it.
+- **BPM can't be long-pressed and copied.** It was a readout, so it was in neither
+  touch list.
+- **No page scroll, no rubber-band, no pinch or double-tap zoom.** This reverses the
+  old decision to leave the viewport zoomable, so it's recorded as a reversal.
+  Deliberately `touch-action: pan-y` and not `none`: `none` would also kill panning
+  in the wheel's reels, the dropdown panels, the saved list, and the grid's own
+  overflow valve on a very small screen.
+
+**What only the phone can tell us:** pinch, double-tap and long-press — the dev box
+has no touch at all. Verified here instead: the BPM slider still drags 90 → 240
+under a real drag, the reels and list panels still scroll, and the document doesn't.
+One fact worth knowing if pinch still works in a Safari tab: iOS has ignored
+`user-scalable=no` in tabs since iOS 10 and only honours it in the installed app.
+
+**A bug the refactor exposed:** the die had `width: 100%`, which only worked because
+a grid track was feeding it. Turning the row into a flex group collapsed it to 21px.
+Fixed at 46px with a test asserting ≥ 44.
+
+**Budget untouched** — 375×553, 4 bars, worst case: 55.09 / 384.84 / 11.06 / no
+overflow.
+
+---
+
+## Previously on the phone (v2.14.3) — two of your UI notes
 
 **The chord field is the size of the wheel it opens.** 289px → 237px, and not by
 hard-coding it twice: the drum geometry is one set of `:root` values that both the
@@ -43,9 +79,9 @@ off-the-curve line are both out again and marked SETTLED so they stop coming
 back. The one copy change that stayed is the Format card, which had to stop
 saying "Prog.".
 
-**Still owed from you on the wheel** (v2.14.0–.2, unchanged and unjudged): the
-detent's voice, the feel of the spin, whether it's round enough, whether the die
-should still roll all 36, and the F7 / F♯7 / G♯7 bass call below.
+**The wheel is SIGNED OFF** (v2.14.4, your call): the detent's voice, the feel of
+the spin, the roundness, the die rolling all 36, and the **F7 / F♯7 / G♯7 root ↔ ♭7
+bass** are all good as is and not to be revisited unless you raise them.
 
 ---
 
@@ -119,11 +155,11 @@ localStorage). The one thing it needs from you is **the patterns themselves** �
 either a handful you've saved and like, or a nod for me to pick a spread across
 the tiers. It now inherits the 36-chord library and the capo field for free.
 
-Riding along, cheap, whenever you want them:
-- The two help-copy reversions you flagged in v2.13.7 (Wild Card's
-  off-the-curve line, and "Count-In").
-- Anything off drilling with the wheel — the detent's voice, the curve, the
-  die's pool, and the F7 / F♯7 / G♯7 bass question above.
+Everything that was riding alongside it is now closed: the two help-copy reversions
+(built, then reverted on your read — settled), the wheel's feel and the F7 bass
+question (signed off), and Wild Card / Unruly (keep). What's left needing you is
+**the patterns**, plus the two discussion items in item 13 and the two still-open
+opinions in item 1 (more qualities) and item 9 (the chord-shape diagram).
 
 ---
 
@@ -447,17 +483,13 @@ Guide went stale: it was prose buried in a DOM-building function, and was still
 calling the Fingers menu "Chaos" three versions after you renamed it. A test
 checks every control has copy and every entry is reachable, so that can't recur.
 
-### 7. Unruly density — OPEN, only if the drilling says so
-You once felt Unruly is occasionally "too much". Everything is numbers in
-`CHAOS_PRESETS` (`maxRestrikes` 1 for milder, 3 for spicier). Generation was
-signed off on guitar, so this only reopens if it bothers you again.
+### 7. Unruly density — CLOSED (v2.14.4, your call)
+"Keep it." Everything is still numbers in `CHAOS_PRESETS` (`maxRestrikes` 1 for
+milder, 3 for spicier) if it ever bothers you again.
 
-### 8. Chaos "stops sounding like Travis picking" (Elliott) — NEEDS A CALL
-An accurate observation of what Chaos *is*: deliberately off the difficulty curve,
-the novelty/discovery setting, per the spec and your session-6 call. Not a bug.
-**Only worth reopening if you agree it's more useless than fun** — in which case
-the fix is constraints on its column shapes, and it becomes "Unruly+" instead of
-"random".
+### 8. Chaos "stops sounding like Travis picking" (Elliott) — CLOSED (v2.14.4, your call)
+"Keep it." Wild Card stays the off-the-curve discovery setting. Elliott's
+observation was an accurate description of what it is, not a bug.
 
 ### 9. Chord shape diagram (Elliott) — ITS TRIGGER HAS FIRED (v2.14.0)
 You called it redundant given the fret-number labels, and I agreed — *while every
@@ -482,6 +514,31 @@ Elliott still reaches for it in Safari rather than the installed icon. If that's
 common for people you share it with, a dismissible hint is a small piece of work —
 and the home-screen install is also what protects saved patterns from iOS's
 storage eviction, so it's not purely cosmetic.
+
+### 13. Two you're not ready to commit on — OPEN FOR DISCUSSION (v2.14.4, yours)
+
+Nothing built for either; both are here so they don't evaporate.
+
+- **Should the drum/cylinder selector replace other dropdowns?** My read: it earns
+  its place where the data is a **cross-product or a continuum** and loses to a list
+  where the values are unrelated words you scan. Chord = root × quality is the
+  cross-product case, which is why it fits. **Key** is the one other real candidate
+  (12 roots, and a mode axis, so it's the same shape). **Progression** should stay a
+  list — the values are named ideas grouped by style, and a barrel hides the section
+  captions that do the explaining. Thumb, Fingers, Pattern and Theme are short
+  unordered lists; a drum would be ceremony. Cheap to prototype Key if you want to
+  feel it, since the wheel is a pluggable panel renderer.
+- **The Setup / Preferences tabs read as the same object as Single / Progression.**
+  Agreed, and I think the diagnosis is that they're both a two-up segmented control
+  in the same faceplate language, ~50px apart. Three directions, cheapest first:
+  make them **not a segmented control at all** (two plain words with the active one
+  underlined or lit, no capsule) — this is my pick, since a page tab isn't a value
+  you're setting, it's a place you're going, and the app has no other tab to be
+  consistent with; or make them a **different material** (recessed/engraved rather
+  than the raised capsule); or move them **out of the title line** into their own
+  strip, which costs height we don't have. Worth noting the tabs ride the title line
+  precisely so the two-page split costs zero height, so option 3 is the expensive
+  one.
 
 ### 12. More keys — DEFERRED by your call
 All 12 keys, and sharp minor keys (Bm / F♯m / C♯m — these pull in new barre

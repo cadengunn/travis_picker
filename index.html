@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <!-- user-scalable=no + maximum-scale=1: his call (v2.14.4). Honoured in a
+       standalone install; iOS Safari has ignored it in a browser tab since iOS 10,
+       which is why `touch-action: pan-y` on html/body carries that case. See the
+       document-lock comment in styles.css. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#17291e" />
   <meta name="description" content="Random, playable Travis-picking practice patterns on a drum-machine grid." />
   <title>Travis Picker</title>
@@ -150,6 +154,17 @@
           </div>
         </div>
 
+        <!-- The empty slot sits BETWEEN the two controls as of v2.14.4, which is
+             what right-aligns the capo (his note). It moved rather than
+             disappearing, so the row keeps its fixed 3-slot geometry — and putting
+             the slack here instead of at the right edge means the capo's legend
+             still sits over its own stepper rather than floating left of it, which
+             is what "right align the button, not the label" asks for.
+             The "sounds in" readout used to live in this slot; it moved into the
+             header's capo tag (v2.12.0), where the capo state is already reported,
+             so the two halves of one fact stopped living on two screens. -->
+        <div class="field"></div>
+
         <!-- Capo: a shape-first transpose. The grid's frets are SHAPE frets, so
              nothing on screen changes — this shifts the sounding pitch and the
              concert-key readout only. Negative values are a down-tuned guitar
@@ -162,27 +177,21 @@
             <button type="button" data-capo-step="1" aria-label="Capo up">+</button>
           </div>
         </div>
-        <!-- The third slot is deliberately EMPTY, and NARROW since v2.14.3 — the
-             slack it was holding went to Format, which now spells "Progression"
-             out instead of abbreviating it (see .control-row.format-capo). The
-             "sounds in" readout used to live here; it moved into the header's
-             capo tag (v2.12.0), where the capo state is already reported, so the
-             two halves of one fact stopped living on two different screens. The
-             slot stays so the row keeps its fixed 3-slot geometry. -->
-        <div class="field"></div>
       </div>
 
       <!-- Row 2 is the die's row, and holds NOTHING else it doesn't re-roll —
-           that adjacency is the only thing telling you what the die's scope is.
-           Its contents are the only ones that swap between chord modes, and both
-           fill the same two slots, so nothing below ever shifts. -->
+           that adjacency is the only thing telling you what the die's scope is,
+           and since v2.14.4 the die sits directly BESIDE the chord rather than out
+           at the row's edge (his note). The whole group is centred, and the two
+           modes are cut to the same total width, so nothing moves when you switch.
+           See .control-row.with-die. -->
       <div class="control-row with-die">
         <!-- TWO controls that open ONE panel (v2.14.1, his call): the chord and
              its quality are separate cylinders, so they're separated here too —
              two legends over two wells with a division line between them. The
              <select> underneath is still one control holding one chord id; only
              the trigger's face is split (see chordSplitLabel in wheel.js). -->
-        <label class="field span-2 field-split" id="field-chord" data-help="field-chord">
+        <label class="field field-split" id="field-chord" data-help="field-chord">
           <span class="split-legends"><span>Chord</span><span>Quality</span></span>
           <select id="chord"></select>
         </label>

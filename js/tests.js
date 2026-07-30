@@ -2134,6 +2134,103 @@ acheck("layout: the chord field is cut to the wheel it opens", async () => {
   frame.remove();
 });
 
+acheck("layout: the die's row is the same geometry in both chord modes", async () => {
+  // His note (v2.14.4): "put dice back adjacent to chord / quality, center chord /
+  // quality / dice group in its row … same on progression mode so nothing moves
+  // between the two." So the contract is that switching Single ↔ Progression moves
+  // NOTHING in this row: the group's outer bounds and the die's box are identical,
+  // which only holds while Key + Progression + the row gap sum to --wheel-w.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:300px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="sheet-panel"><div class="control-row with-die">' +
+    '<label class="field field-split" id="field-chord">' +
+    '<span class="split-legends"><span>Chord</span><span>Quality</span></span>' +
+    '<button class="dd-trigger" type="button"><span class="dd-label">' +
+    '<span class="tl-half tl-root">C</span><span class="tl-half tl-quality">Major</span>' +
+    '</span></button></label>' +
+    '<label class="field" id="field-key" hidden><span>Key</span>' +
+    '<button class="dd-trigger" type="button"><span class="dd-label">C</span></button></label>' +
+    '<label class="field" id="field-prog" hidden><span>Progression</span>' +
+    '<button class="dd-trigger" type="button"><span class="dd-label">I–♭VII–IV</span></button></label>' +
+    '<div class="field field-die"><button id="die" class="die-btn" type="button"></button></div>' +
+    '</div></div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const doc = frame.contentDocument;
+  const box = (sel) => { const b = doc.querySelector(sel).getBoundingClientRect(); return { l: b.left, r: b.right, w: b.width }; };
+  const chord = doc.getElementById("field-chord");
+  const key = doc.getElementById("field-key");
+  const prog = doc.getElementById("field-prog");
+
+  const single = { die: box("#die"), groupL: box("#field-chord").l, groupR: box("#die").r };
+  const row = box(".control-row");
+  chord.hidden = true; key.hidden = false; prog.hidden = false;
+  const progression = { die: box("#die"), groupL: box("#field-key").l, groupR: box("#die").r };
+  const pair = box("#field-prog").r - box("#field-key").l;
+  const chordW = single.groupR - single.groupL;
+  frame.remove();
+
+  assert(single.die.w > 0, "the die must lay out, or this test proves nothing");
+  // 46px was the grid track it used to be handed; `width: 100%` collapsed it to
+  // 21px the moment the row stopped being a grid, which is under any tap target.
+  assert(single.die.w >= 44,
+    `the die is ${single.die.w}px wide — under a 44px tap target (it collapses to ~21px without an explicit width)`);
+  assert(Math.abs(single.groupL - progression.groupL) < 0.5 && Math.abs(single.groupR - progression.groupR) < 0.5,
+    `the group moves between modes: single ${single.groupL}→${single.groupR}, progression ${progression.groupL}→${progression.groupR}`);
+  assert(Math.abs(single.die.l - progression.die.l) < 0.5,
+    `the die moves between modes (${single.die.l} vs ${progression.die.l})`);
+  assert(Math.abs(pair - (chordW - single.die.w - 8)) < 0.5,
+    `Key + Progression (${pair}px) must span exactly what the chord field does`);
+
+  // Centred, not left- or right-aligned: equal air either side.
+  const left = single.groupL - row.l;
+  const right = row.r - single.groupR;
+  assert(Math.abs(left - right) < 0.5, `the group isn't centred (${left}px left, ${right}px right)`);
+});
+
+acheck("touch: the document is locked, but the things that must scroll still can", async () => {
+  // His note (v2.14.4): "generally disable scrolling and double tap / pinch to zoom
+  // across the board." This reverses the earlier decision to scope touch-action to
+  // controls and leave the viewport zoomable.
+  //
+  // The trap is `touch-action: none`, which looks like the stronger version of the
+  // same idea and silently kills panning in every descendant that is SUPPOSED to
+  // scroll — the wheel's reels, a dropdown panel, and `main`, which is the safety
+  // valve that lets the grid scroll inside its own box on a screen too small for
+  // it. `pan-y` rules out pinch and double-tap zoom without taking that away.
+  const css = await (await fetch("css/styles.css")).text();
+  const rule = css.match(/\bhtml,\s*body\s*\{[^}]*\}/s)?.[0] || "";
+  assert(/touch-action:\s*pan-y/.test(rule),
+    "html/body must set touch-action: pan-y (pinch and double-tap zoom are only offered for auto/manipulation)");
+  assert(!/touch-action:\s*none/.test(rule),
+    "touch-action: none on html/body would also forbid panning in the reels, the dropdown panels and main");
+  assert(/overflow:\s*hidden/.test(rule) && /overscroll-behavior:\s*none/.test(rule),
+    "html/body must lock document scroll and rubber-banding");
+
+  const html = await (await fetch("index.html")).text();
+  const viewport = html.match(/<meta name="viewport"[^>]*>/)?.[0] || "";
+  assert(/user-scalable=no/.test(viewport) && /maximum-scale=1/.test(viewport),
+    `the viewport meta must opt out of scaling (got: ${viewport})`);
+
+  // And the readout that started this: a long-press on "90 BPM" used to select it.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:120px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="bpm-readout"><output id="bpm-value" class="bpm-value">90</output> BPM</div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+  const cs = frame.contentWindow.getComputedStyle(frame.contentDocument.getElementById("bpm-value"));
+  const sel = cs.webkitUserSelect || cs.userSelect;
+  frame.remove();
+  assert(sel === "none", `the BPM readout is selectable (user-select: ${sel}) — a long-press copies it`);
+});
+
 acheck('layout: the Format control spells "Progression" on one line', async () => {
   // His note (v2.14.3): the empty third slot of this row was holding slack, so
   // the second mode can be spelled out instead of reading "Prog.". The segmented

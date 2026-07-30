@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [23](#where-things-stand-session-23-2026-07-29) | v2.14.4 | his v2.14.3 notes: one width for both chord modes, the die back beside the chord, the document locked |
 | [22](#where-things-stand-session-22-2026-07-29) | v2.14.3 | two of his UI notes: the chord field cut to the wheel, and "Progression" spelled out |
 | [21](#where-things-stand-session-21-2026-07-29) | v2.14.0 → v2.14.2 | the chord wheel: two cylinders, and the library became the full 12 × 3 matrix |
 | [20](#where-things-stand-session-20-2026-07-28) | v2.13.5 → v2.13.6 | help mode adjusted against his drilling, then his copy revision: 30 cards → 28 |
@@ -34,6 +35,98 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 23, 2026-07-29)
+
+**v2.14.4 — his v2.14.3 notes, four of the five actioned.** 85/85 green. Two
+discussion items left open at his request, and a batch of items closed on his call.
+
+### What he asked for
+
+**"The drums match the button now, but the buttons don't match between single and
+progression mode."** Correct, and it was v2.14.3's own doing: shrinking the chord
+field to 237px left progression mode's Key + Progression at 289. They're now cut
+from the same `--wheel-w`, split 90 / 139 (`--key-w` plus a calc, so they can't
+stop summing). The split is measured, not chosen: the Progression menu's longest
+value `I–♭VII–IV` needs 77px of type plus 34px of well chrome, and its legend needs
+87.1px, so 139 clears it by ~28px.
+
+**"Put dice back adjacent to chord / quality. Center the group. Right align capo
+button (not label). Same on progression mode so nothing moves."** The die's row was
+a 3-slot grid, which had pinned the die at the right edge — 60px from the field it
+re-rolls. It's a centred flex group now: `237 + 8 + 46 = 291` in 327px of track,
+identical in both modes (measured: the group spans 42 → 333 and the die 287 → 333
+in single, progression and back again). The capo is right-aligned by moving the
+row's *empty* slot from the right edge into the middle — one HTML move, and it
+keeps the capo's legend over its own stepper rather than floating left of it, which
+is what "not label" asks for.
+
+**"BPM still able to be copied on long press."** `.bpm-readout` was in neither
+touch-hygiene list, because it isn't a control. Added, and CLAUDE.md now says any
+new readout needs the same.
+
+**"Generally disable scrolling and double tap / pinch to zoom across the board."**
+Done, and it **reverses** the earlier decision to scope `touch-action` to controls
+and leave the viewport zoomable — recorded as a reversal rather than a tweak.
+`html, body { overflow: hidden; overscroll-behavior: none; touch-action: pan-y }`
+plus `user-scalable=no, maximum-scale=1`.
+
+The one thing worth knowing here: **`pan-y`, not `none`.** `none` reads as the
+stronger version of the same instruction and silently forbids panning in every
+descendant that is supposed to scroll — the wheel's reels, a dropdown panel, the
+saved list, and `main`, which is the valve that lets the grid scroll inside its own
+box at 320×454. `pan-y` still rules out pinch *and* double-tap zoom, since both are
+only offered for `auto`/`manipulation`. A test asserts `pan-y` and asserts the
+absence of `none`.
+
+### What only the phone can judge
+
+Pinch, double-tap and long-press are all invisible on the dev box — no touch. What
+*was* verified here: the BPM slider still drags 90 → 240 under a real pointer drag
+(the `touch-action` restriction could plausibly have broken a range input), the
+reels still scroll 0 → 418, a list panel still scrolls, and the document itself
+doesn't. Also worth knowing: iOS Safari has ignored `user-scalable=no` in a browser
+*tab* since iOS 10 but honours it in a standalone install, so in a tab it's
+`touch-action` doing the work.
+
+### The bug that came free with the refactor
+
+`.die-btn` had `width: 100%`, which only ever worked because the row was a grid
+handing it a 46px track. The moment the row became a centred flex group the slot
+was content-sized and the die **collapsed to 21px** — under any tap target. Caught
+by measuring the row after the change rather than by looking at the screenshot,
+which is the second time in two sessions that measuring a row caught what a picture
+didn't. Explicit `width: 46px`, and the test asserts ≥ 44.
+
+### Verification
+
+Two new tests, four asserts, each confirmed to fail against a deliberately broken
+mirror: `the die is 2px wide — under a 44px tap target`, `the group moves between
+modes: single 42→333, progression 36.5→338.5`, `html/body must set touch-action:
+pan-y`, and `the BPM readout is selectable (user-select: auto) — a long-press copies
+it`.
+
+Height budget re-measured at 375×553, worst case (4 bars, progression, capo 2,
+`I–♭VII–IV · C`): **55.09 / 384.84 / 11.06 / no overflow**, and the document itself
+now reports zero scrollable overflow. The Options sheet stayed 333px and the die's
+row 57.75px through all of it.
+
+### Closed on his call
+
+The wheel is signed off — the detent's voice, the feel of the spin, the roundness,
+the die rolling all 36, and the **F7 / F♯7 / G♯7 root ↔ ♭7 bass** are all "good as
+is", not to be revisited unless he raises them. **Wild Card stays as it is** (the
+off-the-curve discovery setting; Elliott's objection is a description of what it is,
+not a bug) and **Unruly's density stays** — both closed.
+
+### Left open at his request
+
+Two he explicitly isn't ready to commit on, so nothing was built: whether the
+drum/cylinder selector should replace other dropdowns, and how to stop the
+Setup/Preferences tabs reading as the same object as the Single/Progression
+segmented control.
 
 ---
 
