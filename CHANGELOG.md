@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 → v2.14.10 | a full hardware-polish pass: sliders → faders, Sound toggles → latching keys, primary buttons → carved accent keys; then the fader slides not seats, and an edit-mode "thock" |
+| [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 → v2.14.11 | a full hardware-polish pass (faders, latching Sound toggles, carved accent keys); then the fader slides + an edit "thock"; then two sound-logic fixes (dropdown close, no-op latch) |
 | [27](#where-things-stand-session-27-2026-07-30) | v2.14.8 | the control-materials pass built (die + Format → wells); the tabs act on release, not on press |
 | [26](#where-things-stand-session-26-2026-07-30) | v2.14.7 | the tab flash (pointerdown, for real this time); the Play press de-weighted; a consistency mockup |
 | [25](#where-things-stand-session-25-2026-07-29) | v2.14.6 | the list panels joined the drums' language; the tab flash; the Options die |
@@ -44,6 +44,26 @@ has the original build order.
 ---
 
 ## Where things stand (session 28, 2026-07-30)
+
+**v2.14.11 — two sound-logic fixes off his read (below v2.14.10 / v2.14.9).**
+89/89 green. Both are `app.js` glue verified by counting oscillator starts.
+
+- **Closing a dropdown by tapping its trigger sounds now.** It didn't, and he
+  diagnosed it right: the outside-tap catcher (`inset: 0`) sits on top of the
+  trigger, so the closing tap lands on a bare `<div>`, not the `.dd-trigger` —
+  `pressStrength` saw no button. `dropdown.js` now exports `openDropdownTrigger()`,
+  and the sound handler sounds a catcher tap that falls within its rect. A bare
+  outside tap (off the trigger) still lands on the catcher away from it and stays
+  silent, which is what he wanted. Verified: 2+2 on the trigger, 0 off it.
+- **A no-op press on a latching toggle stays silent, like the capo.** Pressing the
+  already-seated page tab or Format value does nothing, so only the popped-out one
+  sounds now (`pressNoop`, decided at pointerdown and held for the pair — by
+  pointerup the press has already moved `.active` onto the key you hit, so a
+  pointerup recompute would wrongly silence the chunk of the key you just seated).
+  The capo case already worked (its end-stop button is `disabled`). Verified: 0 on
+  the seated key, 2+2 on the popped-out one.
+
+---
 
 **v2.14.10 — two follow-ups off his v2.14.9 read (below the v2.14.9 pass).**
 89/89 green.

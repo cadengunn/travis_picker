@@ -139,6 +139,14 @@ export function retargetOpenPanel(find) {
   }
 }
 
+// The trigger of the currently-open panel, or null. The outside-tap catcher sits
+// ON TOP of the trigger (it's `inset: 0`), so a tap that closes the panel by
+// hitting the trigger lands on the catcher, not the button — app.js uses this to
+// still sound the ka-chunk when you close by tapping the trigger (his note).
+export function openDropdownTrigger() {
+  return openPanel ? openPanel.trigger : null;
+}
+
 function closePanel() {
   if (!openPanel) return;
   const { el, trigger, cleanup } = openPanel;

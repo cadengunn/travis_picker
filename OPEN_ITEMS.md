@@ -16,9 +16,19 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.10) — the polish pass, plus two of your notes
+## On the phone right now (v2.14.11) — the polish pass, plus four of your notes
 
-**Two follow-ups off your v2.14.9 read:**
+**Two sound-logic fixes (v2.14.11):**
+
+- **Closing a dropdown by tapping its trigger sounds now.** You had it right — the
+  invisible catcher that closes the menu sits on top of the button, so the close was
+  landing on it, not the button. Now a tap that hits the trigger sounds the ka-chunk;
+  a tap anywhere else off it still closes silently.
+- **The tabs and Single/Progression only sound the popped-out one.** Pressing the
+  one that's already in does nothing, so it's silent now — same as the capo at an
+  end-stop.
+
+**Two follow-ups off your v2.14.9 read (v2.14.10):**
 
 - **The faders slide now, they don't push in.** The cap kept a pressed-in look while
   dragging; a fader glides, so that's gone. It just travels.

@@ -50,7 +50,7 @@ import {
 import { setUiSoundEnabled, playPress, playRelease, playTick, playPlace } from "./ui-sound.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { createHelp } from "./help.js";
-import { enhanceSelect, enhanceAll, retargetOpenPanel, commit } from "./dropdown.js";
+import { enhanceSelect, enhanceAll, retargetOpenPanel, commit, openDropdownTrigger } from "./dropdown.js";
 import { createChordWheel, createKeyProgWheel, chordSplitLabel, keyProgSplitLabel } from "./wheel.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 
@@ -66,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v2.14.10";
+const APP_VERSION = "v2.14.11";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1128,17 +1128,47 @@ function attach() {
   // The decision is taken ONCE per press and held for the pair, so the button
   // that starts or stops the transport gets a matched ka-chunk instead of half
   // a press.
+  // Closing a dropdown by TAPPING ITS TRIGGER should ka-chunk like opening it did
+  // (his note). It doesn't for free, because the outside-tap catcher (`inset: 0`)
+  // sits on top of the trigger, so the tap lands on a bare <div> rather than the
+  // `.dd-trigger` — pressStrength sees no button. A catcher tap that falls WITHIN
+  // the open trigger's rect is a trigger press; a bare outside tap (off the trigger)
+  // still lands on the catcher away from it and stays silent, which is right.
+  const overOpenTrigger = (e) => {
+    if (!e.target.classList || !e.target.classList.contains("dd-catcher")) return false;
+    const trig = openDropdownTrigger();
+    if (!trig) return false;
+    const r = trig.getBoundingClientRect();
+    return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+  };
+
+  // A latching key that's already SEATED is a no-op when pressed again — like the
+  // capo at an end-stop, it should stay silent; only the POPPED-OUT one sounds
+  // (his note). Both the page tabs and the Format toggle are `.segmented button`,
+  // and the seated one carries `.active`. Decided at pointerdown and HELD for the
+  // pair (`pressNoop`), because by pointerup the press has already moved `.active`
+  // onto the key you hit — so recomputing there would wrongly silence the chunk of
+  // the popped-out key you just seated.
+  const seatedLatch = (e) => {
+    const seg = e.target.closest?.(".segmented button");
+    return !!(seg && seg.classList.contains("active"));
+  };
+
   let pressSilenced = false;
+  let pressNoop = false;
   document.addEventListener("pointerdown", (e) => {
-    const s = pressStrength(e);
+    let s = pressStrength(e);
+    if (s == null && overOpenTrigger(e)) s = 0.82;
     if (s == null) return;
     pressSilenced = metronome.running;
-    if (!pressSilenced) playPress(s);
+    pressNoop = seatedLatch(e);
+    if (!pressSilenced && !pressNoop) playPress(s);
   });
   document.addEventListener("pointerup", (e) => {
-    const s = pressStrength(e);
-    if (s == null) return;
-    if (!pressSilenced) playRelease(s);
+    let s = pressStrength(e);
+    if (s == null && overOpenTrigger(e)) s = 0.82;
+    if (s == null || pressSilenced || pressNoop) return;
+    playRelease(s);
   });
 
   // Transport

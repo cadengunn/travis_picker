@@ -778,6 +778,21 @@ Four dependency-free modules, all precached:
     matched ka-chunk rather than half a press. This is glue, which `tests.js`
     doesn't import — it was verified by counting oscillator starts per
     `AudioContext` (2 per press while stopped, 0 while running).
+  - **A NO-OP press stays silent, like the capo at an end-stop** (session 28, his
+    note). Two cases, both decided at pointerdown and HELD for the pair
+    (`pressNoop`), because by pointerup the press has already changed state:
+    (1) an already-**seated latching key** — `.segmented button.active`, i.e. the
+    current page tab or the current Format value — makes no change when re-pressed,
+    so only the POPPED-OUT one sounds; (2) a **disabled** control (the capo `−`/`+`
+    at a stop) is already caught by `pressStrength`'s `disabled` check. Verified by
+    oscillator count: 0 on the seated key, 2+2 on the popped-out one.
+  - **Closing a dropdown by tapping its TRIGGER sounds too** (session 28, his note).
+    The outside-tap catcher (`.dd-catcher`, `inset: 0`) sits ON TOP of the trigger,
+    so the closing tap lands on a bare `<div>` and `pressStrength` sees no button —
+    the open ka-chunk'd but the close was silent. `overOpenTrigger()` sounds a
+    catcher tap whose point falls within `openDropdownTrigger()`'s rect (exported by
+    `dropdown.js`); a bare outside tap lands on the catcher AWAY from the trigger and
+    stays silent, which is correct. Verified: 2+2 on the trigger, 0 off it.
 
 **Platform integrations** (`platform.js`) — four OS behaviours the musical model
 knows nothing about. **Every one is feature-detected and degrades to a silent
