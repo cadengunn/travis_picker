@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 | a full hardware-polish pass: sliders → faders, Sound toggles → latching keys, primary buttons → carved accent keys |
 | [27](#where-things-stand-session-27-2026-07-30) | v2.14.8 | the control-materials pass built (die + Format → wells); the tabs act on release, not on press |
 | [26](#where-things-stand-session-26-2026-07-30) | v2.14.7 | the tab flash (pointerdown, for real this time); the Play press de-weighted; a consistency mockup |
 | [25](#where-things-stand-session-25-2026-07-29) | v2.14.6 | the list panels joined the drums' language; the tab flash; the Options die |
@@ -39,6 +40,67 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 28, 2026-07-30)
+
+**v2.14.9 — a picky visual pass across every surface, then the last non-hardware
+elements brought into the language.** 89/89 green. He asked for a full audit and
+recommendations "be picky and detailed," picked all of it, and settled two forks.
+
+### The audit
+
+Drove every screen/popup/menu at 375×553 and read the CSS behind each. The
+vocabulary was already tight (raised carved keys for the transport, recessed wells
+for values, the latching page tabs, the brass wheel, the domes, the REC lamp). Three
+surfaces stuck out as the last things not speaking hardware, and one taste caveat:
+
+1. **The sliders (BPM, Swing)** — bare native ranges (flat track + round thumb),
+   `accent-color`. The biggest "not gear" element, and BPM sits front-and-centre on
+   the transport.
+2. **The Sound toggles** (his flag) — flat plates whose on/off showed ONLY in the
+   jewel and label colour; the tile never seated. The one toggle that didn't move.
+3. **The gold slabs** (Save / the saved-row Load / modal confirm) — the *exact*
+   flat-gold material Format had just abandoned, now the last slabs in the app.
+
+### What shipped
+
+- **Faders.** Both ranges are `appearance: none` and styled via each engine's
+  pseudo-elements into a machined slot + a raised cap with a centre groove; the
+  traveled portion fills in `--active`. WebKit has no `::-moz-range-progress`, so the
+  fill is a `--pct` custom property the track gradient reads, set by a new
+  `paintSlider()` on every `input` and at init (Firefox uses the progress pseudo).
+  Verified the native drag survives: a track click drove BPM to 239 and the fill
+  tracked to 99.5%. `height: 24px` (the touch target) is unchanged.
+- **Sound toggles → latching keys.** `.lamp:has(input:checked)` seats the tile (the
+  page-tabs seat), OFF stands proud; the jewel + bright label still track `:checked`.
+  `:has()` (iOS 15.4+) degrades to a proud lit key if unsupported. A test pins that
+  the on tile is inset and differs from an off twin.
+- **Primary buttons → carved accent keys.** `.btn-primary` and the saved-row Load are
+  a dished + three-stop (`--accent-hi`/`--accent`/`--accent-deep`) + chamfer accent
+  key now, not a flat slab. His caveat, taken: the accent is **theme-derived, not
+  always gold**, so it re-tints per theme. The danger-confirm red is carved to match
+  (the one carved key with literal hexes, since red is a fixed convention). The
+  Rename/Delete secondaries got the carved chamfer too.
+
+### The dropdowns question (his item 3), discussed, no change
+
+He wondered whether the dropdowns, since they click in, should look like buttons. Left
+as wells: a dropdown holds a *standing value*, and this pass makes the whole sheet a
+bank of recessed wells — raising them would drag the transport's strike-it material
+into the settings panel. The press-in on tap is universal tactile feedback, not a
+claim it's an action button.
+
+### A test-writing bug worth remembering
+
+The new Sound-lamp test failed in the harness while passing in a manual repro. Cause:
+it read the LIVE `getComputedStyle` declarations but only accessed `.boxShadow` AFTER
+`frame.remove()` — a detached element reports `""` for everything, so both read equal.
+The tab test reads before removing. Fix: capture the values as strings before
+`frame.remove()`. (Chased `:has()` timing and a stylesheet race first; both were red
+herrings.) Budget re-measured identical: 375×553, 4 bars, progression, capo 2 —
+header 55.09 / grid 384.84 / no overflow. BPM slider still 24px.
 
 ---
 

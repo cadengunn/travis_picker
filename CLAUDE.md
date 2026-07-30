@@ -838,11 +838,23 @@ rgba because it's texture, not hue**, so it rides every theme.
   recessed wells** — the selects, the capo stepper, the die (a carved key in a
   well since v2.14.8), and the Format toggle (two carved keys in a well) — some
   wells plain value-displays you tap to open, some holding carved keys you press.
-  The raised/proud material is reserved for the transport (Play, the Generate die,
-  BPM), the things you strike mid-play. Everything presses in on `:active`; keys in
+  The raised/proud material is reserved for the strike-it transport (Play, the
+  Generate die). Everything presses in on `:active`; keys in
   a well **sink straight IN** via a deeper inset (`transform: none`), because a
   lateral 1px translate read as sliding — true of both the transport's tilted
   Bakelite die and the Options keys.
+  Four families cover everything (session 28 polish closed the last outliers):
+  **(1) raised carved keys** = strike-it actions; **(2) recessed wells** = standing
+  values; **(3) latching key + lamp** = toggles — the page tabs AND the Sound lamps
+  (`.lamp:has(input:checked)` seats when on, proud when off; the lamp stays the
+  toggle's on-light, but the KEY now moves too, so "on" reads as pressed in);
+  **(4) faders** = the two sliders (BPM, Swing) — a machined slot with the traveled
+  portion filled in `--active` and a raised cap with a centre groove (see "Sliders /
+  faders"). The one accent-coloured surface is the **primary-action key**
+  (`.btn-primary` / the saved-row Load), a CARVED accent key (dished + three-stop
+  `--accent-hi`/`--accent`/`--accent-deep` + chamfer) rather than a flat slab — the
+  accent is theme-derived, never literal gold, because a primary action *should*
+  pull the eye where Format (a value) should not.
   **A latched/pressed-in look is ONE clean top-weighted inset plus a hairline of
   BOTTOM bounce**, not a stack of top shadows. The playing Play button
   (`.btn-play[aria-pressed]`) piled a dark top-radial and two top insets and read as
@@ -850,6 +862,16 @@ rgba because it's texture, not hue**, so it rides every theme.
   `inset 0 2px 5px` + `inset 0 -1px 0 <bevel-hi>` — the near wall in shadow, the far
   wall catching light, which is what actually says "in". The stepper key's press is
   the reference for that.
+- **Sliders / faders** (session 28): both ranges (`.bpm-slider`, `.swing-slider`)
+  are `appearance: none` and styled via each engine's pseudo-elements into a
+  **machined slot + raised cap**, one shared rule set. The track is a recessed slot;
+  the **traveled portion fills in `--active`** — WebKit has no `::-moz-range-progress`,
+  so the fill is a `--pct` custom property the track gradient reads, set by
+  `paintSlider()` in `app.js` on every `input` and once at init (Firefox uses the
+  progress pseudo and ignores `--pct`). The thumb is a fader cap with a centre
+  groove (a 90deg gradient hairline). `height: 24px` stays for the touch target;
+  the native drag is untouched (a test drags BPM to 239 and reads the fill). BPM is
+  bare on the transport; Swing rides inside its `.slider-well`.
 - **Note tokens are 3D DOMES**, not chips — a poker-chip treatment (flat face +
   extruded edge) was built, tried and rejected. Signed off; don't re-propose.
 - **Grid legibility beats decoration:** no per-cell borders. Strings read from
@@ -1232,17 +1254,19 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.8 — the Options controls speak one hardware language, and the tabs (and
-Format) act on release.** 88/88 checks green. The **die and the Format toggle** are
-now carved keys in recessed wells (the capo language, his call — variant C of the
-consistency mockup: Format seats with bright text, **no lamp**, the lamp staying the
-page tabs' signature). The **page tabs switch on `pointerup` not `pointerdown`**, so
-they hold on press and act on release like every other button, while keeping the
-no-flash property; **Format** got the same treatment because it's now a seated key
-too. Waiting on his phone: the flash (dev box can't judge paint) and the feel. The
-open fork from v2.14.7 (item 13, control materials) is now **answered and built** —
-the one remaining discussion is whether the dropdowns should become raised buttons,
-which I argued against (they hold a standing value ⇒ they belong with the wells).
+**v2.14.9 — a full hardware-polish pass; every surface now speaks one of four
+material families.** 89/89 checks green. Off a picky visual audit of every screen
+(session 28): the **two sliders became faders** (machined slot + accent fill +
+grooved cap), the **four Sound toggles became latching keys** (seat when on — his
+flag), and the **primary-action buttons** (Save / Load / modal confirm) became
+**carved accent keys** (theme-derived, not literal gold) instead of flat slabs; the
+Rename/Delete secondaries got the carved chamfer too. His item-3 question
+(dropdowns as buttons) was discussed and **left as wells** — a dropdown holds a
+standing value, so it belongs with the well family, and this pass makes the whole
+sheet a bank of wells. Waiting on his phone: the fader feel and the seated-toggle
+read.
+(v2.14.8 before it: the die and Format toggle became carved keys in wells, and the
+page tabs + Format now act on release via `pointerup`.)
 **The wheel is signed off** (v2.14.0–.2: the detent, the
 spin, the curve, the die's pool and the F7/F♯7/G♯7 ♭7 bass are all "good as is" —
 his call, don't revisit unless he raises it), as are Wild Card and Unruly.

@@ -788,9 +788,74 @@ main {
 .bpm-slider {
   width: 100%;
   min-width: 0;
-  accent-color: var(--active);
   height: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
 }
+
+/* FADERS (session 27 polish): both sliders wear one machined-slot + raised-cap
+   treatment instead of the native flat track + round thumb, so the two remaining
+   native controls join the hardware language. The track is a recessed slot; the
+   traveled portion fills in accent (WebKit reads `--pct` set by paintSlider() in
+   app.js, since it has no ::-moz-range-progress; Firefox uses the progress pseudo
+   and ignores --pct); the thumb is a raised fader cap with a centre groove.
+   `appearance: none` is what lets us draw all of it — the native drag is untouched
+   (a test drags both). One shared rule set; `.swing-slider` only differs in flex. */
+.bpm-slider::-webkit-slider-runnable-track,
+.swing-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, var(--active) var(--pct, 0%), rgba(0, 0, 0, 0) var(--pct, 0%)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.12)),
+    var(--control);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 0 var(--bevel-hi);
+}
+.bpm-slider::-moz-range-track,
+.swing-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.12)), var(--control);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.bpm-slider::-moz-range-progress,
+.swing-slider::-moz-range-progress {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--active);
+}
+.bpm-slider::-webkit-slider-thumb,
+.swing-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  /* centre the 20px cap on the 6px slot: (6 - 20) / 2 */
+  margin-top: -7px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(0, 0, 0, 0.34) calc(50% - 0.5px), rgba(0, 0, 0, 0.34) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(180deg, rgba(255, 245, 225, 0.16), rgba(0, 0, 0, 0.16)),
+    var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.22), inset 0 -2px 3px rgba(0, 0, 0, 0.22), 0 2px 3px rgba(0, 0, 0, 0.4);
+}
+.bpm-slider::-moz-range-thumb,
+.swing-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(0, 0, 0, 0.34) calc(50% - 0.5px), rgba(0, 0, 0, 0.34) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(180deg, rgba(255, 245, 225, 0.16), rgba(0, 0, 0, 0.16)),
+    var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.22), 0 2px 3px rgba(0, 0, 0, 0.4);
+}
+/* the cap sinks a touch while dragging */
+.bpm-slider:active::-webkit-slider-thumb,
+.swing-slider:active::-webkit-slider-thumb { box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4); }
 .bpm-readout {
   text-align: center;
   font-family: var(--numeral);
@@ -1189,8 +1254,11 @@ main {
 .swing-slider {
   flex: 1;
   min-width: 0;
-  accent-color: var(--active);
   height: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
 }
 /* A VALUE — so the serif, and it must not inherit .field's legend caps/tracking.
    Fixed width so the slider's travel doesn't jitter as the text changes between
@@ -1338,13 +1406,27 @@ main {
   border: 1px solid var(--line);
   border-radius: 9px;
   cursor: pointer;
-  background: linear-gradient(180deg, rgba(255, 245, 225, 0.07), rgba(0, 0, 0, 0.12)), var(--control);
-  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.10);
   font-family: var(--serif);
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
+  /* A latching KEY now (session 27, his flag): OFF stands proud with the cap-lit
+     key material; ON seats. Same idiom as the page tabs — the correct hardware
+     form for an on/off switch, so "on" reads as pressed IN, not just a lit jewel. */
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.16)), var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16);
+  transition: box-shadow 0.07s ease;
 }
+/* SEATED when the switch is on. `:has()` styles the tile from its own checkbox
+   (iOS 15.4+); the seat matches the Format/tab keys — cap highlight gone, deep
+   inset, a hairline of bottom bounce. The jewel and the bright label already
+   track :checked below. If :has is ever unsupported this degrades to a proud key
+   with a lit jewel — still legible, just not seated. */
+.lamp:has(input:checked) {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0.12)), var(--control);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 -1px 0 var(--bevel-hi);
+}
+.lamp:active { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 .lamp input { position: absolute; opacity: 0; width: 0; height: 0; }
 .jewel {
   width: 13px;
@@ -1363,6 +1445,12 @@ main {
 .lamp input:not(:checked) ~ .t { color: var(--muted); }
 .lamp input:focus-visible ~ .jewel { outline: 2px solid var(--active); outline-offset: 2px; }
 
+/* The primary action (Save / Load / a modal's confirm) is a CARVED accent key
+   now (session 27 polish), not a flat painted slab — a dished highlight, a
+   three-stop accent face, and the same chamfer + drop-shadow the transport keys
+   wear. It keeps the accent because a primary action SHOULD pull the eye (unlike
+   Format, a value, which wrongly read as "lit"), but the accent is theme-derived
+   (--accent / --accent-hi / --accent-deep), never literally gold. */
 .btn-primary {
   width: 100%;
   padding: 14px;
@@ -1370,13 +1458,17 @@ main {
   font-size: 17px;
   font-weight: 600;
   color: var(--bg);
-  background: linear-gradient(180deg, var(--accent-hi), var(--accent) 65%);
-  border: 1px solid var(--hardware-deep);
+  border: 1px solid var(--accent-deep);
   border-radius: 12px;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background:
+    radial-gradient(120% 120% at 50% 30%, rgba(255, 255, 255, 0.22), transparent 60%),
+    linear-gradient(180deg, var(--accent-hi), var(--accent) 55%, var(--accent-deep));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38),
+              inset 0 -2px 5px rgba(0, 0, 0, 0.24),
+              0 2px 3px rgba(0, 0, 0, 0.38);
 }
-.btn-primary:active { transform: translateY(1px); box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.4); }
+.btn-primary:active { transform: translateY(1px); box-shadow: inset 0 2px 7px rgba(0, 0, 0, 0.42); }
 
 /* ---- saved list ---- */
 .save-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
@@ -1445,13 +1537,18 @@ main {
   cursor: pointer;
   white-space: nowrap;
   background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.14)), var(--control);
-  box-shadow: inset 0 1px 0 var(--bevel-hi);
+  /* carved-key chamfer to match the pills (session 27), not just a cap highlight */
+  box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.34);
 }
 .saved-item button:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 .saved-item button.load {
   color: var(--bg);
-  background: linear-gradient(180deg, var(--accent-hi), var(--accent) 65%);
-  border-color: var(--hardware-deep);
+  border-color: var(--accent-deep);
+  /* the small form of the carved accent key (see .btn-primary) */
+  background:
+    radial-gradient(120% 120% at 50% 30%, rgba(255, 255, 255, 0.20), transparent 60%),
+    linear-gradient(180deg, var(--accent-hi), var(--accent) 55%, var(--accent-deep));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -2px 4px rgba(0, 0, 0, 0.22);
 }
 .saved-empty { color: var(--muted); font-family: var(--serif); font-size: 15px; padding: 10px 2px; }
 
@@ -1933,11 +2030,15 @@ main {
 .tp-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .tp-modal-actions .pill { padding: 11px 16px; font-size: 15px; }
 .tp-modal-actions .btn-primary { width: auto; padding: 11px 18px; font-size: 15px; }
-/* destructive confirm wears the app's fixed red (same convention as the REC lamp) */
+/* destructive confirm wears the app's fixed red (same convention as the REC lamp),
+   carved to match the accent key (session 27) — the red is a fixed convention, so
+   it's the one carved key with literal hexes rather than theme roles. */
 .tp-modal-danger {
   color: #fff5f2;
-  background: linear-gradient(180deg, #cc6152, #a5301f 72%);
   border-color: #6d0f0f;
+  background:
+    radial-gradient(120% 120% at 50% 30%, rgba(255, 255, 255, 0.18), transparent 60%),
+    linear-gradient(180deg, #d06a5b, #a5301f 55%, #7d1e12);
 }
 
 /* ---------- Help mode ---------- */

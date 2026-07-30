@@ -66,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v2.14.8";
+const APP_VERSION = "v2.14.9";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -188,6 +188,18 @@ function initControls() {
   el("pattern").value = String(DEFAULT_PATTERN_BARS);
   el("bpm").value = String(DEFAULT_BPM);
   el("bpm-value").textContent = String(DEFAULT_BPM);
+  paintSlider(el("bpm"));
+}
+
+// Paint the "traveled" portion of a fader in accent. WebKit has no
+// ::-moz-range-progress, so the fill is a `--pct` custom property the styled
+// track gradient reads; Firefox uses ::-moz-range-progress and ignores this.
+// Called on every input and once at init for each slider.
+function paintSlider(elm) {
+  const min = Number(elm.min) || 0;
+  const max = Number(elm.max) || 100;
+  const pct = max > min ? ((Number(elm.value) - min) / (max - min)) * 100 : 0;
+  elm.style.setProperty("--pct", pct.toFixed(1) + "%");
 }
 
 // The progression dropdown offers only the progressions matching the current
@@ -327,6 +339,7 @@ function renderSwing() {
   const slider = el("swing");
   slider.value = String(pct);
   slider.setAttribute("aria-valuetext", value.textContent);
+  paintSlider(slider);
 }
 
 // One place that pushes the amount into the scheduler, so control and clock
@@ -1132,6 +1145,7 @@ function attach() {
   el("play").addEventListener("click", togglePlay);
   el("bpm").addEventListener("input", (e) => {
     el("bpm-value").textContent = metronome.setBpm(Number(e.target.value));
+    paintSlider(e.target);
   });
 
   // What Play emits: independent Click and Pattern toggles (persisted).

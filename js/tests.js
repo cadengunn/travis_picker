@@ -2357,6 +2357,44 @@ acheck("layout: the page tabs don't read as the Format control", async () => {
     "the tabs must NOT switch on pointerdown, or they commit on press instead of release");
 });
 
+acheck("layout: a Sound toggle is a latching key that seats when on", async () => {
+  // His flag (session 27): the Sound toggles were flat plates whose on/off showed
+  // ONLY in the jewel and label colour — the tile never moved, the one toggle in
+  // the app that didn't seat. They're latching keys now (the page-tabs idiom): ON
+  // seats (deep inset), OFF stands proud. Driven off the checkbox with `:has()`.
+  // Pinned as: the checked tile is inset and differs from its unchecked twin, and
+  // the jewel is lit only when checked.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:200px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="lamp-row">' +
+    '<label class="lamp" id="on"><input type="checkbox" checked><span class="jewel"></span><span class="t">Metronome</span></label>' +
+    '<label class="lamp" id="off"><input type="checkbox"><span class="jewel"></span><span class="t">Melody</span></label>' +
+    '</div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const win = frame.contentWindow;
+  const doc = frame.contentDocument;
+  const jewel = (id) => win.getComputedStyle(doc.getElementById(id).querySelector(".jewel")).backgroundImage;
+  // Read into plain strings BEFORE removing the frame — getComputedStyle returns a
+  // LIVE declaration bound to the element, and a detached element reports "" for
+  // everything, so both would read equal and the test would pass/fail vacuously.
+  const onShadow = win.getComputedStyle(doc.getElementById("on")).boxShadow;
+  const offShadow = win.getComputedStyle(doc.getElementById("off")).boxShadow;
+  const onJewel = jewel("on");
+  const offJewel = jewel("off");
+  frame.remove();
+
+  assert(onShadow !== offShadow,
+    "an on Sound toggle must look pressed in relative to an off one — it's a latching key now");
+  assert(/inset/.test(onShadow), `the seated (on) toggle needs an inset shadow, got ${onShadow}`);
+  assert(onJewel !== "none", "the on toggle's jewel is lit");
+  assert(offJewel !== onJewel, "the off toggle's jewel is dark");
+});
+
 acheck("layout: a list panel is a housing, and the selected row is its aperture", async () => {
   // His call (v2.14.6): bring the five remaining list menus (Thumb, Fingers,
   // Pattern, Note Labels, Theme) into the drum's design language. They stay lists —

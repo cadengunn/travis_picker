@@ -16,7 +16,37 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.8) — the materials pass, and act-on-release
+## On the phone right now (v2.14.9) — the hardware-polish pass
+
+Off your "take a full picky visual pass and recommend" ask. Audited every surface;
+three things were the last non-hardware elements, and you took all of them.
+
+- **The two sliders are FADERS now.** BPM (on the transport) and Swing (in its well)
+  are a machined slot with the traveled portion filled in the accent and a raised
+  cap with a centre groove — instead of the old flat track + round thumb. This is
+  the biggest visual change; judge the feel and the cap size on the phone. The drag
+  still works (checked here — a track tap drove BPM to 239).
+- **The Sound toggles are LATCHING KEYS.** On = seated (pressed in, jewel lit,
+  bright label); off = proud (raised, jewel dark, muted). Your flag was right — they
+  were the one toggle that never moved. Now "on" reads as pressed in, like the page
+  tabs.
+- **Save / Load / confirm are CARVED accent keys.** Same accent as before (and still
+  theme-driven, not literal gold — your note), but dished + chamfered like a real
+  key rather than a flat painted slab. Rename/Delete got the carved finish too, so
+  the Load sheet reads as one family. The red delete-confirm is carved to match.
+
+**Your item-3 question (dropdowns as buttons) — discussed, left as wells.** A
+dropdown holds a standing value, so it belongs with the well family, and this pass
+makes the whole sheet a bank of wells; raising them would pull the transport's
+strike-it material into the settings panel. Say if you want to see a raised version
+anyway.
+
+**Budget untouched** — 375×553, 4 bars, progression, capo 2: header 55.09 / grid
+384.84 / no overflow. All of it was inside existing chrome.
+
+---
+
+## Previously on the phone (v2.14.8) — the materials pass, and act-on-release
 
 - **The control-materials pass is built (you picked C).** The **die** is now a
   carved key in a recessed well, and **single/progression** is two carved keys in a
