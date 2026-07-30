@@ -16,7 +16,30 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.6) — your v2.14.5 notes
+## On the phone right now (v2.14.7) — two fixes, one thing to decide
+
+- **The setup/preferences flash is actually fixed this time.** Last round's fix was
+  half of it; the other half was that the page switched on *click*, which left one
+  bare frame at release where the tab had lost its pressed look but not yet gained
+  its selected look. It switches on *press* now, so there's no gap. Please confirm
+  it's gone on the phone.
+- **The Play button's pressed-in look is lighter on top.** It was stacking a dark
+  top-radial and two top shadows, which piled up as a heavy bar. Now it's one clean
+  top shadow plus a hairline of light along the bottom — the far wall of the recess
+  catching light, which is what actually reads as "pushed in". Judge the feel on the
+  phone.
+
+**One thing to decide — the control materials (item 13).** I looked, and you're
+right there are several. The recessed-well family (capo, dropdowns, swing) is already
+consistent; the two that stand apart are the **die** (a proud raised key) and the
+**single/progression** active cell (a flat gold slab). I sent a mockup: current on
+top, and a version with everything in your favourite capo-key language on the bottom.
+Nothing's built — tell me if you want it, and whether the die going recessed (it
+would then differ from the big Generate die, which is proud on purpose) sits right.
+
+---
+
+## Previously on the phone (v2.14.6) — your v2.14.5 notes
 
 All four done.
 
@@ -596,6 +619,16 @@ are unrelated words you scan. Both cross-products are now drums. What's left:
   becomes a genuine two-axis picker only if item 12 (all 12 keys) ships, at which
   point root × mode is 12 × 2. **So item 12 and a Key×mode drum are one job or
   neither.**
+
+**One material question is still OPEN (v2.14.7, your note): the button forms.** The
+list *panels* match the drums now, but the *controls* in the Options sheet still
+speak in a few materials, and you flagged it. The recessed-well family (capo,
+dropdowns, swing) is consistent; the outliers are the **die** (raised proud key) and
+the **single/progression** active cell (flat gold slab). Mockup sent v2.14.7:
+current vs. everything in the capo-key language (die → carved key in a well;
+single/prog → two seated-key toggles with a lamp). **Decision needed:** do you want
+it, and is the options die going recessed OK given it would then differ from the
+proud Generate die on the transport? Nothing built.
 
 ### 12. More keys — DEFERRED by your call
 All 12 keys, and sharp minor keys (Bm / F♯m / C♯m — these pull in new barre

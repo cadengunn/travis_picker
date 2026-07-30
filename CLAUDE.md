@@ -357,9 +357,21 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   separately the tapped key went `:active` (deep inset) → one frame of **neither** →
   `.active`, and that raised frame was the flash. They now share a rule, so there is
   no frame to see; a test asserts the *shared selector* rather than the computed
-  values, since agreeing today isn't the same as being the same rule. The other half
-  is `transition: box-shadow 0.07s ease`, which is **the same fix `.btn-roll` and
-  `.dd-trigger` already carry** — the snap on pop-out reads as a flicker.
+  values, since agreeing today isn't the same as being the same rule. The `transition:
+  box-shadow 0.07s ease` is the **same fix `.btn-roll` and `.dd-trigger` already
+  carry** — the snap on pop-out reads as a flicker.
+  **But the shared rule alone did NOT kill the flash** (v2.14.7, he reported it
+  again), because it only helps while `.active` is *present*, and the page was
+  switched on `click`: between the browser dropping `:active` at pointerup and the
+  click firing, the tab you pressed has **neither** class and paints its raised state
+  for a frame. The real fix is **switching the page on `pointerdown`** (`switchTab`
+  wired to both `pointerdown` and `click` in app.js — pointerdown for the flashless
+  pointer path, click for the keyboard). `.active` is then added while the finger is
+  still down, so it overlaps `:active` the whole time and there's never a bare frame.
+  A **source-level test** asserts the `pointerdown` wiring, because the regression is
+  silent (the page still switches, it just flashes) and app.js glue isn't imported by
+  `tests.js`. This is safe with help mode: the tabs are on its `NAV_SELECTOR`, so its
+  capture-phase `pointerdown` swallow skips them.
 - **There is no app bar.** A title told you nothing the home-screen icon doesn't,
   and its 53px was the difference between the 4-bar grid fitting and not.
 
@@ -800,6 +812,13 @@ rgba because it's texture, not hue**, so it rides every theme.
   bevel + a debossed intaglio glyph), Options selects are **recessed wells**.
   Everything presses in on `:active`; the tilted Bakelite die sinks straight IN
   (`transform: none`), because a lateral 1px translate read as sliding.
+  **A latched/pressed-in look is ONE clean top-weighted inset plus a hairline of
+  BOTTOM bounce**, not a stack of top shadows. The playing Play button
+  (`.btn-play[aria-pressed]`) piled a dark top-radial and two top insets and read as
+  a heavy bar rather than a recess (his note, v2.14.7); it's now
+  `inset 0 2px 5px` + `inset 0 -1px 0 <bevel-hi>` — the near wall in shadow, the far
+  wall catching light, which is what actually says "in". The stepper key's press is
+  the reference for that.
 - **Note tokens are 3D DOMES**, not chips — a poker-chip treatment (flat face +
   extruded edge) was built, tried and rejected. Signed off; don't re-propose.
 - **Grid legibility beats decoration:** no per-cell borders. Strings read from
@@ -1177,8 +1196,11 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.6 — the list panels joined the drums' design language; the tab flash fixed;
-the Options die is a tilted six; on the phone.** 88/88 checks green, tree clean. **The wheel is signed off** (v2.14.0–.2: the detent, the
+**v2.14.7 — the tab flash actually fixed (pointerdown), and the Play button's
+pressed-in shadow de-weighted; on the phone.** 88/88 checks green, tree clean. **An
+open design fork:** whether every Options control should adopt the capo stepper's
+carved-key-in-a-well language (the die and the segmented are the two outliers) — a
+mockup is out for his call, nothing built. See `OPEN_ITEMS.md` item 13. **The wheel is signed off** (v2.14.0–.2: the detent, the
 spin, the curve, the die's pool and the F7/F♯7/G♯7 ♭7 bass are all "good as is" —
 his call, don't revisit unless he raises it), as are Wild Card and Unruly.
 (v2.13.3 was the last version signed off on the guitar as a whole.) The build

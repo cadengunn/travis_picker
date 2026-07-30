@@ -2332,6 +2332,17 @@ acheck("layout: the page tabs don't read as the Format control", async () => {
   const base = css.match(/\.segmented\.seg-tabs button \{[^}]*\}/s)?.[0] || "";
   assert(/transition:\s*box-shadow/.test(base),
     "ease the tabs' shadow, or the other key SNAPS back on pop-out (the .btn-roll lesson)");
+
+  // Even with ONE rule, the flash came back (v2.14.7): the shared rule only helps
+  // if `.active` is present the whole time the finger is down, and switching the
+  // page on `click` leaves a bare frame between the browser dropping `:active` at
+  // pointerup and click firing. The fix is to switch on POINTERDOWN. Asserted at
+  // the source because app.js glue isn't imported here and the regression is
+  // silent — the page still switches on click, it just flashes.
+  const appjs = await (await fetch("js/app.js")).text();
+  const tabWiring = appjs.match(/seg-tabs[\s\S]{0,400}/)?.[0] || "";
+  assert(/addEventListener\(\s*["']pointerdown["']/.test(tabWiring),
+    "the Options tabs must switch on pointerdown, or releasing one flashes its raised state");
 });
 
 acheck("layout: a list panel is a housing, and the selected row is its aperture", async () => {

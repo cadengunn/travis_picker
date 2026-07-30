@@ -733,21 +733,24 @@ main {
   filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.55)) drop-shadow(0 1px 0 rgba(255, 245, 225, 0.18));
 }
 .btn-play { color: var(--glyph); }
-/* Playing = a latched button held IN (like armed Edit): pressed down + lit. The
-   light is DARKEST at the top (the rim shades the sunken face) and a strong inset
-   shadow reads the sink, so the "in" beats the "lit" instead of the colour
-   flattening it out. */
+/* Playing = a latched button held IN (like armed Edit): pressed down + lit. It
+   reads "in" the same way the stepper key does on press — ONE clean top-weighted
+   inset for the near wall in shadow, plus a hairline of bounce along the BOTTOM
+   for the far wall catching light. The old version stacked a dark top-radial and
+   TWO top insets, which piled everything at the top edge and read as a heavy bar
+   rather than a recess (his note, v2.14.7). The radial is gentler now and centred,
+   so the lit colour still shows through the sink. */
 .btn-play[aria-pressed="true"] {
   color: var(--label);
   transform: translateY(2px);
   background:
-    radial-gradient(120% 90% at 50% 6%, rgba(0, 0, 0, 0.42), transparent 55%),
+    radial-gradient(120% 110% at 50% 45%, rgba(0, 0, 0, 0.22), transparent 66%),
     linear-gradient(180deg, var(--active-deep), var(--active) 74%);
   border-color: var(--hardware-deep);
   box-shadow:
-    inset 0 3px 8px rgba(0, 0, 0, 0.62),
-    inset 0 1px 2px rgba(0, 0, 0, 0.5),
-    0 1px 1px rgba(0, 0, 0, 0.28);
+    inset 0 2px 5px rgba(0, 0, 0, 0.42),
+    inset 0 -1px 0 rgba(255, 245, 225, 0.12),
+    0 1px 1px rgba(0, 0, 0, 0.24);
 }
 /* Generate is the most-pressed button — bigger, and a cream Bakelite die that's
    findable without looking. */

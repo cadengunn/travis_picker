@@ -66,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v2.14.6";
+const APP_VERSION = "v2.14.7";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1032,10 +1032,21 @@ function attach() {
   });
 
   // Options pages. The die belongs to Setup, so it goes with it.
-  el("options-sheet").querySelector(".seg-tabs").addEventListener("click", (e) => {
+  // Switch on POINTERDOWN, not click, to kill the release flash (v2.14.7). A tab
+  // is a latching key: while your finger is down it's `:active` (seated), and the
+  // seated LOOK also needs `.active`. If `.active` is added on click, then between
+  // the browser dropping `:active` at pointerup and the click firing, the tab has
+  // neither and paints its raised state for a frame — the flash he kept seeing.
+  // Adding `.active` on pointerdown means the two overlap the whole time the
+  // finger is down, so there's never a bare frame. `click` stays for the keyboard
+  // (Enter/Space don't emit pointerdown); switching to the same page is a no-op.
+  const tabs = el("options-sheet").querySelector(".seg-tabs");
+  const switchTab = (e) => {
     const tab = e.target.closest("[role=tab]");
     if (tab) showOptionsPage(tab.id);
-  });
+  };
+  tabs.addEventListener("pointerdown", switchTab);
+  tabs.addEventListener("click", switchTab);
 
   // Per-bar chord edits, delegated so they survive re-renders.
   el("grid").addEventListener("change", (e) => {

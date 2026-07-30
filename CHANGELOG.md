@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [26](#where-things-stand-session-26-2026-07-30) | v2.14.7 | the tab flash (pointerdown, for real this time); the Play press de-weighted; a consistency mockup |
 | [25](#where-things-stand-session-25-2026-07-29) | v2.14.6 | the list panels joined the drums' language; the tab flash; the Options die |
 | [24](#where-things-stand-session-24-2026-07-29) | v2.14.5 | Key × Progression became the second drum picker; the page tabs became a latching key pair |
 | [23](#where-things-stand-session-23-2026-07-29) | v2.14.4 | his v2.14.3 notes: one width for both chord modes, the die back beside the chord, the document locked |
@@ -37,6 +38,61 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 26, 2026-07-30)
+
+**v2.14.7 — two fixes off his v2.14.6 look, plus a design fork teed up.**
+88/88 green.
+
+### The tab flash, take two
+
+He still saw it. My v2.14.6 fix (one shared `:active`/`.active` rule + eased shadow)
+was necessary but not sufficient, and the reason is a good lesson: **a shared rule
+only helps while `.active` is present.** The page switched on `click`, and between
+the browser dropping `:active` at pointerup and `click` firing, the pressed tab has
+*neither* class and paints its raised state for one frame — the flash.
+
+Fixed by switching the page on **`pointerdown`** (`switchTab` wired to both
+pointerdown and click — pointerdown for the flashless pointer path, click for the
+keyboard, which emits no pointerdown). `.active` lands while the finger is still
+down, overlapping `:active` the whole time, so there's no bare frame. Verified on the
+DOM: a lone `pointerdown` on Preferences moves `.active` immediately, before any
+click. Safe with help mode — the tabs are on its `NAV_SELECTOR`, so its capture-phase
+pointerdown swallow already skips them. A source-level test asserts the wiring,
+because the regression is silent (it still switches, it just flashes) and app.js glue
+isn't imported by tests.js; confirmed to fail against a click-only mirror.
+
+### The Play button's pressed-in shadow
+
+His note: "too heavy on top… we did that to make it look pushed in but it's not
+working." Correct — the latched state stacked a dark top-radial (`at 50% 6%`) *plus*
+two top-weighted insets, so everything piled at the top edge and read as a bar, not a
+recess. It's one clean top inset (`inset 0 2px 5px`) plus a hairline of bottom bounce
+(`inset 0 -1px 0`) now — near wall in shadow, far wall catching light, which is what
+actually says "in" — with the radial gentler and centred so the lit colour still
+shows through. The stepper key's press was the reference. Set live via aria-pressed
+and eyeballed at 375; his phone is the judge of the feel.
+
+### The consistency fork — mocked, not built
+
+His bigger note: the Options controls speak in several materials — the segmented is a
+flat lit slab, the capo (his favourite) is a recessed well with carved keys, the die
+is a raised proud key, and the dropdowns/slider are recessed wells. He asked to "get
+that hardware feel" and named the capo form as the one he likes.
+
+The investigation: the recessed-well family (stepper, dropdowns, slider) is *already*
+consistent — three controls. The two outliers are the **die** (proud) and the
+**segmented's active cell** (lit slab). So a unified world is: die → a carved key
+sunk into a well; single/progression → two carved keys in one well, the selected one
+seated with its lamp lit (the well form of the latch the page tabs now use).
+
+Built a mockup (current vs. proposed, capo unchanged as the anchor) rather than
+shipping it, because it's a genuine fork and he asked to discuss. The one real trade
+flagged in it: the recessed options die diverges from the proud cream **Generate**
+die on the transport — two dice, two treatments. Defensible (different context; the
+options die sits among wells), but his call. **Nothing committed to the app.**
 
 ---
 
