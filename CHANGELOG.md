@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [30](#where-things-stand-session-30-2026-08-02) | v2.14.14 | new chord qualities — the clean 5 (m7, maj7, 6, m6, sus4); quality reel grouped; id parsers unified through splitChordId |
 | [29](#where-things-stand-session-29-2026-08-02) | v2.14.12 → v2.14.13 | the progression revamp (ragtime/Piedmont secondary dominants, minor blues, modern minor); then engraved style-name headers on the drum (his design B) |
 | [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 → v2.14.11 | a full hardware-polish pass (faders, latching Sound toggles, carved accent keys); then the fader slides + an edit "thock"; then two sound-logic fixes (dropdown close, no-op latch) |
 | [27](#where-things-stand-session-27-2026-07-30) | v2.14.8 | the control-materials pass built (die + Format → wells); the tabs act on release, not on press |
@@ -41,6 +42,47 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 30, 2026-08-02)
+
+**v2.14.14 — new chord qualities, the clean 5.** Off his v2.14.12 list (m7, maj7,
+sus2, sus4, add9, 6, m6, dim7). His scope call: the clean five first — **m7, maj7,
+6, m6, sus4** — for a guitar test, then sus2/add9 next; **dim7 dropped** (no
+perfect fifth ⇒ no natural alternating-bass target, and least idiomatic here).
+Library is now 12 × 8 = **96 chords**.
+
+- **It's almost entirely voicings.** The generator, synth and grid only read a
+  chord's fret shape and role strings, never its quality — so a quality is a data
+  add. Each new one has an E-shape and A-shape movable template plus the C/D/G-
+  family open forms you actually play (Cmaj7 x32000, Dm7 xx0211, C6 x32210, Dsus4
+  xx0233, G6 320000…). The E/A families come from the templates (which reproduce
+  their own open forms and give a low root/fifth bass). Verified live: Cmaj7
+  resolves to root C (5/3) ↔ fifth G (6/3) with the maj7 (B) on the open 2nd
+  string, a finger note — the colour sounds, the bass alternates cleanly.
+- **maj7/m7 put the 7 on the alt-bass string** (E-shape roots), exactly as dom7
+  already does — same playable-shape trade, so those roots alternate root ↔ 7.
+  6 / m6 / sus4 keep the octave alt bass.
+- **E♭sus4 is hand-voiced.** The A-shape sus4 (4th at barre+3) lands on fret 9 for
+  the E♭ family, off the practical neck; a D-shape at fret 1 keeps it low. It's the
+  only chord the "≤ fret 8" invariant would otherwise break — everything else
+  derives ≤ 8.
+- **The id parsers are unified through `splitChordId`.** `soundingName` (capo tag)
+  and `romanInKey` (degree readout) used to strip `7` then `m`, which read `Cmaj7`
+  as a dom7 and `C6`/`Csus4` as bare triads — silently wrong. Both now read the
+  quality's own suffix. `romanInKey` decorates by quality (`Cmaj7`→`Imaj7`,
+  `Am7`→`vi7`, `Fsus4`→`IVsus4`). Dead `chordRootPc` removed.
+- **The quality reel is grouped** with engraved headers — Triads / Sevenths /
+  Sixths / Suspended — reusing session 29's header mechanism (widest, SUSPENDED at
+  61px, clears the 108px quality barrel easily). Root reel stays ungrouped.
+- **90/90** green. The parameterized library tests (count, existence, round-trip,
+  spelling, ≤ fret 8, role coverage) auto-extended to 96 chords; added a new-
+  qualities parser/readout check; the single-chord randomiser's coverage sample
+  was raised 600 → 2500 because covering 95 others is a coupon-collect and 600
+  left ~one uncovered by chance.
+
+**Next in this thread:** sus2 and add9 (the two fiddlier qualities held back).
 
 ---
 

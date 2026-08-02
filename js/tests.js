@@ -448,6 +448,37 @@ check("chord names: one spelling per pitch, shared with the capo readout", () =>
     "accidentals are printed as ♯/♭, not # and b");
 });
 
+// 6e) THE NEW QUALITIES (session 30): maj7 / m7 / 6 / m6 / sus4. The whole feature
+//     is voicings — the generator/synth/grid follow — plus the id parsers, which
+//     used to strip "7" then "m" and silently mis-read every new suffix. All three
+//     parsers now go through splitChordId, so the capo tag and the degree readout
+//     have to survive a maj7 / sus4 / 6, not just "?".
+check("new qualities: parse, transpose and read as a degree", () => {
+  // splitChordId round-trips every new suffix (longest-match: m7 ≠ 7, m6 ≠ 6,
+  // maj7 ≠ m7 ≠ 7).
+  for (const [id, root, q] of [
+    ["Cmaj7", "C", "maj7"], ["Am7", "A", "min7"], ["Gm7", "G", "min7"],
+    ["C6", "C", "maj6"], ["Am6", "A", "min6"], ["Fsus4", "F", "sus4"], ["C7", "C", "dom7"], ["Cm", "C", "minor"],
+  ]) {
+    const s = splitChordId(id);
+    assert(s && s.root === root && s.quality === q, `splitChordId("${id}") = ${JSON.stringify(s)}, want ${root}/${q}`);
+  }
+  // soundingName (the capo tag) keeps the FULL suffix through a transpose — the
+  // old regex read Cmaj7 as a dom7 and C6/Csus4 as bare triads.
+  assert(soundingName("Cmaj7", 0) === "Cmaj7", `Cmaj7 at capo 0 = ${soundingName("Cmaj7", 0)}`);
+  assert(soundingName("Am7", 2) === "Bm7", `Am7 up 2 = ${soundingName("Am7", 2)}`);
+  assert(soundingName("C6", 2) === "D6", `C6 up 2 = ${soundingName("C6", 2)}`);
+  assert(soundingName("Csus4", 3) === "E♭sus4", `Csus4 up 3 = ${soundingName("Csus4", 3)}`);
+  // romanInKey decorates the numeral by quality: case + colour tag.
+  assert(romanInKey("Cmaj7", "C") === "Imaj7", `Cmaj7 in C = ${romanInKey("Cmaj7", "C")}`);
+  assert(romanInKey("Am7", "C") === "vi7", `Am7 in C = ${romanInKey("Am7", "C")}`);
+  assert(romanInKey("Dm7", "C") === "ii7", `Dm7 in C = ${romanInKey("Dm7", "C")}`);
+  assert(romanInKey("C6", "C") === "I6", `C6 in C = ${romanInKey("C6", "C")}`);
+  assert(romanInKey("Fsus4", "C") === "IVsus4", `Fsus4 in C = ${romanInKey("Fsus4", "C")}`);
+  // dim7 stays OUT (his call) — no quality carries that suffix.
+  assert(!QUALITIES.some((q) => q.id === "dim7" || q.suffix === "dim7"), "dim7 must not be in the library");
+});
+
 // 6c) Same contract for the Fingers menu's sections: every tier in exactly one
 //     group, no strays, and every group id real. The menu is grouped so that
 //     "Wild Card" reads as OFF the Tame→Loose→Unruly curve rather than as its
@@ -601,9 +632,12 @@ check("randomisers: valid, mode-matched, and never a no-op roll", () => {
     `minor keys should be ~2/7 of rolls, got ${(share * 100).toFixed(1)}%`);
 
   // single-chord roll: the WHOLE library now (his call, with the wheel — it used
-  // to be the open "campfire" chords only), and never the current chord.
+  // to be the open "campfire" chords only), and never the current chord. The
+  // sample count scales with the pool: covering all N-1 others is a coupon-collect
+  // (~N·lnN draws expected), so with the library now 96 chords, 600 draws left ~one
+  // uncovered by chance. 2500 covers it with margin.
   const rolled = new Set();
-  for (let seed = 1; seed <= 600; seed++) {
+  for (let seed = 1; seed <= 2500; seed++) {
     const c = randomChord("E", seeded(seed * 29 + 7));
     assert(CHORDS[c], `single roll produced "${c}", which isn't a chord`);
     assert(c !== "E", "single roll handed back the current chord");
@@ -1382,6 +1416,12 @@ acheck("wheel: two reels write one chord id, and the panel stays open", async ()
     `quality reel carries ${QUALITIES.length} names, got ${qualityCells.length}`);
   assert(rootCells.map((c) => c.textContent).join(" ") === ROOTS.map((r) => r.name).join(" "),
     "the root reel is printed in wheel order");
+  // The quality reel is GROUPED now (session 30): one engraved header per section,
+  // in QUALITIES order. The root reel is ungrouped, so it carries none.
+  const qHeads = [...panel.querySelectorAll(".reel-quality .reel-head")].map((h) => h.textContent);
+  const wantHeads = [...new Set(QUALITIES.map((q) => q.group))];
+  assert(qHeads.join() === wantHeads.join(), `quality sections: got ${qHeads}, want ${wantHeads}`);
+  assert(panel.querySelectorAll(".reel-root .reel-head").length === 0, "the root reel stays ungrouped");
   assert(!panel.querySelector(".dd-option"), "no list options are rendered alongside the reels");
   // TWO DRUMS, not one split list (his call): each cylinder gets its own
   // housing, its own aperture and its own legend, with an axle line between.
@@ -1405,9 +1445,10 @@ acheck("wheel: two reels write one chord id, and the panel stays open", async ()
   // assigned because this page carries no stylesheet (by design — see the
   // name-row check), so the reel has no height and nothing to scroll. What's
   // under test is the wheel's own logic: which name is in the window, the
-  // detent, and the settle.
+  // detent, and the settle. The quality reel is GROUPED now (Triads/Sevenths/…),
+  // so a "Triads" header sits at row 0 and Minor is ROW 2.
   const reel = panel.querySelector(".reel-quality");
-  Object.defineProperty(reel, "scrollTop", { value: 1 * 38, writable: true }); // ITEM_H in wheel.js
+  Object.defineProperty(reel, "scrollTop", { value: 2 * 38, writable: true }); // row 2 = Minor; ITEM_H=38
   reel.dispatchEvent(new Event("scroll"));
   assert(ticks === 1, `a name passing the window ticks once, got ${ticks}`);
   await new Promise((r) => setTimeout(r, 200));

@@ -67,9 +67,14 @@ const PC_NAME = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "G♯", "A", "
 // Returns null for anything whose root we can't read, so callers can fall back.
 export function soundingName(id, capo = 0) {
   if (!id) return null;
-  const suffix = /m$/.test(id) ? "m" : /7$/.test(id) ? "7" : "";
-  const pc = chordRootPc(id);
+  // Parse through splitChordId (longest-suffix), NOT a `/m$/ then /7$/` regex —
+  // that read "Cmaj7" as a dom7 and "C6"/"Csus4" as bare triads. It reads the
+  // quality's own suffix, so every quality transposes with its full name intact.
+  const parts = splitChordId(id);
+  if (!parts) return null;
+  const pc = NOTE_PC[parts.root];
   if (pc == null) return null;
+  const suffix = QUALITIES.find((q) => q.id === parts.quality)?.suffix ?? "";
   return PC_NAME[(((pc + capo) % 12) + 12) % 12] + suffix;
 }
 
@@ -104,13 +109,27 @@ export function getBassPreset(id) {
 const ROOT_ID = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "G#", "A", "Bb", "B"];
 export const ROOTS = ROOT_ID.map((id, pc) => ({ id, pc, name: PC_NAME[pc] }));
 
-// The quality reel. Ordered as it reads on the wheel. Adding a fourth quality
-// means adding its templates below and a shape for any open-position voicing —
-// deliberately NOT done yet: three is enough to judge the wheel by.
+// The quality reel. Ordered as it reads on the wheel, and GROUPED (session 30):
+// `group` prints an engraved section header on the quality barrel, the same
+// mechanism the progression drum uses. `roman` decorates the degree readout for a
+// hand-edited bar (case + suffix), so a Cmaj7 in C reads "Imaj7", an Am7 "vi7".
+//
+// Adding a quality means: a `roman` decoration here, a shape in BOTH barre
+// templates below, a hand-declared voicing for any better open form (the C/D/G
+// families, since the E/A templates already reproduce their own open forms), and
+// nothing else — the generator, the synth and the grid only ever read a chord's
+// fret shape and its role strings, never its quality. `dim7` was left OUT (his
+// call): no perfect fifth means no natural alternating-bass target, and it's the
+// least idiomatic for this style. `sus2`/`add9` are the next batch.
 export const QUALITIES = [
-  { id: "major", suffix: "",  name: "Major" },
-  { id: "minor", suffix: "m", name: "Minor" },
-  { id: "dom7",  suffix: "7", name: "7" },
+  { id: "major", suffix: "",     name: "Major", group: "Triads",    roman: { lower: false, tag: "" } },
+  { id: "minor", suffix: "m",    name: "Minor", group: "Triads",    roman: { lower: true,  tag: "" } },
+  { id: "dom7",  suffix: "7",    name: "7",     group: "Sevenths",  roman: { lower: false, tag: "7" } },
+  { id: "maj7",  suffix: "maj7", name: "maj7",  group: "Sevenths",  roman: { lower: false, tag: "maj7" } },
+  { id: "min7",  suffix: "m7",   name: "m7",    group: "Sevenths",  roman: { lower: true,  tag: "7" } },
+  { id: "maj6",  suffix: "6",    name: "6",     group: "Sixths",    roman: { lower: false, tag: "6" } },
+  { id: "min6",  suffix: "m6",   name: "m6",    group: "Sixths",    roman: { lower: true,  tag: "6" } },
+  { id: "sus4",  suffix: "sus4", name: "sus4",  group: "Suspended", roman: { lower: false, tag: "sus4" } },
 ];
 
 export const chordIdFor = (rootId, qualityId) =>
@@ -160,6 +179,30 @@ const OPEN_CHORDS = {
   // is available as a bass note even where the textbook voicing mutes it"
   // convention the barre chords use.
   B7: { root: 5, alt: 4, fifth: 6, fifthFret: 2, shape: { 6: 2,    5: 2, 4: 1, 3: 2, 2: 0, 1: 2 } },
+
+  // --- new qualities (session 30): only the C/D/G-family open forms are declared,
+  // because the E-shape and A-shape templates already reproduce their own open
+  // forms (Emaj7 at barre 0, Amaj7 at barre 0, etc.) and give a low root/fifth
+  // bass, which is what Travis picking wants. Roles follow the parent open triad.
+  // --- maj7 ---
+  Cmaj7: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 2, 3: 0, 2: 0, 1: 0 } }, // x32000, maj7 (B) on 2
+  Dmaj7: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 2, 1: 2 } }, // xx0222
+  Gmaj7: { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 2 } }, // 320002
+  // --- m7 ---
+  Dm7:   { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 1, 1: 1 } }, // xx0211
+  // --- 6 ---
+  C6:    { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 2, 3: 2, 2: 1, 1: 0 } }, // x32210, 6 (A) on 3
+  D6:    { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 0, 1: 2 } }, // xx0202
+  G6:    { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 0 } }, // 320000, 6 (E) on 1
+  // --- m6 ---
+  Dm6:   { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 0, 1: 1 } }, // xx0201
+  // --- sus4 ---
+  Csus4: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 3, 3: 0, 2: 1, 1: 1 } }, // x33011
+  Dsus4: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 3 } }, // xx0233
+  // E♭sus4: hand-voiced because the A-shape sus4 (the 4th at barre+3) lands on
+  // fret 9 for the E♭ family, off the practical neck. This D-shape at fret 1 keeps
+  // it low (root E♭ on string 4). Everything else derives cleanly ≤ fret 8.
+  Ebsus4: { root: 4, alt: 5, fifth: 3, fifthFret: 3, shape: { 6: null, 5: 1, 4: 1, 3: 3, 2: 4, 1: 4 } }, // xx1(3/4/4), root on 4
 };
 
 // ----- Movable barre templates: one shape slid up the neck -----
@@ -186,6 +229,14 @@ const BARRE_TEMPLATES = {
       major: { 6: 0, 5: 2, 4: 2, 3: 1, 2: 0, 1: 0 },
       minor: { 6: 0, 5: 2, 4: 2, 3: 0, 2: 0, 1: 0 },
       dom7:  { 6: 0, 5: 2, 4: 0, 3: 1, 2: 0, 1: 0 }, // ♭7 on string 4 — see above
+      // maj7 and m7 put the 7 on the ALT-BASS string (string 4), exactly as dom7
+      // does — the same playable-shape trade-off, so E-shape roots of these
+      // qualities alternate root ↔ 7. 6 / m6 / sus4 keep the octave alt bass.
+      maj7:  { 6: 0, 5: 2, 4: 1, 3: 1, 2: 0, 1: 0 }, // Emaj7 021100, maj7 on 4
+      min7:  { 6: 0, 5: 2, 4: 0, 3: 0, 2: 0, 1: 0 }, // Em7 020000, ♭7 on 4
+      maj6:  { 6: 0, 5: 2, 4: 2, 3: 1, 2: 2, 1: 0 }, // E6 022120, 6 on 2
+      min6:  { 6: 0, 5: 2, 4: 2, 3: 0, 2: 2, 1: 0 }, // Em6 022020, 6 on 2
+      sus4:  { 6: 0, 5: 2, 4: 2, 3: 2, 2: 0, 1: 0 }, // Esus4 022200, 4 on 3
     },
   },
   A: {
@@ -194,6 +245,13 @@ const BARRE_TEMPLATES = {
       major: { 6: 0, 5: 0, 4: 2, 3: 2, 2: 2, 1: 0 },
       minor: { 6: 0, 5: 0, 4: 2, 3: 2, 2: 1, 1: 0 },
       dom7:  { 6: 0, 5: 0, 4: 2, 3: 0, 2: 2, 1: 0 }, // ♭7 on string 3, a finger string
+      // A-shape 7ths keep the alternating bass clean (the 7/color sits on a finger
+      // string), so these are the tidier voicing for the roots that barre here.
+      maj7:  { 6: 0, 5: 0, 4: 2, 3: 1, 2: 2, 1: 0 }, // Amaj7 x02120, maj7 on 3
+      min7:  { 6: 0, 5: 0, 4: 2, 3: 0, 2: 1, 1: 0 }, // Am7 x02010, ♭7 on 3
+      maj6:  { 6: 0, 5: 0, 4: 2, 3: 2, 2: 2, 1: 2 }, // A6 x02222, 6 on 1
+      min6:  { 6: 0, 5: 0, 4: 2, 3: 2, 2: 1, 1: 2 }, // Am6 x02212, 6 on 1
+      sus4:  { 6: 0, 5: 0, 4: 2, 3: 2, 2: 3, 1: 0 }, // Asus4 x02230, 4 on 2
     },
   },
 };
@@ -538,32 +596,29 @@ const NOTE_PC = {
   G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11,
 };
 
-// Root pitch class of a chord id (strip a dom7 "7" and a minor "m").
-function chordRootPc(chordId) {
-  return NOTE_PC[chordId.replace(/7$/, "").replace(/m$/, "")];
-}
-
 // Semitone-from-tonic → uppercase Roman numeral, spelled naturally for each mode
 // (a minor key's III/VI/VII are diatonic; a major key's are ♭III/♭VI/♭VII). The
-// tritone is ♯IV by convention. Case + a "7" suffix are applied per chord quality.
+// tritone is ♯IV by convention. Case + a suffix come from the quality's `roman`.
 const MAJOR_ROMAN = ["I", "♭II", "II", "♭III", "III", "IV", "♯IV", "V", "♭VI", "VI", "♭VII", "VII"];
 const MINOR_ROMAN = ["I", "♭II", "II", "III", "♯III", "IV", "♯IV", "V", "VI", "♯VI", "VII", "♯VII"];
 
 // Roman numeral for ANY library chord relative to a key, computed from the
 // interval + quality — so a hand-edited (non-diatonic) bar reads as e.g. "♯iv"
 // instead of "?". Reproduces the curated KEYS token for diatonic chords, so the
-// readout is consistent whether the chord is in the key's map or not.
+// readout is consistent whether the chord is in the key's map or not. The quality
+// decorates it via QUALITIES[].roman: a minor-third quality lowercases the numeral
+// (vi, ♯iv, vi7) and the tag names the colour (7, maj7, 6, sus4).
 export function romanInKey(chordId, keyId) {
   const key = KEYS[keyId];
   if (!key) return "?";
-  const rootPc = chordRootPc(chordId);
+  const parts = splitChordId(chordId);
   const tonicPc = NOTE_PC[key.name.replace(/m$/, "")];
-  if (rootPc == null || tonicPc == null) return "?";
-  const interval = (rootPc - tonicPc + 12) % 12;
+  if (!parts || NOTE_PC[parts.root] == null || tonicPc == null) return "?";
+  const interval = (NOTE_PC[parts.root] - tonicPc + 12) % 12;
   let num = (key.mode === "minor" ? MINOR_ROMAN : MAJOR_ROMAN)[interval];
-  if (/m$/.test(chordId)) num = num.toLowerCase(); // minor quality → lowercase
-  if (/7$/.test(chordId)) num += "7";              // dominant 7th
-  return num;
+  const roman = QUALITIES.find((q) => q.id === parts.quality)?.roman ?? { lower: false, tag: "" };
+  if (roman.lower) num = num.toLowerCase();
+  return num + roman.tag;
 }
 
 // Display numeral for a bar: the curated key token if the chord is in the key's

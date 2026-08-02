@@ -16,7 +16,30 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.13) — style names on the drum
+## On the phone right now (v2.14.14) — new chord qualities (clean 5)
+
+**Five new qualities are in: m7, maj7, 6, m6, sus4.** Your scope call — the clean,
+idiomatic ones first for a guitar test; sus2/add9 next; dim7 dropped. The library
+is now 96 chords, and the quality reel is grouped (Triads / Sevenths / Sixths /
+Suspended).
+
+- **What to play on the guitar:** the shapes are standard (open Cmaj7, Am7, Dm7,
+  C6, Dsus4, etc.; barres for the rest). The one thing to listen for is the
+  **maj7/m7 alternating bass**: on the E-shape roots (E, F, F♯, G, G♯…) the 7 sits
+  on the alt-bass string, so the thumb alternates root ↔ 7 — the same trade dom7
+  already makes. On the A-shape roots and the open forms it's the clean root ↔
+  fifth. Tell me if the root↔7 bass bothers you on any of them; it's a one-line
+  template flip per quality.
+- **E♭sus4** is a special hand-voicing (the normal barre would need fret 9). Worth
+  a glance that it's playable.
+- **The capo tag and degree readout now handle the new suffixes** (Cmaj7 → Imaj7,
+  Am7 → vi7). They were silently mis-parsing before this.
+- **Not yet done:** sus2 and add9 (fiddlier to voice — held back per your "clean 5
+  first"). Say when you want them.
+
+---
+
+## Previously on the phone (v2.14.13) — style names on the drum
 
 **Category text is engraved on the progression drum, your design B.** After the
 A/B/C render, you picked the non-selectable header row riding the barrel. Each
@@ -588,10 +611,12 @@ real architecture change" turned out to be six templates and a rule, because
 "whichever barres lower" was already the convention the hand-written barre chords
 followed — see this session's CHANGELOG entry.
 
-**Still open: more qualities.** Elliott's list was m7, maj7, ♭5, diminished,
-augmented. Deliberately not started — your call was to see how three feels first,
-and the wheel is built so a fourth quality is a template plus any open voicing,
-applied to all 12 roots at once. Nothing structural.
+**More qualities — the clean 5 shipped (v2.14.14).** m7, maj7, 6, m6, sus4 are in
+(your call to do the idiomatic ones first). **Still open: sus2 and add9** — held
+back as the two fiddlier ones to voice (awkward E-form, and add9 reaches high
+frets). **dim7 dropped** by your call (no perfect fifth ⇒ no alternating-bass
+target). Each remaining quality is still just a template pair + open voicings; the
+parser groundwork and the grouped reel are already done.
 
 Two things to weigh when you come back to it:
 - **The generator never sees quality.** A chord reaches it as three role strings

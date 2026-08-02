@@ -273,7 +273,10 @@ export function createChordWheel({ tick = () => {} } = {}) {
       {
         cls: "quality",
         legend: "Quality",
-        items: () => QUALITIES.map((q) => ({ value: q.id, label: q.name })),
+        // `group` engraves a section header on the quality barrel (Triads /
+        // Sevenths / Sixths / Suspended), the same mechanism the progression drum
+        // uses — now that the reel carries up to a dozen qualities.
+        items: () => QUALITIES.map((q) => ({ value: q.id, label: q.name, group: q.group })),
         value: () => chosen.quality,
         onSettle: (v) => { chosen.quality = v; apply(); },
       },
