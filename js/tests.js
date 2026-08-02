@@ -459,6 +459,8 @@ check("new qualities: parse, transpose and read as a degree", () => {
   for (const [id, root, q] of [
     ["Cmaj7", "C", "maj7"], ["Am7", "A", "min7"], ["Gm7", "G", "min7"],
     ["C6", "C", "maj6"], ["Am6", "A", "min6"], ["Fsus4", "F", "sus4"], ["C7", "C", "dom7"], ["Cm", "C", "minor"],
+    // session 31: sus2 / add9 — 4-char suffixes, longest-match, no collision with sus4
+    ["Csus2", "C", "sus2"], ["Gadd9", "G", "add9"], ["Ebadd9", "Eb", "add9"], ["G#sus2", "G#", "sus2"],
   ]) {
     const s = splitChordId(id);
     assert(s && s.root === root && s.quality === q, `splitChordId("${id}") = ${JSON.stringify(s)}, want ${root}/${q}`);
@@ -469,12 +471,16 @@ check("new qualities: parse, transpose and read as a degree", () => {
   assert(soundingName("Am7", 2) === "Bm7", `Am7 up 2 = ${soundingName("Am7", 2)}`);
   assert(soundingName("C6", 2) === "D6", `C6 up 2 = ${soundingName("C6", 2)}`);
   assert(soundingName("Csus4", 3) === "E♭sus4", `Csus4 up 3 = ${soundingName("Csus4", 3)}`);
+  assert(soundingName("Csus2", 2) === "Dsus2", `Csus2 up 2 = ${soundingName("Csus2", 2)}`);
+  assert(soundingName("Aadd9", 1) === "B♭add9", `Aadd9 up 1 = ${soundingName("Aadd9", 1)}`);
   // romanInKey decorates the numeral by quality: case + colour tag.
   assert(romanInKey("Cmaj7", "C") === "Imaj7", `Cmaj7 in C = ${romanInKey("Cmaj7", "C")}`);
   assert(romanInKey("Am7", "C") === "vi7", `Am7 in C = ${romanInKey("Am7", "C")}`);
   assert(romanInKey("Dm7", "C") === "ii7", `Dm7 in C = ${romanInKey("Dm7", "C")}`);
   assert(romanInKey("C6", "C") === "I6", `C6 in C = ${romanInKey("C6", "C")}`);
   assert(romanInKey("Fsus4", "C") === "IVsus4", `Fsus4 in C = ${romanInKey("Fsus4", "C")}`);
+  assert(romanInKey("Csus2", "C") === "Isus2", `Csus2 in C = ${romanInKey("Csus2", "C")}`);
+  assert(romanInKey("Gadd9", "C") === "Vadd9", `Gadd9 in C = ${romanInKey("Gadd9", "C")}`);
   // dim7 stays OUT (his call) — no quality carries that suffix.
   assert(!QUALITIES.some((q) => q.id === "dim7" || q.suffix === "dim7"), "dim7 must not be in the library");
 });

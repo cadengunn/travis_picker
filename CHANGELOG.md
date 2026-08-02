@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [31](#where-things-stand-session-31-2026-08-02) | **v3.0.0** | the last two qualities — sus2 + add9; completes the requested set (dim7 stays out); library now 120 chords. **V3 marks the finished chords + progressions revamp (sessions 29–31).** |
 | [30](#where-things-stand-session-30-2026-08-02) | v2.14.14 | new chord qualities — the clean 5 (m7, maj7, 6, m6, sus4); quality reel grouped; id parsers unified through splitChordId |
 | [29](#where-things-stand-session-29-2026-08-02) | v2.14.12 → v2.14.13 | the progression revamp (ragtime/Piedmont secondary dominants, minor blues, modern minor); then engraved style-name headers on the drum (his design B) |
 | [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 → v2.14.11 | a full hardware-polish pass (faders, latching Sound toggles, carved accent keys); then the fader slides + an edit "thock"; then two sound-logic fixes (dropdown close, no-op latch) |
@@ -42,6 +43,47 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 31, 2026-08-02)
+
+**v3.0.0 — sus2 and add9, completing the quality set — and the version rolls to
+V3.** His call: "let's say V3 since we just revamped all the chords and
+progressions." V3 marks the finished revamp arc of sessions 29–31 — the
+progression master list (secondary dominants, minor blues/modern minor), the
+engraved style headers on the drums, and the full chord-quality set (three
+qualities → ten). The number is a milestone marker; the CACHE counter stays its own
+monotonic sequence (v80).
+
+The two qualities held back from session 30 as the fiddlier voicings. Library is
+now **12 × 10 = 120 chords**; dim7 stays out. Same as before, it's data only —
+generator/synth/grid untouched.
+
+- **The fiddliness was voicing, not the bass model** (both keep a normal root/fifth
+  alternating bass). Two hard constraints drove the shapes: every finger string
+  (1/2/3) must be a *chord tone* (a null string returns fret 0 = open and would
+  clash), and the `≤ fret 8` invariant must hold for all 12 roots.
+- **sus2 — both templates, all 12 ≤ fret 8.** The E-shape keeps string 3 a chord
+  tone (the 5th, at +4) instead of muting the 3rd — a 4-fret stretch, so only
+  E-barre roots ≤ barre 4 (E,F,F#,G,G#) use it (top fret 8). The A-shape (x02200,
+  +2) takes the rest. C/D/G opens hand-declared. **G#sus2 is the stretchiest (frets
+  4–8)** — the one thing to judge on the guitar.
+- **add9 — both templates + two outliers.** E-shape (Eadd9 022102, +2) and A-shape
+  (Aadd9 x02420, 9 on string 3 at +4). The +4 puts D and E♭ over the neck via the
+  A-shape, so **Dadd9** takes its open (xx0232) and **E♭add9** a compact hand-voice
+  (frets ≤ 4). C/G opens hand-declared too.
+- **Reel + parsers were free.** sus2 joins the Suspended group, add9 gets a new
+  **Added** group (reel: Triads / Sevenths / Sixths / Suspended / Added, 10
+  qualities). `splitChordId` handles the 4-char suffixes (no collision with sus4);
+  `soundingName`/`romanInKey` decorate for free (`Csus2`→`Isus2`, `Gadd9`→`Vadd9`).
+- **90/90** green. The parameterized library tests (≤ fret 8, role coverage, count,
+  round-trip, spelling) auto-covered the new 24 chords — those are the real proof
+  the outlier voicings are valid. Verified live: quality reel shows the five
+  sections and ten qualities; G#sus2 tops at fret 8, E♭add9 at 4, D add9 at 3;
+  Gadd9 renders root↔fifth with the 9 on a finger string.
+
+**The requested quality set is now complete.**
 
 ---
 

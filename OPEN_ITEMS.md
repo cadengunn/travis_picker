@@ -16,7 +16,26 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.14) — new chord qualities (clean 5)
+## On the phone right now (v3.0.0) — sus2 + add9, and the roll to V3
+
+**The last two qualities are in: sus2 and add9** — and the version rolls to **V3**
+to mark the finished chords + progressions revamp (your call). That finishes your
+requested quality set (dim7 stays out). Library is now 120 chords; the quality reel
+groups into Triads / Sevenths / Sixths / Suspended / Added.
+
+- **What to judge on the guitar:** the **G♯sus2** stretch. sus2's movable E-shape
+  keeps string 3 a real chord tone rather than muting it, which costs a 4-fret
+  span; on G♯ that's frets 4–8. If it plays badly, the fix is a hand-voiced form
+  for those few roots — a small follow-up.
+- **The outliers you might glance at:** Dadd9 (its open, xx0232) and E♭add9 (a
+  compact low form), both voiced to stay on the neck since the normal add9 barre
+  would go past fret 8.
+- Everything else — the reel grouping, the capo tag, the degree readout (Csus2 →
+  Isus2, Gadd9 → Vadd9) — came for free from the session-30 parser work.
+
+---
+
+## Previously on the phone (v2.14.14) — new chord qualities (clean 5)
 
 **Five new qualities are in: m7, maj7, 6, m6, sus4.** Your scope call — the clean,
 idiomatic ones first for a guitar test; sus2/add9 next; dim7 dropped. The library
@@ -611,12 +630,11 @@ real architecture change" turned out to be six templates and a rule, because
 "whichever barres lower" was already the convention the hand-written barre chords
 followed — see this session's CHANGELOG entry.
 
-**More qualities — the clean 5 shipped (v2.14.14).** m7, maj7, 6, m6, sus4 are in
-(your call to do the idiomatic ones first). **Still open: sus2 and add9** — held
-back as the two fiddlier ones to voice (awkward E-form, and add9 reaches high
-frets). **dim7 dropped** by your call (no perfect fifth ⇒ no alternating-bass
-target). Each remaining quality is still just a template pair + open voicings; the
-parser groundwork and the grouped reel are already done.
+**More qualities — DONE (v2.14.14 + v2.14.15).** The clean 5 (m7, maj7, 6, m6,
+sus4) shipped in v2.14.14; sus2 + add9 followed in v2.14.15. **dim7 dropped** by
+your call (no perfect fifth ⇒ no alternating-bass target). The requested set is
+complete — library is 120 chords (12 × 10). Only open thread here is *if* the
+G♯sus2 stretch plays badly on the guitar, hand-voice those few roots.
 
 Two things to weigh when you come back to it:
 - **The generator never sees quality.** A chord reaches it as three role strings

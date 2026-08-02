@@ -129,7 +129,9 @@ export const QUALITIES = [
   { id: "min7",  suffix: "m7",   name: "m7",    group: "Sevenths",  roman: { lower: true,  tag: "7" } },
   { id: "maj6",  suffix: "6",    name: "6",     group: "Sixths",    roman: { lower: false, tag: "6" } },
   { id: "min6",  suffix: "m6",   name: "m6",    group: "Sixths",    roman: { lower: true,  tag: "6" } },
+  { id: "sus2",  suffix: "sus2", name: "sus2",  group: "Suspended", roman: { lower: false, tag: "sus2" } },
   { id: "sus4",  suffix: "sus4", name: "sus4",  group: "Suspended", roman: { lower: false, tag: "sus4" } },
+  { id: "add9",  suffix: "add9", name: "add9",  group: "Added",     roman: { lower: false, tag: "add9" } },
 ];
 
 export const chordIdFor = (rootId, qualityId) =>
@@ -203,6 +205,19 @@ const OPEN_CHORDS = {
   // fret 9 for the E♭ family, off the practical neck. This D-shape at fret 1 keeps
   // it low (root E♭ on string 4). Everything else derives cleanly ≤ fret 8.
   Ebsus4: { root: 4, alt: 5, fifth: 3, fifthFret: 3, shape: { 6: null, 5: 1, 4: 1, 3: 3, 2: 4, 1: 4 } }, // xx1(3/4/4), root on 4
+
+  // --- sus2 (session 31): the C/D/G open forms, nicer than the barre. E/A families
+  // and the rest come from the templates (all ≤ fret 8). ---
+  Csus2: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 0, 3: 0, 2: 3, 1: 3 } }, // G C D G D G
+  Dsus2: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 0 } }, // A D A D E
+  Gsus2: { root: 6, alt: 5, fifth: 4, fifthFret: 0, shape: { 6: 3,    5: 0, 4: 0, 3: 0, 2: 3, 1: 3 } }, // G A D G D G
+  // --- add9 ---
+  Cadd9: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 2, 3: 0, 2: 3, 1: 0 } }, // x32030, 9 (D) on 2
+  Dadd9: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 2 } }, // xx0232, 9 (E) on 2 — also the fret-ceiling outlier for D
+  Gadd9: { root: 6, alt: 5, fifth: 4, fifthFret: 0, shape: { 6: 3,    5: 2, 4: 0, 3: 2, 2: 0, 1: 3 } }, // G B D A B G, 9 (A) on 3
+  // E♭add9: the genuine outlier — the A-shape add9 (9 at barre+4) lands on fret 10
+  // for the E♭ family. This compact form (root E♭ on string 4) keeps it ≤ fret 4.
+  Ebadd9: { root: 4, alt: 3, fifth: 5, fifthFret: 1, shape: { 6: null, 5: 1, 4: 1, 3: 0, 2: 4, 1: 1 } }, // Bb Eb G Eb F
 };
 
 // ----- Movable barre templates: one shape slid up the neck -----
@@ -237,6 +252,12 @@ const BARRE_TEMPLATES = {
       maj6:  { 6: 0, 5: 2, 4: 2, 3: 1, 2: 2, 1: 0 }, // E6 022120, 6 on 2
       min6:  { 6: 0, 5: 2, 4: 2, 3: 0, 2: 2, 1: 0 }, // Em6 022020, 6 on 2
       sus4:  { 6: 0, 5: 2, 4: 2, 3: 2, 2: 0, 1: 0 }, // Esus4 022200, 4 on 3
+      // sus2's E-shape keeps string 3 a chord tone (the 5th, at +4) rather than
+      // muting the 3rd — an interior null would sound open and clash. The +4 makes
+      // it a 4-fret stretch, so only E-barre roots ≤ barre 4 (E,F,F#,G,G#) use it,
+      // which keeps the top fret ≤ 8. The 2nd rides string 1.
+      sus2:  { 6: 0, 5: 2, 4: 2, 3: 4, 2: 0, 1: 2 }, // E,B,E,B,B,F# — 2nd on 1
+      add9:  { 6: 0, 5: 2, 4: 2, 3: 1, 2: 0, 1: 2 }, // Eadd9 022102, 9 on 1
     },
   },
   A: {
@@ -252,6 +273,10 @@ const BARRE_TEMPLATES = {
       maj6:  { 6: 0, 5: 0, 4: 2, 3: 2, 2: 2, 1: 2 }, // A6 x02222, 6 on 1
       min6:  { 6: 0, 5: 0, 4: 2, 3: 2, 2: 1, 1: 2 }, // Am6 x02212, 6 on 1
       sus4:  { 6: 0, 5: 0, 4: 2, 3: 2, 2: 3, 1: 0 }, // Asus4 x02230, 4 on 2
+      sus2:  { 6: 0, 5: 0, 4: 2, 3: 2, 2: 0, 1: 0 }, // Asus2 x02200, 2nd on 2
+      // add9's A-shape puts the 9 on string 3 at +4, so D and E♭ (A-barre 5 and 6)
+      // land at fret 9/10 — both are hand-declared below (Dadd9 open, E♭add9 low).
+      add9:  { 6: 0, 5: 0, 4: 2, 3: 4, 2: 2, 1: 0 }, // Aadd9 x02420, 9 on 3
     },
   },
 };
