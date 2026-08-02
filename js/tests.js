@@ -490,15 +490,20 @@ check("progressions: every preset resolves fully in every key of its mode", () =
   }
 });
 
-// 7b-i) The chromatic tokens mean what they should: major II (not the diatonic
-//       minor ii), the flat-7 MAJOR, and a dominant-7th tonic.
-// (Every preset is padded to 4 bars — a 3-chord idea holds its last chord.)
-check("tokens: II is major, ♭VII is the flat-7 major, I7 is a dominant 7th", () => {
-  assert(progressionChords("maj_1_2_5", "C").join("-") === "C-D-G-G", "I–II–V in C should be C-D-G-G");
-  assert(progressionChords("maj_1_2_5", "E").join("-") === "E-F#-B-B", "I–II–V in E needs the new F# chord");
-  assert(progressionChords("maj_1_b7_4", "C").join("-") === "C-Bb-F-F", "I–♭VII–IV in C should be C-Bb-F-F");
-  assert(progressionChords("maj_1_b7_4", "G").join("-") === "G-F-C-C", "I–♭VII–IV in G should be G-F-C-C");
+// 7b-i) The chromatic tokens mean what they should: a dominant-7th tonic (I7) and
+//       the secondary dominants II7 / III7 / VI7 / V7 (session 29's ragtime set).
+//       (Every preset is 4 bars — a 3-chord idea holds its last chord, and I–II7–V
+//       is I II7 V V.)
+check("tokens: I7 is a dom7 tonic; II7/III7/VI7/V7 are secondary dominants", () => {
   assert(progressionChords("maj_1_7_4_1", "C").join("-") === "C-C7-F-C", "I–I7–IV–I in C uses the dom7 tonic");
+  // the ragtime circle-of-fifths chain resolves to real dom7 chords in every key
+  assert(progressionChords("maj_1_67_27_57", "C").join("-") === "C-A7-D7-G7", "I–VI7–II7–V7 in C should be C-A7-D7-G7");
+  assert(progressionChords("maj_1_67_27_57", "E").join("-") === "E-C#7-F#7-B7", "I–VI7–II7–V7 in E should be E-C#7-F#7-B7");
+  assert(progressionChords("maj_1_37_4_57", "G").join("-") === "G-B7-C-D7", "I–III7–IV–V7 in G should be G-B7-C-D7");
+  assert(progressionChords("maj_1_27_5", "C").join("-") === "C-D7-G-G", "I–II7–V in C should be C-D7-G-G");
+  // V7 works in minor too (the dominant cadence)
+  assert(progressionChords("min_1_4_57", "Am").join("-") === "Am-Am-Dm-E7", "i–iv–V7 in Am should be Am-Am-Dm-E7");
+  assert(progressionChords("min_1_7_6_57", "Em").join("-") === "Em-D-C-B7", "i–VII–VI–V7 in Em should be Em-D-C-B7");
 });
 
 // Every shipped progression is a 4-bar phrase (padded from shorter ideas).
@@ -512,9 +517,9 @@ check("every progression is exactly four bars", () => {
 check("minor keys: progressions resolve; major presets don't leak in", () => {
   assert(progressionChords("min_1_7_6_5", "Am").join("-") === "Am-G-F-E", "i–VII–VI–V in Am should be Am-G-F-E");
   assert(progressionChords("min_1_7_6_5", "Em").join("-") === "Em-D-C-B", "i–VII–VI–V in Em should be Em-D-C-B");
-  // A major preset whose tokens (I, ♭VII, IV) are none of the minor set won't
+  // A major preset whose tokens (I, I7, IV) are none of the minor set won't
   // resolve at all in a minor key — proving the modes don't cross-populate.
-  assert(progressionChords("maj_1_b7_4", "Am").length === 0,
+  assert(progressionChords("maj_1_7_4_1", "Am").length === 0,
     "a major preset should not resolve in a minor key (tokens absent)");
 });
 
@@ -529,9 +534,9 @@ check("progressionGroups: filters to a mode and labels by the concise idea", () 
       `${mode} groups should list exactly the ${mode} presets in order`);
     assert(groups.every((g) => g.label && g.items.length), `${mode} groups need labels + items`);
   }
-  // the menu shows the concise idea (I–♭VII–IV), not the 4-bar padding (…–IV–IV)
-  const folk = progressionGroups("major").flatMap((g) => g.items).find((i) => i.value === "maj_1_b7_4");
-  assert(folk && folk.label === "I–♭VII–IV", `expected "I–♭VII–IV", got "${folk && folk.label}"`);
+  // the menu shows the concise idea (I–II7–V), not the 4-bar padding (I II7 V V)
+  const cc = progressionGroups("major").flatMap((g) => g.items).find((i) => i.value === "maj_1_27_5");
+  assert(cc && cc.label === "I–II7–V", `expected "I–II7–V", got "${cc && cc.label}"`);
 });
 
 // 7b-iv) A hand-edited (non-diatonic) bar reads as a real numeral, not "?".
@@ -2473,7 +2478,7 @@ acheck("layout: the die's row is the same geometry in both chord modes", async (
     '<label class="field field-split" id="field-keyprog" hidden>' +
     '<span class="split-legends"><span>Key</span><span>Progression</span></span>' +
     '<button class="dd-trigger" type="button"><span class="dd-label">' +
-    '<span class="tl-half tl-key">C</span><span class="tl-half tl-prog">I–♭VII–IV</span>' +
+    '<span class="tl-half tl-key">C</span><span class="tl-half tl-prog">I–VI7–II7–V7</span>' +
     '</span></button></label>' +
     // The die is a key inside a recessed well since session 27 — the well is the
     // sized 46px element, so geometry is measured from `.die-well`.

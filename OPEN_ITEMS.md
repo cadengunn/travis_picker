@@ -16,7 +16,34 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.11) — the polish pass, plus four of your notes
+## On the phone right now (v2.14.12) — the progression revamp
+
+**The chord-progression set is rebuilt to your master list.** Your scope call:
+replace, but keep the two Classic Standards (I–IV–ii–V, I–vi–ii–V). It's **18
+progressions** now (12 major + 6 minor), in your styles.
+
+- **New this pass:** `I–II7–V`, the two ragtime loops **`I–VI7–II7–V7`** and
+  **`I–III7–IV–V7`**, `I–IV–vi–V`, plus the minor `i–VII–VI–V7`, `i–iv–V7`,
+  `i–iv–i–V7`, `i–VI–III–VII`, `i–III–VII–VI`. `I–V` now plays **two bars each**
+  (`I I V V`) rather than alternating.
+- **What to listen for on the guitar:** the ragtime `I–VI7–II7–V7` (C–A7–D7–G7) is
+  the biggest character addition — a circle-of-fifths chain of dominant 7ths. And
+  the minor blues / modern-minor loops are new territory for the app.
+- **Dropped (10):** I–IV, I–IV–V, I–II–V (→ became I–II7–V), both I–♭VII folk
+  loops, vi–IV–I–V, and the two short minor ideas i–VII / i–VII–VI. Say if you
+  miss any and want it rescued like the Standards.
+- Verified here: 89/89 green, the longer ragtime labels clip nowhere (drum, field,
+  header all fit), and the height budget is untouched (11.06px clearance).
+
+**Deferred to next, your ask: category text engraved on the progression drum.**
+Non-selectable style captions on the barrel, in place of or alongside the divider
+grooves. It's a wheel-mechanism change with a legibility judgment only the phone
+can settle, so I'm holding it for a focused visual pass — the grooves stay as they
+are for now.
+
+---
+
+## Previously on the phone (v2.14.11) — the polish pass, plus four of your notes
 
 **Two sound-logic fixes (v2.14.11):**
 

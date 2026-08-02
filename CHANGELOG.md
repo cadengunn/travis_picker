@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [29](#where-things-stand-session-29-2026-08-02) | v2.14.12 | the progression revamp: the curated master list (ragtime/Piedmont secondary dominants, minor blues, modern minor); on-drum style captions deferred |
 | [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 → v2.14.11 | a full hardware-polish pass (faders, latching Sound toggles, carved accent keys); then the fader slides + an edit "thock"; then two sound-logic fixes (dropdown close, no-op latch) |
 | [27](#where-things-stand-session-27-2026-07-30) | v2.14.8 | the control-materials pass built (die + Format → wells); the tabs act on release, not on press |
 | [26](#where-things-stand-session-26-2026-07-30) | v2.14.7 | the tab flash (pointerdown, for real this time); the Play press de-weighted; a consistency mockup |
@@ -40,6 +41,50 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 29, 2026-08-02)
+
+**v2.14.12 — the chord-progression revamp, from his curated master list.** The
+progression set was rebuilt to his "Travis Picking 4-Bar Loop Master List (App
+Version)". His call on scope: **replace, but rescue the two Classic Standards**
+(I–IV–ii–V, I–vi–ii–V). Net set is **18 progressions** (12 major + 6 minor),
+regrouped into his styles.
+
+- **Six new realizations / loops.** Major: `I–II7–V`, the ragtime **`I–VI7–II7–V7`**
+  and **`I–III7–IV–V7`**, and `I–IV–vi–V`. Minor: `i–VII–VI–V7`, `i–iv–V7`
+  (`i i iv V7`), `i–iv–i–V7`, `i–VI–III–VII`, `i–III–VII–VI`. `I–V` was re-realized
+  from `I V I V` → **`I I V V`** (two bars each), per his list.
+- **Four new harmonic tokens** — the secondary dominants **`II7` / `III7` / `VI7`**
+  (major) and **`V7`** (both modes) — added to every `KEYS` map of their mode.
+  `romanInKey` already spelled all of them from interval + a `7` suffix (A7 in C
+  reads `VI7`), so this was a `KEYS` edit only; no numeral-map or `degreeLabel`
+  change. `II` and `♭VII` stay in the map for hand-edit robustness though no
+  shipped progression uses them now (same as `v`).
+- **Styles** are now Foundations / Folk & Roots / Classic Country / Ragtime &
+  Piedmont / Modern Pop/Acoustic / Classic Standards (major) and Minor Descends /
+  Minor Blues / Modern Minor (minor). The dropped set (10): `I–IV`, `I–IV–V`,
+  `I–II–V` (→ superseded by `I–II7–V`), both `I–♭VII` folk loops, `vi–IV–I–V`, and
+  the two minor 2/3-bar ideas `i–VII` / `i–VII–VI`.
+- **Width was the one real risk and it's clear.** The ragtime labels are longer
+  than the old widest (`I–♭VII–IV`): `I–VI7–II7–V7` measures **101.5px** in the
+  reel's 17px serif against the **124px** aperture, and rendered live it clips
+  nowhere — reel face, field trigger well (15px), and the 22px header readout
+  (`I–VI7–II7–V7 · C`) all fit with slack. So the drum geometry (`--drum-prog`)
+  was **not** touched.
+- **Height budget re-measured** at 375×553, 4 bars, progression: **55.09 / 384.84
+  / 11.06 / no overflow** — pixel-identical to v2.14.2 onward. **89/89** checks
+  green (the flaky key×prog reel test passed here too). Tests updated: the token
+  meaning / leak / concise-idea checks now exercise the new secondary dominants
+  instead of the dropped `I–II–V` / `I–♭VII–IV`.
+
+**Deferred (his ask, next):** category text as **non-selectable engravings on the
+progression drum** (in place of or alongside the divider grooves) — a `wheel.js`
+mechanism change with a legibility call only the phone can settle; the grooves
+stay as-is for now. Also noted but out of this session's scope: landscape lock,
+persist-settings-on-reopen, the intermittent Play bug, and the new chord
+qualities (item 1's open half).
 
 ---
 
