@@ -1490,14 +1490,23 @@ acheck("wheel: key × progression drives two selects, and re-cuts on a mode chan
   assert(panel.classList.contains("wheel-keyprog"), "the panel declares its variant so CSS can re-split the drums");
   assert(panel.querySelectorAll(".drum").length === 2, "two drums");
 
+  const heads = (reelCls) => [...panel.querySelectorAll(`.reel-${reelCls} .reel-head`)].map((h) => h.textContent);
   const groove = (reelCls) => [...panel.querySelectorAll(`.reel-${reelCls} .reel-item`)]
     .map((c) => c.querySelector(".reel-face").classList.contains("group-start"));
-  // ENGRAVED GROUP DIVISIONS (his call): the housing carries no captions, so a
-  // curated list keeps its sections as machined grooves. Never on the first name.
-  assert(groove("key").join() === "false,false,true",
-    `the key drum grooves at the major/minor boundary, got ${groove("key")}`);
+  // SECTION HEADERS ON THE DRUM (session 29, his call B): a NAMED group prints a
+  // non-selectable header facet riding the barrel; the UNNAMED break (the ungrouped
+  // Custom after the styles) keeps the older machined groove, since there's no name
+  // to engrave.
+  assert(heads("key").join() === "Major,Minor",
+    `the key drum names its sections, got ${heads("key")}`);
+  assert(heads("prog").join() === "Foundations",
+    `the progression drum names its styles, got ${heads("prog")}`);
   assert(groove("prog").join() === "false,false,true",
-    `the progression drum grooves before the ungrouped Custom, got ${groove("prog")}`);
+    `Custom keeps a plain groove (no name to engrave), got ${groove("prog")}`);
+  // Headers are NOT scroll-snap options: .reel-item stays 1:1 with the <select>, so
+  // index/commit/list() are unaffected. This is the whole invariant of design B.
+  assert(panel.querySelectorAll(".reel-prog .reel-item").length === 3,
+    "a header must not become a selectable option");
 
   // This page carries no stylesheet (by design — see the name-row check), so the
   // reels have no height and nothing to scroll; scrollTop has to be stubbed. It's
@@ -1524,18 +1533,20 @@ acheck("wheel: key × progression drives two selects, and re-cuts on a mode chan
     await new Promise((r) => setTimeout(r, 200));
   };
 
-  // The progression reel writes the panel's OWN select.
-  await spin("prog", 1);
+  // The progression reel writes the panel's OWN select. Rows now interleave a
+  // header, so maj_1_4 sits at ROW 2 ([H:Foundations, maj_1_5, maj_1_4, Custom]).
+  await spin("prog", 2);
   assert(progSel.value === "maj_1_4", `progression reel should set the progression, got ${progSel.value}`);
   assert(keySel.value === "C", "…and must not touch the key");
 
-  // The key reel writes the OTHER one, through commitKey.
-  await spin("key", 1);
+  // The key reel writes the OTHER one, through commitKey. Rows are
+  // [H:Major, C, G, H:Minor, Am], so G is ROW 2.
+  await spin("key", 2);
   assert(keySel.value === "G" && keyCommits === 1, `key reel should set the key, got ${keySel.value}`);
 
   // Crossing into minor re-cuts the progression reel. Without that, the drum keeps
-  // showing major progressions the select can no longer hold.
-  await spin("key", 2);
+  // showing major progressions the select can no longer hold. Am is ROW 4.
+  await spin("key", 4);
   assert(keySel.value === "Am", `key reel should reach Am, got ${keySel.value}`);
   const names = [...panel.querySelectorAll(".reel-prog .reel-item")].map((c) => c.textContent);
   assert(names.join() === "i–VII,i–VII–VI,Custom",

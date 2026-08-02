@@ -16,7 +16,30 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v2.14.12) — the progression revamp
+## On the phone right now (v2.14.13) — style names on the drum
+
+**Category text is engraved on the progression drum, your design B.** After the
+A/B/C render, you picked the non-selectable header row riding the barrel. Each
+style (Foundations, Folk & Roots, Classic Country, Ragtime / Piedmont, Modern
+Pop/Acoustic, Classic Standards) now prints as an engraved Jost-caps row above its
+progressions, foreshortening with the barrel like any facet. The ungrouped Custom
+keeps its plain groove (no name to engrave).
+
+- **The key drum names its sections too** — MAJOR / MINOR — which fell out of
+  building it generally. It reads well, but say if you'd rather the key drum stay
+  just a groove and keep names to the progression drum only.
+- **What only the phone can judge:** legibility of the 8.5px caps at arm's length
+  (the barrel is narrow, so the longest name `Modern Pop/Acoustic` fits with only
+  4.4px to spare — bigger would clip), and whether a header eating one of the five
+  visible slots feels worth the naming when you're spinning. Font size and tracking
+  are two easy dials if it wants to be bigger.
+- **A drag begun on a header still spins the barrel**, and tapping a header does
+  nothing (it's not a choice) — both by design, but touch is the one thing the dev
+  box can't confirm.
+
+---
+
+## Previously on the phone (v2.14.12) — the progression revamp
 
 **The chord-progression set is rebuilt to your master list.** Your scope call:
 replace, but keep the two Classic Standards (I–IV–ii–V, I–vi–ii–V). It's **18

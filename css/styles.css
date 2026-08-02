@@ -1961,6 +1961,30 @@ main {
   color: var(--text);
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
 }
+/* SECTION HEADER FACETS (session 29, his call B): a curated drum names its
+   sections with a non-selectable engraved row riding the barrel — the "category
+   text as engravings on the drum" he asked for. It's a facet like any other (it
+   foreshortens with rotateX in paint()), but a <div>, not a scroll-snap button:
+   the reel never rests on it and a drag begun on it still scrolls the barrel.
+   Voiced as a faceplate LEGEND (Jost caps), not the serif a value wears, because
+   a section name is what the machine CALLS a place, not a value you set. */
+.reel-head { display: block; width: 100%; height: var(--reel-item); scroll-snap-align: none; pointer-events: none; }
+.reel-head-face {
+  font-family: var(--legend);
+  /* 8.5px / 0.12em, not the 10px/0.16em faceplate legend: the barrel is only
+     --drum-prog (124px) wide, and the longest STYLE ("Modern Pop/Acoustic")
+     measures 119.6px at these values — a 4.4px margin. Bigger or wider-tracked
+     clips it. Measured live at 375×553; re-measure if a longer style is added. */
+  font-size: 8.5px;
+  font-weight: var(--legend-weight);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hardware);
+  /* line-height stays --reel-item so the facet is exactly one step tall, like
+     every other; the caps sit small INSIDE it rather than filling it. */
+  line-height: var(--reel-item);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
 /* The aperture in one drum's housing — ONE PER CYLINDER, which is what says
    they're two objects side by side rather than one list with a rule down it. */
 .drum-window {

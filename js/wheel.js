@@ -46,9 +46,13 @@ const DEG_PER_STEP = 26;
 // The mechanism: N cylinders on one axle, in one housing.
 // ---------------------------------------------------------------------------
 
-// `items` is [{ value, label, groupStart }]. `groupStart` engraves a machined
-// groove above the name — that's how a curated list keeps its sections on a drum
-// (his call for the progression reel), since the housing carries no captions.
+// `items` is [{ value, label, groupStart, group }]. A curated list carries its
+// SECTIONS on the drum two ways (his call, session 29): a NAMED group prints its
+// name as a non-selectable header facet riding the barrel (`.reel-head`), and an
+// UNNAMED break (the ungrouped `Custom` after the styles) keeps the older machined
+// groove, since there's no name to engrave. So the visual barrel is `rows` —
+// headers interleaved with options — while `list` stays the pure options (1:1
+// with the <select>), which is what index/commit and list() reason about.
 function buildDrum(parent, { cls, legend, items, value, onSettle }, tick) {
   const drum = document.createElement("div");
   drum.className = `drum drum-${cls}`;
@@ -69,28 +73,56 @@ function buildDrum(parent, { cls, legend, items, value, onSettle }, tick) {
   aperture.className = "drum-window";
   drum.appendChild(aperture);
 
-  let faces = [];
-  let list = [];
-  let index = 0;
+  let faces = [];   // 1:1 with rows (headers + options) — the barrel's facets
+  let rows = [];    // { head, label, value?, groove? } in barrel order
+  let list = [];    // options only, 1:1 with the <select> — what commit reasons about
+  let rowIndex = 0; // the centred ROW (headers included)
   let settleTimer = null;
 
-  // The cylinder: each name is a facet of a barrel, so how far it has turned away
-  // from the window is just its distance from centre. Done here rather than in CSS
-  // because the angle is a function of scroll position.
+  // Interleave section headers into the option list. A named group prints a header
+  // before its first option; an unnamed break after a named group (Custom) marks
+  // the following option for the plain groove instead.
+  function toRows(opts) {
+    const out = [];
+    let prevGroup;
+    for (const o of opts) {
+      const g = o.group || "";
+      if (g && g !== prevGroup) out.push({ head: true, label: g });
+      out.push({ head: false, label: o.label, value: o.value, groove: !g && !!prevGroup });
+      prevGroup = g;
+    }
+    return out;
+  }
+
+  const isOpt = (i) => rows[i] && !rows[i].head;
+  // Headers are never a scroll-snap target, so at rest the centre is an option;
+  // this only has to rescue the transient mid-drag frame and keyboard stepping.
+  function nearestOpt(i) {
+    if (isOpt(i)) return i;
+    for (let k = 1; k < rows.length; k++) {
+      if (isOpt(i - k)) return i - k;
+      if (isOpt(i + k)) return i + k;
+    }
+    return i;
+  }
+  const rowOfValue = (v) => { const r = rows.findIndex((x) => !x.head && x.value === v); return r < 0 ? nearestOpt(0) : r; };
+
+  // The cylinder: each facet is turned away from the window by its distance from
+  // centre. Done here rather than in CSS because the angle is a function of scroll.
   function paint() {
     const centre = el.scrollTop;
     for (let i = 0; i < faces.length; i++) {
       const d = i - centre / ITEM_H;
       const away = Math.abs(d);
-      const { cell, face } = faces[i];
+      const { cell, face, head } = faces[i];
       face.style.transform = `rotateX(${(-d * DEG_PER_STEP).toFixed(2)}deg)`;
       face.style.opacity = String(Math.max(0, 1 - away * 0.17));
       cell.classList.toggle("in-window", away < 0.5);
-      cell.setAttribute("aria-selected", away < 0.5 ? "true" : "false");
+      if (!head) cell.setAttribute("aria-selected", away < 0.5 ? "true" : "false");
     }
   }
 
-  function scrollToIndex(i, smooth) {
+  function scrollToRow(i, smooth) {
     el.scrollTo({ top: i * ITEM_H, behavior: smooth ? "smooth" : "auto" });
   }
 
@@ -100,53 +132,63 @@ function buildDrum(parent, { cls, legend, items, value, onSettle }, tick) {
   // resets to that mode's first preset.
   function setItems(next, current) {
     list = next;
+    rows = toRows(next);
     faces = [];
     el.replaceChildren();
     const pad = document.createElement("div");
     pad.className = "reel-pad";
     el.appendChild(pad);
-    // Two elements per name on purpose: the BUTTON is the detent (a scroll-snap
-    // area is the element's *transformed* border box, so turning the button would
-    // move its own notch and the reel would snap half a name off — measured), and
-    // the FACE inside it is the facet that turns.
-    list.forEach((it, i) => {
-      const cell = document.createElement("button");
-      cell.type = "button";
-      cell.className = "reel-item";
-      cell.setAttribute("role", "option");
+    // Two elements per row on purpose: the ITEM is the detent (a scroll-snap area
+    // is the element's *transformed* border box, so turning the button would move
+    // its own notch and the reel would snap half a name off — measured), and the
+    // FACE inside it is the facet that turns. A header is the same two-part facet
+    // but a <div> with no snap and no pointer, so a drag begun on it still scrolls.
+    rows.forEach((row, i) => {
+      const cell = document.createElement(row.head ? "div" : "button");
       const face = document.createElement("span");
       face.className = "reel-face";
-      if (it.groupStart && i > 0) face.classList.add("group-start");
-      face.textContent = it.label;
+      face.textContent = row.label;
+      if (row.head) {
+        cell.className = "reel-head";
+        cell.setAttribute("aria-hidden", "true");
+        face.classList.add("reel-head-face");
+      } else {
+        cell.type = "button";
+        cell.className = "reel-item";
+        cell.setAttribute("role", "option");
+        if (row.groove) face.classList.add("group-start");
+        cell.addEventListener("click", () => scrollToRow(i, true));
+      }
       cell.appendChild(face);
-      cell.addEventListener("click", () => scrollToIndex(i, true));
       el.appendChild(cell);
-      faces.push({ cell, face });
+      faces.push({ cell, face, head: row.head });
     });
     el.appendChild(pad.cloneNode());
-    index = Math.max(0, list.findIndex((it) => it.value === current));
-    scrollToIndex(index, false);
+    rowIndex = rowOfValue(current);
+    scrollToRow(rowIndex, false);
     paint();
   }
 
   el.addEventListener("scroll", () => {
     paint();
-    // A detent every time a name passes through the window. This is the whole
-    // reason the tick exists: it's the barrel indexing, not a button.
+    // A detent every time a facet passes through the window — headers included,
+    // since a facet turning past the aperture is exactly what the tick reports.
     const at = Math.round(el.scrollTop / ITEM_H);
-    if (at !== index && at >= 0 && at < list.length) {
-      index = at;
+    if (at !== rowIndex && at >= 0 && at < rows.length) {
+      rowIndex = at;
       tick();
     }
     clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => onSettle(list[index].value), SETTLE_MS);
+    settleTimer = setTimeout(() => onSettle(rows[nearestOpt(rowIndex)].value), SETTLE_MS);
   });
 
   el.addEventListener("keydown", (e) => {
-    const step = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
-    if (!step) return;
+    const dir = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+    if (!dir) return;
     e.preventDefault();
-    scrollToIndex(Math.max(0, Math.min(list.length - 1, index + step)), true);
+    let r = rowIndex + dir;
+    while (r >= 0 && r < rows.length && rows[r].head) r += dir; // skip headers
+    if (r >= 0 && r < rows.length) scrollToRow(r, true);
   });
 
   return {
@@ -190,15 +232,16 @@ function buildHousing(panel, variant, specs, tick) {
   return built;
 }
 
-// Read a <select>'s options as reel items, marking where an <optgroup> begins so
-// the drum can engrave a groove there.
+// Read a <select>'s options as reel items, carrying each option's optgroup label
+// so the drum can print a section header (named group) or cut a groove (the
+// unnamed Custom break). `groupStart` is kept for anything still reading it.
 function optionItems(select) {
   let group;
   return [...select.options].map((o) => {
     const label = o.parentElement.tagName === "OPTGROUP" ? o.parentElement.label : "";
     const groupStart = label !== group;
     group = label;
-    return { value: o.value, label: o.textContent, groupStart };
+    return { value: o.value, label: o.textContent, groupStart, group: label };
   });
 }
 

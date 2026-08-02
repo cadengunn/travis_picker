@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [29](#where-things-stand-session-29-2026-08-02) | v2.14.12 | the progression revamp: the curated master list (ragtime/Piedmont secondary dominants, minor blues, modern minor); on-drum style captions deferred |
+| [29](#where-things-stand-session-29-2026-08-02) | v2.14.12 → v2.14.13 | the progression revamp (ragtime/Piedmont secondary dominants, minor blues, modern minor); then engraved style-name headers on the drum (his design B) |
 | [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 → v2.14.11 | a full hardware-polish pass (faders, latching Sound toggles, carved accent keys); then the fader slides + an edit "thock"; then two sound-logic fixes (dropdown close, no-op latch) |
 | [27](#where-things-stand-session-27-2026-07-30) | v2.14.8 | the control-materials pass built (die + Format → wells); the tabs act on release, not on press |
 | [26](#where-things-stand-session-26-2026-07-30) | v2.14.7 | the tab flash (pointerdown, for real this time); the Play press de-weighted; a consistency mockup |
@@ -45,6 +45,42 @@ has the original build order.
 ---
 
 ## Where things stand (session 29, 2026-08-02)
+
+**v2.14.13 — category text on the drum, his design B.** Off his v2.14.12 note
+("category text as non-selectable engravings on the drum? in place of or in
+addition to the divider lines?"), rendered A/B/C mockups at true size and he
+picked **B — a non-selectable header facet riding the barrel**. (A, caps engraved
+on the divider line, was killed by the render: at 124px the caps collide with the
+names and distort on the rotating face.)
+
+- **The mechanism now separates ROWS from OPTIONS.** `buildDrum` builds a `rows`
+  array (headers interleaved with options) that drives the barrel's facets, while
+  `list` stays the pure options 1:1 with the `<select>` — so index/commit/`list()`
+  and the mode-recut are unchanged. A NAMED optgroup prints a header before its
+  first option; the UNNAMED break (ungrouped `Custom`) keeps the older machined
+  groove, since there's no name to engrave. Headers are `.reel-head` **divs**
+  (not `.reel-item` buttons): `scroll-snap-align: none` so the reel never rests on
+  one, `pointer-events: none` so a drag begun on a header still spins the barrel.
+  `nearestOpt()` rescues the transient mid-drag / keyboard case; arrow keys skip
+  headers.
+- **Both drums name their sections.** The progression drum gets all six styles;
+  the key drum gets **MAJOR / MINOR** (fell out of building it generally — reads
+  well, flagged for his opinion).
+- **Type: 8.5px / 0.12em Jost caps, not the 10px faceplate legend.** The barrel is
+  only `--drum-prog` (124px) and the longest style (`Modern Pop/Acoustic`)
+  measures **119.6px** at these values — a 4.4px margin, measured live with an
+  inline-block probe (`scrollWidth` clamps to the block and can't see the
+  overflow). Bigger or wider-tracked clips it. It's the legend voice (Jost caps),
+  distinct from the serif a value wears — a section name is what the machine
+  *calls* a place.
+- **Costs nothing in layout** — the wheel is a body-level overlay and the panel
+  height is fixed at 5 × `--reel-item`; header rows scroll inside it. **89/89**
+  green (the reel test updated: header positions shift the fixture's option rows,
+  and the groove assertions became header assertions).
+
+---
+
+## Where things stand (session 29 — v2.14.12, 2026-08-02)
 
 **v2.14.12 — the chord-progression revamp, from his curated master list.** The
 progression set was rebuilt to his "Travis Picking 4-Bar Loop Master List (App
