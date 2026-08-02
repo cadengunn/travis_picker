@@ -213,7 +213,11 @@ const OPEN_CHORDS = {
   Gsus2: { root: 6, alt: 5, fifth: 4, fifthFret: 0, shape: { 6: 3,    5: 0, 4: 0, 3: 0, 2: 3, 1: 3 } }, // G A D G D G
   // --- add9 ---
   Cadd9: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 2, 3: 0, 2: 3, 1: 0 } }, // x32030, 9 (D) on 2
-  Dadd9: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 2 } }, // xx0232, 9 (E) on 2 — also the fret-ceiling outlier for D
+  // Dadd9 xx0252: strings 4/3 are forced to D/A, so the 3rd and the 9th must both
+  // come from strings 2/1 — E (2 at fret 5) + F♯ (1 at fret 2) is the only pair
+  // that fits low. (xx0232 is D MAJOR — no 9th at all; it shipped that way for one
+  // build, which is why the chord-tone test below exists.)
+  Dadd9: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 5, 1: 2 } }, // 9 (E) on 2
   Gadd9: { root: 6, alt: 5, fifth: 4, fifthFret: 0, shape: { 6: 3,    5: 2, 4: 0, 3: 2, 2: 0, 1: 3 } }, // G B D A B G, 9 (A) on 3
   // E♭add9: the genuine outlier — the A-shape add9 (9 at barre+4) lands on fret 10
   // for the E♭ family. This compact form (root E♭ on string 4) keeps it ≤ fret 4.

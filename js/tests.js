@@ -448,6 +448,41 @@ check("chord names: one spelling per pitch, shared with the capo readout", () =>
     "accidentals are printed as ♯/♭, not # and b");
 });
 
+// 6d-ii) EVERY CHORD ACTUALLY SPELLS ITS QUALITY. The shapes are hand-authored or
+//     template-derived, and nothing else checks what NOTES come out — the role and
+//     ≤fret-8 tests only look at strings and fret numbers. So a voicing can be a
+//     perfectly legal shape of the wrong chord, which is exactly what happened:
+//     Dadd9 shipped as xx0232, which is D major with no 9th at all (session 31).
+//     This computes the sounded pitch classes from the shape and requires them to
+//     equal the quality's formula — catching both a MISSING colour tone and a
+//     FOREIGN note.
+check("chord library: every voicing spells its quality exactly", () => {
+  const PC_OF = { C: 0, "C#": 1, D: 2, Eb: 3, E: 4, F: 5, "F#": 6, G: 7, "G#": 8, A: 9, Bb: 10, B: 11 };
+  // semitones above the root, per quality
+  const FORMULA = {
+    major: [0, 4, 7], minor: [0, 3, 7],
+    dom7: [0, 4, 7, 10], maj7: [0, 4, 7, 11], min7: [0, 3, 7, 10],
+    maj6: [0, 4, 7, 9], min6: [0, 3, 7, 9],
+    sus2: [0, 2, 7], sus4: [0, 5, 7], add9: [0, 2, 4, 7],
+  };
+  for (const id of CHORD_IDS) {
+    const c = CHORDS[id];
+    const formula = FORMULA[c.quality];
+    assert(formula, `no interval formula for quality "${c.quality}" — add it here when adding a quality`);
+    const rootPc = PC_OF[c.rootId];
+    const want = new Set(formula.map((i) => (rootPc + i) % 12));
+    const got = new Set();
+    for (const s of [6, 5, 4, 3, 2, 1]) {
+      const fret = CHORD_SHAPES[id][s];
+      if (fret == null) continue; // a muted string sounds nothing
+      got.add(midiOf({ string: s, fret }) % 12);
+    }
+    const fmt = (set) => [...set].sort((a, b) => a - b).join(",");
+    assert(fmt(got) === fmt(want),
+      `${id} (${c.quality}) sounds pitch classes {${fmt(got)}}, its formula wants {${fmt(want)}}`);
+  }
+});
+
 // 6e) THE NEW QUALITIES (session 30): maj7 / m7 / 6 / m6 / sus4. The whole feature
 //     is voicings — the generator/synth/grid follow — plus the id parsers, which
 //     used to strip "7" then "m" and silently mis-read every new suffix. All three

@@ -16,7 +16,22 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.0.0) — sus2 + add9, and the roll to V3
+## On the phone right now (v3.0.1) — one chord fix
+
+**`Dadd9` was D major** — it had no 9th in it at all. Fixed to `xx0252`. Found while
+generating `CHORD_REFERENCE.md` for you, not by a test, so there's now a test that
+checks every chord actually spells its quality (all 120).
+
+**Two documents for you:**
+- **`CHORD_REFERENCE.md`** — every chord with tab, notes, intervals, the thumb's
+  root↔alt bass and max fret. It has a **"worth your eye"** section at the top
+  listing the judgment calls I'd most expect you to overrule.
+- **`NEXT_SESSION_PROMPT.md`** — the deferred small fixes (landscape, persisting
+  settings, the intermittent Play bug) ready to paste into a new session.
+
+---
+
+## Previously on the phone (v3.0.0) — sus2 + add9, and the roll to V3
 
 **The last two qualities are in: sus2 and add9** — and the version rolls to **V3**
 to mark the finished chords + progressions revamp (your call). That finishes your

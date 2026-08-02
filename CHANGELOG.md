@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [31](#where-things-stand-session-31-2026-08-02) | **v3.0.0** | the last two qualities — sus2 + add9; completes the requested set (dim7 stays out); library now 120 chords. **V3 marks the finished chords + progressions revamp (sessions 29–31).** |
+| [31](#where-things-stand-session-31-2026-08-02) | **v3.0.0** → v3.0.1 | the last two qualities — sus2 + add9; completes the requested set (dim7 stays out); library now 120 chords. **V3 marks the finished chords + progressions revamp (sessions 29–31).** Then v3.0.1: Dadd9 was D major — fixed, plus a chord-tone test |
 | [30](#where-things-stand-session-30-2026-08-02) | v2.14.14 | new chord qualities — the clean 5 (m7, maj7, 6, m6, sus4); quality reel grouped; id parsers unified through splitChordId |
 | [29](#where-things-stand-session-29-2026-08-02) | v2.14.12 → v2.14.13 | the progression revamp (ragtime/Piedmont secondary dominants, minor blues, modern minor); then engraved style-name headers on the drum (his design B) |
 | [28](#where-things-stand-session-28-2026-07-30) | v2.14.9 → v2.14.11 | a full hardware-polish pass (faders, latching Sound toggles, carved accent keys); then the fader slides + an edit "thock"; then two sound-logic fixes (dropdown close, no-op latch) |
@@ -47,6 +47,28 @@ has the original build order.
 ---
 
 ## Where things stand (session 31, 2026-08-02)
+
+**v3.0.1 — `Dadd9` was D major.** Found while generating `CHORD_REFERENCE.md` for
+his manual cross-check: the hand-declared outlier shipped as `x00232`, which
+contains no 9th at all (it's the ordinary D major shape). Now **`x00252`** — strings
+4/3 are forced to D/A, so the 3rd and the 9th both have to come off strings 2/1, and
+E at fret 5 + F♯ at fret 2 is the only pair that stays low.
+
+**The gap that let it through, now closed:** nothing checked what NOTES a voicing
+produces. The role-coverage and ≤fret-8 tests only look at string numbers and fret
+numbers, so a shape can be entirely legal and still be the wrong chord. The new
+check computes each chord's sounded pitch classes from its shape and requires them
+to **equal** the quality's interval formula — catching both a missing colour tone
+and a foreign note, across all 120. **91/91.**
+
+Also added this session: **`CHORD_REFERENCE.md`** (every chord with tab, sounding
+notes, intervals, the thumb's root↔alt bass and max fret, generated from the live
+library) and **`NEXT_SESSION_PROMPT.md`**. The reference flags the deliberate
+judgment calls for his review — sus2's root↔9 bass on Csus2/Gsus2, Gadd9's and
+E♭add9's walk-to-the-3rd alt bass, the E-shape maj7/m7 root↔7 trade, the A family's
+inconsistent string 6, and the wide stretches (G♯sus2 4–8 the worst).
+
+---
 
 **v3.0.0 — sus2 and add9, completing the quality set — and the version rolls to
 V3.** His call: "let's say V3 since we just revamped all the chords and
