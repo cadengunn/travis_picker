@@ -184,6 +184,13 @@ const MOVING = {
   // F♯6 — his tabs (session 33): "you move the finger back and forth for the bass
   // like on C." Root (string 5) and the true fifth (string 6) share fret 9.
   "F#6":  [5, 6],
+  // B7 — the same story as C exactly (session 34, proposed and confirmed). The
+  // open B7 you actually play (x21202) already commits all four fingers: middle
+  // on 5, index on 4, ring on 3, pinky on 1. We fret string 6 at 2 so the fifth
+  // role has a note (the "a full barre makes the low string available" convention
+  // below), and there is no fifth finger for it — so the middle finger moves off
+  // the root and onto the low F♯ for the bass.
+  B7:     [5, 6],
 };
 
 // ----- Open-position chords: hand-declared, because they're VOICINGS -----
@@ -265,6 +272,22 @@ const OPEN_CHORDS = {
   // the old E♭add9 already use. Travis now plays F♯, B♭, C♯, B♭ — three
   // distinct notes, a real walking bass.
   "F#6": { root: 5, alt: 4, fifth: 6, fifthFret: 9, shape: { 6: 9, 5: 9, 4: 8, 3: 8, 2: 11, 1: 9 } },
+  // G♯6 replaces the auto-derived E-shape barre (`4 6 6 5 6 4`) with his
+  // fingering, session 34: `4 3 1 1 1 1` — an index barre across strings 4–1 at
+  // fret 1, ring on string 5, pinky on string 6. It spells G♯, C, D♯, G♯, C, F =
+  // root, 3rd, 5th, root, 3rd, 6th.
+  //
+  // THE ROLES CHANGE WITH THE SHAPE, and that's the part worth reading. In the old
+  // E-shape barre the alt bass was string 4 and the fifth string 5; here string 4
+  // carries the true 5th (D♯) and string 5 carries the 3rd (C), so the two swap:
+  // `fifth: 4`, `alt: 5`. Two things fall out — Root–Fifth alternates G♯ ↔ D♯
+  // properly, and Travis plays G♯, C, D♯, C, which is three distinct notes rather
+  // than the root-and-octave the E-shape gives. "Walk to the 3rd" for the alt is
+  // the same convention Gadd9 and F♯6 already use.
+  //
+  // No `moving` entry: the index barre and two fingers hold every note at once,
+  // with the middle finger spare, so nothing has to travel.
+  "G#6": { root: 6, alt: 5, fifth: 4, fifthFret: 1, shape: { 6: 4, 5: 3, 4: 1, 3: 1, 2: 1, 1: 1 } },
   // --- m6 ---
   Dm6:   { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 0, 1: 1 } }, // xx0201
   // Cm6 and C♯m6 are a DELIBERATE override of "whichever barres lower" (his call,
