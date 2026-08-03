@@ -16,7 +16,27 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.2.3) — E♭add9 again, the die, and four more chords
+## On the phone right now (v3.2.4) — Cm6 / C♯m6 moved, one thing still open
+
+**`Cm6` and `C♯m6` are now at your exact frets** — `8 10 10 8 10 8` and
+`9 11 11 9 11 9`, the E-shape template's higher position instead of the
+auto-picked lower one. Verified against your tabs exactly: same chord tones,
+one clean full barre (not a stack), matching the diagrams you sent. The bass
+alternation is unchanged either way (root ↔ 5th, same as before) — only the
+neck position moved.
+
+**Still waiting on you: F6 or F♯6?** Your tab (`1 0 0 2 1 1`) spells natural F
+major 6th (F, A, C, D) — not F♯6 (which needs F♯, A♯, C♯, D♯). Since we'd been
+discussing F♯6 all session, I want to check which you meant before touching
+anything: F♯6 wasn't fixed by this shape (it has open strings that don't
+transpose to F♯ without becoming a different shape), and F6 wasn't one of your
+original four. Let me know and I'll wire in whichever you actually want.
+
+**Budget untouched** — 55.09 / 384.84 / 11.06 / no overflow. 104/104 green.
+
+---
+
+## Previously on the phone (v3.2.3) — E♭add9 again, the die, and four more chords
 
 **`E♭add9` is now `6 6 5 0 6 6`** — your fix. String 6 sounds (no more muting it),
 and you don't need a partial barre: one finger moves between string 6 and string 1

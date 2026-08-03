@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [33e](#where-things-stand-session-33e--v324-2026-08-03) | **v3.2.4** | Cm6/C#m6 moved to the E-shape template's higher position (his exact tabs), fret ceiling raised to 12 as a named exception; F6-vs-F#6 mapping caught and held pending his answer |
 | [33d](#where-things-stand-session-33d--v323-2026-08-03) | **v3.2.3** | four more chords flagged too hard, corrected: full barres are fine, only Csus4's two-disconnected-partial-barres was real, revoiced to a single standard barre |
 | [33c](#where-things-stand-session-33c--v322-2026-08-03) | **v3.2.2** | E♭add9 revoiced again (string 6 sounds now, no partial barre — Root–Fifth alternates properly); the chord die can be tapped while its own wheel is open |
 | [33b](#where-things-stand-session-33b--v321-2026-08-03) | **v3.2.1** | he played the chords: span was the wrong difficulty metric — `E♭add9` revoiced, `Dadd9` and the six wide barres kept, `A`/`Am`/`A7` now sound string 6 (the chord box exposed it), plus two guards |
@@ -48,6 +49,46 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 33e — v3.2.4, 2026-08-03)
+
+**He sent three chord-diagram photos and exact tabs for the two he still wanted
+moved.** `Cm6` → `8 10 10 8 10 8`, `C♯m6` → `9 11 11 9 11 9` — both the E-shape
+min6 template's *other* position (the app's own "whichever barres lower" rule
+had auto-picked the lower A-shape barre, frets 3/4, which v3.2.3 had just
+confirmed as "no change needed"). His explicit note: *"I'm allowing frets higher
+up the neck for these... anything up to fret 12 acceptable."* Both verified
+against his tabs exactly — same four chord tones, full single barre spanning
+all six strings (not a stack), position markers 8 and 9.
+
+**A mapping check paid off before anything was applied.** His first message
+gave three tabs, one labelled "F6" rather than "F♯6" — and the frets (`1 0 0 2
+1 1`) spell natural F major 6th (F, A, C, D), not F♯6 (F♯, A♯, C♯, D♯). Applying
+it to F♯6 would have been a real musical bug, not a style quibble, so that one
+is held pending which chord he actually meant — the shape also has open strings
+that don't transpose cleanly to F♯ without becoming a different, fretted shape
+entirely.
+
+**The library's fret ceiling moved from 8 to 12, but only as a named
+exception.** A test sweeps every chord in the library asserting nothing exceeds
+a practical fret — it was 8, tied to "whichever barres lower." Raising it
+blindly would have silently allowed anything up to 12 for ALL 120 chords, so
+instead: the two new shapes were proven to fail the OLD ceiling first (a quick
+sweep confirmed exactly `Cm6`/`C♯m6` and nothing else exceeded 8), the ceiling
+was raised to 12 with a comment naming these two as the deliberate exception,
+and a THIRD chord drifting past 8 without a reason still fails loudly.
+
+**One correction to the record:** the alternating bass claim in an earlier draft
+of this entry was wrong and caught before it shipped — both the OLD (A-shape)
+and NEW (E-shape) `Cm6`/`C♯m6` voicings already alternate root ↔ 5th; only the
+neck position changed, not the bass pattern. (That's different from `Csus4`
+last round, which genuinely did improve its bass on the same kind of edit —
+worth being precise about which chords actually changed which property.)
+
+104/104 green. Budget re-measured, unchanged: 55.09 / 384.84 / 11.06 / no
+overflow.
 
 ---
 

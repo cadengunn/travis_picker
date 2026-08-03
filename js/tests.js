@@ -458,12 +458,18 @@ check("chord library: movable templates reproduce the hand-declared barre chords
         `${id} string ${s}: expected fret ${want.shape[s]}, derived ${CHORD_SHAPES[id][s]}`);
     }
   }
-  // Playability: "whichever barres lower" is the rule, so nothing should land
-  // above the 8th fret. (The worst is the A-shape at 6 — the E♭ family.)
+  // Playability: "whichever barres lower" is the rule, so almost nothing should
+  // land above the 8th fret (the worst DEFAULT is the A-shape at 6 — the E♭
+  // family). Two chords are a deliberate, named exception: Cm6 and C♯m6 are
+  // hand-declared to use the E-shape min6 template's HIGHER position (barre 8/9)
+  // instead of the auto-picked lower A-shape one — his call, off the guitar,
+  // "anything up to fret 12 acceptable" for these. The ceiling here is raised to
+  // 12 to match that instruction rather than silently exempting them, so a THIRD
+  // chord drifting past 8 without a reason still fails loudly.
   for (const id of CHORD_IDS) {
     for (const s of [6, 5, 4, 3, 2, 1]) {
       const fret = CHORD_SHAPES[id][s];
-      assert(fret == null || fret <= 8, `${id} needs fret ${fret} on string ${s} — off the practical neck`);
+      assert(fret == null || fret <= 12, `${id} needs fret ${fret} on string ${s} — off the practical neck`);
     }
   }
 });

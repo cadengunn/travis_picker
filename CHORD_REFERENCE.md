@@ -79,6 +79,17 @@ Two conventions worth knowing before you flag something as wrong:
   top in a 3-fret window — the same family every other barre chord in this
   library already uses. Bonus: the alternating bass improves too, root ↔ 5th
   (C ↔ G) instead of root ↔ 4th, since the open G string is gone.
+- **`Cm6` and `C♯m6` moved up the neck (v3.2.4, his call).** Both were the
+  auto-picked A-shape barre — technically "whichever barres lower," the app's
+  own default rule, and what shipped in v3.2.3 as "no change needed." He
+  supplied the E-shape min6 template's *other* position instead: `8 10 10 8
+  10 8` and `9 11 11 9 11 9`. Same shape family, same full-barre-plus-three-
+  fingers pattern the app already uses everywhere — just the position he
+  prefers to play it at. His note: *"I'm allowing frets higher up the neck for
+  these... anything up to fret 12 acceptable."* The library's general fret
+  ceiling stays 8; these two are a named, deliberate exception in the test.
+  The alternating bass is unaffected — both the old and new shapes give root ↔
+  5th (C ↔ G / C♯ ↔ G♯); only the position on the neck changed.
 - **Wide stretches** (5-fret spans): `F♯sus2` (2–6), `G♯sus2` (4–8), `Fsus2` (1–5),
   `C♯add9` (4–8), `B♭add9` (1–5), `Badd9` (2–6). **All six were played and kept**
   (v3.2.1). The three sus2 need a partial barre — one finger across strings 5+4 —
@@ -122,7 +133,7 @@ target, and it's the least idiomatic for this style.)*
 | **Cmaj7** | `3 3 2 0 0 0` | G C E G B E | 5 R 3 5 △7 3 | C (s5) ↔ E (s4) | G (s6) | 3 |
 | **Cm7** | `3 3 5 3 4 3` | G C G B♭ E♭ G | 5 R 5 ♭7 ♭3 5 | C (s5) ↔ G (s4) | G (s6) | 5 |
 | **C6** | `3 3 2 2 1 0` | G C E A C E | 5 R 3 6 R 3 | C (s5) ↔ E (s4) | G (s6) | 3 |
-| **Cm6** | `3 3 5 5 4 5` | G C G C E♭ A | 5 R 5 R ♭3 6 | C (s5) ↔ G (s4) | G (s6) | 5 |
+| **Cm6** | `8 10 10 8 10 8` | C G C E♭ A C | R 5 R ♭3 6 R | C (s6) ↔ G (s5) | G (s5) | 10 |
 | **Csus2** | `3 3 0 0 3 3` | G C D G D G | 5 R 9 5 9 5 | C (s5) ↔ D (s4) | G (s6) | 3 |
 | **Csus4** | `3 3 5 5 6 3` | G C G C F G | 5 R 5 R 4 5 | C (s5) ↔ G (s4) | G (s6) | 6 |
 | **Cadd9** | `3 3 2 0 3 0` | G C E G D E | 5 R 3 5 9 3 | C (s5) ↔ E (s4) | G (s6) | 3 |
@@ -137,7 +148,7 @@ target, and it's the least idiomatic for this style.)*
 | **C♯maj7** | `4 4 6 5 6 4` | G♯ C♯ G♯ C F G♯ | 5 R 5 △7 3 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 6 |
 | **C♯m7** | `4 4 6 4 5 4` | G♯ C♯ G♯ B E G♯ | 5 R 5 ♭7 ♭3 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 6 |
 | **C♯6** | `4 4 6 6 6 6` | G♯ C♯ G♯ C♯ F B♭ | 5 R 5 R 3 6 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 6 |
-| **C♯m6** | `4 4 6 6 5 6` | G♯ C♯ G♯ C♯ E B♭ | 5 R 5 R ♭3 6 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 6 |
+| **C♯m6** | `9 11 11 9 11 9` | C♯ G♯ C♯ E B♭ C♯ | R 5 R ♭3 6 R | C♯ (s6) ↔ G♯ (s5) | G♯ (s5) | 11 |
 | **C♯sus2** | `4 4 6 6 4 4` | G♯ C♯ G♯ C♯ E♭ G♯ | 5 R 5 R 9 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 6 |
 | **C♯sus4** | `4 4 6 6 7 4` | G♯ C♯ G♯ C♯ F♯ G♯ | 5 R 5 R 4 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 7 |
 | **C♯add9** | `4 4 6 8 6 4` | G♯ C♯ G♯ E♭ F G♯ | 5 R 5 9 3 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 8 |

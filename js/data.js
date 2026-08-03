@@ -206,6 +206,17 @@ const OPEN_CHORDS = {
   G6:    { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 0 } }, // 320000, 6 (E) on 1
   // --- m6 ---
   Dm6:   { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 0, 1: 1 } }, // xx0201
+  // Cm6 and C♯m6 are a DELIBERATE override of "whichever barres lower" (his call,
+  // session 33, off the guitar — he supplied these exact frets). "Whichever
+  // barres lower" auto-picked the A-shape here (barre 3 / barre 4), which is what
+  // shipped and is what he asked to rework. These hand-declarations instead force
+  // the E-shape min6 template — same shape family, same full-barre-plus-3-fingers
+  // pattern, just at the OTHER position the template naturally reaches (barre 8 /
+  // barre 9) rather than the lower one the auto-rule would pick. His explicit
+  // note: "I'm allowing frets higher up the neck for these... anything up to
+  // fret 12 acceptable" — see the raised ceiling in the chord-shape sweep test.
+  Cm6:   { root: 6, alt: 4, fifth: 5, fifthFret: 10, shape: { 6: 8, 5: 10, 4: 10, 3: 8, 2: 10, 1: 8 } }, // E-shape min6 @8
+  "C#m6": { root: 6, alt: 4, fifth: 5, fifthFret: 11, shape: { 6: 9, 5: 11, 4: 11, 3: 9, 2: 11, 1: 9 } }, // E-shape min6 @9
   // --- sus4 ---
   // Csus4 was the one hand-declared "open C + colour tone" that broke the pattern
   // (his note, session 33). Every other chord in this family — Cmaj7, C6, C7 —
