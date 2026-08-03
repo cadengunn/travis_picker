@@ -2985,35 +2985,58 @@ check("chordbox: a barre is a real barre, not just a repeated fret", () => {
   }
 });
 
-check("chordbox: the thumb's alternating pair is marked, and only that pair", () => {
-  // The reason this beats a diagram from any chord book (his call): it says which
-  // two notes the thumb rocks between. It reuses the grid's convention, so the
-  // colours already mean thumb vs fingers.
+check("chordbox: the root is accented, and nothing else is", () => {
+  // REPLACED the old "the thumb's alternating pair is marked" check in session 34
+  // (his call): the box accents ONLY the root now, which is what an ordinary chord
+  // chart marks, on his argument that the thumb is already implicit in which
+  // string a note is on. The old test is gone rather than adjusted, because it
+  // asserted the opposite — that `alt` must ALSO be accented.
   for (const id of CHORD_IDS) {
     const m = chordBoxModel(id);
     const c = CHORDS[id];
-    const thumbs = new Set([c.root, c.alt]);
-    const marked = new Set();
-    for (const d of m.dots) if (d.role === "thumb") marked.add(m.strings[d.index]);
-    for (const k of m.marks) if (k.role === "thumb") marked.add(m.strings[k.index]);
-    // BOTH bass notes must be visible as the thumb's, including one that lies
-    // under a barre — that's the case G♯sus2 exposed, where the root sits at the
-    // barre fret and would otherwise be swallowed by the bar.
-    for (const s of thumbs) {
-      assert(marked.has(s),
-        `${id}: bass string ${s} (root ${c.root} / alt ${c.alt}) is not marked as the thumb's`);
-    }
-    // ...and nothing that isn't a bass role may wear the thumb colour.
-    for (const d of m.dots) {
-      if (d.role === "thumb") {
-        assert(thumbs.has(m.strings[d.index]),
-          `${id}: string ${m.strings[d.index]} is marked thumb but is not a bass role`);
-      }
-    }
-    // The BAR itself is never the thumb's: it's one finger across five strings,
-    // most of which are not bass notes.
-    if (m.barre) assert(m.barre.role === "finger", `${id}: a barre must not be thumb-coloured`);
+    const accented = new Set();
+    for (const d of m.dots) if (d.role === "root") accented.add(m.strings[d.index]);
+    for (const k of m.marks) if (k.role === "root") accented.add(m.strings[k.index]);
+    // The root must always be visible as the root, INCLUDING one that lies under a
+    // barre — that's the case G♯sus2 exposed, where it would be swallowed by the
+    // bar. This half is what survives from the old check.
+    assert(accented.has(c.root), `${id}: root string ${c.root} is not accented`);
+    assert(accented.size === 1, `${id}: exactly one string may be accented, got ${[...accented]}`);
+    // The BAR itself is never accented: one finger across five strings, and the
+    // root beneath it gets its own dot on top.
+    if (m.barre) assert(m.barre.role === "note", `${id}: a barre must not wear the root colour`);
   }
+});
+
+check("chordbox: the moving finger is one hollow dot, on a string the chord frets", () => {
+  // `moving: [from, to]` says one finger covers two strings by moving between them
+  // (the open-C ring finger rocking onto the low bass note). Only the `to` is drawn
+  // hollow. This is DATA, not derived — the geometric rule fires on 82 of 120
+  // chords and is wrong on every plain barre, where both notes are simply held.
+  let declared = 0;
+  for (const id of CHORD_IDS) {
+    const m = chordBoxModel(id);
+    const c = CHORDS[id];
+    const moving = m.dots.filter((d) => d.moving);
+    if (!c.moving) {
+      assert(moving.length === 0, `${id}: no moving finger declared, but a dot is drawn hollow`);
+      continue;
+    }
+    declared++;
+    const [from, to] = c.moving;
+    assert(from !== to, `${id}: a finger can't move between one string and itself`);
+    // BOTH ends have to be real notes, or the diagram claims a move you can't make.
+    for (const s of [from, to]) {
+      assert(CHORD_SHAPES[id][s] != null, `${id}: moving finger touches string ${s}, which the shape mutes`);
+    }
+    // Exactly one hollow dot, and it's the one you reach for.
+    assert(moving.length === 1, `${id}: exactly one dot may be hollow, got ${moving.length}`);
+    assert(m.strings[moving[0].index] === to,
+      `${id}: the hollow dot must be the 'to' string ${to}, got ${m.strings[moving[0].index]}`);
+    // A moving note must never be an open string: there'd be no finger to move.
+    assert(moving[0].fret > 0, `${id}: an open string can't be the moving finger`);
+  }
+  assert(declared >= 3, `the documented moving-finger chords should be declared, got ${declared}`);
 });
 
 check("chordbox: it draws SVG and never types a glyph it doesn't own", () => {

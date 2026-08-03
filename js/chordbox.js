@@ -18,11 +18,27 @@
 // turns that model into SVG. The model is what the tests reason about — the
 // drawing is not where the mistakes live.
 //
-// MARKING THE THUMB'S TWO BASS NOTES is the whole reason this beats a chord chart
-// out of any book (his call). A generic diagram can't tell you which two notes
-// your thumb rocks between; that's the "root ↔ alt" column of CHORD_REFERENCE.md,
-// shown at the moment you're picking. It reuses the grid's own convention —
-// thumb = --active, fingers = --accent — so the colours already mean this.
+// WHAT IT MARKS, and both of these changed in session 34 on his call:
+//
+// THE ROOT, in --active, and nothing else. It used to accent the thumb's whole
+// alternating pair (root + alt), on the argument that no chord chart out of a
+// book can tell you which two notes the thumb rocks between. He reversed it:
+// root-only is what an ordinary chord chart marks, and **the thumb is already
+// implicit in which string a note is on** — strings 6/5/4 are its domain — so the
+// second accented dot was spending colour to say something the layout says free.
+//
+// THE MOVING FINGER, as a HOLLOW dot. Where one left-hand finger covers two
+// strings by moving between them rather than holding both — the open-C ring
+// finger rocking onto the low bass note as the thumb alternates — the note you
+// move TO is drawn as an outline. There is no established symbol for this in
+// chord-box notation (movement normally lives in tab), but a hollow "alternate
+// bass" dot is the nearest existing practice, so this borrows rather than invents.
+// Dashes were considered and dropped: at r=4.6 they read as a rendering artifact.
+// This is why the OPEN-string markers are filled discs — hollow now means "you
+// move here", and it can only mean one thing.
+//
+// Which chords have one is DATA (`MOVING` in data.js), not derivable — see the
+// note there for the measurement that settled it.
 
 import { CHORDS, CHORD_SHAPES } from "./data.js";
 
@@ -69,25 +85,33 @@ export function chordBoxModel(chordId) {
     if (idx.length >= 2) barre = { fret: low, from: idx[0], to: idx[idx.length - 1] };
   }
 
-  // The thumb's alternating pair. Every other sounded note belongs to the
-  // fingers. (The `fifth` role is deliberately not marked: root ↔ alt is the pair
-  // the thumb actually rocks between, and a third colour would muddy the read.)
-  const thumbStrings = new Set([chord.root, chord.alt]);
+  // ONLY THE ROOT is accented (his call, session 34), which is what an ordinary
+  // chord chart marks. This REPLACED marking the thumb's whole alternating pair
+  // (root + alt): his argument is that the thumb is already implicit in which
+  // string a note is on, since strings 6/5/4 are its domain, so a second accented
+  // dot spent colour on something the layout says for free.
+  const rootString = chord.root;
+  // The moving finger, if this chord has one: `moving: [from, to]` in data.js.
+  // Only the `to` note is drawn hollow — the one you reach for.
+  const movingTo = chord.moving ? chord.moving[1] : null;
   const dots = [];
   const marks = []; // above the nut: × muted, ○ open
   at.forEach((fret, i) => {
-    const thumb = thumbStrings.has(STRINGS[i]);
-    const role = thumb ? "thumb" : "finger";
+    const string = STRINGS[i];
+    const role = string === rootString ? "root" : "note";
+    const moving = string === movingTo;
     if (fret == null) { marks.push({ index: i, kind: "muted", role: null }); return; }
     if (fret === 0) { marks.push({ index: i, kind: "open", role }); return; }
     const underBarre = barre && fret === barre.fret && i >= barre.from && i <= barre.to;
     // A note under the barre needs no dot of its own — the bar is already saying
-    // "one finger lies across here". THE EXCEPTION IS A BASS ROLE: the two notes
-    // the thumb alternates between are the whole reason this diagram exists, so
-    // they're drawn on top of the bar rather than swallowed by it. (Colouring the
-    // BAR instead would be wrong — it covers five strings that mostly aren't bass
-    // notes, and G♯sus2, whose root sits under its barre, showed exactly that.)
-    if (!underBarre || thumb) dots.push({ index: i, fret, role, onBarre: !!underBarre });
+    // "one finger lies across here". TWO EXCEPTIONS get drawn on top of it: the
+    // ROOT (G♯sus2, whose root sits under its own barre, is what exposed that),
+    // and a MOVING note, whose whole point is that it isn't held down with the
+    // rest. Colouring the BAR instead would be wrong — it covers five strings
+    // that mostly aren't the root.
+    if (!underBarre || role === "root" || moving) {
+      dots.push({ index: i, fret, role, moving, onBarre: !!underBarre });
+    }
   });
 
   return {
@@ -100,11 +124,14 @@ export function chordBoxModel(chordId) {
     // The number printed beside the top row. Null at the nut, where the nut
     // itself says where you are.
     position: atNut ? null : first,
-    // The bar is always the FINGER colour: it's an index finger lying across, and
-    // any bass role beneath it is marked by its own dot on top (see above).
-    barre: barre ? { ...barre, role: "finger" } : null,
+    // The bar is never accented: it's an index finger lying across five strings,
+    // and a root beneath it is marked by its own dot on top (see above).
+    barre: barre ? { ...barre, role: "note" } : null,
     dots,
     marks,
+    // The pair one finger covers, carried through so a future treatment (a tie
+    // between them, say) needs no new data — only the `to` is drawn today.
+    moving: chord.moving || null,
     low,
     high,
     span: fretted.length ? high - low + 1 : 0,
@@ -185,10 +212,10 @@ export function renderChordBox(chordId) {
   }
 
   for (const d of m.dots) {
-    // A dot sitting ON the bar needs a rim, or a thumb dot in --active against a
+    // A dot sitting ON the bar needs a rim, or a root dot in --active against a
     // bar in --accent is two similar warm tones touching with no edge.
     svg.appendChild(el("circle", {
-      class: `cb-dot cb-${d.role}${d.onBarre ? " cb-on-barre" : ""}`,
+      class: `cb-dot cb-${d.role}${d.moving ? " cb-moving" : ""}${d.onBarre ? " cb-on-barre" : ""}`,
       cx: x(d.index), cy: dotY(d.fret), r: 4.6,
     }));
   }

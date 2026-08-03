@@ -149,6 +149,43 @@ export function splitChordId(id) {
   return ROOT_ID.includes(id) ? { root: id, quality: "major" } : null;
 }
 
+// ----- The MOVING FINGER (session 34, his ask) -----
+// `moving: [from, to]` says ONE LEFT-HAND FINGER covers those two strings, moving
+// between them rather than holding both — the classic open-C move, where the ring
+// finger rocks off the root and onto the low bass note as the thumb alternates.
+// The chord box draws the `to` note HOLLOW (see chordbox.js).
+//
+// IT HAS TO BE DATA, and that was measured rather than assumed. The obvious
+// geometric rule — two bass-role strings at the same fret on adjacent strings —
+// fires on 82 of the 120 chords, and is WRONG on most of them: in a plain F barre
+// the fifth (string 5) and the alt bass (string 4) are adjacent at the same fret,
+// but you hold both with ring and pinky and nothing moves at all. What makes C
+// different isn't geometry, it's fingering: the low bass note is an EXTRA note
+// beyond the standard three-finger shape, so you either add a pinky or shift a
+// finger you're already using. That's a fact about hands, and no shape can say it.
+//
+// So this is declared per chord, off the guitar, exactly like the awkward
+// voicings above it. An undeclared chord simply has no moving finger.
+const MOVING = {
+  // The open C family: ring finger, string 5 (root) ↔ string 6 (the low fifth),
+  // both at fret 3. His own words for it, back in the E♭add9 note: "the way a
+  // finger comes on and off string 6 for the low bass note some players add
+  // under an open C."
+  C:      [5, 6],
+  C7:     [5, 6],
+  Cmaj7:  [5, 6],
+  C6:     [5, 6],
+  Csus2:  [5, 6],
+  Cadd9:  [5, 6],
+  // E♭add9 — his fix (session 33). Strings 6 and 1 are both B♭ at fret 6; one
+  // finger takes whichever the moment needs, which is what makes the shape
+  // playable at all without a partial barre.
+  Ebadd9: [1, 6],
+  // F♯6 — his tabs (session 33): "you move the finger back and forth for the bass
+  // like on C." Root (string 5) and the true fifth (string 6) share fret 9.
+  "F#6":  [5, 6],
+};
+
 // ----- Open-position chords: hand-declared, because they're VOICINGS -----
 // These are the shapes you actually play in first position, and no template
 // produces them (open strings only exist at the nut). Everything else is derived.
@@ -388,6 +425,7 @@ for (const root of ROOTS) {
     // means the string.
     const { shape, ...chord } = OPEN_CHORDS[id] || deriveBarreChord(root, quality);
     CHORDS[id] = { name: root.name + quality.suffix, rootId: root.id, quality: quality.id, ...chord };
+    if (MOVING[id]) CHORDS[id].moving = MOVING[id];
     CHORD_SHAPES[id] = shape;
   }
 }

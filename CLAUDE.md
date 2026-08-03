@@ -545,14 +545,23 @@ Four dependency-free modules, all precached:
     `syncProgressionSelect` set the select to Custom, so the drum opens on it.
   - **THE LEFT-HAND SHAPE RIDES UNDER THE DRUMS** (`chordbox.js`, session 33 —
     OPEN_ITEMS item 9, whose revisit condition fired at 120 chords / 75 barres).
-    **It marks the THUMB'S ALTERNATING PAIR** (his call) in the grid's own colours
-    (thumb `--active`, fingers `--accent`) — the one thing a chord chart out of any
-    book cannot tell you, and the reason it earns space. It **redraws on SETTLE,
-    not per detent** (his call): a diagram flickering under a spinning barrel is
-    motion under a mechanism that's already moving. Only the **chord** wheel gets
-    one — Key × Progression has no shape — and both entry points get it free, since
-    they open the same panel. Its geometry and the barre-colour rule are in
-    `DESIGN.md`.
+    Two things it marks, both his calls and both **changed in session 34**:
+    - **Only the ROOT is accented** (`--active`). It used to accent the thumb's
+      whole alternating pair (root + alt), on the argument that no chord chart can
+      tell you which two notes the thumb rocks between. **He reversed it**: root-only
+      is what an ordinary chord chart marks, and the thumb is already implicit in
+      which string a note is on, since 6/5/4 are its domain.
+    - **THE MOVING FINGER, drawn HOLLOW** — where one left-hand finger covers two
+      strings by moving between them rather than holding both (the open-C ring
+      finger rocking onto the low bass note as the thumb alternates). **Which
+      chords have one is DATA** (`MOVING` in `data.js`) and cannot be derived: the
+      geometric rule fires on 82 of 120 and is wrong on every plain barre, where
+      both notes are simply held. See the note above that table.
+    It **redraws on SETTLE, not per detent** (his call): a diagram flickering under
+    a spinning barrel is motion under a mechanism that's already moving. Only the
+    **chord** wheel gets one — Key × Progression has no shape — and both entry
+    points get it free, since they open the same panel. Its geometry, and why the
+    open-string markers are filled discs, are in `DESIGN.md`.
   - **The mechanism's look and geometry are `DESIGN.md`** — the two housings, the
     engraved grooves, and the fact that **the panel and the Options field are one
     object cut from `:root`** (which is why the field can't change width between

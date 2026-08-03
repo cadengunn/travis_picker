@@ -1905,19 +1905,30 @@ main {
 .cb-fret   { stroke: var(--line); stroke-width: 1; opacity: 0.72; }
 .cb-nut    { stroke: var(--hardware); stroke-width: 2.6; stroke-linecap: round; }
 .cb-mute   { stroke: var(--muted); stroke-width: 1.4; stroke-linecap: round; }
-/* Dots carry the GRID'S OWN convention, so the colours already mean something:
-   thumb = --active, fingers = --accent. The two thumb dots are the pair your
-   thumb alternates between — the one thing a chord chart out of a book can't
-   tell you, and the reason this diagram is worth its space. */
+/* ONLY THE ROOT is accented (his call, session 34) — what an ordinary chord chart
+   marks. It used to accent the thumb's whole alternating pair; his argument for
+   dropping the second dot is that the thumb is already implicit in which string a
+   note is on. Everything else sounded is --accent. */
 .cb-dot, .cb-barre { stroke: none; }
-.cb-thumb  { fill: var(--active); }
-.cb-finger { fill: var(--accent); }
-/* A bass dot lying ON the bar: two warm tones touching need an edge between them. */
+.cb-root { fill: var(--active); }
+.cb-note { fill: var(--accent); }
+/* A root dot lying ON the bar: two warm tones touching need an edge between them. */
 .cb-dot.cb-on-barre { stroke: var(--control); stroke-width: 1.4; }
-/* An OPEN string is a ring, not a disc — it's a statement about not fretting. */
-.cb-open { fill: none; stroke-width: 1.5; }
-.cb-open.cb-thumb  { stroke: var(--active); }
-.cb-open.cb-finger { stroke: var(--accent); }
+/* THE MOVING FINGER: the note you move TO is hollow. HOLLOW MEANS EXACTLY ONE
+   THING in this box, which is why the open-string markers below are filled discs
+   — they were rings until this landed. Dashes were tried in the design and
+   dropped: at r=4.6 a dashed stroke reads as a rendering artifact, not a symbol.
+   `fill: none` needs the rim explicitly, since the fill was doing the colouring. */
+.cb-dot.cb-moving { fill: none; stroke-width: 1.6; }
+.cb-dot.cb-moving.cb-root { stroke: var(--active); }
+.cb-dot.cb-moving.cb-note { stroke: var(--accent); }
+/* ...and on a bar, the rim has to win over the on-barre edge to stay legible. */
+.cb-dot.cb-moving.cb-on-barre { stroke-width: 1.8; }
+/* An OPEN string is a filled disc above the nut. Position already says "open"
+   (nothing else is drawn up there but × and ○), so the ring was free to be
+   reassigned to the moving finger. */
+.cb-open.cb-root { fill: var(--active); }
+.cb-open.cb-note { fill: var(--accent); }
 .cb-pos {
   /* the fret-digit exception: rounded numerals, exactly as in the note domes */
   font-family: var(--numeral);

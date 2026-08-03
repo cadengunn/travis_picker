@@ -301,10 +301,23 @@ Its geometry:
   width, so widening it would break the one object both are cut from — and its
   test. `.wheel-shape` is `width: var(--drums-w)`, so the diagram can't drive the
   hug wider whatever it contains.
-- **The BARRE is always the finger colour** (one finger across five strings,
-  mostly not bass notes); a bass role beneath a bar gets its own rimmed dot on top
-  rather than being swallowed by it. `G♯sus2`, whose root sits under its barre, is
-  what exposed that.
+- **ONLY THE ROOT is accented** (`--active`), which is what an ordinary chord
+  chart marks; everything else sounded is `--accent`. This replaced accenting the
+  thumb's whole root↔alt pair in session 34, his call: the thumb is already
+  implicit in which string a note is on. **The BARRE is never accented** (one
+  finger across five strings, mostly not the root); a root beneath a bar gets its
+  own rimmed dot on top rather than being swallowed by it. `G♯sus2`, whose root
+  sits under its barre, is what exposed that.
+- **HOLLOW MEANS "you move a finger here", and it means nothing else.** The moving
+  finger (`MOVING` in `data.js`) is drawn as an outlined dot on the string you move
+  TO; the home note stays filled. There is **no established symbol for this** in
+  chord-box notation — movement normally lives in tab — but a hollow "alternate
+  bass" dot is the nearest existing practice, so this borrows rather than invents.
+  Two consequences: **dashes were tried in the design and dropped** (at r=4.6 a
+  dashed stroke reads as a rendering artifact, not a symbol), and **the open-string
+  markers are filled discs**, where they used to be rings. Position already says
+  "open" — nothing else is drawn above the nut but × and ○ — so the ring was free
+  to be reassigned, and hollow stays unambiguous.
 - **It cost the panel's height cap.** `.dd-panel` caps panels at `52vh` and scrolls
   the overflow, but a mechanism must not scroll, so the wheel got
   `max-height: min(78vh, 430px)` — at 52vh the diagram was clipped off. That rule
