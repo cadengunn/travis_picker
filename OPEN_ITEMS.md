@@ -16,7 +16,23 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.2.4) — Cm6 / C♯m6 moved, one thing still open
+## On the phone right now (v3.2.5) — F♯6 has its own shape too
+
+**`F♯6` is now `9 9 8 8 11 9`**, your tabs. Worth explaining what I almost got
+wrong: read as a static shape, it needs four separate fret positions across 4
+frets, which looked like a step backward from the old full barre. Your note —
+*"you move the finger back and forth for the bass like on C"* — was the fix:
+the root and the 5th sit on adjacent strings at the same fret, and you only
+ever need one of them at a time, so it's really just the ordinary thumb + 3
+fingers, same as E♭add9's trick. The diagram shows two dots there rather than
+one, which is correct; the "moving" part is playing technique, not something
+the picture needs to show differently.
+
+**Budget untouched** — 55.09 / 384.84 / 11.06 / no overflow. 104/104 green.
+
+---
+
+## Previously on the phone (v3.2.4) — Cm6 / C♯m6 moved, one thing still open
 
 **`Cm6` and `C♯m6` are now at your exact frets** — `8 10 10 8 10 8` and
 `9 11 11 9 11 9`, the E-shape template's higher position instead of the
@@ -25,12 +41,10 @@ one clean full barre (not a stack), matching the diagrams you sent. The bass
 alternation is unchanged either way (root ↔ 5th, same as before) — only the
 neck position moved.
 
-**Still waiting on you: F6 or F♯6?** Your tab (`1 0 0 2 1 1`) spells natural F
-major 6th (F, A, C, D) — not F♯6 (which needs F♯, A♯, C♯, D♯). Since we'd been
-discussing F♯6 all session, I want to check which you meant before touching
-anything: F♯6 wasn't fixed by this shape (it has open strings that don't
-transpose to F♯ without becoming a different shape), and F6 wasn't one of your
-original four. Let me know and I'll wire in whichever you actually want.
+**The third tab was F6, not F♯6 — held rather than guessed.** Your frets
+(`1 0 0 2 1 1`) spelled natural F major 6th, and we'd been discussing F♯6 all
+session, so I asked rather than risk applying the wrong chord. You confirmed
+F♯6 and sent new tabs for it — see v3.2.5 above.
 
 **Budget untouched** — 55.09 / 384.84 / 11.06 / no overflow. 104/104 green.
 

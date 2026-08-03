@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [33f](#where-things-stand-session-33f--v325-2026-08-03) | **v3.2.5** | F#6 revoiced to his tabs, a moving-finger root/5th bass (same technique as Ebadd9) that reads as four static positions but plays as the ordinary thumb+3-fingers |
 | [33e](#where-things-stand-session-33e--v324-2026-08-03) | **v3.2.4** | Cm6/C#m6 moved to the E-shape template's higher position (his exact tabs), fret ceiling raised to 12 as a named exception; F6-vs-F#6 mapping caught and held pending his answer |
 | [33d](#where-things-stand-session-33d--v323-2026-08-03) | **v3.2.3** | four more chords flagged too hard, corrected: full barres are fine, only Csus4's two-disconnected-partial-barres was real, revoiced to a single standard barre |
 | [33c](#where-things-stand-session-33c--v322-2026-08-03) | **v3.2.2** | E♭add9 revoiced again (string 6 sounds now, no partial barre — Root–Fifth alternates properly); the chord die can be tapped while its own wheel is open |
@@ -49,6 +50,41 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 33f — v3.2.5, 2026-08-03)
+
+**F♯6 got its own shape too, a day and a "maybe?" after Cm6/C♯m6.** His tab:
+`9 9 8 8 11 9`. Notes checked out immediately — C♯,F♯,B♭,E♭ is exactly F♯6's
+formula — but the fingering was worth a second look before committing it.
+
+**A structural read almost held this one back for the wrong reason.** Read as
+a static, all-simultaneous shape, this needs four separate fret/string
+contacts across a 4-fret span (a 2-string barre at fret 8 on strings 4/3, plus
+three more individual positions at frets 9/9/11) — objectively more contact
+points and a wider span than the shape it replaces. Flagged that before
+applying anything. **His answer reframed the whole question:** *"This is one
+of those where you move the finger back and forth for the bass like on C."*
+The root (string 5) and the 5th (string 6) sit at the *same* fret (9) on
+*adjacent* strings — for fingerpicking, the thumb only ever needs one of them
+at a time, so one fingertip relocates between the two rather than holding both.
+That drops the real requirement back to the ordinary thumb + 3 fingers every
+other chord in this app already assumes; the "four simultaneous points" framing
+was analyzing it as a strummed chord, which this app doesn't do.
+
+**Same technique as `E♭add9`,** which is what made the reframe immediate
+rather than a fresh puzzle: the app doesn't model *how* a string gets fretted,
+only *what* sounds, so the data is just the plain shape — `alt` and `fifth`
+both point at string 6, since the moving note is the 5th, and Travis/
+Root–Fifth alternate F♯ ↔ C♯ exactly as the old shape did.
+
+`F♯6` joins `Cm6`/`C♯m6` as a named exception to "whichever barres lower" —
+now three chords, not two, all justified by the same raised (and still
+scoped) 12-fret ceiling from v3.2.4.
+
+104/104 green. Budget re-measured, unchanged: 55.09 / 384.84 / 11.06 / no
+overflow.
 
 ---
 

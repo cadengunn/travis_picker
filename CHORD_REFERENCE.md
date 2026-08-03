@@ -90,6 +90,18 @@ Two conventions worth knowing before you flag something as wrong:
   ceiling stays 8; these two are a named, deliberate exception in the test.
   The alternating bass is unaffected — both the old and new shapes give root ↔
   5th (C ↔ G / C♯ ↔ G♯); only the position on the neck changed.
+- **`F♯6` is now `9 9 8 8 11 9`** (v3.2.5, his tabs from a photo). It replaces
+  the auto-derived E-shape barre (`2 4 4 3 4 2`, a full 6-string index barre)
+  with a genuinely different shape: only strings 4/3 share a fret (a small
+  2-string barre at fret 8), and the root (string 5) and the 5th (string 6) sit
+  on *adjacent* strings at the same fret (9) rather than both under one barre.
+  His note: **"you move the finger back and forth for the bass like on C"** —
+  the same technique `E♭add9` uses. One fingertip relocates between strings 6
+  and 5 rather than holding both, so the fretting hand never needs more than
+  thumb + 3 fingers at any single moment, even though the shape has four
+  distinct fret/string positions on paper. `alt` and `fifth` both point at
+  string 6, since the moving note *is* the 5th — Travis/Root–Fifth now
+  alternate F♯ ↔ C♯ exactly as before, just via a different physical shape.
 - **Wide stretches** (5-fret spans): `F♯sus2` (2–6), `G♯sus2` (4–8), `Fsus2` (1–5),
   `C♯add9` (4–8), `B♭add9` (1–5), `Badd9` (2–6). **All six were played and kept**
   (v3.2.1). The three sus2 need a partial barre — one finger across strings 5+4 —
@@ -222,7 +234,7 @@ target, and it's the least idiomatic for this style.)*
 | **F♯7** | `2 4 2 3 2 2` | F♯ C♯ E B♭ C♯ F♯ | R 5 ♭7 3 5 R | F♯ (s6) ↔ E (s4) | C♯ (s5) | 4 |
 | **F♯maj7** | `2 4 3 3 2 2` | F♯ C♯ F B♭ C♯ F♯ | R 5 △7 3 5 R | F♯ (s6) ↔ F (s4) | C♯ (s5) | 4 |
 | **F♯m7** | `2 4 2 2 2 2` | F♯ C♯ E A C♯ F♯ | R 5 ♭7 ♭3 5 R | F♯ (s6) ↔ E (s4) | C♯ (s5) | 4 |
-| **F♯6** | `2 4 4 3 4 2` | F♯ C♯ F♯ B♭ E♭ F♯ | R 5 R 3 6 R | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 4 |
+| **F♯6** | `9 9 8 8 11 9` | C♯ F♯ B♭ E♭ B♭ C♯ | 5 R 3 6 3 5 | F♯ (s5) ↔ C♯ (s6) | C♯ (s6) | 11 |
 | **F♯m6** | `2 4 4 2 4 2` | F♯ C♯ F♯ A E♭ F♯ | R 5 R ♭3 6 R | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 4 |
 | **F♯sus2** | `2 4 4 6 2 4` | F♯ C♯ F♯ C♯ C♯ G♯ | R 5 R 5 5 9 | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 6 |
 | **F♯sus4** | `2 4 4 4 2 2` | F♯ C♯ F♯ B C♯ F♯ | R 5 R 4 5 R | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 4 |

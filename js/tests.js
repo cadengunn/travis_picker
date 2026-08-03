@@ -460,12 +460,15 @@ check("chord library: movable templates reproduce the hand-declared barre chords
   }
   // Playability: "whichever barres lower" is the rule, so almost nothing should
   // land above the 8th fret (the worst DEFAULT is the A-shape at 6 — the E♭
-  // family). Two chords are a deliberate, named exception: Cm6 and C♯m6 are
-  // hand-declared to use the E-shape min6 template's HIGHER position (barre 8/9)
-  // instead of the auto-picked lower A-shape one — his call, off the guitar,
-  // "anything up to fret 12 acceptable" for these. The ceiling here is raised to
-  // 12 to match that instruction rather than silently exempting them, so a THIRD
-  // chord drifting past 8 without a reason still fails loudly.
+  // family). Three chords are a deliberate, named exception, all his own tabs
+  // off the guitar, all trading the auto-picked lower shape for one he prefers:
+  // Cm6 and C♯m6 use the E-shape min6 template's HIGHER position (barre 8/9)
+  // instead of the lower A-shape one, and F♯6 uses a hand-declared shape with a
+  // moving-finger bass note (see its comment in data.js) instead of its own
+  // auto-derived full barre. His note: "anything up to fret 12 acceptable" for
+  // these. The ceiling here is raised to 12 to match that instruction rather
+  // than silently exempting them, so a FOURTH chord drifting past 8 without a
+  // reason still fails loudly.
   for (const id of CHORD_IDS) {
     for (const s of [6, 5, 4, 3, 2, 1]) {
       const fret = CHORD_SHAPES[id][s];

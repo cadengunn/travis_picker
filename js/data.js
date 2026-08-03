@@ -204,6 +204,19 @@ const OPEN_CHORDS = {
   C6:    { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 2, 3: 2, 2: 1, 1: 0 } }, // x32210, 6 (A) on 3
   D6:    { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 0, 1: 2 } }, // xx0202
   G6:    { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 0 } }, // 320000, 6 (E) on 1
+  // F♯6 replaces the auto-derived E-shape barre (his tabs, session 33 — same
+  // guitar pass as Cm6/C♯m6, up to a day later): `9 9 8 8 11 9`. NOT a full
+  // 6-string index barre — strings 4/3 share one small barre at fret 8, and
+  // that's the only place two strings share a fret. The thumb's root (string 5)
+  // and the alt-bass 5th (string 6) sit at the SAME fret (9) on ADJACENT
+  // strings: his note, "you move the finger back and forth for the bass like on
+  // C" — one fingertip relocates between the two rather than holding both, the
+  // same technique E♭add9 uses (session 33 also). That means the fretting hand
+  // never needs more than thumb + 3 fingers at any one moment — the ordinary
+  // count for this style — even though the shape *looks* like four separate
+  // contact points held at once. `alt` and `fifth` both point at string 6
+  // because the moving note IS the 5th.
+  "F#6": { root: 5, alt: 6, fifth: 6, fifthFret: 9, shape: { 6: 9, 5: 9, 4: 8, 3: 8, 2: 11, 1: 9 } },
   // --- m6 ---
   Dm6:   { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 0, 1: 1 } }, // xx0201
   // Cm6 and C♯m6 are a DELIBERATE override of "whichever barres lower" (his call,
