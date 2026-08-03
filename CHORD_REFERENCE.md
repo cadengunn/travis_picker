@@ -1,6 +1,6 @@
 # Chord reference — every chord the app supports
 
-Generated from the live library at **v3.0.0** (12 roots × 10 qualities = **120
+Generated from the live library at **v3.0.0**, A-family rows updated at **v3.2.1** (12 roots × 10 qualities = **120
 chords**). This is a cross-check sheet, not a source: the truth is `OPEN_CHORDS` +
 `BARRE_TEMPLATES` in `js/data.js`.
 
@@ -47,20 +47,33 @@ Two conventions worth knowing before you flag something as wrong:
 - **`Gadd9` alternates G ↔ B** (the 3rd) rather than G↔D like the other G chords,
   because its shape puts B on string 5. A "walk to the 3rd" bass — common in
   fingerstyle, but inconsistent with its neighbours.
-- **`E♭add9` alternates E♭ ↔ G** (the 3rd), same reasoning — it's a compact
-  hand-voicing built to dodge the fret ceiling.
+- **`E♭add9` alternates E♭ ↔ G** (the 3rd) — a hand-voicing, because the A-shape
+  add9 lands on fret 10 for this root. **Revoiced at v3.2.1** from `x 1 1 0 4 1`,
+  which you found unplayable: it asked for fret 4 on string 2 while holding fret 1
+  on strings 5/4 *and* string 1, stranding a finger past the pinky. `x 6 5 0 6 6`
+  is one fret of reach. \*Its only trade: B♭ (the 5th) exists solely on string 1
+  here, so the `fifth` role doubles the root — meaning **Root–Fifth and Dead Thumb
+  play root-only on this one chord**. Travis and Alternating are unaffected, still
+  E♭ ↔ G.
 - **maj7 / m7 on E-shape roots alternate root ↔ 7** (`Emaj7` is E↔E♭, `Em7` is
   E↔D, `F♯maj7` is F♯↔F). This is the deliberate trade documented for dom7 — the
   7th's only playable home inside an E-shape is the alt-bass string. A-shape roots
   and the open forms keep a clean root↔fifth.
-- **The A family is inconsistent about string 6.** `A`, `Am`, `A7` are
-  hand-declared and mute it; `Amaj7`, `Am7`, `A6`, `Am6`, `Asus2`, `Asus4`,
-  `Aadd9` come from the template and sound the open low E (the 5th). Harmless —
-  but if you want the A family to look uniform, that's a data edit.
+- **The A family is uniform as of v3.2.1.** `A`, `Am` and `A7` used to mute
+  string 6 while `Amaj7`, `Am7`, `A6`, `Am6`, `Asus2`, `Asus4` and `Aadd9`
+  sounded the open low E. That was harmless musically (E is A's fifth) but it was
+  a genuine contradiction: all three declared `fifth: 6`, so **the thumb played
+  string 6 anyway** — the shape said mute, the app picked it. The chord box made
+  it visible by drawing an × over a string you hear. All ten now sound it, and a
+  test forbids any chord from playing a string its own shape mutes.
 - **Wide stretches** (5-fret spans): `F♯sus2` (2–6), `G♯sus2` (4–8), `Fsus2` (1–5),
-  `C♯add9` (4–8), `B♭add9` (1–5), `Badd9` (2–6). **`G♯sus2` is the one I most
-  expect you to dislike.** sus2's E-shape keeps string 3 a real chord tone instead
-  of muting the third, which is what costs the span.
+  `C♯add9` (4–8), `B♭add9` (1–5), `Badd9` (2–6). **All six were played and kept**
+  (v3.2.1). The three sus2 need a partial barre — one finger across strings 5+4 —
+  on top of the main barre: doable, but not beginner-friendly. The three add9 need
+  a genuine finger-crossing and are the harder half. Span alone was the wrong
+  measure here; what makes a shape hard is a *low-fret note stranded on the far
+  side of a high-fret one*, which is why `Dadd9` and `E♭add9` (span 4, not 5) were
+  the two that actually had to be dealt with.
 
 ---
 
@@ -144,7 +157,7 @@ target, and it's the least idiomatic for this style.)*
 | **E♭m6** | `6 6 8 8 7 8` | B♭ E♭ B♭ E♭ F♯ C | 5 R 5 R ♭3 6 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 8 |
 | **E♭sus2** | `6 6 8 8 6 6` | B♭ E♭ B♭ E♭ F B♭ | 5 R 5 R 9 5 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 8 |
 | **E♭sus4** | `x 1 1 3 4 4` | x B♭ E♭ B♭ E♭ G♯ | · 5 R 5 R 4 | E♭ (s4) ↔ B♭ (s5) | B♭ (s3) | 4 |
-| **E♭add9** | `x 1 1 0 4 1` | x B♭ E♭ G E♭ F | · 5 R 3 R 9 | E♭ (s4) ↔ G (s3) | B♭ (s5) | 4 |
+| **E♭add9** | `x 6 5 0 6 6` | x E♭ G G F B♭ | · R 3 3 9 5 | E♭ (s5) ↔ G (s4) | E♭ (s5)\* | 6 |
 
 ### E
 
@@ -225,9 +238,9 @@ target, and it's the least idiomatic for this style.)*
 
 | Chord | Tab (6→1) | Notes (6→1) | Intervals | Thumb: root ↔ alt | Fifth | Max fret |
 |---|---|---|---|---|---|---|
-| **A** | `x 0 2 2 2 0` | x A E A C♯ E | · R 5 R 3 5 | A (s5) ↔ E (s4) | E (s6) | 2 |
-| **Am** | `x 0 2 2 1 0` | x A E A C E | · R 5 R ♭3 5 | A (s5) ↔ E (s4) | E (s6) | 2 |
-| **A7** | `x 0 2 0 2 0` | x A E G C♯ E | · R 5 ♭7 3 5 | A (s5) ↔ E (s4) | E (s6) | 2 |
+| **A** | `0 0 2 2 2 0` | E A E A C♯ E | 5 R 5 R 3 5 | A (s5) ↔ E (s4) | E (s6) | 2 |
+| **Am** | `0 0 2 2 1 0` | E A E A C E | 5 R 5 R ♭3 5 | A (s5) ↔ E (s4) | E (s6) | 2 |
+| **A7** | `0 0 2 0 2 0` | E A E G C♯ E | 5 R 5 ♭7 3 5 | A (s5) ↔ E (s4) | E (s6) | 2 |
 | **Amaj7** | `0 0 2 1 2 0` | E A E G♯ C♯ E | 5 R 5 △7 3 5 | A (s5) ↔ E (s4) | E (s6) | 2 |
 | **Am7** | `0 0 2 0 1 0` | E A E G C E | 5 R 5 ♭7 ♭3 5 | A (s5) ↔ E (s4) | E (s6) | 2 |
 | **A6** | `0 0 2 2 2 2` | E A E A C♯ F♯ | 5 R 5 R 3 6 | A (s5) ↔ E (s4) | E (s6) | 2 |

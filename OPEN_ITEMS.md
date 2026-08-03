@@ -16,7 +16,34 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.2.0) — the chord-shape diagram
+## On the phone right now (v3.2.1) — your chord verdicts, actioned
+
+**You were right and my ranking was wrong.** I'd sorted the awkward chords by fret
+span, which put `G♯sus2` at the top and `Dadd9` well down the list — the opposite
+of what you found. What actually makes a shape hard is a **low-fret note stranded
+on the far side of a high-fret one**, forcing a finger back past the pinky. Your
+partial-barre trick works precisely where the two same-fret notes are adjacent
+(the sus2 shapes) and can't help where they straddle a higher note (the add9s).
+
+- **`E♭add9` is revoiced to `x 6 5 0 6 6`** — your pick. One fret of reach. One
+  trade to know: B♭ has no home on a bass string there, so **Root–Fifth and Dead
+  Thumb play root-only on this one chord**. Travis and Alternating are unchanged,
+  still E♭ ↔ G exactly as before.
+- **`Dadd9` untouched**, per your fingering.
+- **All six wide sus2/add9 barres kept**, per your call.
+- **`A`, `Am`, `A7` now sound the open low E.** The diagram caught a real
+  contradiction: all three muted string 6 but the thumb played it anyway as their
+  fifth. Harmless to hear — it's A's fifth and every other A chord already sounded
+  it — but the box was drawing an × over a string you can hear. There's now a test
+  forbidding any chord from playing a string its own shape mutes.
+
+**Worth a quick look on the phone:** the new E♭add9 in the wheel (it's the first
+shape that sits up at fret 5–6 with an open string in it), and whether root-only
+bass on that one chord bothers you under Root–Fifth.
+
+---
+
+## Previously on the phone (v3.2.0) — the chord-shape diagram
 
 **The wheel draws the shape now.** Spin to a chord and the left-hand fingering
 appears under the two drums — and the two dots your **thumb alternates between**

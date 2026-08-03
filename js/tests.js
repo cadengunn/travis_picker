@@ -2795,6 +2795,42 @@ acheck("pwa: the precache bypasses the HTTP cache (or a deploy can install stale
   assert(/res\.ok/.test(swText), "a failed precache response must abort the install");
 });
 
+check("the generator never picks a string the chord's shape mutes", () => {
+  // Found in session 33 by the chord box, not by a test: A / Am / A7 muted string
+  // 6 in their shape but declared `fifth: 6`, so the thumb played it anyway — the
+  // diagram drew an × over a string the app picks. It was musically harmless (E is
+  // A's fifth) which is exactly why it survived; the contradiction is what the
+  // picture made visible. This pins the whole class, since a resolver asked for a
+  // muted string falls back to FRET 0 and sounds an open string silently.
+  const rng = (seed) => {
+    let a = seed >>> 0;
+    return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  };
+  for (const id of CHORD_IDS) {
+    const shape = CHORD_SHAPES[id];
+    const muted = [6, 5, 4, 3, 2, 1].filter((s) => shape[s] == null);
+    if (!muted.length) continue;
+    // RELATIVE patterns only. The absolute presets (climb / descend / full random)
+    // walk literal string numbers and ignore the chord entirely — that's their
+    // whole job, it's why they raise the ABS indicator, and on D they will happily
+    // play the muted string 6. Asserting over them would be asserting against a
+    // documented feature.
+    for (const bass of ALL_BASS) {
+      for (let seed = 1; seed <= 6; seed++) {
+        const pattern = generatePattern(id, { bass, chaos: "loose", patternBars: 1, rng: rng(seed) });
+        if (pattern.type !== "relative") continue;
+        for (const { bar } of resolvePhrase(pattern, [id])) {
+          for (const ev of bar) {
+            assert(!muted.includes(ev.string),
+              `${id} (${bass}): plays string ${ev.string}, which its shape mutes`);
+          }
+        }
+      }
+    }
+  }
+});
+
 // ---- the chord box (session 33) ----
 
 check("chordbox: every chord in the library draws, and fits the 5-fret window", () => {
@@ -2839,6 +2875,29 @@ check("chordbox: open shapes sit at the nut, barre shapes print their position",
   assert(gs.span === 5 && gs.low === 4 && gs.high === 8,
     `G♯sus2 should span frets 4-8, got ${gs.low}-${gs.high}`);
   assert(gs.position === 4, "G♯sus2 prints position 4");
+});
+
+check("chordbox: an open string with high frets anchors by position, not the nut", () => {
+  // No SHIPPED chord mixes an open string with notes above fret 5, so the
+  // library sweep can't catch this — a candidate voicing being auditioned in
+  // session 33 did, and its dots drew outside the grid. Pinned with a synthetic
+  // shape so the guard survives whatever the library does later.
+  CHORD_SHAPES.__probe = { 6: null, 5: 6, 4: 5, 3: 0, 2: 6, 1: 6 };
+  CHORDS.__probe = { name: "probe", rootId: "D", quality: "add9", root: 5, alt: 4, fifth: 5 };
+  try {
+    const m = chordBoxModel("__probe");
+    assert(m.nut === false, "a shape reaching past the window must not claim the nut");
+    assert(m.first === 5, `the window must start at the lowest fretted note, got ${m.first}`);
+    for (const d of m.dots) {
+      const row = d.fret - m.first;
+      assert(row >= 0 && row < BOX_FRETS, `fret ${d.fret} drew outside the grid`);
+    }
+    // The open string is still open, and still says so.
+    assert(m.marks.some((k) => k.kind === "open"), "an open string keeps its ○ marker");
+  } finally {
+    delete CHORD_SHAPES.__probe;
+    delete CHORDS.__probe;
+  }
 });
 
 check("chordbox: a barre is a real barre, not just a repeated fret", () => {

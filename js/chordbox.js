@@ -26,7 +26,7 @@
 
 import { CHORDS, CHORD_SHAPES } from "./data.js";
 
-export const BOX_FRETS = 5;      // fret rows in the window
+export const BOX_FRETS = 5;      // fret rows in the window — the library's widest span
 const STRINGS = [6, 5, 4, 3, 2, 1]; // low to high, drawn left to right
 
 // A pure description of how to draw `chordId`. Returns null for an unknown chord
@@ -49,7 +49,14 @@ export function chordBoxModel(chordId) {
   // neck and prints its position instead — which is exactly how a chord chart
   // does it, and why the box needs no more than five rows for a library whose
   // widest span is five (G♯sus2, frets 4-8).
-  const atNut = anyOpen || low <= 1 || !fretted.length;
+  //
+  // ...but only if the fretted notes actually FIT there. A shape that mixes an
+  // open string with notes above the 5th fret can't be anchored at the nut — the
+  // dots would land outside the grid. No shipped chord does this, so the library
+  // test can't catch it; a candidate voicing being auditioned did, which is
+  // exactly when it would have bitten. Such a shape anchors by position and keeps
+  // its ○ markers, since those strings are still genuinely open.
+  const atNut = (anyOpen || low <= 1 || !fretted.length) && high <= BOX_FRETS;
   const first = atNut ? 1 : low;
 
   // A BARRE, not merely a repeated fret: one finger lies across several strings,

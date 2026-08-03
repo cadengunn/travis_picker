@@ -160,9 +160,17 @@ const OPEN_CHORDS = {
   D:  { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 2 } },
   E:  { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 0,    5: 2, 4: 2, 3: 1, 2: 0, 1: 0 } },
   G:  { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 3 } },
-  A:  { root: 5, alt: 4, fifth: 6, fifthFret: 0, shape: { 6: null, 5: 0, 4: 2, 3: 2, 2: 2, 1: 0 } },
+  // A / Am / A7 SOUND the open low E (session 33, his call). They were the only
+  // chords whose shape muted a string the generator then went on to play: all
+  // three declare `fifth: 6, fifthFret: 0`, so the thumb used string 6 as their
+  // fifth while the shape said `null`. Musically it was always fine — E is A's
+  // fifth, and the A-shape barres and Amaj7/Am7/A6/… have sounded it all along —
+  // but the chord box drew an × over a string the app picks, which is a diagram
+  // contradicting the instrument. Making the A family uniform fixes it at the
+  // source; a test now forbids the whole class.
+  A:  { root: 5, alt: 4, fifth: 6, fifthFret: 0, shape: { 6: 0,    5: 0, 4: 2, 3: 2, 2: 2, 1: 0 } },
   // --- minors ---
-  Am: { root: 5, alt: 4, fifth: 6, fifthFret: 0, shape: { 6: null, 5: 0, 4: 2, 3: 2, 2: 1, 1: 0 } },
+  Am: { root: 5, alt: 4, fifth: 6, fifthFret: 0, shape: { 6: 0,    5: 0, 4: 2, 3: 2, 2: 1, 1: 0 } },
   Dm: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 1 } },
   Em: { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 0,    5: 2, 4: 2, 3: 0, 2: 0, 1: 0 } },
   // --- dominant 7ths ---
@@ -174,7 +182,7 @@ const OPEN_CHORDS = {
   D7: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 1, 1: 2 } }, // ♭7 on 2
   E7: { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 0,    5: 2, 4: 2, 3: 1, 2: 3, 1: 0 } }, // ♭7 on 2
   G7: { root: 6, alt: 4, fifth: 5, fifthFret: 2, shape: { 6: 3,    5: 2, 4: 0, 3: 0, 2: 0, 1: 1 } }, // ♭7 on 1
-  A7: { root: 5, alt: 4, fifth: 6, fifthFret: 0, shape: { 6: null, 5: 0, 4: 2, 3: 0, 2: 2, 1: 0 } }, // ♭7 on 3
+  A7: { root: 5, alt: 4, fifth: 6, fifthFret: 0, shape: { 6: 0,    5: 0, 4: 2, 3: 0, 2: 2, 1: 0 } }, // ♭7 on 3
   // B7 is the open x21202 rather than an A-shape barre at 2: it's the chord you
   // actually play, and its ♭7 (A) is on string 3, a finger string. String 6 is
   // fretted at 2 (F♯) so the fifth role has its note — the same "the low string
@@ -220,8 +228,23 @@ const OPEN_CHORDS = {
   Dadd9: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 5, 1: 2 } }, // 9 (E) on 2
   Gadd9: { root: 6, alt: 5, fifth: 4, fifthFret: 0, shape: { 6: 3,    5: 2, 4: 0, 3: 2, 2: 0, 1: 3 } }, // G B D A B G, 9 (A) on 3
   // E♭add9: the genuine outlier — the A-shape add9 (9 at barre+4) lands on fret 10
-  // for the E♭ family. This compact form (root E♭ on string 4) keeps it ≤ fret 4.
-  Ebadd9: { root: 4, alt: 3, fifth: 5, fifthFret: 1, shape: { 6: null, 5: 1, 4: 1, 3: 0, 2: 4, 1: 1 } }, // Bb Eb G Eb F
+  // for the E♭ family, so this root has always needed a hand-voicing.
+  //
+  // REVOICED in session 33 (his call, off the guitar). The old low form
+  // `x 1 1 0 4 1` was UNPLAYABLE: it asked for fret 4 on string 2 while holding
+  // fret 1 on strings 5/4 AND fret 1 on string 1 — a finger stranded past the
+  // pinky, on the far side of it. He tried it and rejected it, along with the old
+  // Dadd9 (which he then found a fingering for: barre the 2s, pinky on 5 — so
+  // Dadd9 above is deliberately UNCHANGED).
+  //
+  // `x 6 5 0 6 6` is one fret of reach: a finger each on strings 5 and 4, string 3
+  // ringing open, and a two-string partial barre on 2/1. The trade he accepted is
+  // that the 5th (B♭) has no home on a bass string here — it exists only on string
+  // 1 — so `fifth` points at the ROOT'S own string. That's the documented
+  // closed-voicing convention: the Travis preset then alternates between identical
+  // notes, i.e. thumb-on-root. The alternating pair is E♭ ↔ G either way, exactly
+  // as the old voicing did, so nothing about the bass actually changes.
+  Ebadd9: { root: 5, alt: 4, fifth: 5, fifthFret: 6, shape: { 6: null, 5: 6, 4: 5, 3: 0, 2: 6, 1: 6 } }, // Eb G G F Bb
 };
 
 // ----- Movable barre templates: one shape slid up the neck -----

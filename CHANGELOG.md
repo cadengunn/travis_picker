@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [33b](#where-things-stand-session-33b--v321-2026-08-03) | **v3.2.1** | he played the chords: span was the wrong difficulty metric — `E♭add9` revoiced, `Dadd9` and the six wide barres kept, `A`/`Am`/`A7` now sound string 6 (the chord box exposed it), plus two guards |
 | [33](#where-things-stand-session-33-2026-08-03) | **v3.2.0** | the chord-shape diagram under the wheel's drums, marking the thumb's alternating pair (item 9's revisit condition finally fired at 120 chords / 75 barres); plus the measurement that cut his playability audit from 120 chords to 12 |
 | [32](#where-things-stand-session-32-2026-08-02) | **v3.1.0** | the four deferred small fixes: settings persist (`tp-prefs`, BPM included — a reversal); the intermittent dead Play traced to an iOS `"interrupted"` AudioContext and hardened; the landscape sheet bug fixed at the cause (a stale inline viewport box); 3 of 9 "dead" symbols actually dead |
 | [31](#where-things-stand-session-31-2026-08-02) | **v3.0.0** → v3.0.1 | the last two qualities — sus2 + add9; completes the requested set (dim7 stays out); library now 120 chords. **V3 marks the finished chords + progressions revamp (sessions 29–31).** Then v3.0.1: Dadd9 was D major — fixed, plus a chord-tone test |
@@ -45,6 +46,68 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 33b — v3.2.1, 2026-08-03)
+
+**He played the chords, and the ranking I'd given him was wrong.** Two real fixes
+came out of it, plus a lesson worth keeping. 103/103 green.
+
+### Span was the wrong measure
+
+v3.2.0 ranked awkwardness by **fret span** and told him the audit was twelve
+chords, worst-first: `G♯sus2` (span 5) at the top, `Dadd9` (span 4) well down.
+On the guitar he reported the opposite shape of problem: the sus2 barres were
+"somewhat playable… not super beginner friendly" once you use **one finger across
+two adjacent strings**, while `Dadd9` and `E♭add9` were flatly unplayable — "unless
+I was to grow a sixth finger".
+
+Finger COUNT didn't explain it either; all of them come out at four. What actually
+makes a shape hard is **a low-fret note stranded on the far side of a high-fret
+one**, forcing a finger back past the pinky:
+
+```
+Fsus2   1 3 3 5 1 3   fret 3 on strings 5+4 — ADJACENT, so one finger covers both  ✓
+Badd9   2 2 4 6 4 2   fret 4 on strings 4 and 2, straddling string 3 at fret 6     ✗
+```
+
+A model built on that (crossing, with a ≥2-fret gap) reproduces his verdicts and
+correctly clears the everyday crossings it must not flag — `C`, `C7`, `C6`,
+`Csus4`, `Dm`, `Esus2`, `G7`, `Aadd9` all pass.
+
+### What changed, and what deliberately didn't
+
+- **`E♭add9` revoiced** `x 1 1 0 4 1` → **`x 6 5 0 6 6`** (his pick from four
+  candidates rendered as chord boxes). One fret of reach. The trade he accepted:
+  B♭ has no home on a bass string there, so `fifth` doubles the root — **Root–Fifth
+  and Dead Thumb play root-only on this chord**; Travis and Alternating are
+  untouched, still E♭ ↔ G, exactly as the old voicing.
+- **`Dadd9` KEPT.** He found the fingering himself — barre the 2s, pinky on 5.
+- **All six wide sus2/add9 barres KEPT**, his call: playable with a partial barre.
+- **`A` / `Am` / `A7` now sound string 6.** The chord box exposed a genuine
+  contradiction: all three muted it while declaring `fifth: 6`, so the thumb played
+  it anyway — the picture drew an × over a string you can hear. Harmless musically
+  (E is A's fifth, and every other A chord already sounded it), which is precisely
+  why it survived this long.
+
+### Two guards, both proven to fail first
+
+- **No chord may play a string its own shape mutes.** Verified against the pre-fix
+  data: `A (travis): plays string 6, which its shape mutes`. It is scoped to
+  RELATIVE patterns — the first run flagged `D (climb)`, which is the absolute
+  presets doing their documented job of ignoring the chord, not a bug. Worth
+  knowing: a resolver asked for a muted string falls back to **fret 0** and sounds
+  it open, silently.
+- **A chord box with an open string AND notes past fret 5 anchors by position.**
+  Caught on screen while auditioning candidates — `x 6 5 0 6 6` drew its dots
+  outside the grid. No shipped chord mixes those, so the library sweep couldn't
+  find it; pinned now with a synthetic shape.
+
+**The lesson, recorded because I got it wrong in front of him:** a metric that
+sorts plausibly is not a metric that's right. Span *correlated* with difficulty
+well enough to look convincing, and it inverted the actual answer on the two
+chords that mattered.
 
 ---
 

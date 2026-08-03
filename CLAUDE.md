@@ -1370,7 +1370,29 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     `C♯` on the wheel and `D♭` in the header (it was, before the wheel). Which
     spelling per pitch is a guitarist's habit, not a rule: flats for E♭/B♭,
     sharps for C♯/F♯/G♯. A test pins it.
-  - A test asserts every chord's role strings are covered by its shape.
+  - A test asserts every chord's role strings are covered by its shape, and
+    another that **no chord plays a string its own shape mutes**. That second one
+    exists because the chord box found a live contradiction (session 33): `A`,
+    `Am` and `A7` muted string 6 while declaring `fifth: 6`, so the thumb picked
+    it anyway. Musically harmless — E is A's fifth, and every other A chord
+    sounded it — which is exactly why nobody noticed until a picture drew an ×
+    over a string you can hear. All three sound it now. **The check is scoped to
+    RELATIVE patterns**: the absolute presets (climb / descend / full random) walk
+    literal string numbers and ignore the chord by design, so on D they will play
+    the muted string 6 — that's what the ABS indicator is warning you about.
+    Note a resolver asked for a muted string falls back to **fret 0** and sounds
+    it open, silently, which is what makes this class worth pinning.
+  - **PLAYABILITY IS NOT SPAN** (session 33, learned by getting it wrong). Fret
+    span was used to rank how hard a shape is, and it's the wrong measure: it
+    ranked `G♯sus2` (span 5) as the worst and cleared `Dadd9` (span 4), while he
+    found `Dadd9` unplayable and `G♯sus2` merely awkward. What actually makes a
+    shape hard is **a low-fret note stranded on the far side of a high-fret one**,
+    which forces a finger to cross back past the pinky. Where the two notes at the
+    same fret are on *adjacent* strings, one finger covers both (a partial barre)
+    and the shape survives — that's his own solution for the three sus2. Only
+    `Dadd9` and `E♭add9` genuinely failed, and `Dadd9` he then found a fingering
+    for (barre the 2s, pinky on 5), so **`E♭add9` alone was revoiced**, to
+    `x 6 5 0 6 6`. All the wide sus2/add9 barres are deliberately KEPT.
   - **🎲 rolls the whole library** (his call, with the wheel) — it used to roll the
     open "campfire" chords only, but a picker that offers all 36 with equal
     ceremony should have a die that does the same.
