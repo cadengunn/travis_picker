@@ -21,12 +21,6 @@ whether an idea has already been tried and rejected. Everything still
 load-bearing has been promoted into this file; a **"(session N)"** attribution
 below is a pointer into that file's entry for N.
 
-**What's in here:** Running it · Deploying · Architecture (file map, data flow,
-chord modes, Nashville tokens, layout & the height budget, the manual editor,
-metronome & swing, pattern playback, the Saved library, UI components, platform
-integrations, the design language, type, themes) · Core data model · Key rules ·
-Conventions · Status · Working with this user.
-
 ## Running it
 
 ES modules require HTTP (they won't load from `file://`). From the repo root:
@@ -51,8 +45,8 @@ Browsers cache ES modules aggressively **and** a cache-busting query on the page
 does not propagate to its imports, so with a plain server you keep testing stale
 code. (If you do use the stdlib server, hard-refresh with Cmd+Shift+R.)
 
-**What the dev box CANNOT tell you** — three real limits, each of which has
-produced a wrong "verified" before:
+**What the dev box CANNOT tell you** — each of these has produced a wrong
+"verified" before:
 - **`requestAnimationFrame` is paused in a hidden preview tab**, which freezes
   both the playhead and the beat lamp, so their blink can only be confirmed on a
   real, foreground device. `document.fonts.ready` can hang there too — force
@@ -70,6 +64,13 @@ produced a wrong "verified" before:
 - **No touch, no ring switch, no lock screen.** The tap-highlight halo (v2.6.2),
   long-press selection, silent-mode audio and the wake lock are all invisible
   here; the most the dev box can do is read the computed property.
+- **`tests.html` STALLS in a hidden tab and a screenshot PERTURBS it** (session
+  34). Timers are throttled to the point that the run makes no progress at all
+  until something forces frames — so the suite has to be nudged with `computer`
+  actions, and a run that "hangs" here is the tab, not the code. But a
+  screenshot resizes the pane, and a `resize` closes any open `.dd-panel`
+  (dropdown.js's `reflow`), which is what made the wheel checks look flaky.
+  Screenshot *between* runs, not during one.
 
 Prefer **probing over eyeballing**: pitches have been recovered from rendered
 `AudioBuffer`s by period detection, scheduled slot times read off the audio
@@ -141,8 +142,7 @@ fonts/            bundled Fraunces (serif voice) + Jost (panel legends), both
                   .woff2 + their OFL licenses — precached, see "Type" below
 icons/            PWA + favicon PNGs, GENERATED — never hand-edit
 tools/            make_icons.py + icon-master.png; authoring only, nothing
-                  imports it at runtime. Pure stdlib (no PIL on this Mac): it
-                  decodes/encodes PNG and area-resamples the drawn master, and
+                  imports it at runtime. Pure stdlib (no PIL on this Mac), and it
                   ABORTS rather than writing if the art drifts outside the
                   maskable safe zone. Icons are opaque colour-type-2 — iOS
                   composites black behind any alpha in a home-screen icon.
@@ -158,8 +158,8 @@ js/synth.js       Karplus-Strong plucked-string voice (no deps) — pattern audi
 js/ui-sound.js    the two-phase button "ka-chunk" (no deps) — see UI components
 js/modal.js       confirm / prompt modals in the app's own language
 js/dropdown.js    custom dropdowns OVER the native <select> — read the invariant
-js/wheel.js       the chord picker: two cylinders (root × quality). A dropdown.js
-                  panel RENDERER, not a control of its own
+js/wheel.js       the two drum pickers (root × quality, key × progression). A
+                  dropdown.js panel RENDERER, not a control of its own
 js/chordbox.js    the left-hand shape as a chord box, under the chord wheel's
                   drums. Pure model + an SVG renderer; no deps but data.js
 js/help.js        help mode: the "?" latches and every tap explains instead of acting
@@ -188,35 +188,34 @@ patterns (Full Random) keep literal bass strings across the progression and
 show the "bass won't follow chords" indicator.
 
 **Nashville numbers (token model, session 13):** progressions are stored as
-harmonic **tokens** (`PROGRESSIONS[].tokens`, e.g. `["I","V","vi","IV"]`), and
-the selected **key** (`KEYS`) maps each token to a chord (`KEYS[k].chords`). Tokens
-— not bare 1–6 scale numbers — because the curated set needs harmony a plain
-degree can't express: a **major `II`** (distinct from the diatonic minor `ii`),
-the flat-seven major **`♭VII`**, and a dominant-7th tonic **`I7`**. Each key also
-carries a **`mode`** (`major`/`minor`); a key's mode decides which progressions
-are offered (the app filters by it — there is **no separate Major/Minor toggle**,
-the key selector holds both). Changing key **within a mode** transposes by token
-(`degreeOf` → `KEYS[newKey].chords[token]`), hand-edited bars included, unknown
-chords left alone; changing key **across** the mode line resets to that mode's
-first preset (can't transpose — the token sets differ). `detectProgression()`
-re-identifies the bars after any edit (in-mode only, preferring an exact-length
-match so `I–IV–V–I` isn't read as the shorter `I–IV–V`) and falls back to
-**Custom**. Degree 7 (diminished) is still absent.
+harmonic **tokens** (`PROGRESSIONS[].tokens`, e.g. `["I","V","vi","IV"]`), and the
+selected **key** (`KEYS`) maps each token to a chord (`KEYS[k].chords`). Tokens —
+not bare 1–6 scale numbers — because the curated set needs harmony a plain degree
+can't express: a **major `II`** (distinct from the diatonic minor `ii`), the
+flat-seven major **`♭VII`**, a dominant-7th tonic **`I7`**, and the secondary
+dominants the ragtime loops are built from. Each key carries a **`mode`**
+(`major`/`minor`), and a key's mode decides which progressions are offered — there
+is **no separate Major/Minor toggle**, the key selector holds both. Changing key
+**within a mode** transposes by token (`degreeOf` → `KEYS[newKey].chords[token]`),
+hand-edited bars included, unknown chords left alone; changing key **across** the
+mode line resets to that mode's first preset, because the token sets differ.
+`detectProgression()` re-identifies the bars after any edit (in-mode only,
+preferring an exact-length match so `I–IV–V–I` isn't read as the shorter
+`I–IV–V`) and falls back to **Custom**. Degree 7 (diminished) is still absent.
 
 **Every progression is a 4-bar phrase** (`tokens.length === 4`): a 2-chord idea
-repeats (`I–V` → `I–V–I–V`), a 3-chord idea holds its last chord
-(`I–IV–V` → `I–IV–V–V`). A separate **`label`** field carries the concise idea
-(`I–V`, `I–♭VII–IV`) shown in the menu and the header readout; `tokens` is the
-literal realization. A hand-edited (Custom) progression shows its per-bar degrees
-instead — via **`degreeLabel(chord, key)`**, which prefers the curated key token
-and falls back to **`romanInKey`** (v2.7.3): the numeral computed from the chord
-root's interval to the tonic + its quality, so a non-diatonic bar reads as a real
-numeral (`♯iv`, `♭ii`, `VI7`) rather than `?`. The computed value reproduces the
-map token for diatonic chords, and the tritone spells `♯IV` by convention. Menus group by data: keys by `KEYS[].mode`, progressions by
-`PROGRESSIONS[].style` (Foundations / Classic Country / Traditional Folk /
-Modern Acoustic / Classic Standards / Minor). `dropdown.js` renders `<optgroup>`
-labels as section headers. **Chords have no grouped menu** — both chord pickers
-are the wheel (below), so `CHORD_GROUPS`/`SINGLE_CHORD_GROUPS` are gone.
+repeats, a 3-chord idea holds its last chord. A separate **`label`** field carries
+the concise idea (`I–V`, `I–♭VII–IV`) shown in the menu and the header readout;
+`tokens` is the literal realization. A hand-edited (Custom) progression shows its
+per-bar degrees instead — via **`degreeLabel(chord, key)`**, which prefers the
+curated key token and falls back to **`romanInKey`**: the numeral computed from
+the chord root's interval to the tonic + its quality, so a non-diatonic bar reads
+as a real numeral (`♯iv`, `♭ii`, `VI7`) rather than `?`. The computed value
+reproduces the map token for diatonic chords, and the tritone spells `♯IV` by
+convention. Menus group by data — keys by `KEYS[].mode`, progressions by
+`PROGRESSIONS[].style` — and `dropdown.js` renders `<optgroup>` labels as section
+headers. **Chords have no grouped menu**: both chord pickers are the wheel, so
+`CHORD_GROUPS`/`SINGLE_CHORD_GROUPS` are gone.
 
 **No scrolling, ever:** every bar must be visible at once — you're holding a
 guitar and can't swipe mid-pattern. `grid.js` sets `data-bars` on the track and
@@ -229,22 +228,16 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
 - **Bottom strip (always visible), one row:** Play, BPM, 🎲 Generate, ⚙ Options.
   Only things you reach for mid-practice. 44px tap targets — don't shrink them
   to buy slider width.
-- **Slim bar above the grid: TWO rows** again since v2.11.0 — capo state (left)
-  + the **four pills** (right), then the pattern **name** on its own line. The
-  capo tag says both halves of the fact since v2.12.0 (`CAPO 2 → F♯`), so it is
-  now **width-critical**: the pills leave it 156.3px and its worst string needs
-  151.2px. It's shrink-and-ellipsize, not fixed, for exactly that reason —
-  re-measure it if the pills or the wording change.
-  **`.app-head` is 55px.** It was one 32px row from v2.10.2, and that collapse is
-  what bought the 31px that moved the musical context above the grid; the name
-  came back down when the Guide became a fourth pill and, with a capo set, left
-  the name **35px** of a 351px row — an ellipsis and nothing else. It now gets
-  the full width in every state. **Measured at 4 bars:** nothing overflows; at
-  414×818 the second row is invisible (112px of stage slack absorbs it), at
-  375×553 the clearance under the grid goes **28px → 11px**, which is the entire
-  price. The name row is **reserved even when empty** (a fresh generation shows
-  no name at all — no "Untitled" placeholder), so saving or loading never shifts
-  the grid. Re-measure both viewports if this row's height changes.
+- **Slim bar above the grid: TWO rows** since v2.11.0 — capo state (left) + the
+  **four pills** (right), then the pattern **name** on its own line, which is what
+  gives the name the full width in every state. **`.app-head` is 55px**, and that
+  second row is the whole reason the clearance under the grid is 11px rather than
+  28px. The capo tag says both halves of the fact (`CAPO 2 → F♯`) and is
+  **width-critical** — the pills leave it 156.3px and its worst string needs
+  151.2px — so it's shrink-and-ellipsize, not fixed. Re-measure if the pills or
+  the wording change. The name row is **reserved even when empty** (a fresh
+  generation shows no name at all — no "Untitled" placeholder), so saving or
+  loading never shifts the grid.
 - **ONE readout above the grid says what you're playing over** (`#chord-head`),
   in both chord modes: the single chord big, or the progression's Roman numerals
   + key. They used to sit in different places — chord above the grid, progression
@@ -255,38 +248,27 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   so **the worst-case readout now renders at 22px** (`CONTEXT_BASE_PX`, which the
   `.context` CSS must match — `fitContext` sets the size inline). `fitContext` is
   pure insurance now; nothing shrinks.
-- **The pills are ICON-ONLY** (`.pill-icon`, v2.8.1): pencil / floppy /
-  folder — and since v2.11.0 a **`?`** (`.pill-help`), which came out of the
-  Options sheet because it was the only *action* in there wearing a field label,
-  and help belongs with the always-reachable actions rather than on a settings
-  page. Since v2.13.4 it is a **latching toggle**, not a dialog opener — see
-  "Help mode". Its glyph is a real letter, so it wears the intaglio as a `text-shadow`
-  pair rather than the SVG `drop-shadow` filter. All four are engraved with the
-  transport's intaglio drop-shadow pair so a generic
-  glyph reads as part of the faceplate (the clever move is the treatment, not the
-  metaphor — a metaphor has to survive at 18px). They were the last text controls
-  in an app that otherwise speaks in glyphs, and the words cost width the context
-  needed: **199px → 146px, handing the readout 143px → 196px.** Words live on in
-  `title`/`aria-label`. The **saved count moved into the label too** — writing
-  `textContent` on the Load pill would wipe its `<svg>`, so `refreshSavedCount()`
-  sets `title`/`aria-label` and leans on the disabled state to say "nothing to
-  load". The REC lamp still rides the Edit pill (hence `display: inline-flex`).
-- **The context AUTO-SHRINKS to fit** (`fitContext()` in `app.js`, v2.7.5). Roman
-  numerals with accidentals run long — `♯iii – ♯vi – I7 – ♭II · Am` needs 171px —
-  and ellipsizing hid the very information the readout exists to give. So it
-  scales instead: 14px base, **10.5px floor**,
-  one measure-and-set pass (the pills are `flex: 0 0 auto`, so the space the
-  context gets doesn't change when its font does). **Since v2.8.1's icon pills
-  left 196px, every realistic readout — the worst case included — now sits at the
-  full 14px and nothing shrinks at all**; `fitContext` stays as the insurance that
-  made a longer future readout safe. (Measured at 375×553 before the icons:
-  presets 14px, a 4-accidental custom bar ~13.4px, the worst case ~11.7px.)
-  Re-fits on `document.fonts.ready` (Fraunces loads async and is wider than the
-  fallback) and on resize. Two supporting trims: the **version tag moved into the
-  Options sheet header** (beside the title, free — it's shorter than the ✕; it was
-  eating ~43px for information you never read mid-take), and `.context .sep`
-  margins went 10px → 5px. *A third header row was considered and rejected — the
-  SE grid budget has ~0 spare.*
+- **The pills are ICON-ONLY** (`.pill-icon`, v2.8.1): pencil / floppy / folder /
+  **`?`**. They were the last text controls in an app that otherwise speaks in
+  glyphs, and the words cost width the readout needed (**199px → 146px, handing
+  the readout 143px → 196px**); the words live on in `title`/`aria-label`. All
+  four wear the transport's intaglio so a generic glyph reads as part of the
+  faceplate — **the clever move is the treatment, not the metaphor**, since a
+  metaphor has to survive at 18px. The `?` is a real letter, so its intaglio is a
+  `text-shadow` pair rather than the SVG `drop-shadow` filter, and since v2.13.4
+  it's a **latching toggle**, not a dialog opener (see "Help mode"). The **saved
+  count lives in the label** — writing `textContent` on the Load pill would wipe
+  its `<svg>`, so `refreshSavedCount()` sets `title`/`aria-label` and leans on the
+  disabled state to say "nothing to load". The REC lamp rides the Edit pill (hence
+  `display: inline-flex`).
+- **The context AUTO-SHRINKS to fit** (`fitContext()`, v2.7.5): 14px base, 10.5px
+  floor, one measure-and-set pass. Roman numerals with accidentals run long and
+  ellipsizing hid the very information the readout exists to give. **Since the
+  icon pills left it 196px, every realistic readout including the worst case sits
+  at the full 14px and nothing shrinks** — `fitContext` is now insurance that
+  makes a longer future readout safe. Re-fits on `document.fonts.ready` (Fraunces
+  loads async and is wider than the fallback) and on resize. *A third header row
+  was considered and rejected — the SE grid budget has ~0 spare.*
 - **Accidentals need a FIXED `line-height`** wherever they appear (`.context`,
   `.dd-trigger`, `.dd-option`). `♭`/`♯` (U+266D/U+266F) aren't in Fraunces, so
   they render from a fallback whose taller ascent/descent grows the line box:
@@ -294,136 +276,76 @@ guitar in your hands?"*, because vertical space is the scarcest resource:
   bottom-anchored Options sheet up 3.75px (measured both ways). Pinning
   `line-height` makes every inline box the same height whatever font serves the
   glyph. Watch for this on any new text that can contain them.
-- **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Setup** (chord format + capo,
-  then the chord/key+progression row, then Thumb/Fingers/Pattern length — that
-  one is `.control-row.layers`, whose three slots are UNEVEN because its menus'
-  longest values are; see CHANGELOG session 18 — then the Swing slider) and
-  **Preferences** (the Sound lamp bank, note labels,
-  theme). You set all of it sitting down, between takes. **The pages are `Setup`
-  and `Preferences` as of v2.13.3** — "Generation" was the original name and
-  survives in the older notes in `CHANGELOG.md`; the ids are `tab-setup`/`page-setup`
-  to match. The chord-mode legend on page 1 is **`Format`**, not "Chords", and its
-  values are **`Single` / `Progression`** — spelled out since v2.14.3, paid for by
-  shrinking the row's dead third slot (`.control-row.format-capo`: 189.7 / 109 /
-  28.3 at 375, the capo deliberately still `1fr` so its stepper keeps its width).
-  **The segmented buttons have no horizontal padding, so the button IS the text
-  box**; `white-space: nowrap` is what stops a long value wrapping, because a wrap
-  in this row doesn't clip, it lifts the bottom-anchored sheet. (Since v2.14.8 the
-  Format control is **two carved keys in one recessed well** — the capo language,
-  not the old flat gold slab — with a 1px divider between them; the selected key is
-  **seated with bright text**, the other proud, and there is **no lamp** (the lamp
-  is the page tabs' signature; the capo it matches has none). It commits on
-  **`pointerup`** for the same reason the tabs do — see the tabs block below. The
-  1px divider trims the second button, so the "Progression on one line" test still
-  guards the fit.)
+- **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Setup** (Format + capo, then
+  the chord / key+progression row, then Thumb/Fingers/Pattern length
+  (`.control-row.layers`, whose three slots are UNEVEN because its menus' longest
+  values are), then Swing) and **Preferences** (the Sound lamp bank, note labels,
+  theme). You set all of it sitting down, between takes. The gear always opens on
+  Setup. The split exists to buy height — one page had ~27px spare at 375×553.
+  Ids are `tab-setup`/`page-setup`; "Generation" was page 1's name until v2.13.3
+  and survives only in older `CHANGELOG.md` entries. Six rules hold this sheet
+  together, each fixing something measured (sessions 18, 24–27):
+  - **The tabs ride the sheet's TITLE line**, so the split costs no height, and
+    **both pages live in one CSS grid cell** with the inactive one hidden by
+    `visibility` — the panel is always the taller page's height, so switching
+    tabs can't make the bottom-anchored sheet jump.
+  - **The chord row is one centred flex group, and both chord modes are cut to
+    the same total.** Key + Progression sum to exactly `--wheel-w` (90 / 139,
+    from `--key-w`; the 90/139 split is set by `I–♭VII–IV` at 77px + 34px of well
+    chrome), so switching modes moves nothing — measured, the group spans
+    42 → 333 and the die 287 → 333 in *both*. A test pins that. `.die-well`
+    carries an explicit `width: 46px`; `width: 100%` on the key collapsed it to
+    21px when the row stopped being a grid.
+  - **The die sits beside the chord and nowhere else** — that adjacency is the
+    only thing saying what its scope is. It wears the transport die's tilted six
+    (same pips, −13deg) but is a **carved key in a recessed well**, not the proud
+    cream Bakelite: two dice, two treatments, because this one sits among wells.
+  - **The Format control is two carved keys in one recessed well** — values
+    `Single` / `Progression`, selected key **seated with bright text**, and **no
+    lamp** (the lit jewel is the page tabs' signature, and the capo it matches has
+    none). The segmented buttons have **no horizontal padding, so the button IS
+    the text box**; a wrap here doesn't clip, it lifts the sheet, so a test guards
+    the fit.
+  - **The tabs are a LATCHING KEY PAIR, not a segmented control** (v2.14.5, his
+    call): narrow engraved keys in the **legend voice** (a page name is what the
+    machine *calls* a place, not a value you set), current page held in with its
+    lamp lit. What the test pins is that they're a different *kind* of object —
+    Jost face where Format's is the serif, and **the lit jewel is theirs alone**.
+  - **Seated keys commit on `pointerup`, and `:active`/`.active` are ONE RULE.**
+    Both are anti-flash fixes and both are needed: a separate `.active` rule left
+    one frame of the raised state between them, and switching on `click` left a
+    paintable gap after the browser drops `:active`. Pointerup collapses that gap
+    and still acts on release (`switchTab` is wired to `pointerup` + `click` — the
+    latter for the keyboard, which emits no pointer events). A **source-level
+    test** asserts the wiring, because the regression is silent and app.js glue
+    isn't imported by `tests.js`. Format works identically. Safe with help mode:
+    the tabs are on `NAV_SELECTOR`, and help swallows `pointerup` too so a non-nav
+    seated key can't switch state while armed. The specificity trap and the exact
+    shadow stops are commented in `styles.css` where they're declared.
   **That row must not be called `.context`** — it was, for one build, and silently
-  inherited the grid readout's `.context` rule (26px `line-height`, centred text,
-  `top: -4px`): both legends doubled in height and the row grew 59px → 72px. A test
-  compares its legend's height against a row that has no class of its own.
-  The split exists to buy height: one page had ~27px spare at 375×553, so
-  nothing new could be added. The gear always opens on
-  Setup. Three rules hold it together, each fixing something measured:
-  **the tabs ride the sheet's TITLE line** (so the split costs no height at all —
-  the version tag moved to the Guide to make the room); **both pages live in one
-  CSS grid cell** with the inactive one hidden by `visibility`, so the panel is
-  always the height of the taller page and switching tabs can't make the
-  bottom-anchored sheet jump; and **the die sits in the chord row and nothing
-  else** — and it wears a **tilted six**, the same pip layout and −13deg as the
-  transport's die (v2.14.6, his note), so the two read as one object; only the form
-  factor differs — and since v2.14.8 it's a **carved key sunk into a recessed well**
-  (the capo language, an engraved outline on the key), NOT the cream Bakelite face,
-  which is a deliberate divergence from the proud Generate die on the transport
-  (two dice, two treatments — this one sits among wells) —
-  because that adjacency is the only thing that says what its scope is —
-  and since v2.14.4 it sits directly **beside** the chord rather than out at the
-  row's edge, which is where a 3-slot grid had pinned it once the field shrank to
-  the wheel's 237px. That row is now **one centred flex group** (`237 + 8 + 46 =
-  291px` in 327px of track) and **both chord modes are cut to the same total** —
-  progression mode's Key + Progression sum to exactly `--wheel-w` (90 / 139, from
-  `--key-w`), so switching modes moves nothing: measured, the group spans 42 → 333
-  and the die 287 → 333 in *both*. A test compares the two modes and the centring.
-  Watch two things if you touch it: the die's **`.die-well` carries the explicit
-  `width: 46px`** now and the key fills it (`width: 100%` collapsed to 21px when the
-  row stopped being a grid; the well is the sized element since v2.14.8), and the
-  Progression well's longest value (`I–♭VII–IV`, 77px + 34px of well chrome) is what
-  sets the 90/139 split.
-  `.segmented.seg-tabs button` is double-classed for specificity — `.segmented
-  button` is defined later in the file and won on source order, leaving the tabs
-  at `padding: 10px 0` with the two words butted together.
-  **The tabs are a LATCHING KEY PAIR, not a segmented control** (v2.14.5, his call
-  after three mockups). They *were* a second `.segmented` — the same lit gold
-  capsule as the Format control 50px below — and he flagged it: *"the page selector
-  sort of blends with the controls… looks too similar to single/progression."* They
-  are now narrow engraved keys in the **legend voice** (Jost caps: a page name is
-  what the machine *calls* a place, not a value you're setting), each carrying a
-  jewel from the existing lamp family; the current page is **held in** with its
-  lamp lit while the other stands proud, dark. The two things that make them a
-  different *kind* of object are what the test pins — the face is Jost where the
-  Format control's is the serif, and **the lit jewel is the tabs' alone** (since
-  v2.14.8 the Format control seats too, so "held-in vs lit-up" no longer separates
-  them — the Format value carries no lamp, so a lit jewel means "page tab"). It also
-  took more contrast than the first pass gave it: at 10px the seated key needs its
-  cap highlight *removed*, a fill darker than the plate, and a hairline of bounce
-  along the bottom edge. The change made the sheet 2.5px shorter (333 → 330.5),
-  which is a gain, not a cost.
-  **`:active` and `.active` are ONE RULE** (v2.14.6, his note: "a little flash upon
-  release"). Pressing a latching key *is* seating it, and with the two declared
-  separately the tapped key went `:active` (deep inset) → one frame of **neither** →
-  `.active`, and that raised frame was the flash. They now share a rule, so there is
-  no frame to see; a test asserts the *shared selector* rather than the computed
-  values, since agreeing today isn't the same as being the same rule. The `transition:
-  box-shadow 0.07s ease` is the **same fix `.btn-roll` and `.dd-trigger` already
-  carry** — the snap on pop-out reads as a flicker.
-  **But the shared rule alone did NOT kill the flash** (v2.14.7, he reported it
-  again), because it only helps while `.active` is *present*, and the page was
-  switched on `click`: between the browser dropping `:active` at pointerup and the
-  click firing, the tab you pressed has **neither** class and paints its raised state
-  for a frame. v2.14.7 fixed it by switching on `pointerdown` — but that **committed
-  on press**, so the page flipped under your finger, which he flagged (session 27):
-  a latching key should hold while pressed and act on **release**, like every button.
-  **So the switch is on `pointerup` now** (`switchTab` wired to `pointerup` +
-  `click` in app.js — pointerup for the pointer path, click for the keyboard, which
-  emits no pointer events). Pointerup keeps *both* properties: release-activation,
-  and no flash — because adding `.active` in the pointerup handler runs
-  synchronously within the same release, before any paint, so `.active` is present
-  the instant `:active` drops. The click path's flash was precisely those being two
-  **separate** events with a paintable gap; pointerup collapses it to one. A
-  **source-level test** asserts the `pointerup` wiring (and the absence of
-  `pointerdown`), because the regression is silent — the page still switches, it just
-  acts on the wrong edge — and app.js glue isn't imported by `tests.js`.
-  **The Format control (v2.14.8) works the same way**, because it's a seated key too
-  (pressed == selected), so it carries the identical flash risk and the identical
-  fix: `:active`/`.active` one rule, commit on `pointerup`, guarded to the actual
-  mode change so the trailing `click` is a no-op.
-  This is safe with help mode: the tabs are on its `NAV_SELECTOR`, so its
-  capture-phase swallow lets their pointer events through; and help now swallows
-  **`pointerup` too** (session 27), so a non-nav seated-key control like Format
-  can't switch state in help mode on the new activation edge.
+  inherited the grid readout's `.context` rule (26px `line-height`, centred,
+  `top: -4px`): both legends doubled in height and the row grew 59px → 72px. A
+  test compares its legend's height against a row with no class of its own.
 - **There is no app bar.** A title told you nothing the home-screen icon doesn't,
   and its 53px was the difference between the 4-bar grid fitting and not.
 
 **The height budget is the constraint.** Cells are square and sized from screen
 *width*, so grid height is fixed by how wide the phone is and can only be bought
-back from chrome. **Re-measured live at v2.13.3** (session 19) at 375×553 —
-SE-class, 4 bars, progression mode, the worst case:
+back from chrome. Measured live at **375×553** — SE-class, 4 bars, progression
+mode, capo set, the worst case:
 
 | what | measured |
 |---|---|
-| grid track | 384.8px |
-| chrome (everything else) | 168.2px |
-| `.app-head` | 55.1px |
-| **clearance under the grid** | **11.1px** |
+| `.app-head` | 55.09px |
+| grid track | 384.84px |
+| **clearance under the grid** | **11.06px** |
 | `main` overflow | 0 — it fits |
 
 **That 11px is the entire remaining budget, and it is the number to protect.**
-(Re-measured at v2.14.2 with the chord wheel in: **identical** — 55.09 / 384.84 /
-11.06 / no overflow. The wheel is a body-level overlay, like the help card, so it
-costs nothing; and the 40px chord readout already pins its `line-height`, so a
-`C♯m` or `E♭7` doesn't grow its box either — checked across six chords, `gridTop`
-unmoved at 166.45. Re-measured again at **v2.14.3**, worst case — 4 bars,
-progression mode, capo 2, `I–♭VII–IV · C`: **identical again**, 55.09 / 384.84 /
-11.06 / no overflow. Both v2.14.3 changes are inside the Options sheet, and the
-sheet itself measured **333px in both chord modes**, the same as before them.)
+Those exact figures have held unchanged from v2.13.3 through v3.2.x, across the
+chord wheel, the chord diagram and every Options-sheet change — because all of
+those are **body-level overlays or live inside the sheet**, and the 40px chord
+readout pins its own `line-height` so a `C♯m` can't grow its box.
 Any further chrome must be measured at 375×553 before shipping. `main` has
 `overflow: auto`, so the failure mode is **silent** — the grid scrolls inside its
 own box rather than anything visibly breaking, and the laptop will not show you
@@ -463,13 +385,12 @@ into `{cellIndex, slot, string, chordId}`):
   three bass notes in one slot.
 - Every stored thumb event carries `string`, **including relative ones**
   (`resolveBar` recomputes it per chord). Omitting it made the hard-rule dedupe
-  key `"slot:undefined"`, which silently swallowed a second drawn bass note in
-  the same slot — 17 of 48 cells refused a note. There's a regression test.
-- Edits set `pattern.edited`, which saves the item with `source: "drawn"`.
-- `state.unsavedEdits` guards the destructive paths: Generate, Load, and a
+  key `"slot:undefined"`, which silently swallowed a second drawn bass note in the
+  same slot — 17 of 48 cells refused a note. There's a regression test.
+- Edits set `pattern.edited`, which saves the item with `source: "drawn"`, and
+  `state.unsavedEdits` guards the destructive paths (Generate, Load, a
   Thumb/Fingers change all `confirmModal()` first, and declining reverts the
-  control.
-  Hand-drawn work is the only thing here that can't be re-rolled back.
+  control). Hand-drawn work is the only thing here that can't be re-rolled back.
 
 **Metronome** (`metronome.js`): **raw Web Audio, not Tone.js** — the spec named
 Tone.js, but a click is an oscillator plus a gain envelope and the dependency
@@ -484,12 +405,11 @@ only if v2's pattern playback actually needs a synth library.
   directly instead of re-rendering (up to 8 updates/bar, and a re-render would
   fight edit mode); `render()` resets `litCells`.
 - The **beat lamp** (`#beat-lamp`, by the BPM readout) rides this SAME
-  `onStep`/`onCountIn` loop — no second clock. It blinks on beats (odd 1-based
-  slots; downbeat = slot 1, a bigger pulse), so it's a **silent visual metronome**
-  when the click is off. The count-in reports each digit twice (beat + offbeat
-  8th), so app.js pulses only when the count advances. NOTE: rAF is paused when
-  the preview tab is hidden, which freezes both the playhead and this lamp — so
-  the blink can only be verified on a real (foreground) device, not the dev box.
+  `onStep`/`onCountIn` loop — no second clock. It blinks on beats (downbeat a
+  bigger pulse), so it's a **silent visual metronome** when the click is off. The
+  count-in reports each digit twice (beat + offbeat 8th), so app.js pulses only
+  when the count advances. rAF is paused in a hidden tab, so this and the playhead
+  can only be confirmed on a real foreground device.
 - One bar of **count-in** (grid dims, button counts 1–4). `onCountIn(null)` only
   fires on stop, so the **first real step clears the count-in state** — that's
   why `onStep` calls `showCountIn(null)`.
@@ -498,28 +418,23 @@ only if v2's pattern playback actually needs a synth library.
 - **THE AUDIO CONTEXT CAN GO BAD, AND `resume()` IS NOT TO BE TRUSTED**
   (session 32 — this was the intermittent dead-Play bug). iOS has a third context
   state beyond running/suspended: **`"interrupted"`** (a call, Siri, another app
-  taking the audio session), and `resume()` on one of those may reject **or never
-  settle at all**. `running = true` sits after that await, so the transport simply
-  never started — and because `togglePlay` branches on `running`, `stopTransport`
-  early-returns on it, and nothing repaired audio on the way back to foreground,
-  every later press re-entered the same dead path. Play looked broken until the
-  app was backgrounded and foregrounded, which is **iOS** clearing the
-  interruption, not the app doing anything. Four rules now hold:
-  - the resume is caught **and raced against `RESUME_TIMEOUT_MS`**, so a click
-    handler can never be left waiting on a promise that will not settle;
+  taking the audio session), and `resume()` on one may reject **or never settle at
+  all**. `running = true` sat after that await, so the transport never started and
+  every later press re-entered the same dead path. Four rules now hold:
+  - the resume is caught **and raced against `RESUME_TIMEOUT_MS`** (injectable for
+    tests, session 34), so a click handler is never left on a promise that won't
+    settle;
   - if the context still isn't running it is **thrown away and rebuilt** — an
-    interrupted context often can't be revived at all, only replaced. `dropContext`
-    nulls the **synth** with it: its buffer cache holds `AudioBuffer`s made by
-    that context and useless to any other;
+    interrupted context often can't be revived, only replaced. `dropContext` nulls
+    the **synth** with it: its buffer cache holds `AudioBuffer`s made by that
+    context and useless to any other;
   - **`start()` returns a boolean and never throws.** A failed start has to be
     reportable, or the Play button lies about the state of the app — which was
-    half the bug. `app.js` flips the button optimistically (the press must feel
-    instant) and **always pays that optimism back**: `releasePlayback()` on
-    failure, and it is deliberately *not* gated on `metronome.running`, which is
-    the gate that made the old failure unrecoverable;
+    half the bug. `app.js` flips the button optimistically and **always pays that
+    optimism back** via `releasePlayback()`, deliberately *not* gated on
+    `metronome.running` (that gate is what made the old failure unrecoverable);
   - **`recoverAudio()` runs on every return to foreground** (the playback guard's
-    `onShown`), repairing or discarding a context that went bad while away. It is
-    the automated version of the user's own workaround.
+    `onShown`) — the automated version of the user's own leave-and-come-back fix.
   Verified by driving a stub context that rejects, and one that hangs: pre-fix,
   `start()` threw on the first and **never resolved** on the second.
 
@@ -531,35 +446,24 @@ one pure function saying how long slot 0–7 lasts. Each beat is paired with its
   only sounds on beat slots, so it never moves either: you always have a straight
   quarter pulse to practise against. **A test asserts the beats don't move**, and
   it's there as a guard, not a formality (see the cut feature below).
-- **A second resolution was built, trialled and CUT.** It paired beat 1 with 2
-  and beat 3 with 4, so beats 2 and 4 moved and the *thumb itself* swung
-  (v2.13.0–.1, removed in v2.13.2). It worked and it's a real feel — a
-  shuffle / laid-back backbeat, the thing you hear in St. James Infirmary — but
-  **it isn't Travis picking**, and that's why he cut it after playing with it:
-  *"I don't think it fits the theme of the app ultimately."* The git history has
-  the implementation. Don't rebuild it without that argument changing.
-- **The control is a smooth slider, 50–75 in whole percent**, matching the BPM
-  slider it sits below. Five named detents (Straight/Light/Medium/Hard/Triplet on
-  an index-valued slider) were also built and tried, and he preferred the smooth
-  one — so the names and `snapSwing`/`SWING_STEPS` are gone too. **50 is Straight
-  and doubles as the off switch**; the readout says "Straight" rather than "50%",
-  since the number behind the off position isn't information.
+- **A second resolution was built, trialled and CUT** (v2.13.0–.2). It moved beats
+  2 and 4, so the *thumb itself* swung — a real feel, but **not Travis picking**,
+  which is why he cut it after playing with it. Git history has the
+  implementation; don't rebuild it without that argument changing.
+- **The control is a smooth slider, 50–75 in whole percent.** Five named detents
+  were built, tried and rejected in favour of the smooth one (his call), so
+  `snapSwing`/`SWING_STEPS` are gone. **50 is Straight and doubles as the off
+  switch**; the readout says "Straight", since the number behind an off position
+  isn't information. **67% is his setting** — the reachable value closest to true
+  triplet swing (1.7ms off at 120bpm).
 - **The bar's total length is invariant** at any amount (each pair sums back to
-  two plain 8ths), which is what keeps BPM meaning what it means and leaves the
-  count-in a full bar. Asserted in tests.
+  two plain 8ths), which keeps BPM meaning what it means and leaves the count-in a
+  full bar. Asserted in tests.
 - **It lives only in the scheduler's slot advance.** Everything downstream is
   already time-driven — notes are scheduled at `nextSlotTime`, the playhead reads
-  the audio clock — so the app follows for free. The count-in swings too, which
-  is right: it should tell you the feel you're counting into.
-- **`setSwing` takes effect on the next scheduled slot**, so you can drag the
-  slider while the loop runs and hear it move within the ~0.2s lookahead. That's
-  the point of a feel control you hunt for by ear.
-- **67% is the reachable setting closest to true triplet swing** (2:1); the
-  rounding error is 1.7ms at 120bpm. It's the user's own sweet spot — "classic
-  Jerry Reed feel at a high tempo".
-- **Verified by probing scheduled audio times**, not by reading the math: at
-  90bpm and 67%, the clicks stay evenly spaced at 0.667s while the plucks go
-  0.447/0.22.
+  the audio clock — so the app follows for free, and `setSwing` takes effect on
+  the next scheduled slot, so you can drag it mid-loop and hear it move. The
+  count-in swings too, which is right: it tells you the feel you're counting into.
 - **Swing is a FEEL setting, not pattern content** — it persists in `tp-audio`
   alongside the sound toggles and is deliberately not part of a saved pattern's
   context. (BPM is the same class of thing: also not saved with a pattern, though
@@ -580,24 +484,21 @@ the synth skips it.
   default on, persisted in `localStorage` under `tp-audio`). The **count-in always clicks** regardless, so
   you get an audible 1-2-3-4 even in pattern-only mode.
 - **Synth is Karplus-Strong, dependency-free** — this settled the roadmap's
-  raw-Web-Audio-vs-library question: a plucked-string voice is a noise burst
-  through a short delay line with an averaging low-pass in the feedback path, and
-  it sounds like a string, so **no library** (keeps the offline PWA clean). Each
-  pluck is rendered **offline into an `AudioBuffer`** (plain JS filling a
-  `Float32Array`) and played via a `BufferSource` — no `AudioWorklet`, no
-  deprecated `ScriptProcessor`, iOS-safe. Buffers are **cached per (pitch, voice)**
-  (~two dozen distinct pitches); all voices share one `DynamicsCompressor` bus so
-  a triple stop + thumb can't clip. A ~50ms tail fade prevents truncation clicks
-  (a fixed `seconds` can cut a low note mid-ring, since KS rings ~4× longer on a
-  low string than a high one — the low delay line cycles fewer times/sec).
+  raw-Web-Audio-vs-library question: a plucked string is a noise burst through a
+  short delay line with an averaging low-pass in the feedback path, and it sounds
+  like a string, so **no library** (keeps the offline PWA clean). Each pluck is
+  rendered **offline into an `AudioBuffer`** and played via a `BufferSource` — no
+  `AudioWorklet`, no deprecated `ScriptProcessor`, iOS-safe. Buffers are **cached
+  per (pitch, voice)**; all voices share one `DynamicsCompressor` bus so a triple
+  stop + thumb can't clip. A ~50ms tail fade prevents truncation clicks (a fixed
+  `seconds` cuts a low note mid-ring — KS rings ~4× longer on a low string).
 - **Two voices, all knobs in `synth.js` (`BASS_VOICE`/`TREBLE_VOICE`).** Bass is
-  **palm-muted** — the classic Travis thumb sound: a short dark thump, not a
-  ringing note. The `brightness` knob (1 = open/canonical KS; lower = darker) is
-  the mute: an in-loop one-pole low-pass leaves the fundamental but eats the
-  harmonics, and below ~0.375 the excitation is pre-smoothed an extra pass for a
-  duller attack. Guitar-tuned to `brightness: 0.37` (session 7). Treble stays
-  bright (`brightness` defaults to 1). Tune by ear on a phone: `brightness` for
-  mute amount, `decay`/`seconds` for length, `gain` for level.
+  **palm-muted** — the classic Travis thumb sound, a short dark thump. The
+  `brightness` knob (1 = canonical KS, lower = darker) is the mute: an in-loop
+  one-pole low-pass leaves the fundamental but eats the harmonics, and below
+  ~0.375 the excitation is pre-smoothed for a duller attack. Guitar-tuned to
+  `0.37`; treble stays bright. Tune by ear on a phone: `brightness` for mute
+  amount, `decay`/`seconds` for length, `gain` for level.
 
 **Saved library** (`storage.js`): a saved item is **musical content only** —
 `{ pattern, context: { chordMode, chord, key, capo, progression } }` plus a name,
@@ -620,57 +521,46 @@ the original keeps its plain name, later saves become `Name (2)`, `Name (3)`.
 **Session preferences** (`tp-prefs`, in `app.js`, session 32): the controls you
 **set once and keep**, restored on the next launch — chord mode, chord, key,
 capo, progression, thumb, fingers, pattern length, note labels and **BPM**.
-- **It's a THIRD store, not an extension of `tp-audio`**, which stays exactly what
-  it is (the four sound toggles + swing). Swing was **not** moved: it already
-  lives there, and migrating it would strand real settings for no gain.
-- **BPM persisting REVERSES a documented decision** (his call, session 32 —
-  asked, and he changed his mind). The old rule was that tempo is too volatile to
-  be worth remembering, unlike swing.
+- **It's a THIRD store, not an extension of `tp-audio`**, which stays what it is
+  (the four sound toggles + swing). Swing was **not** moved — migrating it would
+  strand real settings for no gain. **BPM persisting REVERSES a documented
+  decision** (his call, asked; the old rule was that tempo is too volatile to
+  remember).
 - **`savePrefs()` is called from `render()`**, the one funnel every one of those
-  controls already passes through, so it can't miss one the way a per-handler
-  call would. BPM doesn't render, so it saves itself from the fader's `input`
-  handler. That funnel includes `loadSaved()`, which is what makes "reopen how
-  you left it" true of a loaded pattern too (his call). The capo persists here as
-  a **session default** — a different thing from the capo inside a saved item's
-  context, which is musical content and still wins, since `loadSaved` runs long
-  after the restore.
+  controls already passes through, so it can't miss one the way a per-handler call
+  would. BPM doesn't render, so it saves from the fader's `input` handler. That
+  funnel includes `loadSaved()`, which is what makes "reopen how you left it" true
+  of a loaded pattern too (his call). The capo persists here as a **session
+  default** — distinct from the capo inside a saved item's context, which is
+  musical content and still wins, since `loadSaved` runs after the restore.
 - **`restorePrefs()` runs inside `boot()` after `initControls`/`enhanceAll` and
-  BEFORE `generate()`.** The menus have to exist and the wrapped `value` setter is
-  what repaints the dropdown triggers; and the session's first roll has to be made
-  against the restored chord, not the default one. Calling `setChordMode` that
-  early is safe **only because `render()` no-ops while `state.pattern` is null** —
-  and it must come last in the restore, or it overwrites the restored progression
-  with the key's first preset.
-- **Every restored value is validated against its select's live options** (and
-  chords against `CHORDS`). Chords, keys and progressions are data and do change
-  between releases, so a stale id has to be ignored rather than forced into a
-  control whose menu no longer contains it. There is **no seeded default blob**:
-  it reads the raw stored object and applies only the keys actually present,
-  which handles the "a pref blob seeded with defaults can never tell you unset"
-  footgun by construction instead of by discipline.
+  BEFORE `generate()`** — the menus have to exist (the wrapped `value` setter is
+  what repaints the triggers) and the first roll has to be made against the
+  restored chord. Calling `setChordMode` that early is safe **only because
+  `render()` no-ops while `state.pattern` is null**, and it must come last in the
+  restore or it overwrites the restored progression with the key's first preset.
+- **Every restored value is validated against its select's live options** (chords
+  against `CHORDS`), because chords, keys and progressions are data and do change
+  between releases. There is **no seeded default blob**: it reads the raw stored
+  object and applies only the keys actually present, which handles the "a pref blob
+  seeded with defaults can never tell you unset" footgun by construction.
 
 **UI components — we draw our own, because iOS draws the OS's** (session 11).
 Four dependency-free modules, all precached:
-- **A LIST PANEL IS A HOUSING TOO** (`.dd-list`, v2.14.6, his call). The five
-  remaining list menus (Thumb, Fingers, Pattern, Note Labels, Theme) were the last
-  panels speaking a different dialect — a flat plate, where the two drum pickers
-  open a shaded housing with a lit aperture. They **stay lists** (short unordered
-  sets; a barrel would be ceremony) but wear the same material, and **the selected
-  row is an aperture, not a lit accent slab** — hardware hairlines above and below,
-  glass lit, type bright, squared off and bled to the housing walls. The old accent
-  capsule was the same object a *pressed button* wears, so it read as "the one you
-  just hit" rather than "the one in the window".
-  Three things to know before touching it: the shading goes on `.dd-panel` **even
-  though the panel is the scroll container**, because an element's own background
-  and inset shadows paint against its padding box and don't travel with scrolled
-  content (same reason the drum's machining is on `.drum`, not `.reel`); the bleed
-  is `calc(100% + var(--dd-pad) * 2)` and **not `width: auto`**, because
-  `.dd-option` is a `<button>` and a button shrink-to-fits — `auto` gave a 77px row
-  in a 123px panel; and framing the row must not change its height (42px either
-  way) or every row below it shifts. `.dd-list` is added by `renderList`, so none
-  of it lands on `.dd-wheel`, which brings its own per-cylinder housings.
-  Riding along: **`.dd-group` is silkscreened now**, not serif — it was the one
-  caption in the app still speaking in the value voice.
+- **A LIST PANEL IS A HOUSING TOO** (`.dd-list`, v2.14.6, his call). The five list
+  menus (Thumb, Fingers, Pattern, Note Labels, Theme) **stay lists** — short
+  unordered sets, where a barrel would be ceremony — but wear the drums' material,
+  and **the selected row is an aperture, not a lit accent slab** (the accent
+  capsule is what a *pressed button* wears, so it said "the one you just hit"
+  rather than "the one in the window"). Three things to know before touching it:
+  the shading goes on `.dd-panel` **even though the panel is the scroll
+  container**, because an element's background and inset shadows paint against its
+  padding box and don't travel with scrolled content (same reason the drum's
+  machining is on `.drum`, not `.reel`); the bleed is
+  `calc(100% + var(--dd-pad) * 2)` and **not `width: auto`**, because `.dd-option`
+  is a `<button>` and shrink-to-fits; and framing the row must not change its
+  height (42px either way) or every row below it shifts. `.dd-list` is added by
+  `renderList`, so none of it lands on `.dd-wheel`.
 - **`dropdown.js` — KEY INVARIANT: the native `<select>` stays in the DOM
   (`display: none`) as the source of truth.** Value, options and the `change`
   event are unchanged, so every `app.js` wiring and the `#grid` change-delegation
@@ -686,223 +576,161 @@ Four dependency-free modules, all precached:
   viewport, and closes on outside-tap / Escape / external scroll — but **not** on
   its own open-time `scrollIntoView`. A test guards the contract.
   **The PANEL is pluggable** (session 21): `enhanceSelect(select, { render })`
-  takes a renderer, and the scrolling list is simply the default one. Everything
-  around the panel — trigger, value-setter wrap, one-panel-at-a-time, catcher,
-  Escape, close-on-reflow — is the same job whatever is drawn inside, and that
-  refactor is what let the chord wheel exist without a second copy of it. A
-  renderer may return `{ onKey, afterOpen, cleanup }`; **`afterOpen` is called
-  synchronously, not in a `rAF`**, because a hidden tab never runs rAF and the
-  wheel sets its scroll positions there.
+  takes a renderer and the scrolling list is simply the default one — everything
+  around the panel (trigger, value-setter wrap, one-panel-at-a-time, catcher,
+  Escape, close-on-reflow) is the same job whatever is drawn inside, which is what
+  let the wheel exist without a second copy of it. A renderer may return
+  `{ onKey, afterOpen, cleanup }`; **`afterOpen` is called synchronously, not in a
+  `rAF`**, because a hidden tab never runs rAF and the wheel sets its scroll
+  positions there.
   **A renderer MUST commit through the `commit` it is handed**, never through a
   captured element — and `retargetOpenPanel(find)` is why. The per-bar chord
   selects are rebuilt by every `render()`, and picking a chord *is* a render, so
-  an open panel's target is destroyed by its own first pick: the panel stayed up,
-  the reels still turned and ticked, and nothing happened until you closed and
-  reopened it. `app.js` calls `retargetOpenPanel` right after the post-render
-  `enhanceAll`, matching a bar select by its `data-bar`; the panel's DOM and
-  scroll positions are untouched, only the target moves, and a `find` that comes
-  back empty closes rather than leaving a live-looking panel wired to nothing.
-  A test drives two consecutive picks through a rebuild and fails without it.
+  an open panel's target was destroyed by its own first pick: the panel stayed up,
+  the reels still turned and ticked, and nothing happened. `app.js` retargets right
+  after the post-render `enhanceAll`, matching a bar select by its `data-bar`; the
+  panel's DOM and scroll positions are untouched, and a `find` that comes back
+  empty closes rather than leaving a live-looking panel wired to nothing. A test
+  drives two consecutive picks through a rebuild and fails without it.
 - **`wheel.js` — TWO DRUM PICKERS over one mechanism.** Chord = root × quality
-  (his call, session 21) and **Key × Progression** (his call, v2.14.5: *"I see Key
-  and Progression as a cross product similar to Chord and Quality. 'Let's play an
-  E Major', 'Let's play a 1-4-5 in C'. Both very common guitar thoughts."*). That
-  reframing is what made the second one buildable — read as *style* × progression
-  the axes have holes (the styles hold 4/3/2/3/2 members) and it was rightly
-  rejected; key × progression is total **within a mode**. Both are **renderers,
-  not controls**: the hidden `<select>`s stay the source of truth and a settle
-  calls `commit()`, so app.js's wiring and the `#grid` delegation never learn they
-  exist. Every chord picker uses the wheel — the Options sheet's and every per-bar
-  one — which is why the grouped chord menus are gone.
+  (session 21) and **Key × Progression** (v2.14.5). Both are his calls, and the
+  rule that decides where a drum belongs is his reframing: **a drum earns its
+  place where the axes are a cross-product you'd say out loud** ("an E major", "a
+  1-4-5 in C"). Read as *style* × progression the axes have holes and it was
+  rightly rejected; key × progression is total **within a mode**. Both are
+  **renderers, not controls**: the hidden `<select>`s stay the source of truth and
+  a settle calls `commit()`, so app.js's wiring and the `#grid` delegation never
+  learn they exist. Every chord picker uses the wheel — the Options sheet's and
+  every per-bar one — which is why the grouped chord menus are gone.
   - **ONE FIELD OVER TWO SELECTS is the only structural difference.** Chord's two
     reels write one composite id; Key × Progression writes two independent
     selects, so `#key` carries `dd-native data-dd="1"` (enhanceAll **skips** it),
     the single trigger is owned by `#progression`, and the key reel writes through
     a `commitKey` handed to the renderer. `enhanceSelect`'s **`watch`** option
     exists for this: the trigger's face shows both halves, and a transpose, a load
-    or a die roll sets `#key` programmatically with no `change` event — the same
-    reason the value-setter wrap exists at all.
+    or a die roll sets `#key` programmatically with no `change` event.
   - **Crossing the major/minor line RE-CUTS the progression reel.** It's the one
     hole in the product, and the same boundary at which app.js already resets to
     that mode's first preset. The renderer re-reads the select after committing a
     key and rebuilds the reel only if the option set actually changed. A test
     drives a cross both ways.
-  - **A curated list keeps its sections as ENGRAVED GROOVES, not captions**
-    (v2.14.5, his call) — the housing carries nothing but the mechanism, and a real
-    selector barrel has index marks anyway. Drawn on `.reel-face` (so the groove
-    foreshortens with the surface it's cut into) and **absolutely positioned**, for
-    two separate reasons: anything altering `.reel-item`'s geometry moves its own
-    scroll-snap detent, and a `border-top` on the face would push its line of type
-    down 1px. Grooves land at each progression style change, before the ungrouped
-    `Custom`, and between the major and minor keys.
+  - **Nothing but the mechanism inside the housing** (his call) — no captions in
+    the panel; the Options field names both halves above the trigger, and on a bar
+    chip the two drums are self-evident. The reels keep their `aria-label`s, which
+    is the only place that naming survives, and a test pins both halves. A curated
+    list's sections are **engraved grooves, not captions**, drawn on `.reel-face`
+    (so they foreshorten with the surface) and **absolutely positioned** — anything
+    altering `.reel-item`'s geometry moves its own scroll-snap detent, and a
+    `border-top` would push its line of type down 1px. The progression drum also
+    engraves its **style names** as non-selectable header facets (session 29).
   - **`Custom` rides the end of the progression drum and is a READOUT, not a
     choice** (his call): picking it leaves the grid's chords exactly as they are,
     which is already what `applyProgressionPreset` does. Editing a bar chord makes
-    `syncProgressionSelect` set the select to Custom, so the drum opens on it. Both
-    halves verified live.
-  - **TWO DRUMS ON AN AXLE, physically separated** (v2.14.1, his call): each
-    cylinder gets its own housing and its own aperture, with a hairline axle line
-    between them. One aperture spanning both was the first build and read as one
-    list with a rule down it. In the **Options sheet** the field is split to
-    match — two legends (`Chord` / `Quality`) over two wells, each with its own
-    caret — via a `label` renderer on `enhanceSelect`; the per-bar chip keeps the
+    `syncProgressionSelect` set the select to Custom, so the drum opens on it.
+  - **TWO DRUMS ON AN AXLE, physically separated** — each cylinder gets its own
+    housing and aperture, with a hairline axle line between. In the Options sheet
+    the field is split to match (two legends over two wells, each with its own
+    caret) via a `label` renderer on `enhanceSelect`; the per-bar chip keeps the
     single name (`C♯m`), since there's no room to say it twice on a bar.
-  - **Nothing but the mechanism inside the housing** (v2.14.2, his call): no
-    captions in the panel. The Options field names both halves directly above
-    the trigger, and on a bar chip the two drums are self-evident. The reels keep
-    their `aria-label`s, which is where that naming has to survive — a test pins
-    both halves of that.
-  - **The panel sizes to its DRUMS, not to the trigger** (`data-hug`, v2.14.2).
-    `position()` gives a panel the trigger's width as a min-width, which is right
-    for a list (it lines up under its field) and wrong for a mechanism: the 289px
-    chord field left the drums swimming in housing. Both entry points now open
-    the same 237px object.
-  - **…AND THE OPTIONS FIELD IS CUT TO THAT SAME OBJECT** (v2.14.3, his call: "the
-    chord/quality button should be the same size as the drum"). The drum geometry
-    lives in **`:root`**, and since v2.14.5 **`--drums-w` (217px) is the primary
-    constant** with each pair naming its first face and *deriving* the second
-    (`--drum-root` 88 ⇒ quality 108; `--drum-key` 72 ⇒ prog 124; `--wheel-w` 237).
-    That inversion is what lets both pickers open the identical housing — and they
-    must, or the field would change width between chord modes, which is exactly
-    what v2.14.4 stopped doing. The 72/124 split is measured: `I–♭VII–IV` is the
-    widest label on any drum at ~87px in the reel's 17px serif. Both the panel and
-    `.field-split` derive from these, so they can't drift. It works out as one number
-    because the field's well contributes the same 9px padding + 1px border per side
-    that the housing contributes around the drums. Two things fall out for free:
-    the field's halves are the two **barrels** (88 / 108) rather than a `1fr 1.3fr`
-    guess, and since `position()` anchors a panel to the trigger's **left** edge,
-    each barrel opens exactly over its own half — measured, panel and trigger both
-    `16 → 253`, drums and halves both `26/88` and `135/108`. The **legends row is
-    outside the well and must be inset by that 10px** or each caption starts left
-    of the barrel it names; a test pins the centres. Three tests cover this bullet
-    (field == panel, half == drum, legend == half).
+  - **THE PANEL AND THE OPTIONS FIELD ARE ONE OBJECT, cut from `:root`**
+    (`data-hug` + `--drums-w`, v2.14.2–.3, his call). A panel normally takes its
+    trigger's width as a min-width — right for a list, wrong for a mechanism — so
+    the wheel opts out and sizes to its drums, and the FIELD then follows it.
+    **`--drums-w` (217px) is the primary constant**; each pair names its first
+    face and *derives* the second (`--drum-root` 88 ⇒ quality 108; `--drum-key` 72
+    ⇒ prog 124; `--wheel-w` 237). That inversion is what lets both pickers open
+    the identical housing — and they must, or the field would change width between
+    chord modes. The 72/124 split is measured: `I–♭VII–IV` is the widest label on
+    any drum (~87px in the reel's 17px serif). Because `position()` anchors to the
+    trigger's **left** edge, each barrel opens exactly over its own half. The
+    **legends row sits outside the well and must be inset by 10px**, or each
+    caption starts left of the barrel it names. Three tests cover this (field ==
+    panel, half == drum, legend == half).
   - **THE LEFT-HAND SHAPE RIDES UNDER THE DRUMS** (`chordbox.js`, session 33 —
-    OPEN_ITEMS item 9, whose stated revisit condition finally fired). It was
-    rejected once and correctly: while every chord was one he already knew, the
-    grid's fret numbers said everything. The library is now **120 chords, 75 of
-    them barres**, and the grid tells you which frets the notes you *pick* are on,
-    which is not where to put your left hand for E♭m. Four things pin it:
+    OPEN_ITEMS item 9, whose revisit condition fired at 120 chords / 75 barres).
+    Four things pin it:
     - **BELOW the drums, never beside.** The panel's width is the Options field's
-      width (`--wheel-w`, v2.14.3), so widening the panel would break the one
-      object both are cut from — and its test. `.wheel-shape` is therefore
-      `width: var(--drums-w)`, so the diagram can't drive the hug wider whatever
-      it contains.
+      width, so widening it would break the one object both are cut from — and its
+      test. `.wheel-shape` is `width: var(--drums-w)`, so the diagram can't drive
+      the hug wider whatever it contains.
     - **It marks the THUMB'S ALTERNATING PAIR** (his call) in the grid's own
-      colours (thumb `--active`, fingers `--accent`), which is the one thing a
-      chord chart out of any book cannot tell you and the reason it earns space.
-      **The BARRE is always the finger colour**: it's one finger across five
-      strings, mostly not bass notes — `G♯sus2`, whose root sits *under* its
-      barre, is what exposed that, and a bass role beneath a bar now gets its own
-      rimmed dot drawn on top rather than being swallowed by it.
-    - **Redraws on SETTLE, not per detent** (his call) — the same instant the
-      wheel commits. A diagram flickering under a spinning barrel is motion under
-      a mechanism that's already moving.
-    - **It cost the panel's height cap.** `.dd-panel` caps every panel at `52vh`
-      and scrolls the overflow, but a mechanism must not scroll, so the wheel got
-      `max-height: min(78vh, 430px)` — at 52vh (287px on an SE) the diagram was
-      simply clipped off. That rule must stay *after* `.dd-panel` in the file; it
-      wins on source order, the same way the `position` note in `.dd-wheel` does.
-      The panel measures **237×342** at 375×553 with ~194px of viewport to spare.
+      colours (thumb `--active`, fingers `--accent`) — the one thing a chord chart
+      out of any book cannot tell you, and the reason it earns space. **The BARRE
+      is always the finger colour** (one finger across five strings, mostly not
+      bass notes); a bass role beneath a bar gets its own rimmed dot on top rather
+      than being swallowed by it. `G♯sus2`, whose root sits under its barre, is
+      what exposed that.
+    - **Redraws on SETTLE, not per detent** (his call). A diagram flickering under
+      a spinning barrel is motion under a mechanism that's already moving.
+    - **It cost the panel's height cap.** `.dd-panel` caps panels at `52vh` and
+      scrolls the overflow, but a mechanism must not scroll, so the wheel got
+      `max-height: min(78vh, 430px)` — at 52vh the diagram was clipped off. That
+      rule must stay *after* `.dd-panel`; it wins on source order, like `.dd-wheel`'s
+      `position` note. The panel measures **237×342** at 375×553.
     Only the **chord** wheel gets one — Key × Progression has no shape — and both
-    entry points (the Options field and every per-bar chip) get it for free, since
-    they open the same panel. `.chordbox { width }` is the single dial if the
-    diagram wants to be bigger; the panel's height follows it.
+    entry points get it free, since they open the same panel. `.chordbox { width }`
+    is the single dial if it wants to be bigger; the panel's height follows.
   - **It's a real scroll container with CSS scroll-snap, not a hand-rolled drag**:
     that buys iOS momentum, rubber-banding and detents for free, and it's
-    physically right (a flick spins the barrel and it coasts).
-  - **The facets ROTATE ONLY — never `translateZ`.** The scroll already puts each
-    name in the right place; a stand-off from the axis moves it *again*, and
-    under `perspective` that projection magnified the reel ~16% about its centre.
-    A 38px step rendered as 59px and the outer names were pushed clean out of the
-    housing, which is why the drum only ever showed three of its five. Rotation
-    alone foreshortens each face by cos θ, which is what a barrel does.
-  - **The step and the facet are two elements** (`.reel-item` > `.reel-face`), and
-    they have to be: a scroll-snap area is the element's **transformed** border
-    box, so putting the cylinder's `rotateX` on the item moved its own detent and
-    the reel snapped half a name off. Measured, not reasoned about.
-  - **`.dd-wheel` must not set `position`.** `.dd-panel` is already `fixed` (and
-    is therefore the positioned ancestor `.reel-window` needs); a `position:
-    relative` here won at equal specificity on source order and the panel opened
-    350px down the page.
-  - **The mask's stops are cut to the step grid, not chosen by eye.** With 5
-    visible names the outer pair occupies exactly the top and bottom fifth, so a
-    long ramp erases them — 26/74 and 14/86 both left three legible names and two
-    ghosts. 8/92 reads as five.
+    physically right (a flick spins the barrel and it coasts). **The facets ROTATE
+    ONLY — never `translateZ`**, which under `perspective` magnifies the whole reel
+    about its centre and pushes the outer names out of the housing.
+  - **The cylinder's own mechanics are commented where they live** — the
+    step-vs-facet split (`.reel-item` > `.reel-face`, because a scroll-snap area is
+    the element's *transformed* border box), the `position` note on `.dd-wheel`,
+    and the mask ramp cut to the step grid are all in `wheel.js` and `styles.css`
+    at the line that does it. Read them before touching that CSS; don't copy them
+    back here, where they drift (this file had the mask at 8/92 and the stylesheet
+    at 6/94).
   - **It commits on SETTLE and the panel stays open** (his call): every root ×
     quality is a real chord, so there's no half-set state to guard, and you can
     spin one reel, hear it, then spin the other. `SETTLE_MS` is the quiet time
-    after the last scroll event.
+    after the last scroll event — **injectable, for the tests only** (session 34);
+    110ms is the feel and the app never passes anything.
   - **Its voice is the detent, not the button** — `playTick()` per name through
     the window, and `pressStrength()` in app.js explicitly excludes `.reel-item`
     so a tap doesn't ka-chunk over the tick or click on the first frame of a drag.
 - **`modal.js`** — Promise-based `confirmModal()` / `promptModal()`, replacing
-  `confirm()`/`prompt()`, so callers are `async`. (There was an `infoModal` too;
-  it existed only for the Guide, and went with it in v2.13.4.) Destructive actions wear the app's fixed red
-  (`.tp-modal-danger`, the same convention as the REC lamp). Escape/backdrop
+  `confirm()`/`prompt()`, so callers are `async`. (An `infoModal` existed only for
+  the Guide and went with it in v2.13.4.) Destructive actions wear the app's fixed
+  red (`.tp-modal-danger`, the same convention as the REC lamp). Escape/backdrop
   cancel, with a capture-phase Escape + `stopPropagation` so it doesn't also close
-  the Options sheet underneath. `render(bodyEl)` fills the info card, so content
-- **`ui-sound.js`** — a two-phase tape-deck transport key: a light, bright
-  **`playPress`** ("ka") on `pointerdown` as the key travels in, and a deeper
-  **`playRelease`** ("chunk") on `pointerup` as the spring seats. Fired by ONE
-  delegated listener pair in `app.js` over `button, .lamp, .dd-trigger,
+  the Options sheet underneath.
+- **`ui-sound.js` — four voices, all synthesised here, all knobs in the two
+  objects passed to `body`/`tick`.** The transport key is TWO-PHASE: a light,
+  bright **`playPress`** ("ka") on `pointerdown` as the key travels in, and a
+  deeper **`playRelease`** ("chunk") on `pointerup` as the spring seats. Fired by
+  ONE delegated listener pair in `app.js` over `button, .lamp, .dd-trigger,
   .dd-option`; sliders, text inputs, grid cells and **the chord wheel's names**
-  are excluded. Own on/off lamp,
-  persisted in `tp-audio`. All knobs are the two objects passed to `body`/`tick`.
-  A third voice, **`playTick`**, is the chord wheel's DETENT — same materials,
-  about a third the level, no tail (it fires several times a second during a
-  spin, and anything with a tail would smear).
-  A fourth, **`playPlace`** (session 28, his ask), is the edit-mode **"thock"** —
-  a felt-bottomed chess piece set on a board: the same woody `body`, but the
-  contact `tick` is LOW and low-Q (a muffled cushion, not the bright plastic click),
-  because felt damps the strike. Fired from the `#grid` edit-click handler in
-  `app.js` on every place AND delete (one sound for both — you're setting or lifting
-  a piece either way), gated the same way as the buttons: `if (!metronome.running)`,
-  and by the `enabled` flag. Grid cells are excluded from `pressStrength`, so the
-  thock is their only voice — no ka-chunk doubles it. Verified by counting starts:
-  one `body` + one `tick` per tap, zero while the ui-sound lamp is off.
-  - **The silent-switch policy lives in `app.js`, not here** (v2.8.2): **no button
-    sound while the transport is running.** The web cannot read the iOS ring
-    switch, and playback is the only window in which we hold the audio category
-    that overrides it — so muting buttons there is what makes a silenced phone
-    genuinely silent, while the metronome and melody (audio you asked for) still
-    come through. Accepted side effect with the ringer on: no clicks during a
-    take. The decision is taken once per press and held for the pair
-    (`pressSilenced`) so the button that starts or stops the transport gets a
-    matched ka-chunk rather than half a press. This is glue, which `tests.js`
-    doesn't import — it was verified by counting oscillator starts per
-    `AudioContext` (2 per press while stopped, 0 while running).
-  - **A NO-OP press stays silent, like the capo at an end-stop** (session 28, his
-    note). Two cases, both decided at pointerdown and HELD for the pair
-    (`pressNoop`), because by pointerup the press has already changed state:
-    (1) an already-**seated latching key** — `.segmented button.active`, i.e. the
-    current page tab or the current Format value — makes no change when re-pressed,
-    so only the POPPED-OUT one sounds; (2) a **disabled** control (the capo `−`/`+`
-    at a stop) is already caught by `pressStrength`'s `disabled` check. Verified by
-    oscillator count: 0 on the seated key, 2+2 on the popped-out one.
-  - **Closing a dropdown by tapping its TRIGGER sounds too** (session 28, his note).
-    The outside-tap catcher (`.dd-catcher`, `inset: 0`) sits ON TOP of the trigger,
-    so the closing tap lands on a bare `<div>` and `pressStrength` sees no button —
-    the open ka-chunk'd but the close was silent. `overOpenTrigger()` sounds a
-    catcher tap whose point falls within `openDropdownTrigger()`'s rect (exported by
-    `dropdown.js`); a bare outside tap lands on the catcher AWAY from the trigger and
-    stays silent, which is correct. Verified: 2+2 on the trigger, 0 off it.
-  - **The die can be tapped WHILE ITS OWN WHEEL IS OPEN** (`overOpenDie`, session
-    33, his ask). The die sits right beside the chord field, so the same catcher
-    that covers the trigger also covers the die — a tap on it used to be a dead
-    first press that only closed the wheel, and rolling a new chord took two
-    taps. `overOpenDie` in `app.js` is the same rect-check `overOpenTrigger` uses,
-    against `#randomize-chords` instead of the trigger, wired to a document-level
-    `click` listener that calls `randomizeChords()` when it matches. It fires on
-    the BUBBLE, after the catcher's own listener (`dropdown.js`) has already
-    closed the panel — so the roll always lands on a clean, closed sheet, never
-    on a wheel whose reels are now stale. Both `overOpenTrigger` and `overOpenDie`
-    feed the same sound exception, so the die still ka-chunks even though the
-    press technically landed on a bare `<div>`. Verified live: a real `computer`
-    click at the die's on-screen rect while the chord wheel was open closed the
-    panel, rolled a new chord, and fired the normal 2-oscillator press+release —
-    all in the one tap. Works for the Key×Progression wheel too, since it's the
-    same physical button in both chord modes and the check only cares about
-    coordinates.
+  are excluded. **`playTick`** is the wheel's DETENT — same materials, a third the
+  level, **no tail** (it fires several times a second in a spin and a tail would
+  smear). **`playPlace`** is edit mode's **"thock"** (his image: a felt-bottomed
+  chess piece set down) — same woody `body`, but the contact `tick` is LOW and
+  low-Q, because felt damps the strike; it fires on every place AND delete, and
+  grid cells are excluded from `pressStrength` so nothing doubles it. Own on/off
+  lamp, persisted in `tp-audio`. Three rules decide *when* a press is silent, and
+  all three live in `app.js`, not here — this is glue `tests.js` doesn't import,
+  so each was verified by counting oscillator starts per `AudioContext`:
+  - **No button sound while the transport is running** (v2.8.2). The web can't
+    read the iOS ring switch, and playback is the only window in which we hold the
+    audio category that overrides it — so muting buttons there is what makes a
+    silenced phone genuinely silent while the metronome and melody (audio you
+    asked for) still come through. Accepted side effect with the ringer on: no
+    clicks during a take. Decided once per press and held for the pair
+    (`pressSilenced`), so the button that starts or stops gets a matched ka-chunk.
+  - **A NO-OP press stays silent, like the capo at an end-stop** (his note). Also
+    held for the pair (`pressNoop`), because by pointerup the state has changed:
+    an already-**seated** latching key (the current page tab or Format value)
+    makes no change when re-pressed, so only the popped-out one sounds.
+  - **A tap on an open dropdown's TRIGGER, or on the DIE beside it, still sounds
+    AND still acts** (his notes, sessions 28 and 33). The outside-tap catcher
+    (`inset: 0`) lies on top of both, so those taps land on a bare `<div>`:
+    `pressStrength` saw no button, and the die was a dead first press that only
+    closed the wheel. `overOpenTrigger()`/`overOpenDie()` in `app.js` rect-check
+    the catcher tap against `openDropdownTrigger()` and `#randomize-chords`. The
+    die's handler fires on the BUBBLE, after the catcher has already closed the
+    panel, so the roll lands on a clean sheet rather than on stale reels. A bare
+    outside tap stays silent, which is correct.
 
 **Platform integrations** (`platform.js`) — four OS behaviours the musical model
 knows nothing about. **Every one is feature-detected and degrades to a silent
@@ -910,24 +738,22 @@ no-op** (these APIs are young or WebKit-only, and a practice tool must not break
 because a browser lacks one), and each takes injected `nav`/`doc`/`win` — the same
 trick `storage.js` uses for its store — so the logic is unit-tested with stubs and
 only the physical behaviour needs a phone.
-- **`createAppUpdater()`** — picks up a deploy on launch. Three parts, all
-  needed: `updateViaCache: "none"`, an `update()` on load **and on every return to
+- **`createAppUpdater()`** — picks up a deploy on launch. Three parts, all needed:
+  `updateViaCache: "none"`, an `update()` on load **and on every return to
   foreground** (a standalone app is resumed far more often than cold-launched),
   and a **reload when the new worker takes control** — `sw.js` calls `skipWaiting`
   + `clients.claim`, so the caches swap under a page built from the old ones. Two
-  guards on that reload: **never on first install** (no previous controller ⇒
-  nothing on screen is stale; without this a first visit reloads itself), and
-  never when `canReload()` is false (`state.unsavedEdits` or a running transport —
-  reloading would destroy hand-drawn work or cut a take in half). Skipping is
-  safe: the worker is already active, so the next ordinary launch is current.
+  guards on that reload: **never on first install** (without it a first visit
+  reloads itself), and never when `canReload()` is false (`state.unsavedEdits` or
+  a running transport). Skipping is safe — the worker is already active, so the
+  next ordinary launch is current.
 - **`createAudioSession()`** — `navigator.audioSession.type = "playback"` is the
-  opt-out from the iOS silent switch, which by default silences audio the user
-  explicitly asked for. **The category is per-DOCUMENT**, and that decides the
-  policy: the app takes `playback` **only while the transport runs** and hands the
-  previous category back on stop. Set it **before** `metronome.start()` so the
-  AudioContext is created under it. Holding it permanently was rejected — that
-  category doesn't mix with other apps, so a stray button tap would interrupt
-  background music.
+  opt-out from the iOS silent switch. **The category is per-DOCUMENT**, and that
+  decides the policy: the app takes `playback` **only while the transport runs**
+  and hands the previous category back on stop. Set it **before**
+  `metronome.start()` so the AudioContext is created under it. Holding it
+  permanently was rejected — that category doesn't mix with other apps, so a stray
+  button tap would interrupt background music.
 - **`createWakeLock()`** — the screen stays awake the whole time the app is up,
   not just while playing (you read the grid between takes as much as during them).
   No toggle; add one only if battery cost bites. Two things make it actually work:
@@ -939,26 +765,20 @@ only the physical behaviour needs a phone.
   transient activation, hence a retry on the first `pointerdown` (`acquire()`
   no-ops once held, making it cheap).
 - **`createPlaybackGuard()`** — stops the transport when the page stops being
-  visible. It exists *because* of the audio session: `playback` is precisely what
-  keeps iOS sounding us in the background, while the same backgrounding freezes
-  the scheduler's `setTimeout` — so on the next fire every missed slot is
-  scheduled at a time already in the past and Web Audio plays them immediately.
-  The symptom is a **burst, not drift**. `visibilitychange` is the only signal the
-  web offers and **cannot distinguish a screen lock from an app switch or a
-  pulled-down notification shade**; ending the take on all of them is right
-  anyway, since none leaves you looking at the grid. `pagehide` covers the exits
-  that never report a visibility change (bfcache, termination). It owns the
-  **return trip** too (`onShown`, session 32), calling `metronome.recoverAudio()`:
-  backgrounding is exactly what leaves the audio session interrupted, and nothing
-  used to repair it on the way back — which is why "leave the app and come back"
-  was the user's own fix for a dead Play button. Same event, same concern, so it
-  rides the same listener rather than a second one racing it. **`stopTransport()`
-  in `app.js` is the single stop path**, so the guard and the Play button can't
-  drift apart — handing the audio category back matters as much as killing the
-  scheduler. The backstop for a freeze nothing tells us about (a slept laptop, an
-  OS audio interruption) is `hasDrifted()` / `MAX_DRIFT` in `metronome.js`: past
-  0.25s behind (≈2 8ths at the top tempo) the scheduler **drops** the missed slots
-  and resyncs, clearing the stale playhead queue with them.
+  visible. It exists *because* of the audio session: `playback` is what keeps iOS
+  sounding us in the background, while the same backgrounding freezes the
+  scheduler's `setTimeout` — so on the next fire every missed slot is scheduled at
+  a time already past and Web Audio plays them at once. The symptom is a **burst,
+  not drift**. `visibilitychange` **cannot distinguish a screen lock from an app
+  switch or a notification shade**, but ending the take on all of them is right
+  anyway; `pagehide` covers the exits that report no visibility change (bfcache,
+  termination). It owns the **return trip** too (`onShown`), calling
+  `metronome.recoverAudio()` — backgrounding is exactly what leaves the audio
+  session interrupted, so it rides the same listener rather than a second one
+  racing it. **`stopTransport()` in `app.js` is the single stop path**, so the
+  guard and the Play button can't drift apart. The backstop for a freeze nothing
+  tells us about is `hasDrifted()` / `MAX_DRIFT`: past 0.25s behind (≈2 8ths at
+  the top tempo) the scheduler **drops** the missed slots and resyncs.
 
 **The design language: the whole screen is one warm tweed "faceplate" — a piece
 of gear** (session 8). The mood board was 60s/70s RCA Victor country (Jerry Reed,
@@ -982,37 +802,27 @@ rgba because it's texture, not hue**, so it rides every theme.
   a well **sink straight IN** via a deeper inset (`transform: none`), because a
   lateral 1px translate read as sliding — true of both the transport's tilted
   Bakelite die and the Options keys.
-  Four families cover everything (session 28 polish closed the last outliers):
+  **Four families cover everything** (session 28 closed the last outliers):
   **(1) raised carved keys** = strike-it actions; **(2) recessed wells** = standing
   values; **(3) latching key + lamp** = toggles — the page tabs AND the Sound lamps
-  (`.lamp:has(input:checked)` seats when on, proud when off; the lamp stays the
-  toggle's on-light, but the KEY now moves too, so "on" reads as pressed in);
-  **(4) faders** = the two sliders (BPM, Swing) — a machined slot with the traveled
-  portion filled in `--active` and a raised cap with a centre groove (see "Sliders /
-  faders"). The one accent-coloured surface is the **primary-action key**
-  (`.btn-primary` / the saved-row Load), a CARVED accent key (dished + three-stop
-  `--accent-hi`/`--accent`/`--accent-deep` + chamfer) rather than a flat slab — the
-  accent is theme-derived, never literal gold, because a primary action *should*
-  pull the eye where Format (a value) should not.
+  (`.lamp:has(input:checked)` seats when on, proud when off, so "on" reads as
+  pressed in); **(4) faders** = the two sliders. The one accent-coloured surface is
+  the **primary-action key** (`.btn-primary` / the saved-row Load), a CARVED accent
+  key rather than a flat slab — the accent is theme-derived, never literal gold,
+  because a primary action *should* pull the eye where a value should not.
   **A latched/pressed-in look is ONE clean top-weighted inset plus a hairline of
-  BOTTOM bounce**, not a stack of top shadows. The playing Play button
-  (`.btn-play[aria-pressed]`) piled a dark top-radial and two top insets and read as
-  a heavy bar rather than a recess (his note, v2.14.7); it's now
-  `inset 0 2px 5px` + `inset 0 -1px 0 <bevel-hi>` — the near wall in shadow, the far
-  wall catching light, which is what actually says "in". The stepper key's press is
-  the reference for that.
-- **Sliders / faders** (session 28): both ranges (`.bpm-slider`, `.swing-slider`)
-  are `appearance: none` and styled via each engine's pseudo-elements into a
-  **machined slot + raised cap**, one shared rule set. The track is a recessed slot;
-  the **traveled portion fills in `--active`** — WebKit has no `::-moz-range-progress`,
-  so the fill is a `--pct` custom property the track gradient reads, set by
-  `paintSlider()` in `app.js` on every `input` and once at init (Firefox uses the
-  progress pseudo and ignores `--pct`). The thumb is a fader cap with a centre
-  groove (a 90deg gradient hairline). `height: 24px` stays for the touch target;
-  the native drag is untouched (a test drags BPM to 239 and reads the fill). BPM is
-  bare on the transport; Swing rides inside its `.slider-well`.
-  **The cap has NO `:active` press-in** (his note, session 28) — a fader SLIDES, it
-  doesn't seat like a button, so the cap keeps its raised look the whole travel.
+  BOTTOM bounce**, not a stack of top shadows (his note, v2.14.7 — a pile of top
+  shadows reads as a heavy bar, not a recess). The near wall in shadow and the far
+  wall catching light is what actually says "in"; the stepper key is the reference.
+- **Sliders / faders** (session 28): both ranges are `appearance: none`, styled via
+  each engine's pseudo-elements into a **machined slot + raised cap**, one shared
+  rule set. The **traveled portion fills in `--active`** — WebKit has no
+  `::-moz-range-progress`, so the fill is a `--pct` custom property the track
+  gradient reads, set by `paintSlider()` on every `input` and once at init (Firefox
+  uses the progress pseudo and ignores `--pct`). `height: 24px` stays for the touch
+  target; the native drag is untouched (a test drags BPM to 239 and reads the fill).
+  **The cap has NO `:active` press-in** (his note) — a fader SLIDES, it doesn't
+  seat like a button, so it keeps its raised look the whole travel.
 - **Note tokens are 3D DOMES**, not chips — a poker-chip treatment (flat face +
   extruded edge) was built, tried and rejected. Signed off; don't re-propose.
 - **Grid legibility beats decoration:** no per-cell borders. Strings read from
@@ -1025,58 +835,46 @@ rgba because it's texture, not hue**, so it rides every theme.
   **deliberate fixed hues, like real hardware: red = REC/armed, amber = caution
   (the ABS/MIX chips), green = save-OK.** A blink is a **pure flash** — constant
   size and rim, only the glass brightens; never a `transform: scale()`, which
-  reads as a button moving. The Guide's legend is what explains those to the
-  user, which is a large part of why the Guide is load-bearing now that the pills
-  are icon-only.
+  reads as a button moving. Help mode is what explains those to the user, and
+  giving those cryptic-by-design indicators somewhere to be explained is a large
+  part of why it exists.
 - **Anything typed that isn't in a bundled face must be DRAWN.** The sheet's `✕`
   was U+2715 and rendered in Arial — the one system-font element in the app.
-- **THE DOCUMENT IS LOCKED** (v2.14.4, his call — "generally disable scrolling and
-  double tap / pinch to zoom across the board"). This **reverses** the earlier
-  decision to scope `touch-action` to controls and leave the viewport zoomable.
+- **THE DOCUMENT IS LOCKED** (v2.14.4, his call), which **reverses** the earlier
+  decision to leave the viewport zoomable:
   `html, body { overflow: hidden; overscroll-behavior: none; touch-action: pan-y }`
   plus `user-scalable=no, maximum-scale=1` on the viewport meta.
   **`pan-y`, never `none`** — `none` looks like the stronger version of the same
   idea and silently forbids panning in every descendant that is *supposed* to
-  scroll: the wheel's reels, a dropdown panel, the saved list, and `main`, which is
-  the safety valve that lets the grid scroll inside its own box at 320×454. `pan-y`
-  still rules out pinch **and** double-tap zoom, because both are only offered for
-  `auto`/`manipulation`. A test asserts `pan-y` and asserts the absence of `none`.
-  Verified here: the BPM slider still drags 90 → 240 under a real pointer drag, the
-  reels still scroll (0 → 418), a list panel still scrolls, and the document
-  doesn't. **Not** verifiable here: pinch and long-press, since the dev box has no
-  touch. Note iOS Safari has ignored `user-scalable=no` in a browser *tab* since
-  iOS 10 but honours it in a standalone install, so `touch-action` is what carries
-  the tab case.
-- **THE SHEET'S VIEWPORT PIN ONLY APPLIES WHILE THE KEYBOARD IS UP** (session 32,
-  and this is the landscape fix). `syncSheetToViewport()` writes **inline**
+  scroll: the wheel's reels, a dropdown panel, the saved list, and `main`, the
+  safety valve that lets the grid scroll inside its own box at 320×454. `pan-y`
+  still rules out pinch **and** double-tap zoom, since both are only offered for
+  `auto`/`manipulation`. A test asserts `pan-y` and the absence of `none`. Note
+  iOS Safari has ignored `user-scalable=no` in a browser *tab* since iOS 10 but
+  honours it in a standalone install, so `touch-action` carries the tab case.
+- **THE SHEET'S VIEWPORT PIN ONLY APPLIES WHILE THE KEYBOARD IS UP** (session 32 —
+  this was the landscape bug). `syncSheetToViewport()` writes **inline**
   `height`/`top`/`bottom` over `.sheet { position: fixed; inset: 0 }` so a
-  bottom-anchored sheet rides above the iOS keyboard instead of sitting behind it
-  (the Save-name field). It used to write those on every `visualViewport` event
-  and **never remove them** — and it skipped hidden sheets. iOS reports
-  transitional viewport numbers for a frame or two mid-rotation, so a box captured
-  during a turn outlived the turn, and a sheet closed during one carried a
-  landscape box into portrait: the panel then bottom-anchored inside the wrong box,
-  which is the "Options opens at the top" report. With no keyboard the visual
-  viewport EQUALS the layout viewport, so the pin was only ever a no-op then —
-  hence the fix is to **clear the inline box** rather than write a no-op snapshot,
-  hidden sheets included. The stylesheet is correct at every orientation, so
-  rotating now self-corrects and **no orientation handling exists anywhere**.
-  Landscape itself is deliberately NOT blocked in a Safari tab (his call): the
-  manifest's `"orientation": "portrait"` covers the installed PWA, and a CSS
-  lockout would need a `max-height` guard or it would also fire on a desktop
-  browser. Verified here by faking the keyboard both ways; the real rotate needs
-  a phone.
+  bottom-anchored sheet rides above the iOS keyboard rather than behind it. With
+  no keyboard the visual viewport EQUALS the layout viewport, so the pin is a
+  no-op then — which is why it must **clear the inline box** rather than write a
+  no-op snapshot, hidden sheets included. Writing it unconditionally let a box
+  captured mid-rotation (iOS reports transitional numbers for a frame or two)
+  outlive the turn, so a sheet closed in landscape opened bottom-anchored inside
+  the wrong box in portrait. The stylesheet is correct at every orientation, so
+  **no orientation handling exists anywhere** and rotating self-corrects.
+  Landscape is deliberately NOT blocked in a Safari tab (his call): the manifest's
+  `"orientation": "portrait"` covers the installed PWA, and a CSS lockout would
+  need a `max-height` guard or it would fire on a desktop browser too.
 - **A READOUT needs the same `user-select: none` a control does.** `.bpm-readout`
   was in neither touch list — it isn't a button — so a long-press on "90 BPM"
   selected it and raised the callout (v2.14.4, his note). Any new readout too.
 - **Touch hygiene, all learned from real bugs:** `touch-action: manipulation` and
-  `-webkit-tap-highlight-color: transparent` on every interactive control (we
-  draw our own feedback; WebKit's default blue halo was invisible on dark
-  faceplates and obvious on Elizabeth), plus `-webkit-user-select` /
-  `-webkit-touch-callout: none` — **but not on `input`**, which needs selection
-  and paste. **Tag the containers too:** at an end-stop the capo button goes
-  `disabled` and the tap falls through to the `.stepper` behind it, which is how
-  iOS double-tap zoom got back in.
+  `-webkit-tap-highlight-color: transparent` on every interactive control (we draw
+  our own feedback), plus `-webkit-user-select` / `-webkit-touch-callout: none` —
+  **but not on `input`**, which needs selection and paste. **Tag the containers
+  too:** at an end-stop the capo button goes `disabled` and the tap falls through
+  to the `.stepper` behind it, which is how iOS double-tap zoom got back in.
 - **Prefer `position: relative; top` over `transform` for small lifts.** A
   `transform` promotes a compositing layer, and content behind the Options
   sheet's translucent backdrop then doesn't repaint on iOS — that was a real
@@ -1084,118 +882,77 @@ rgba because it's texture, not hue**, so it rides every theme.
 
 **Help mode — the app explains itself in place** (`help.js`, v2.13.4). Tap the
 `?` and it latches in like the Edit pencil; from then on, tapping anything shows
-a short card about it **instead of** doing what it normally does, so you can poke
-at every control without touching your pattern, your settings or your library.
-It replaced a scrolling instruction-manual modal, and the argument is specific
-rather than general: **the four header pills are icon-only and the ABS/MIX chips
-and the REC/save lamps are deliberately cryptic hardware indicators**, which are
-exactly what a manual explains worst — a list of glyphs on another screen is the
-one place you can't compare the glyph to the thing.
+a short card about it **instead of** doing what it normally does. It replaced a
+scrolling instruction-manual modal, and the argument is specific: **the four
+header pills are icon-only and the ABS/MIX chips and REC/save lamps are
+deliberately cryptic hardware indicators**, which is exactly what a manual
+explains worst — a list of glyphs on another screen is the one place you can't
+compare the glyph to the thing.
 - **NAVIGATION SURVIVES, and the allowlist IS the spec** (`NAV_SELECTOR`): the
   gear, the two page tabs, the sheet's `[data-close]`, the `?` itself, and the
   card. Nothing else. Half the controls worth explaining live in the Options
   sheet and would otherwise be unreachable. Save and Load **explain rather than
   open**, because everything inside those sheets is a state-changing action;
-  dropdowns explain rather than opening inert.
-- **The `?` needs no exit special-case** because it's on its own allowlist: the
-  tap reaches its normal handler, which sees the mode is on and disarms it.
+  dropdowns explain rather than opening inert. The `?` needs no exit
+  special-case — its tap reaches its own handler, which disarms.
 - **The card is an OVERLAY and costs zero layout.** Measured at 375×553 with 4
-  bars: `.app-head` 55.09px, grid 384.84px, clearance 11.06px, no overflow —
-  **identical** before arming, while armed, and with a card up. That is what
-  makes this design affordable at all; anything reserving a strip for
-  explanations was unshippable against an 11px budget.
+  bars, identical before arming, while armed and with a card up. That's what
+  makes the design affordable; anything reserving a strip was unshippable against
+  an 11px budget.
 - **`click` capture is NOT enough — `pointerdown` is the one that matters.**
-  Measured with a real drag, not synthetic events: with click-capture alone and
-  help mode armed, dragging the BPM slider ran it **90 → 240**. A capture-phase
-  click listener *does* stop a `<label>` toggling its hidden checkbox (the Sound
-  lamps), and does *not* stop a native range drag. Cancelling the pointerdown is
-  what does. `keydown` is intercepted too. **`pointerup` is swallowed as well since
-  session 27**: it became an activation edge when the tabs and the Format control
-  started committing on release, so a non-nav seated-key control left with a live
-  pointerup would switch state in help mode. The one `swallow` handler is
-  event-type-generic — nav through, everything else neutralised — so adding the
-  edge was one line.
+  Measured with a real drag: with click-capture alone and help armed, the BPM
+  slider still ran **90 → 240**. Capture-phase click *does* stop a `<label>`
+  toggling its hidden checkbox (the Sound lamps) and does *not* stop a native
+  range drag. `keydown` is intercepted too, and **`pointerup` since session 27** —
+  it became an activation edge when the tabs and Format started committing on
+  release. The one `swallow` handler is event-type-generic, so adding an edge is
+  one line.
 - **A DISABLED control emits no click at all**, so it would be a dead tap — and
-  this is not a corner case: **the Load pill is disabled whenever the library is
-  empty**, i.e. the first-run state, i.e. exactly the person most likely to be
-  reading help. The capo's `−`/`+` disable at their end stops. Help mode already
-  guarantees nothing acts, so `disabled` has no job while armed: `liftDisabled`
-  removes it (leaving `aria-disabled` truthful) and `restoreDisabled` puts it
-  back on exit. Found in-browser — tapping Load showed the *previous* card.
-- **Navigation dismisses the open card**, because opening the sheet, switching
-  pages or closing it all move or hide whatever the card was anchored to. The ✕
-  used to leave a "Theme" card floating over the grid.
-- **Tapping the same control again dismisses its card** (v2.13.5, his call), so
-  every control is its own toggle. The card has no ✕ — it goes away when you tap
-  it, tap bare faceplate, or tap the thing it's about, and the last of those is
-  the one your finger is already on. Compared by *key*, so a different control
-  still swaps the card rather than closing it.
-- **The card's ring and its entry are separate jobs** (`data-help-ring`,
-  v2.13.5). `data-help` says which copy; an optional `data-help-ring` selector
-  says which box to outline and hang the card off, picking **the first matching
-  child that's actually rendered**. `#chord-head` is why it exists: it reserves a
-  full-width 28px slot so the grid can't move, but what you *see* in it is either
-  a 40px chord glyph overflowing the slot upward or a text-width run of numerals
-  inside it. Ringing the container drew the same wide, short box in both modes —
-  measured at 375×553, `351×28` against a chord actually occupying `25.3×40`, so
-  in single mode the outline was mostly empty space *below* the chord it claimed
-  to point at. One entry, two shapes, and no mode flag has to reach `help.js`.
-- **Two things have NO card and fall through to their parent, on purpose**
-  (v2.13.6, his call) — the **beat lamp** → Tempo, and a bar's **chord picker**
-  and **number chip** → the grid. Both are one DOM move from being dead taps in
-  a mode whose promise is "tap anything", so **a test pins each fall-through**.
-  The picker's is the subtle one: it was an actual bug in v2.13.4 (the grid card
-  said nothing about chords, so it explained the wrong thing), it got its own
-  entry in v2.13.5, and the entry was then folded back into the grid's card as a
-  second paragraph. **It is correct now only because that copy covers it** —
-  hence the test asserting `HELP.grid.body` mentions chords. Note the picker is
-  reached through an overlay button that is a **sibling** of the hidden
-  `<select>` (`dropdown.js`), so annotating the select would do nothing at all.
-- **A blank line in a `body` starts a new paragraph**, rendered as real `<p>`s
-  rather than `white-space: pre-line` — the card has room for paragraph spacing
-  and not for a blank line. Only the grid's card uses it.
-- **The copy has HOUSE RULES, his, and they live in `data.js` above the map**
-  (v2.13.6) so the next edit sees them: say what it does plus anything that
-  would surprise you, then stop; cut anything visible on screen, anything
-  explaining *why*, and anything you'd discover in one tap; assume a guitar
-  player (Nashville numbers, alternating bass, i/m/a all pass unexplained); no
-  em dashes; two lines is the ceiling, and where one runs long the length is the
-  signal that the thing itself is fiddly. The pass that set them cut the map
-  from 30 entries to 28 and roughly halved the average card. **Titles follow the
-  shape of the phrase** (v2.13.7): title-like is Title Case ("Help Mode",
-  "Pattern Length"), sentence-like stays sentence case ("The grid is your right
-  hand").
-- **The `?` stays above the Options sheet's scrim** (`body.options-open`,
-  v2.13.7). Half the controls worth explaining live in that sheet, so arming
-  help mode *from inside it* is the common case — before this you had to close
-  the sheet, arm, and reopen. z-index **30**: clears `.sheet` (20), stays under
-  `.dd-panel` (40), the modals (60) and the card itself (70), so a dropdown
-  opened from the sheet still covers the pill. **This works with a plain
-  z-index only because nothing between the pill and the root creates a stacking
-  context** — the whole chain was checked (`.grid-actions`, `.ctx-row`,
-  `.app-head`, `main`, `body`: no z-index, transform, opacity, filter, isolation
-  or containment). Add a `transform` to any of them and this dies silently, so
-  **the test hit-tests with `elementFromPoint` rather than reading the z-index**,
-  which would still say 30 with the pill buried. The body class is set by
-  `setOptionsOpen()` in `app.js` — one place, because the sheet used to be opened
-  and closed by three bare `hidden =` assignments and a class tracking only two
-  of them strands the pill above a closed sheet.
-- **The copy is DATA** (`HELP` in `data.js`, keyed to `data-help` attributes),
-  which is the same rule chords and themes follow and the direct fix for how the
-  Guide rotted — it was prose inside `renderHelp()` and was still calling the
-  Fingers menu "Chaos" three versions after the rename. **A test checks both
-  directions**: a control pointing at missing copy is a tap that silently does
-  nothing, and an entry nothing can reach is dead copy.
+  it's not a corner case: **the Load pill is disabled whenever the library is
+  empty**, i.e. the first-run state, i.e. exactly the person reading help. Help
+  already guarantees nothing acts, so `liftDisabled` removes it while armed
+  (leaving `aria-disabled` truthful) and `restoreDisabled` puts it back.
+- **Navigation dismisses the open card** (the sheet moves or hides whatever it
+  was anchored to), and **tapping the same control again dismisses it** (his
+  call), so every control is its own toggle. Compared by *key*, so a different
+  control swaps the card rather than closing it. The card has no ✕.
+- **The card's ring and its entry are separate jobs** (`data-help-ring`).
+  `data-help` says which copy; an optional `data-help-ring` selector says which
+  box to outline, picking **the first matching child that's actually rendered**.
+  `#chord-head` is why it exists: it reserves a full-width 28px slot so the grid
+  can't move, but what you *see* is either a 40px chord glyph overflowing it
+  upward or a run of numerals inside it — one entry, two shapes, and no mode flag
+  reaches `help.js`.
+- **Two things have NO card and fall through to their parent, on purpose** (his
+  call) — the **beat lamp** → Tempo, and a bar's **chord picker** and **number
+  chip** → the grid. Both are one DOM move from being dead taps in a mode whose
+  promise is "tap anything", so **a test pins each fall-through**. The picker's is
+  correct *only because the grid's copy covers chords*, hence the test asserting
+  `HELP.grid.body` mentions them. Note the picker is an overlay button that is a
+  **sibling** of the hidden `<select>`, so annotating the select does nothing.
+- **The `?` stays above the Options sheet's scrim** (`body.options-open`), since
+  arming help from inside the sheet is the common case. z-index **30**: clears
+  `.sheet` (20), under `.dd-panel` (40), the modals (60) and the card (70).
+  **A plain z-index only works because nothing between the pill and the root
+  creates a stacking context** — the whole chain was checked. Add a `transform`
+  to any of them and this dies silently, so **the test hit-tests with
+  `elementFromPoint`** rather than reading the z-index. The body class is set by
+  `setOptionsOpen()` — one place, because three bare `hidden =` assignments used
+  to open and close that sheet.
+- **The copy is DATA** (`HELP` in `data.js`, keyed to `data-help`), the direct fix
+  for how the Guide rotted — it was prose inside `renderHelp()` and still called
+  the Fingers menu "Chaos" three versions after the rename. **A test checks both
+  directions**: a control pointing at missing copy is a silent dead tap, and an
+  unreachable entry is dead copy. A blank line in a `body` becomes a real `<p>`
+  (only the grid's card uses it). **The copy's HOUSE RULES are his and live in
+  `data.js` above the map** so the next edit sees them.
 - **Help and Edit are mutually exclusive, but only one guard is needed** —
-  arming help disarms edit; the reverse is unreachable, because the pencil isn't
-  on the allowlist, so tapping it in help mode explains the pencil.
-- **The transport is left alone** (his call): arming help mid-take keeps it
-  playing, and Play explains itself rather than stopping. Verified by counting
-  scheduled sounds across the arm.
-- **The mode announces itself** with a card anchored to the `?` that armed it —
-  otherwise you'd face an unchanged screen wondering what the button did. That
-  card is also where **`APP_VERSION`** lives now (header → Options sheet → Guide
-  foot → here; every earlier home cost width a readout beside it needed).
+  arming help disarms edit; the reverse is unreachable, since the pencil isn't on
+  the allowlist. **The transport is left alone** (his call): arming mid-take keeps
+  it playing and Play explains itself rather than stopping.
+- **The mode announces itself** with a card anchored to the `?` that armed it,
+  which is also where **`APP_VERSION`** lives (every earlier home cost width a
+  readout beside it needed).
 
 **Type — the panel speaks in THREE voices** (session 17), and the rule that
 decides which is *where the words sit*, not what they mean:
@@ -1205,47 +962,37 @@ decides which is *where the words sit*, not what they mean:
 - **`--legend` (Jost)** — what the machine **calls** a thing: the small tracked
   caps **above** a control, silkscreened on the faceplate. One tier only —
   10px / 0.16em / 500 (`--legend-size`/`-track`/`-weight`). A group caption
-  (`.sheet-sec`) is the *same object* as a field label, same left edge; it used
-  to be 9px/0.22em indented 2px, i.e. smaller type on the thing that outranks.
+  (`.sheet-sec`) is the *same object* as a field label, same left edge.
 - **`--numeral` (rounded geometric)** — fret digits in note circles, the bar-num
   chip, ruler ticks, BPM. A **legibility exception**, not a third opinion.
 
-**Jost is bundled (OFL 1.1), not the system Futura it resembles** — referencing
-a commercial system face is only free while every user is on Apple hardware, and
-an OFL face is ours to embed, renders identically everywhere, and stays free if
-this is ever sold. Same footing as Fraunces. Adding any font means adding it to
-`sw.js` PRECACHE and bumping `CACHE`; **two tests** guard it (every `fonts/*.woff2`
-is precached; every bundled file has an `@font-face`, and `--legend` never falls
-back to the rounded stack). Anything typed that isn't in either face must be
-**drawn** — the sheet's `✕` was U+2715 and rendered in Arial, the one system-font
-element in the app.
+**Jost is bundled (OFL 1.1), not the system Futura it resembles** — referencing a
+commercial system face is free only while every user is on Apple hardware, and an
+OFL face is ours to embed, renders identically everywhere, and stays free if this
+is ever sold. Same footing as Fraunces. Adding any font means adding it to `sw.js`
+PRECACHE and bumping `CACHE`; **two tests** guard it (every `fonts/*.woff2` is
+precached; every bundled file has an `@font-face`, and `--legend` never falls back
+to the rounded stack).
 
-**Themes:** `themes.json` is the source of truth (**default: `jerry`** since
-v2.9.2 — the app icon is built from Jerry's roles, so the two match) — each theme is 5 roles
+**Themes:** `themes.json` is the source of truth (**default: `jerry`** — the app
+icon is built from Jerry's roles, so the two match). Each theme is 5 roles
 (`bg`, `surface`, `accent`, `active`, `label`) plus an **optional `hardware`**
-role (the metal fittings: sheet lip, die/primary borders, jewel rim; defaults
-to the house brass `#c9a24a` — Doc overrides to nickel, Jerry to bronze,
-Elizabeth to copper). `theme.js` sets those as CSS custom properties and
-*derives* everything else by blending hexes (`--line`, `--muted`, `--beat-tint`,
-`--control`, and since the session-9 color pass also `--grid-line`,
-`--band-thumb`, `--beat-wash`, `--glyph`, `--hardware-deep`, the jewel-lamp
-family `--lamp-hot/rim/glow` + `--jewel-off*`, `--active-deep`, and
-`--recess-shadow` via a surface-luminance check for light themes). **Only two
-washes stay translucent** (`--beat-wash`, `--lamp-glow` — they layer over other
-derived fills); the rest are opaque so CSS needs no alpha math. Nothing
-theme-dependent is hardcoded in `styles.css` anymore — that file's fixed rgba
-is limited to true texture (tweed weave, `--bevel-hi`, shadows). Adding a theme
-is a pure data edit. Choice persists in `localStorage` — **and a saved preference
-wins over the default**, so changing `jerry` only affects someone who has never
-picked a theme (clear `travis-picker:theme` when testing). Note circles: thumb =
-`--active`, fingers = `--accent` (keeps the hand-domain read). `styles.css`'s
-`:root` fallbacks, used if the fetch fails, are **Jerry's**, read out of the live
-app rather than hand-computed. Two optional per-theme roles exist beside
-`hardware`: **`playhead`** (the derived `mix(surface, active, 0.4)` desaturates to
-gray when surface and active are near-complements — Doc, Tommy and Buster
-override it) and the derived `-hi`/`-deep` gradient caps, which are the hue pulled
-toward white/black so a raised control is ONE material lit from above, not a warm
-cap on a cool body.
+role (the metal fittings: sheet lip, die/primary borders, jewel rim; defaults to
+the house brass, with Doc nickel, Jerry bronze, Elizabeth copper). `theme.js` sets
+those as CSS custom properties and *derives* everything else by blending hexes
+(`--line`, `--muted`, `--grid-line`, `--beat-wash`, `--glyph`, the jewel-lamp
+family, `--recess-shadow` via a surface-luminance check for light themes, and the
+`-hi`/`-deep` gradient caps — the hue pulled toward white/black, so a raised
+control is ONE material lit from above, not a warm cap on a cool body). **Only
+`--beat-wash` and `--lamp-glow` stay translucent**, since they layer over other
+derived fills; the rest are opaque so CSS needs no alpha math. **Nothing
+theme-dependent is hardcoded in `styles.css`** — its fixed rgba is limited to true
+texture — so adding a theme is a pure data edit. `playhead` is a second optional
+role (the derived mix desaturates to gray when surface and active are
+near-complements). Choice persists in `localStorage` and **a saved preference wins
+over the default**, so changing `jerry` only affects someone who has never picked
+one (clear `travis-picker:theme` when testing). `styles.css`'s `:root` fallbacks,
+used if the fetch fails, are **Jerry's**, read out of the live app.
 
 ## Core data model (one structure powers everything)
 
@@ -1274,13 +1021,11 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - **Two independent layers.** `thumbBars` and `trebleBars` are generated and stored separately, and the **finger layer is generated free of the thumb** (strings 1/2/3 only — the thumb is NOT seeded into the treble generator). They merge **per chord at resolve time** (`resolveMergedBar` → `enforceHardRule`, bass added first so it wins a same-slot collision). `regenerateBass()` re-rolls the thumb keeping the exact finger part, `regenerateTreble()` does the reverse — so the Thumb and Chaos controls each disturb only their own layer, and you can audition bass patterns under one right-hand part. Only Pattern-length and **Generate** re-roll everything.
   - **Fingers generate wherever they want; the bass overwrites string-3 collisions per chord** (session 10). A shared 1-bar cell over a D-key progression keeps its string-3 fingers in the G/A bars and lets D/Dm's alt bass overwrite only the D bars — before, a D reference chord seeded string 3 into the treble generator and starved every bar there. If a bar's whole finger part was string-3 pinches on a D/Dm alt-bass beat, `resolveMergedBar` rescues one finger onto a free string so no bar goes bare-thumb.
 - **The finger-density setting is called "Fingers" in the UI** (session 18), and
-  its outlier tier is **"Wild Card"**, not "Chaos". The word was doing two jobs —
-  naming the whole setting *and* its one off-curve member, which implied a
-  ranking that doesn't exist. The legend is `Fingers` because it sits beside
-  `Thumb` and those are literally the two layers the generator keeps separate.
-  The menu is grouped by `CHAOS_GROUPS`: **Complexity** (Tame/Loose/Unruly) and
-  **Experimental** (Wild Card) — a caption states what a bare divider could only
-  imply, and "Experimental" leaves room for future off-curve generation ideas.
+  its outlier tier is **"Wild Card"**, not "Chaos" — the word was naming both the
+  whole setting and its one off-curve member, implying a ranking that doesn't
+  exist. `Fingers` pairs with `Thumb`, which is literally what the two layers are.
+  Grouped by `CHAOS_GROUPS` into **Complexity** (Tame/Loose/Unruly) and
+  **Experimental** (Wild Card), which leaves room for future off-curve ideas.
   **All internal ids are unchanged** (`chaos`, `CHAOS_PRESETS`, `state.chaos`):
   saved patterns store the id, so renaming it would break the library. A test
   asserts `CHAOS_GROUPS` partitions `CHAOS_IDS`.
@@ -1290,17 +1035,14 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
   curve is Tame → Loose → Unruly; Chaos sits OFF the curve** — it's the fully
   random discovery setting ("novelty over playability", per the spec), not
   "harder than Unruly" (session 6 round 2, user call).
-  - **Difficulty model (session 6, refined round 2 against worked examples).**
+  - **Difficulty model (session 6, refined against his worked examples).**
     Difficulty is **STRIKE-TIMES** — how many distinct columns the *fingers*
-    attack in (thumb aside) — **not note count**: a full three-finger rake is
-    easy. **Pinched beats count against the strike budget, not on top of it**
-    (six attack columns is not Tame however they're split). Finger independence
-    (varied finger-sets) matters but **emerges from density**, so it isn't
-    enforced separately — a strict one-group synchronization rule for Tame was
-    tried in round 1 and **dropped in round 2**: the user's real Tame examples
-    mix a lone finger with a repeated pair, or three different sets in three
-    strikes. Stack thickness is a side effect, not an axis; **triples are legal
-    in every tier**.
+    attack in, thumb aside — **not note count**: a full three-finger rake is easy.
+    **Pinched beats count against the strike budget, not on top of it.** Finger
+    independence matters but **emerges from density**, so it isn't enforced
+    separately (a one-group synchronization rule for Tame was tried and dropped —
+    his real Tame examples mix a lone finger with a repeated pair). Stack
+    thickness is a side effect, not an axis; **triples are legal in every tier**.
   - **The knobs** (all in the preset): `min/maxStrikes` (the per-bar TOTAL
     strike-time budget), `pinchOdds` (per-STRIKE placement weight: the chance a
     budgeted strike lands on a beat — a pinch, fingers riding the thumb's
@@ -1319,117 +1061,88 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     string — only string 3, on D/Dm's alt bass — is ordinary alternating picking,
     NOT a re-strike (session 10, user call). So the treble is generated with no
     thumb seeding and the budget counts finger pairs only.
-  - **Tier numbers** (measured over 500 seeds/tier, round 5): **Tame** 2–3
-    strikes, ~57% all-singles, ~3% all-pinch bars, clean; **Loose** 4–5
-    strikes, still clean; **Unruly** 5–6 strikes (~7% of bars drop to 4 when
-    the re-strike budget blocks a column), re-strikes 0–2/bar avg ~1.9 (was
-    ~3.5 unlimited with a tail to 11 — round 5's "too much"), ~4% all-singles,
-    ≥1 stack per bar on stacked rolls; **Chaos** genuinely uniform 1–8 strikes,
-    uniform column shapes (single/double/triple each ⅓), unlimited re-strikes.
-    (Unruly's strike floor was raised from 4/10% in round 3.)
+  - **Tier numbers** (measured over 500 seeds/tier): **Tame** 2–3 strikes, ~57%
+    all-singles, clean; **Loose** 4–5 strikes, still clean; **Unruly** 5–6 strikes
+    (~7% of bars drop to 4 when the re-strike budget blocks a column), re-strikes
+    0–2/bar avg ~1.9, ~4% all-singles, ≥1 stack per bar on stacked rolls;
+    **Chaos** genuinely uniform 1–8 strikes, uniform column shapes, unlimited
+    re-strikes.
   - **Hard no-blank rule:** every bar gets **≥1 finger note** — the generator
     forces a legal offbeat rather than ship a bare-thumb bar. Asserted in tests.
-  - **Re-strikes are rationed, not binary** (round 5): `maxRestrikes` charges
-    each adjacent same-FINGER-string pair against its bar's budget (a string
-    colliding with BOTH neighbours costs 2), so total finger pairs never exceed
-    bars × maxRestrikes — asserted in tests (on `trebleBars`, the finger layer,
-    since the bass overwriting a finger is not a re-strike). At budget 0
-    (Tame/Loose) this is
-    the old hard ceiling: if avoiding a re-strike leaves no legal finger
-    string, the generator **drops the column rather than re-strike** — so the
-    strike-time count is a best-effort floor, a hard ceiling. The same drop now
-    applies to Unruly once its budget is spent (~7% of its bars land on 4
-    strikes for this reason).
+  - **Re-strikes are rationed, not binary.** `maxRestrikes` charges each adjacent
+    same-FINGER-string pair against its bar's budget (a string colliding with BOTH
+    neighbours costs 2), so total finger pairs never exceed bars × maxRestrikes —
+    asserted on `trebleBars`, since the bass overwriting a finger is not a
+    re-strike. **The strike count is a best-effort floor and a hard ceiling**: if
+    avoiding a re-strike leaves no legal finger string, the generator **drops the
+    column rather than re-strike**.
   - Treble is generated for the **whole loop as one circular N = 8×bars slot
-    sequence** (`generateTrebleLoop`), not bar-by-bar: interior bar seams are
-    ordinary adjacencies and the single wrap is last-8th→first, so a re-strike
-    straddling the **loop point** is caught like any interior pair (a per-bar
-    generator couldn't see it). Walking in order suffices — the later of any
-    adjacent pair, and the last slot for the wrap, sees the other.
-  - Latent flag kept but unread: `domainCrossing` (no generator path consumes
-    it). Removed along the way: `allowDoubleStops`, `favorSingleOffbeats`,
-    `syncFingers`/`groupSizeOdds` (round 1's synchronization mechanism).
+    sequence** (`generateTrebleLoop`), not bar-by-bar, so a re-strike straddling
+    the **loop point** is caught like any interior pair — a per-bar generator
+    couldn't see it.
+  - Latent flag kept but unread: `domainCrossing`. Removed along the way:
+    `allowDoubleStops`, `favorSingleOffbeats`, `syncFingers`/`groupSizeOdds`.
 - **Bass presets** are data (`BASS_PRESETS`), and **all seven are surfaced** in
   the Thumb selector (session 5): `travis` (default, root-alt-fifth-alt),
   `simple_alt`, `dead_thumb`, `root_fifth` (relative, follow the chord), `climb`
   and `descend` (absolute integer walks that ignore the chord — texture tools,
   show the "absolute bass" indicator), and `full_random`.
-- **Chord library is the FULL 12 × 3 MATRIX** — 36 chords, every root in Major /
-  Minor / 7 (session 21, his call; it was 21 curated chords through session 20).
-  **The matrix has to be dense because the picker is two wheels**: a cell you can
-  spin to that isn't a chord would be a lie, and a test pins it. Three qualities
-  is deliberately where it stops — enough to judge the wheel by, and adding a
-  fourth is templates + any open voicing, nothing structural.
+- **Chord library is the FULL 12 × 10 MATRIX** — 120 chords, every root in
+  Major / Minor / 7 / maj7 / m7 / 6 / m6 / sus2 / sus4 / add9 (sessions 21, 30,
+  31; `dim7` is deliberately out — no perfect fifth means no alternating-bass
+  target). **The matrix has to be dense because the picker is two wheels**: a
+  cell you can spin to that isn't a chord would be a lie, and a test pins it.
   - **Ids are `root + suffix`** (`C`, `C#m`, `Eb7`) — what a saved pattern stores,
     and what `chordIdFor`/`splitChordId` convert to and from the two reel
     positions. `name` is what's PRINTED and comes from `PC_NAME`.
-  - **14 open-position chords are hand-declared, the other 22 are derived** from
-    two movable templates (E-shape and A-shape, × the three qualities). Open
-    chords can't be templated (open strings only exist at the nut) and they're
-    the voicings you actually play. **The rule is "whichever barres lower", and
-    it isn't a new convention: it reproduces every barre chord the library used
-    to hand-declare** — F@1, F♯@2, Gm@3, G♯m@4, B♭@1, B@2, Bm@2, C♯m@4. Those
-    eight are frozen in a test as the fixture, so a wrong template fails against
-    voicings that were played on a real guitar. Nothing lands above fret 8.
-  - **One exception to the dom7 bass rule, and it's flagged in the data.** The
-    five open 7ths keep the parent major's bass (the ♭7 on a *finger* string;
-    E7 uses `020130` precisely so its alt bass stays E). Inside an **E-shape**
-    barre the ♭7 has only two homes — string 4 at the barre (the everyday
-    `131211` F7) or string 2 three frets up (a stretch nobody plays) — so
-    **F7 / F♯7 / G♯7 alternate root ↔ ♭7** rather than root ↔ octave. Playable
-    shape over tidy rule; it's a one-line template change to flip.
+  - **34 voicings are hand-declared; the other 86 are derived** from two movable
+    templates (E-shape and A-shape × the ten qualities). Open chords can't be
+    templated (open strings only exist at the nut) and they're the voicings you
+    actually play. **The rule is "whichever barres lower", and it isn't a new
+    convention: it reproduces every barre chord the library used to hand-declare**
+    — F@1, F♯@2, Gm@3, G♯m@4, B♭@1, B@2, Bm@2, C♯m@4, frozen in a test as the
+    fixture, so a wrong template fails against voicings played on a real guitar.
+  - **Every hand-declaration is an override with its own reason, and the reason
+    lives beside it in `data.js`** — an open voicing, a template landing off the
+    practical neck, or one of his own guitar verdicts (sessions 33's `E♭add9`,
+    `F♯6`, `Cm6`/`C♯m6`, `Csus4`). Read those comments before touching a shape;
+    they are not decoration, and two of them record corrections to *my* reasoning.
+  - **PLAYABILITY IS NOT SPAN** (session 33, learned by getting it wrong). What
+    makes a shape hard is **a low-fret note stranded on the far side of a
+    high-fret one**, forcing a finger back past the pinky — not the distance
+    between frets. And **a full barre is not a partial barre**: a standard
+    all-the-way-across barre is fine by him, so "avoid partial barres" must not
+    be read as "avoid barres", which cost a round of guessing. The wide sus2/add9
+    barres are deliberately KEPT.
+  - **One exception to the dom7 bass rule, flagged in the data.** The open 7ths
+    keep the parent major's bass (the ♭7 on a *finger* string; E7 is `020130`
+    precisely so its alt bass stays E). Inside an **E-shape** barre the ♭7 has
+    only two homes — string 4 at the barre (the everyday `131211` F7) or string 2
+    three frets up (a stretch nobody plays) — so **F7 / F♯7 / G♯7 alternate root ↔
+    ♭7** rather than root ↔ octave. Playable shape over tidy rule; one line to
+    flip. maj7/m7 make the same trade on E-shape roots.
   - Barre chords assume a *full* barre, so the low string is available as a bass
     note even where the textbook voicing mutes it — the same convention C already
     used (its fifth is string 6 fret 3). B7 is hand-voiced (`x21202`) with string
     6 fretted at 2 for the same reason.
   - **`PC_NAME` is the single source for how a pitch is SPELLED** — the wheel's
-    root reel, every chord name, and the capo tag all read it, so a pitch can't be
+    root reel, every chord name and the capo tag all read it, so a pitch can't be
     `C♯` on the wheel and `D♭` in the header (it was, before the wheel). Which
-    spelling per pitch is a guitarist's habit, not a rule: flats for E♭/B♭,
-    sharps for C♯/F♯/G♯. A test pins it.
-  - A test asserts every chord's role strings are covered by its shape, and
-    another that **no chord plays a string its own shape mutes**. That second one
-    exists because the chord box found a live contradiction (session 33): `A`,
-    `Am` and `A7` muted string 6 while declaring `fifth: 6`, so the thumb picked
-    it anyway. Musically harmless — E is A's fifth, and every other A chord
-    sounded it — which is exactly why nobody noticed until a picture drew an ×
-    over a string you can hear. All three sound it now. **The check is scoped to
-    RELATIVE patterns**: the absolute presets (climb / descend / full random) walk
-    literal string numbers and ignore the chord by design, so on D they will play
-    the muted string 6 — that's what the ABS indicator is warning you about.
-    Note a resolver asked for a muted string falls back to **fret 0** and sounds
-    it open, silently, which is what makes this class worth pinning.
-  - **PLAYABILITY IS NOT SPAN** (session 33, learned by getting it wrong). Fret
-    span was used to rank how hard a shape is, and it's the wrong measure: it
-    ranked `G♯sus2` (span 5) as the worst and cleared `Dadd9` (span 4), while he
-    found `Dadd9` unplayable and `G♯sus2` merely awkward. What actually makes a
-    shape hard is **a low-fret note stranded on the far side of a high-fret one**,
-    which forces a finger to cross back past the pinky. Where the two notes at the
-    same fret are on *adjacent* strings, one finger covers both (a partial barre)
-    and the shape survives — that's his own solution for the three sus2. Only
-    `Dadd9` and `E♭add9` genuinely failed, and `Dadd9` he then found a fingering
-    for (barre the 2s, pinky on 5), so **`E♭add9` alone was revoiced** — twice.
-    First to `x 6 5 0 6 6` (v3.2.1, string 6 muted), then his note: string 6
-    doesn't need to go unplayed and doesn't need a partial barre either — one
-    finger moves between string 6 and string 1 (both fret 6) as needed, the same
-    way a finger comes on and off string 6 for the low bass note some players add
-    under an open C. **v3.2.2 is `6 6 5 0 6 6`**, and it's a genuine upgrade, not
-    just a preference: B♭ (the 5th) now has a real bass-string home, so
-    Root–Fifth alternates E♭ ↔ B♭ properly instead of going root-only. All the
-    wide sus2/add9 barres are deliberately KEPT.
-  - **A FULL BARRE IS NOT A PARTIAL BARRE, and conflating them cost a round of
-    guessing** (v3.2.3, his correction). Told "avoid any partial barres" for
-    `C♯m6`/`Csus4`/`F♯6`/`Cm6`, the first pass proposed barre-free re-voicings for
-    all four — and he pushed back: a full, "standard all the way across" barre is
-    not the problem, and the muted, sparse candidates were worse than what they
-    replaced. Checking the shapes' own barre topology settled it: `C♯m6`, `Cm6`
-    and `F♯6` are already the movable A-/E-shape TEMPLATE barre (index across
-    every string, 3–4 fingers layered on top in a small window) — genuinely
-    standard, and untouched. **Only `Csus4` was the real outlier**, and it wasn't
-    template-derived at all — see the entry below.
-  - **🎲 rolls the whole library** (his call, with the wheel) — it used to roll the
-    open "campfire" chords only, but a picker that offers all 36 with equal
-    ceremony should have a die that does the same.
+    spelling per pitch is a guitarist's habit: flats for E♭/B♭, sharps for
+    C♯/F♯/G♯. A test pins it.
+  - **Four tests guard the library as data**, and each caught something real:
+    every chord's role strings are covered by its shape; **no chord plays a string
+    its own shape mutes** (the chord box exposed `A`/`Am`/`A7` doing exactly that
+    — and a resolver asked for a muted string falls back to fret 0 and sounds it
+    *silently*, which is what makes the class worth pinning); every voicing
+    **spells its quality** (`Dadd9` shipped as plain D major for one build); and
+    **`alt` never equals `fifth`** (with them equal, Travis's root-alt-fifth-alt
+    collapses three of four beats onto one note — the F♯6 bug he heard). The
+    muted-string check is scoped to **relative** patterns: climb / descend / full
+    random walk literal strings and ignore the chord by design, which is what the
+    ABS indicator warns about.
+  - **🎲 rolls the whole library** (his call, with the wheel) — a picker that
+    offers every chord with equal ceremony should have a die that does the same.
 - **Pattern length** (`PATTERN_LENGTHS`, 1/2/4) is the *only* length dial: how many **distinct** bars of picking. Bars on screen are derived — single mode shows exactly that many; progression mode shows the progression's bars and cycles the pattern across them. Changing it **extends** rather than re-rolls (`setPatternBars`): growing duplicates the existing bars so hand-drawn work survives, and the copies are independent from then on; shrinking keeps the first n. Only **Generate** re-rolls. This replaced a separate Loop + Phrase-length pair whose only useful combinations were "displayed == distinct"; the rest just redrew the same bar. Don't reintroduce a display-length control without that reasoning changing.
 
 ## Conventions
@@ -1453,64 +1166,21 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v3.2.1–v3.2.3 — his guitar verdicts on the diagram, actioned across three quick
-rounds.** 104/104 green. Session 33 continued: he played the chords the diagram
-flagged and corrected the difficulty model twice. First, **span was the wrong
-metric** — what actually makes a shape hard is a low-fret note stranded past a
-high-fret one, not the distance between frets; `E♭add9` was revoiced
-(`x11041` → `x65066` → **`665066`**, the last one his own fix: string 6 sounds now,
-no partial barre needed, and Root–Fifth finally alternates E♭ ↔ B♭ properly) and
-`A`/`Am`/`A7` were made to sound string 6 (a real contradiction the diagram
-exposed). Second, **a full barre is not a partial barre** — told to avoid
-partial barres, the first pass over-corrected into barre-free-at-any-cost
-candidates that were worse than the originals; `C♯m6`/`Cm6`/`F♯6` turned out to
-already be the app's own standard movable-barre template and needed no change,
-while `Csus4` (a stale hand-declaration, not template-derived) was the one
-genuine two-disconnected-partial-barres outlier and is now a single standard
-barre. Riding along: the die can be tapped while its own wheel is open (was a
-dead first press). See "Playability is not span" and the barre-vs-partial-barre
-correction in the wheel section for the reasoning.
+**v3.2.6, 105/105 green.** The chord library and the progression revamp are
+finished (sessions 29–33): 120 chords, the drum pickers, and the chord-shape
+diagram under the wheel. Sessions 32–33 also landed `tp-prefs`, the diagnosed
+dead-Play bug, the landscape sheet fix, and four rounds of his guitar verdicts on
+chord voicings. Per-session detail is in `CHANGELOG.md`; what each of those left
+open is in `OPEN_ITEMS.md`.
 
-**v3.2.0 — the chord-shape diagram, under the wheel's drums.** 101/101 green.
-Session 33: OPEN_ITEMS item 9's revisit condition ("if and only if the library
-grows unfamiliar shapes") fired at 120 chords / 75 barres, so the wheel now draws
-the left-hand shape below its two cylinders, marking **the thumb's alternating
-pair** in the grid's own colours. Redraws on settle; below the drums, never
-beside (the panel's width is the Options field's). See the wheel section.
-Riding along: the library was measured, which cut his playability audit from 120
-chords to **12** — all the awkward spans live in `sus2`/`add9`/`sus4`, and the
-other seven qualities top out at a normal 3-fret barre. Waiting on his phone:
-whether the diagram is legible at arm's length (`.chordbox { width }` is the
-dial).
+**Signed off, don't revisit unless he raises it:** the wheel (v2.14.0–.2 — the
+detent, the spin, the curve, the die's pool, the F7/F♯7/G♯7 ♭7 bass), Wild Card
+and Unruly, and the app as a whole on the guitar as of v2.13.3. The build order in
+`travis-picker-workflow.md` is complete.
 
-**v3.1.0 — the deferred small fixes: the app remembers your settings, the
-intermittent dead Play is diagnosed and hardened, and the landscape sheet bug is
-fixed at the cause.** 96/96 checks green. Session 32, all four items off his
-notes:
-- **`tp-prefs`** — chord mode, chord, key, capo, progression, thumb, fingers,
-  pattern length, note labels **and BPM** survive a relaunch. BPM persisting
-  reverses a documented decision (his call). See "Session preferences".
-- **The Play bug had a real mechanism**, not a guess: an iOS `"interrupted"`
-  AudioContext whose `resume()` rejects or never settles, with `running = true`
-  behind that await and nothing repairing audio on foreground. See the metronome
-  section for the four rules that now hold.
-- **The landscape mis-position was a stale inline viewport box** that nothing ever
-  cleared. Landscape itself is left usable in a Safari tab (his call).
-- **Dead code:** only three of the nine listed symbols were actually dead
-  (`romanize`, `romanDegrees`, `modalOpen`) — deleted; the other six are live and
-  merely over-exported, and were left alone (his call).
-
-Waiting on his phone: the real rotate, and whether Play ever goes dead again.
-(v2.14.9 before this run of sessions: the hardware-polish pass — faders, latching
-Sound toggles, carved accent keys — then v3.0.0's chord/progression revamp.)
-**The wheel is signed off** (v2.14.0–.2: the detent, the
-spin, the curve, the die's pool and the F7/F♯7/G♯7 ♭7 bass are all "good as is" —
-his call, don't revisit unless he raises it), as are Wild Card and Unruly.
-(v2.13.3 was the last version signed off on the guitar as a whole.) The build
-order in `travis-picker-workflow.md` is complete: generator + grid, progression
-mode, the Saved library, the manual editor, the metronome, PWA packaging,
-pattern audio, the visual identity (structure then colour), keys / chords /
-progressions, the platform integrations, the capo, and swing.
+**Waiting on his phone:** whether the chord diagram is legible at arm's length
+(`.chordbox { width }` is the dial), the real landscape rotate, and whether Play
+ever goes dead again.
 
 - **What changed and why, session by session** → `CHANGELOG.md` (newest first).
 - **What's open, what's decided, what needs his call** → `OPEN_ITEMS.md`.
