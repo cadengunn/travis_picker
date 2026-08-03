@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [34b](#where-things-stand-session-34b--v330-2026-08-03) | **v3.3.0** | the chord diagram shows the MOVING FINGER as a hollow dot (no established symbol exists; this borrows the fingerstyle "alternate bass" ring). Root-only accent replaces marking the thumb's whole pair. B7 added; G#6 revoiced to his fingering |
 | [34](#where-things-stand-session-34--docs--tests-2026-08-03) | *(no version)* | adversarial review: CLAUDE.md became a hub and `DESIGN.md` was split out (1,570 → 990 lines, 18.2k → 11.0k words); the four sleeping tests stopped waiting on the wall clock, and the wheel "flake" turned out to be the screenshot resizing the pane |
 | [33g](#where-things-stand-session-33g--v326-2026-08-03) | **v3.2.6** | real bug caught by ear: F#6's alt===fifth collapsed Travis's bass to one repeated note; fixed + a new library-wide guard test; plus two audits answering "anything else like this?" |
 | [33f](#where-things-stand-session-33f--v325-2026-08-03) | **v3.2.5** | F#6 revoiced to his tabs, a moving-finger root/5th bass (same technique as Ebadd9) that reads as four static positions but plays as the ordinary thumb+3-fingers |
@@ -52,6 +53,83 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 34b — v3.3.0, 2026-08-03)
+
+**His ask:** on a chord like open C, where a left-hand finger switches what it's
+fretting back and forth along with the bass, show it. He floated a box or a
+double-headed arrow, and asked the right question with it — *"not sure if there
+is a symbolic convention for this already."*
+
+**There isn't one.** Chord-box notation is static-shape notation; movement lives
+in tab. The two nearest real practices are the same fingering NUMBER printed on
+two dots, and a **hollow or dashed dot for an optional/alternate bass note**,
+which turns up in folk and fingerstyle method books for exactly this
+Travis-picking case. So he landed on hollow himself mid-discussion, and it
+borrows rather than invents. **He then cut the dashes I'd paired with it** —
+"dashed may not read at small size" — and he's right: at r=4.6 a dashed stroke
+reads as a rendering artifact.
+
+**Which forced a second change, and it's the one that makes the symbol work:**
+the open-string markers are **filled discs** now, where they were rings. Hollow
+has to mean exactly one thing. Position already says "open" (nothing else is
+drawn above the nut but × and ○), so the ring was free to be reassigned.
+
+### Root-only accent — a REVERSAL, his call
+
+The box accented the thumb's whole alternating pair (root + alt), and CLAUDE.md
+justified that as "the one thing a chord chart out of any book cannot tell you
+and the reason it earns space." He reversed it: root-only is what an ordinary
+chord chart marks, and **"thumb is implicit in which string it's on anyway"** —
+strings 6/5/4 are its domain, so the second accented dot was spending colour on
+what the layout says for free. Flagged the trade before building it; he'd already
+reasoned past it. The `cb-thumb`/`cb-finger` classes became lies under the new
+rule and are `cb-root`/`cb-note`.
+
+### It has to be DATA, and that was measured
+
+The obvious rule — two bass-role strings at the same fret on adjacent strings —
+**fires on 82 of the 120 chords, and is wrong on most of them.** The counterexample
+that kills it is the plain barre: in `F` the fifth (string 5) and the alt bass
+(string 4) are adjacent at the same fret, but ring and pinky hold both and nothing
+moves. In an A-shape barre they're both under the index. What makes C different
+isn't geometry, it's fingering — the low bass note is an EXTRA beyond the standard
+three-finger shape, so you either add a pinky or shift a finger you're using. No
+shape can say that, so `MOVING` in `data.js` is declared per chord.
+
+He took "I propose, you check" for the content. Filtering the 82 down produced
+**exactly one addition, B7**, which he confirmed: the open B7 you actually play
+(`x21202`) commits all four fingers, and we fret string 6 at 2 so the fifth role
+has a note — so the middle finger moves off the root onto the low F♯, exactly like
+C. Everything else was ruled out by group (template barres hold both notes; the
+E/A/D/G open families hold theirs with two fingers).
+
+Declared set: the open **C family**, **B7**, **E♭add9** (strings 6↔1), **F♯6**.
+
+### G♯6 revoiced to his fingering
+
+`4 6 6 5 6 4` (auto-derived E-shape barre) → **`4 3 1 1 1 1`**, an index barre
+across strings 4–1 at fret 1 with ring on 5 and pinky on 6. It spells G♯, C, D♯,
+G♯, C, F.
+
+**The roles swap with the shape, and that's the real gain:** string 4 now carries
+the true 5th (D♯) and string 5 the 3rd (C), so `fifth: 4`, `alt: 5`. Root–Fifth
+alternates G♯ ↔ D♯ properly, and Travis walks G♯–C–D♯–C — three distinct notes
+instead of the root-and-octave the E-shape gave. "Walk to the 3rd" for the alt is
+the convention Gadd9 and F♯6 already use.
+
+### Verification
+
+The replaced test is worth noting: `chordbox: the thumb's alternating pair is
+marked, and only that pair` asserted the OPPOSITE of the new rule, so it was
+replaced rather than adjusted — the surviving half (a root under a barre must
+still show, the G♯sus2 case) is kept. The new moving-finger check was **verified
+to fail without the fix** ("C: exactly one dot may be hollow, got 0") rather than
+pass vacuously. Both new chords' notes, roles, Travis and Root–Fifth walks were
+read out of the running app rather than reasoned about. 106/106 green, budget
+unchanged at 55.09 / 384.84 / 11.06.
 
 ---
 

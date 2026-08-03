@@ -1,103 +1,73 @@
-# Next session — adversarial review / clean house
+# Next session — chord voicings from a spec
 
 Copy everything below the line into a new session.
 
 ---
 
-Travis Picker — new session. **v3.2.6 is live and pushed**, and the chord
-library work from sessions 29–33 is done (all 120 chords, the progression
-revamp, the chord-shape diagram, the four hard-chord reworks). Read `CLAUDE.md`
-and `OPEN_ITEMS.md` first.
+Travis Picker — new session. **v3.3.0 is live and pushed.** Read `CLAUDE.md`
+first; it's a hub now, so follow its pointers rather than reading everything.
+`DESIGN.md` is new (visual detail, read on demand) and you almost certainly
+**don't need it this session** — this is chord-data work.
 
-**This session is different in kind from the recent ones: an adversarial code
-review, not a feature session.** He wants critical scrutiny of what's
-accumulated, not a confirmation pass — go in looking for what should change,
-not for reasons it's fine. Three explicit foci, all his framing:
+**This session: rewriting chord voicings from a spec document I've written.**
+I'll paste it or point you at it. Expect it to name specific chords and give
+fingerings, probably as fret strings low-to-high (`4 3 1 1 1 1` = string 6 → 1),
+which is the format I've used every time so far.
 
-## 1. Trim the docs — `CLAUDE.md` specifically
+## What you need to know before touching a voicing
 
-It's **1,570 lines**, up from the 867 it was cut to in session 19. `CLAUDE.md`
-is the one doc auto-loaded every session (`CHANGELOG.md` and `OPEN_ITEMS.md`
-are read on demand), so it's the actual lever for token usage — trimming those
-two matters much less.
+**Chords are data.** Everything lives in `js/data.js`: `OPEN_CHORDS` for
+hand-declared voicings, two movable `BARRE_TEMPLATES` for everything else, and
+the rule "whichever barres lower" picking between them. A hand-declaration is an
+override, and **every existing one carries its own reason in a comment beside
+it** — read those before changing a shape. Several record corrections to earlier
+reasoning, not just preferences.
 
-The session-19 split worked once: move session-specific narrative and
-blow-by-blow reasoning into `CHANGELOG.md` (which already exists for exactly
-this), and keep `CLAUDE.md` to durable architecture and invariants — the
-things that have to stay true, not the story of how they got that way. A
-"(session N)" pointer into `CHANGELOG.md` is enough where the reasoning
-matters but doesn't need to be reloaded every time.
+**Changing a shape can change the ROLES, and that's the part that gets missed.**
+`root` / `alt` / `fifth` are STRING NUMBERS, and they decide what the thumb
+actually plays. G♯6 in v3.3.0 is the worked example: moving to my fingering put
+the true 5th on string 4 and the 3rd on string 5, so `fifth` and `alt` had to
+swap — which is what made Root–Fifth alternate properly and turned Travis from a
+root-and-octave into a three-note walk. **Always report the resulting Travis and
+Root–Fifth walks for a revoiced chord**, because that's the part I can only judge
+by ear.
 
-Candidates likely bloating it: the wheel/Options-sheet sections have dense
-session-by-session prose (v2.14.2 through v2.14.8 blow-by-blow); the chord
-qualities and progression sections grew heavily in sessions 29–33 and may
-restate what's now also in `CHANGELOG.md` and `CHORD_REFERENCE.md`. Read it
-fresh and decide what's actually load-bearing versus what's history wearing
-architecture's clothes.
+**Four tests guard the library, and each caught something real** — role strings
+covered by the shape; no chord plays a string its own shape mutes; every voicing
+spells its quality exactly; and `alt` never equals `fifth`. That last one exists
+because a chord where they're equal collapses three of Travis's four beats onto
+one note — I caught that by ear on F♯6 and no test had. They should all stay
+green without special pleading: if a spec'd voicing trips one, **tell me** rather
+than loosening the test.
 
-## 2. Are 105 tests too many?
+**A voicing may need a `MOVING` entry.** That's the data declaring where one
+finger covers two strings by moving between them along with the bass (drawn as a
+hollow dot on the note you move to). It is **not derivable** — the obvious
+geometric rule fires on 82 of 120 chords and is wrong on most of them, because
+what makes it true is fingering, not geometry. If a new voicing has one, propose
+it and I'll check it on the guitar.
 
-Current count and the heaviest ones, so you don't have to re-derive it:
+## Ground rules
 
-```
-105 checks total (check + acheck)
-144 lines — wheel: key × progression drives two selects, and re-cuts on a mode change
- 89 lines — layout: the page tabs don't read as the Format control
- 76 lines — wheel: two reels write one chord id, and the panel stays open
- 72 lines — help: arming intercepts input; disarming gives every control back
- 68 lines — layout: the chord field is cut to the wheel it opens
- 67 lines — layout: the Format control spells "Progression" on one line
- 62 lines — wheel: a pick that rebuilds the select keeps the panel working
- 62 lines — layout: the die's row is the same geometry in both chord modes
-```
+- **Agree the design before coding**, and surface genuine forks rather than
+  guessing. If my spec is ambiguous about a chord, ask — that's what caught the
+  F6-vs-F♯6 mix-up in session 33, before the wrong chord got applied.
+- **Tests stay green**; add one for any new invariant. Run `tests.html` in the
+  browser and say the count.
+- **Any chrome change needs the 375×553 re-measure** (55.09 / 384.84 / 11.06,
+  clearance measured against `main.bottom`). Chord data alone shouldn't touch it.
+- **Deploy = bump `CACHE` in `sw.js` + `APP_VERSION` in `js/app.js`, push**, and
+  I check on the phone. GitHub noreply identity only.
+- Note the dev-box limits in `CLAUDE.md` — in particular, **don't screenshot
+  while `tests.html` is running**. It resizes the pane, which closes any open
+  dropdown panel mid-test and produces convincing fake failures.
 
-The layout/wheel tests are the heaviest AND the slowest (real-DOM iframe
-rendering, the async checks CLAUDE.md already warns take 1–2 min in the
-throttled preview tab). Worth asking, per test: does this still guard
-something that could silently break, or is it pinning a decision that's long
-since settled and stable (v2.14.0's wheel was signed off as "good as is, don't
-revisit" back in that session)? A stale invariant test and dead code are the
-same problem — coverage that costs more to carry than it protects. Don't cut
-blind, though: several of these tests exist because a real regression bugged
-him first (the retarget-on-rebuild bug, the tab-flash bug, the pointerdown vs
-pointerup wiring) — check what each one actually guards before touching it.
+## Also outstanding, not this session unless I say so
 
-## 3. Chord/progression code — refactor or leave it?
-
-Sessions 29–33 touched `data.js` (now 950 lines) and `app.js` (1,562 lines)
-heavily, plus added `chordbox.js` fresh this session. A quick dead-export scan
-found nothing new — the six symbols flagged unused-outside-file back in
-session 32 (`roleFor`, `SAVED_KEY`, `SCHEMA_VERSION`, `getTheme`,
-`savedThemeId`, `resolveMergedBar`) are still the whole list, and he already
-said to leave those alone. So this isn't really a dead-code hunt — it's a
-structural one: does `data.js`'s hand-declared-chord section (now `Csus4`,
-`Cm6`, `C♯m6`, `F♯6` all overriding "whichever barres lower" for different,
-individually-commented reasons) want a clearer shared shape, or is inline
-per-chord commentary still the right call given each override has a genuinely
-different story? Does `chordbox.js`'s model/render split hold up now that it's
-had a few real bugs run through it (the barre-vs-dot-on-barre fix, the
-open-string-past-fret-5 anchor fix)? Look with real skepticism, not just at
-whether it currently works.
-
-## Ground rules (unchanged)
-
-- **Agree the design before any big restructuring** — this is exactly the kind
-  of session where "cleaner" can quietly become "different," and he wants to
-  see the plan, not just the diff.
-- Tests must stay green throughout, and **don't let "fewer tests" become "less
-  coverage" by accident** — if you cut a test, say what invariant it was
-  protecting and whether anything now protects it.
-- Any chrome change still needs the 375×553 re-measure (55.09 / 384.84 / 11.06
-  is the number to protect).
-- Dev box limits are unchanged (rsync mirror, no `~/Desktop` access, stale
-  screenshots on a hidden tab — see `CLAUDE.md`'s "Running it" section).
-- Deploy = bump `CACHE` in `sw.js` + `APP_VERSION` in `js/app.js`, push, he
-  checks on the phone. Repo is public — GitHub noreply identity only.
-- This is a review/cleanup session, not new features — if you find yourself
-  wanting to add or change behavior (not just structure), stop and ask first.
-
-## Also outstanding (not this session unless he says so)
-
-- **Pre-loaded patterns** (`OPEN_ITEMS.md` item 2) — still the best-value big
-  feature item, blocked on him picking the patterns.
-- Whether the key drum should keep its MAJOR/MINOR headers.
+- **Pre-loaded patterns** (`OPEN_ITEMS.md` item 2) — the best-value item left,
+  design settled, only needs me to pick the patterns or nod for you to propose a
+  spread across the tiers.
+- **On the phone from v3.3.0:** whether the hollow moving-finger dot reads at
+  arm's length, and whether B7's moving finger matches what my hand does.
+- **Answered, don't re-ask:** the chord diagram's size and the key drum's
+  MAJOR/MINOR headers are both good as is.

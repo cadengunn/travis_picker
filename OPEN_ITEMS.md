@@ -17,11 +17,48 @@ so it isn't re-litigated.
 
 ---
 
+## On the phone right now (v3.3.0) — the moving finger, and two chords
+
+**The chord diagram shows the moving finger now.** Where one left-hand finger
+switches between two notes along with the alternating bass, the note you move
+**to** is drawn as a **hollow dot**. There's no established symbol for this in
+chord-box notation (movement normally lives in tab), so this borrows the nearest
+thing that does exist — the hollow "alternate bass" dot from fingerstyle method
+books. Your call to drop the dashes was right: at that size they'd have read as a
+rendering artifact.
+
+- **The open-string markers are filled discs now**, where they used to be rings.
+  Hollow has to mean exactly one thing, and position already says "open" (nothing
+  else is drawn above the nut but × and ○).
+- **Only the root is accented.** This reverses the old "mark the thumb's whole
+  alternating pair" rule, on your argument that the thumb is implicit in which
+  string a note is on. Worth a look at whether you miss the second dot — it's a
+  one-line change back.
+- **Which chords have one is data, not derived**, and that was measured: the
+  obvious geometric rule fires on 82 of the 120 chords and is wrong on most of
+  them (in a plain F barre the two same-fret bass notes are just held by ring and
+  pinky). Declared: the open **C family**, **B7**, **E♭add9**, **F♯6**.
+- **B7 was the one addition** from the candidate list — all four fingers are
+  committed, so the low F♯ borrows the middle finger, exactly like C.
+
+**`G♯6` is your fingering now: `4 3 1 1 1 1`.** Beyond being easier, it fixes the
+bass: string 4 carries the true 5th, so **Root–Fifth alternates G♯ ↔ D♯** properly
+and Travis walks G♯–C–D♯–C (three distinct notes) instead of the root-and-octave
+the old E-shape barre gave.
+
+**Worth checking on the phone:** whether the hollow dot reads at arm's length
+next to the filled ones, and whether B7's moving finger matches what your hand
+actually does.
+
+**Budget untouched** — 55.09 / 384.84 / 11.06 / no overflow. 106/106 green.
+
+---
+
 ## Session 34 — the clean-house pass (nothing to test on the phone)
 
-**No behaviour changed and nothing was deployed.** Two app files were touched
-(`wheel.js`, `metronome.js`) only to add test seams at unchanged defaults, so
-v3.2.6 on your phone is still current. Three things came out of it:
+**The review half of session 34 changed no behaviour** (the chord-diagram work
+above came later in the same session and shipped as v3.3.0). Three things came
+out of it:
 
 - **`DESIGN.md` exists, and CLAUDE.md is a hub** — your call. The visual material
   moved out; CLAUDE.md went **1,570 → 990 lines (18.2k → 11.0k words, −40%)**,
