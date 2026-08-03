@@ -208,15 +208,26 @@ const OPEN_CHORDS = {
   // guitar pass as Cm6/C♯m6, up to a day later): `9 9 8 8 11 9`. NOT a full
   // 6-string index barre — strings 4/3 share one small barre at fret 8, and
   // that's the only place two strings share a fret. The thumb's root (string 5)
-  // and the alt-bass 5th (string 6) sit at the SAME fret (9) on ADJACENT
-  // strings: his note, "you move the finger back and forth for the bass like on
-  // C" — one fingertip relocates between the two rather than holding both, the
-  // same technique E♭add9 uses (session 33 also). That means the fretting hand
-  // never needs more than thumb + 3 fingers at any one moment — the ordinary
-  // count for this style — even though the shape *looks* like four separate
-  // contact points held at once. `alt` and `fifth` both point at string 6
-  // because the moving note IS the 5th.
-  "F#6": { root: 5, alt: 6, fifth: 6, fifthFret: 9, shape: { 6: 9, 5: 9, 4: 8, 3: 8, 2: 11, 1: 9 } },
+  // and the true 5th (string 6) sit at the SAME fret (9) on ADJACENT strings:
+  // his note, "you move the finger back and forth for the bass like on C" — one
+  // fingertip relocates between the two rather than holding both, the same
+  // technique E♭add9 uses (session 33 also). That means the fretting hand never
+  // needs more than thumb + 3 fingers at any one moment — the ordinary count for
+  // this style — even though the shape *looks* like four separate contact
+  // points held at once.
+  //
+  // `alt` is NOT string 6, even though that's the note the moving finger plays —
+  // a real bug, caught by him ("something strange with the F♯6 Travis bass
+  // pattern") and not by any test. Travis's cycle is root-alt-fifth-alt; setting
+  // `alt: 6` to match the physical technique made `alt === fifth`, so 3 of the
+  // 4 beats collapsed onto the identical string+fret (F♯, C♯, C♯, C♯ — no
+  // alternation at all beyond the first note). `fifth` stays 6 (the genuine
+  // 5th, correct for Root–Fifth); `alt` is string 4 instead — the 3rd (B♭),
+  // already fretted as half of the strings-4/3 partial barre, so it costs
+  // nothing new to reach. "Walk to the 3rd" is the same convention Gadd9 and
+  // the old E♭add9 already use. Travis now plays F♯, B♭, C♯, B♭ — three
+  // distinct notes, a real walking bass.
+  "F#6": { root: 5, alt: 4, fifth: 6, fifthFret: 9, shape: { 6: 9, 5: 9, 4: 8, 3: 8, 2: 11, 1: 9 } },
   // --- m6 ---
   Dm6:   { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 0, 1: 1 } }, // xx0201
   // Cm6 and C♯m6 are a DELIBERATE override of "whichever barres lower" (his call,

@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [33g](#where-things-stand-session-33g--v326-2026-08-03) | **v3.2.6** | real bug caught by ear: F#6's alt===fifth collapsed Travis's bass to one repeated note; fixed + a new library-wide guard test; plus two audits answering "anything else like this?" |
 | [33f](#where-things-stand-session-33f--v325-2026-08-03) | **v3.2.5** | F#6 revoiced to his tabs, a moving-finger root/5th bass (same technique as Ebadd9) that reads as four static positions but plays as the ordinary thumb+3-fingers |
 | [33e](#where-things-stand-session-33e--v324-2026-08-03) | **v3.2.4** | Cm6/C#m6 moved to the E-shape template's higher position (his exact tabs), fret ceiling raised to 12 as a named exception; F6-vs-F#6 mapping caught and held pending his answer |
 | [33d](#where-things-stand-session-33d--v323-2026-08-03) | **v3.2.3** | four more chords flagged too hard, corrected: full barres are fine, only Csus4's two-disconnected-partial-barres was real, revoiced to a single standard barre |
@@ -50,6 +51,64 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 33g — v3.2.6, 2026-08-03)
+
+**He caught a real bug by ear within minutes of v3.2.5 shipping:** "something
+strange with the F♯6 Travis bass pattern." No test flagged it, and it wasn't
+visible on the guitar box diagram — only audible.
+
+**The cause: `alt` and `fifth` both pointed at string 6.** That was the
+previous session's own choice — "the moving note IS the 5th," so both roles
+were set to the same string. Reasonable-sounding, but Travis's cycle is
+`root-alt-fifth-alt`, and `alt === fifth` collapses three of the four beats
+onto the identical note. F♯6 was playing **F♯, C♯, C♯, C♯** — one note, then
+silence-in-disguise, not a walking bass.
+
+**The fix separates the two roles properly.** `fifth` stays string 6 (the
+genuine 5th, still correct for the Root–Fifth preset, still the "moving
+finger" note he described). `alt` moves to string 4 — the 3rd (B♭), which is
+already fretted as half of the existing strings-4/3 partial barre, so it costs
+the hand nothing new. This is the same "walk to the 3rd" convention `Gadd9`
+already uses. Travis now plays **F♯, B♭, C♯, B♭** — three distinct notes, a
+real walking bass. Root–Fifth is unaffected (it never used `alt`); simple_alt
+now alternates root ↔ 3rd instead of the silently-broken root ↔ 5th.
+
+**A new test closes the whole class of bug**, not just this one instance:
+`alt !== fifth` is now asserted across all 120 chords. Verified against the
+pre-fix data before writing it — the check returned exactly `["F#6"]`, nothing
+else, confirming both that the bug was real and scoped, and that the test
+would have caught it on sight.
+
+**He also asked the right follow-up: are there other chords with the same
+problems we just fixed?** Two separate questions, two separate audits:
+
+- **Csus4's exact structural issue** (an open string sitting between two
+  disconnected partial-barre clusters, forcing two independent barres with
+  nothing linking them) — **swept all 120 chords, zero other matches.** An
+  early pass of the detector flagged `C6` too, but that was a false positive:
+  `C6`'s clusters are directly adjacent with no gap between them (a smooth
+  descending staircase, the easy classic open-C6 shape), not the same problem
+  at all. Refining the detector to require a genuine open/muted gap between
+  clusters — and cross-checking against `chordbox.js`'s own already-tested
+  barre logic, rather than a new ad hoc heuristic — cleared that false
+  positive and confirmed the sweep.
+- **Cm6/C♯m6/F♯6's "which template position" choice** — computed both the
+  E-shape and A-shape barre position (and the *actual* max fret each one
+  reaches, not just the barre fret) for all 24 maj6/min6 chords. The reason
+  these three specifically needed a second look isn't arbitrary: E-shape and
+  A-shape barres are always a fixed distance apart on the neck, and only for
+  roots around C/C♯/D/F♯ do *both* options land in a comparably moderate
+  range (roughly frets 4–11). For every other root, the auto-picked position
+  is already low (max fret 2–6) and the alternate is meaningfully higher
+  (7–13, sometimes exceeding the fret-12 ceiling entirely) — not a real choice,
+  just a worse option. **Nothing else in the family is a genuine toss-up the
+  way these three were.**
+
+105/105 green (104 → 105 with the new guard test). Budget re-measured,
+unchanged: 55.09 / 384.84 / 11.06 / no overflow.
 
 ---
 

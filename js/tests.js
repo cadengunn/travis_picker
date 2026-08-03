@@ -477,6 +477,25 @@ check("chord library: movable templates reproduce the hand-declared barre chords
   }
 });
 
+check("chord library: alt never equals fifth — the Travis-pattern trap", () => {
+  // A real bug, caught by ear (his note: "something strange with the F♯6
+  // Travis bass pattern"), not by any test — worth pinning so it can't recur
+  // silently on some future chord edit. The Travis preset's cycle is
+  // root-alt-fifth-alt (generator.js reads each preset's `beats` array, which
+  // names these three roles). If `alt` and `fifth` point at the same string,
+  // three of the four beats collapse onto the identical note — F♯6 shipped as
+  // root, C♯, C♯, C♯ instead of a real walking bass, because `alt` was set to
+  // match the physical "moving finger" bass technique, which happens to BE the
+  // 5th here. The fix was to let `fifth` stay the genuine 5th (correct for the
+  // Root–Fifth preset) and move `alt` to a different string (the 3rd) so
+  // Travis actually alternates. This test would have caught it on sight.
+  for (const id of CHORD_IDS) {
+    const c = CHORDS[id];
+    assert(c.alt !== c.fifth,
+      `${id}: alt and fifth both point at string ${c.alt} — Travis's root-alt-fifth-alt cycle collapses to two notes`);
+  }
+});
+
 // 6d) ONE spelling per pitch, everywhere. The wheel's root reel, the chord's
 //     display name and the capo tag all read from PC_NAME, so a pitch can't be
 //     "C♯" on the wheel and "D♭" in the header — which it was before the wheel.

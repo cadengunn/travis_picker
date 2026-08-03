@@ -16,7 +16,38 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.2.5) — F♯6 has its own shape too
+## On the phone right now (v3.2.6) — a real F♯6 bug, and two audits
+
+**Good catch — "something strange with the F♯6 Travis bass pattern" was a real
+bug, not your ears.** I'd set both `alt` and `fifth` to string 6 (matching the
+moving-finger technique), but Travis's root-alt-fifth-alt cycle needs those two
+to be different notes — with them equal, three of the four beats collapsed
+onto the same C♯. It was playing F♯, C♯, C♯, C♯ instead of a walking bass.
+Fixed: `fifth` stays string 6 (still correct for Root–Fifth), `alt` moved to
+string 4 (the 3rd, B♭ — already fretted, costs nothing new). Travis now plays
+F♯, B♭, C♯, B♭. **Worth a listen** — this is exactly the kind of thing that's
+only audible, not visible in the diagram. There's a new test that would catch
+this class of bug on any future chord too.
+
+**Then you asked the right follow-up — are there other chords with these same
+problems?** Two separate checks:
+
+- **Csus4's exact issue (disconnected double partial barre):** swept all 120
+  chords, **nothing else has it.**
+- **Cm6/C♯m6/F♯6's "which barre position" choice:** computed both options for
+  all 24 six-chords. The reason those three specifically had a real second
+  option isn't random — E-shape and A-shape barres sit a fixed distance apart,
+  and only roots around C/C♯/D/F♯ land both options in a comparably playable
+  range. Everywhere else in the family, the current shape is already the low,
+  easy one, and the alternate is meaningfully higher with nothing to gain.
+  **Nothing else is a genuine toss-up the way those three were.**
+
+**Budget untouched** — 55.09 / 384.84 / 11.06 / no overflow. 105/105 green
+(104 → 105 with the new guard test).
+
+---
+
+## Previously on the phone (v3.2.5) — F♯6 has its own shape too
 
 **`F♯6` is now `9 9 8 8 11 9`**, your tabs. Worth explaining what I almost got
 wrong: read as a static shape, it needs four separate fret positions across 4

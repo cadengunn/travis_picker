@@ -99,9 +99,17 @@ Two conventions worth knowing before you flag something as wrong:
   the same technique `E♭add9` uses. One fingertip relocates between strings 6
   and 5 rather than holding both, so the fretting hand never needs more than
   thumb + 3 fingers at any single moment, even though the shape has four
-  distinct fret/string positions on paper. `alt` and `fifth` both point at
-  string 6, since the moving note *is* the 5th — Travis/Root–Fifth now
-  alternate F♯ ↔ C♯ exactly as before, just via a different physical shape.
+  distinct fret/string positions on paper.
+  **A real bug shipped first and was caught by ear, not by a test** (his note:
+  "something strange with the F♯6 Travis bass pattern"). `alt` was set to
+  string 6 to match the physical technique — but Travis's cycle is
+  root-alt-fifth-alt, and with `alt === fifth` three of the four beats
+  collapsed onto the identical note (F♯, C♯, C♯, C♯, no walking bass at all).
+  `fifth` stays string 6 (the genuine 5th, correct for Root–Fifth); `alt` moved
+  to string 4 (the 3rd, already fretted as half of the strings-4/3 partial
+  barre, so it costs nothing new) — the same "walk to the 3rd" convention as
+  `Gadd9`. Travis now plays F♯, B♭, C♯, B♭: three distinct notes, a real
+  walking bass. A test now asserts `alt !== fifth` across the whole library.
 - **Wide stretches** (5-fret spans): `F♯sus2` (2–6), `G♯sus2` (4–8), `Fsus2` (1–5),
   `C♯add9` (4–8), `B♭add9` (1–5), `Badd9` (2–6). **All six were played and kept**
   (v3.2.1). The three sus2 need a partial barre — one finger across strings 5+4 —
@@ -234,7 +242,7 @@ target, and it's the least idiomatic for this style.)*
 | **F♯7** | `2 4 2 3 2 2` | F♯ C♯ E B♭ C♯ F♯ | R 5 ♭7 3 5 R | F♯ (s6) ↔ E (s4) | C♯ (s5) | 4 |
 | **F♯maj7** | `2 4 3 3 2 2` | F♯ C♯ F B♭ C♯ F♯ | R 5 △7 3 5 R | F♯ (s6) ↔ F (s4) | C♯ (s5) | 4 |
 | **F♯m7** | `2 4 2 2 2 2` | F♯ C♯ E A C♯ F♯ | R 5 ♭7 ♭3 5 R | F♯ (s6) ↔ E (s4) | C♯ (s5) | 4 |
-| **F♯6** | `9 9 8 8 11 9` | C♯ F♯ B♭ E♭ B♭ C♯ | 5 R 3 6 3 5 | F♯ (s5) ↔ C♯ (s6) | C♯ (s6) | 11 |
+| **F♯6** | `9 9 8 8 11 9` | C♯ F♯ B♭ E♭ B♭ C♯ | 5 R 3 6 3 5 | F♯ (s5) ↔ B♭ (s4) | C♯ (s6) | 11 |
 | **F♯m6** | `2 4 4 2 4 2` | F♯ C♯ F♯ A E♭ F♯ | R 5 R ♭3 6 R | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 4 |
 | **F♯sus2** | `2 4 4 6 2 4` | F♯ C♯ F♯ C♯ C♯ G♯ | R 5 R 5 5 9 | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 6 |
 | **F♯sus4** | `2 4 4 4 2 2` | F♯ C♯ F♯ B C♯ F♯ | R 5 R 4 5 R | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 4 |
