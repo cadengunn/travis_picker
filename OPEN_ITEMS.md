@@ -3,8 +3,9 @@
 A standing list of everything open, to think over between sessions. Rewritten at
 the end of session 17 (2026-07-27, v2.11.1) — completed items moved out, the rest
 renumbered. **`NEXT_SESSION.md` was folded in here in session 19**; the docs are
-now three: `CLAUDE.md` (architecture + invariants), `CHANGELOG.md` (the
-session-by-session history), and this file (what's next).
+now four: `CLAUDE.md` (the hub — architecture + the invariants that constrain any
+work), `DESIGN.md` (how it looks and feels, split out in session 34),
+`CHANGELOG.md` (the session-by-session history), and this file (what's next).
 
 **How to read this:** each item says how big it is, what's already decided, and
 what (if anything) needs your call before it can be built. Items are grouped by
@@ -13,6 +14,30 @@ size, not priority — the priority call is yours.
 Status legend: **OPEN** = not started · **NEEDS A CALL** = blocked on a decision ·
 **ON THE PHONE** = built, waiting on your test · **DECIDED** = settled, recorded
 so it isn't re-litigated.
+
+---
+
+## Session 34 — the clean-house pass (nothing to test on the phone)
+
+**No behaviour changed and nothing was deployed.** Two app files were touched
+(`wheel.js`, `metronome.js`) only to add test seams at unchanged defaults, so
+v3.2.6 on your phone is still current. Three things came out of it:
+
+- **`DESIGN.md` exists, and CLAUDE.md is a hub** — your call. The visual material
+  moved out; CLAUDE.md went **1,570 → 990 lines (18.2k → 11.0k words, −40%)**,
+  which is the doc that loads every session. The boundary: anything constraining
+  non-visual work (the height budget, no-scrolling, accidental line-heights) stayed
+  in the hub.
+- **The tests aren't too many — four of them were just slow.** The layout ones you
+  flagged are 10–27ms each; the cost was four checks sleeping on real timers (~35s).
+  Fixed without cutting a single test. The wheel "flake" was my own screenshots
+  resizing the pane and closing the panel mid-test, not a bug in the wheel.
+- **The chord code is fine as it is** — per-chord commentary in `data.js`,
+  `chordbox.js`'s split, and `app.js` as one file all earn their shape. Reasoning
+  in the CHANGELOG so it isn't re-litigated.
+
+**Still open from before, unchanged:** pre-loaded patterns (needs you to pick
+them) and whether the key drum keeps its MAJOR/MINOR headers.
 
 ---
 

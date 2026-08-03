@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [34](#where-things-stand-session-34--docs--tests-2026-08-03) | *(no version)* | adversarial review: CLAUDE.md became a hub and `DESIGN.md` was split out (1,570 → 990 lines, 18.2k → 11.0k words); the four sleeping tests stopped waiting on the wall clock, and the wheel "flake" turned out to be the screenshot resizing the pane |
 | [33g](#where-things-stand-session-33g--v326-2026-08-03) | **v3.2.6** | real bug caught by ear: F#6's alt===fifth collapsed Travis's bass to one repeated note; fixed + a new library-wide guard test; plus two audits answering "anything else like this?" |
 | [33f](#where-things-stand-session-33f--v325-2026-08-03) | **v3.2.5** | F#6 revoiced to his tabs, a moving-finger root/5th bass (same technique as Ebadd9) that reads as four static positions but plays as the ordinary thumb+3-fingers |
 | [33e](#where-things-stand-session-33e--v324-2026-08-03) | **v3.2.4** | Cm6/C#m6 moved to the E-shape template's higher position (his exact tabs), fret ceiling raised to 12 as a named exception; F6-vs-F#6 mapping caught and held pending his answer |
@@ -51,6 +52,108 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 34 — docs + tests, 2026-08-03)
+
+**An adversarial review, not a feature session** — his framing: "go in looking
+for what should change, not for reasons it's fine." Three foci, and the answers
+came out uneven: one was a bigger win than expected, one had a false premise, and
+one was a genuine "leave it alone".
+
+### 1. The docs — CLAUDE.md is a HUB now, and `DESIGN.md` exists
+
+CLAUDE.md had grown 867 → 1,570 lines since session 19's cut, and it's the one
+doc auto-loaded every session, so it's the actual lever on token usage.
+Architecture alone was **72% of the file**.
+
+The first pass trimmed it to ~1,240 by cutting reaching-it narrative — the
+tab-flash saga, Csus4, E♭add9, the retarget bug, the aperture pass — every one of
+which was checked against this file before deletion. **The rule applied to every
+cut: keep the invariant + one sentence of why + a "(session N)" pointer.**
+
+That plateaued around 1,240, well short of the ~850 he'd picked, because what
+remained was genuinely dense. **His idea is what unlocked the rest:** *"CLAUDE.md
+can be more of a hub that points to any lengthy details. No reason to read over
+all the visual stuff if we're only worried about generation."* So the visual
+material — the faceplate, the four material families, type, themes, touch
+hygiene, and the geometry of the Options sheet and the drum pickers — moved to a
+new **`DESIGN.md`**, read on demand.
+
+**The boundary rule, which is the part worth keeping:** does this constrain work
+that *isn't* visual? Then it stays in the hub. Does it only matter once you're
+already editing appearance? Then it moves. So the height budget, "no scrolling
+ever", the pinned `line-height` on accidentals and "adding a font means precaching
+it" all stayed — those bite someone working on the generator.
+
+Final: **CLAUDE.md 1,570 → 990 lines, 18,168 → 10,986 words (-40%)**, plus a
+352-line `DESIGN.md`.
+
+**A second rule earned its place: file-local mechanics stay in the file.** The
+wheel's mask ramp, the reel step/facet split and the `.seg-tabs` specificity trap
+are all commented in `wheel.js`/`styles.css` at the line that does them — and the
+copies in CLAUDE.md had already drifted. CLAUDE.md said the mask was 8/92; the
+stylesheet says 6/94. Documented the *rule* in the doc, the *mechanism* in the
+code.
+
+**Five stale facts found and fixed against the code** while cutting:
+- the chord library read "FULL 12 × 3 MATRIX — 36 chords" (it's 12 × 10 = 120)
+  and "14 hand-declared / 22 derived" (it's 34 / 86)
+- three of the six progression styles listed no longer exist (they were replaced
+  in session 29)
+- the lamp-colour rule still said "the Guide" explains the indicators; the Guide
+  became help mode in v2.13.4
+- a dangling half-sentence about `infoModal`'s `render(bodyEl)`
+- the dev-box limits said "three real limits" over a list of four
+
+### 2. The tests — the premise was half wrong, and there was a live problem
+
+He asked whether 105 tests is too many, flagging the layout/wheel ones as "the
+heaviest and slowest". **Measured per-check rather than assuming, and the layout
+tests are 10–27ms each** — the real-stylesheet iframe is cheap. They were never
+the cost.
+
+**The cost was four checks that sleep on the wall clock:** the three wheel ones
+(7.1s / 12.0s / ~10s) and the metronome's "resume that NEVER settles" (7.7s) —
+~35s of a run that is otherwise near-instant, and enough to stall the whole page
+in a throttled tab. `SETTLE_MS` and `RESUME_TIMEOUT_MS` are injectable now;
+defaults untouched, so the shipped app behaves identically. The metronome check
+went 7,711ms → 2,579ms *in the throttled tab*.
+
+**The "flaky wheel test" was not a wheel bug, and finding that out mattered more
+than the speedup.** An open `.dd-panel` closes on any window `resize`
+(dropdown.js's `reflow`) — and taking a screenshot resizes the Browser pane. That
+closed the panel mid-test, after which the test went on driving a **detached**
+panel and failed somewhere downstream with a misleading message. Two consequences
+recorded in CLAUDE.md's dev-box limits: `tests.html` makes no progress at all in a
+hidden tab until something forces frames, and a screenshot taken *during* a run
+perturbs it.
+
+**On the count itself: nothing was cut.** Going through all 105, none turned out
+to be pinning a signed-off decision that couldn't silently break. 105 is
+defensible for a no-build app whose real target is a phone the dev box can't
+reach.
+
+### 3. Chord/progression code — leave it, and this is the reasoned version
+
+- **`data.js`'s hand-declared chords: per-chord commentary is right.** The four
+  overrides override "whichever barres lower" for four *unrelated* reasons (a
+  bass-role bug, a technique note, a stale voicing, a neck-position preference).
+  There's no shared shape to extract — a common abstraction would have to be
+  "reason: string", which is what the comment already is. And `data.js` isn't
+  auto-loaded, so its verbosity costs nothing per session.
+- **`chordbox.js`'s model/render split held up.** The three real bugs that ran
+  through it in session 33 (barre-vs-bass-role colour, the open-string-with-high-
+  frets anchor, mute-vs-open) all landed in `chordBoxModel` and were all testable
+  there without touching SVG.
+- **`app.js` at 1,562 lines stays one file.** It's sectioned, it's the one
+  stateful file by design, and splitting it is churn that re-opens verified
+  layout for no measured gain.
+
+**No behaviour changed anywhere this session.** Two app files were touched
+(`wheel.js`, `metronome.js`) purely to add injectable test seams at unchanged
+defaults, so there is nothing to check on the phone and nothing was deployed.
 
 ---
 
