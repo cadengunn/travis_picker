@@ -207,7 +207,21 @@ const OPEN_CHORDS = {
   // --- m6 ---
   Dm6:   { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 0, 1: 1 } }, // xx0201
   // --- sus4 ---
-  Csus4: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 3, 3: 0, 2: 1, 1: 1 } }, // x33011
+  // Csus4 was the one hand-declared "open C + colour tone" that broke the pattern
+  // (his note, session 33). Every other chord in this family — Cmaj7, C6, C7 —
+  // takes open C's shape and bumps one finger; sus4 needs the SAME nudge on BOTH
+  // strings that carry C's 3rd (string 4 AND string 1, since open C sounds the
+  // 3rd twice), which is exactly the shape open C already has trouble with: the
+  // 3-3(-3) cluster on the bass strings and the 0/1 cluster on the treble strings
+  // don't touch, straddling the open G. sus4 forces BOTH clusters to fret
+  // simultaneously (`x33011` — a 3-string partial barre AND a 2-string partial
+  // barre, with nothing linking them) — TWO disconnected partial barres, which is
+  // exactly what he flagged as hard, distinct from a single "standard, all the
+  // way across" barre (which he says is fine). So Csus4 is deliberately NOT
+  // hand-declared any more: falling through to the general A-shape template
+  // gives ONE coherent full 6-string index barre at fret 3 (`3 3 5 5 6 3`) with
+  // three fingers layered on top in a 3-fret window — the same family as every
+  // other barre chord in the app, C/D/G-family open forms included.
   Dsus4: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 3 } }, // xx0233
   // E♭sus4: hand-voiced because the A-shape sus4 (the 4th at barre+3) lands on
   // fret 9 for the E♭ family, off the practical neck. This D-shape at fret 1 keeps

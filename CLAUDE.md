@@ -1417,6 +1417,16 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     just a preference: B♭ (the 5th) now has a real bass-string home, so
     Root–Fifth alternates E♭ ↔ B♭ properly instead of going root-only. All the
     wide sus2/add9 barres are deliberately KEPT.
+  - **A FULL BARRE IS NOT A PARTIAL BARRE, and conflating them cost a round of
+    guessing** (v3.2.3, his correction). Told "avoid any partial barres" for
+    `C♯m6`/`Csus4`/`F♯6`/`Cm6`, the first pass proposed barre-free re-voicings for
+    all four — and he pushed back: a full, "standard all the way across" barre is
+    not the problem, and the muted, sparse candidates were worse than what they
+    replaced. Checking the shapes' own barre topology settled it: `C♯m6`, `Cm6`
+    and `F♯6` are already the movable A-/E-shape TEMPLATE barre (index across
+    every string, 3–4 fingers layered on top in a small window) — genuinely
+    standard, and untouched. **Only `Csus4` was the real outlier**, and it wasn't
+    template-derived at all — see the entry below.
   - **🎲 rolls the whole library** (his call, with the wheel) — it used to roll the
     open "campfire" chords only, but a picker that offers all 36 with equal
     ceremony should have a die that does the same.
@@ -1442,6 +1452,24 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.2.1–v3.2.3 — his guitar verdicts on the diagram, actioned across three quick
+rounds.** 104/104 green. Session 33 continued: he played the chords the diagram
+flagged and corrected the difficulty model twice. First, **span was the wrong
+metric** — what actually makes a shape hard is a low-fret note stranded past a
+high-fret one, not the distance between frets; `E♭add9` was revoiced
+(`x11041` → `x65066` → **`665066`**, the last one his own fix: string 6 sounds now,
+no partial barre needed, and Root–Fifth finally alternates E♭ ↔ B♭ properly) and
+`A`/`Am`/`A7` were made to sound string 6 (a real contradiction the diagram
+exposed). Second, **a full barre is not a partial barre** — told to avoid
+partial barres, the first pass over-corrected into barre-free-at-any-cost
+candidates that were worse than the originals; `C♯m6`/`Cm6`/`F♯6` turned out to
+already be the app's own standard movable-barre template and needed no change,
+while `Csus4` (a stale hand-declaration, not template-derived) was the one
+genuine two-disconnected-partial-barres outlier and is now a single standard
+barre. Riding along: the die can be tapped while its own wheel is open (was a
+dead first press). See "Playability is not span" and the barre-vs-partial-barre
+correction in the wheel section for the reasoning.
 
 **v3.2.0 — the chord-shape diagram, under the wheel's drums.** 101/101 green.
 Session 33: OPEN_ITEMS item 9's revisit condition ("if and only if the library

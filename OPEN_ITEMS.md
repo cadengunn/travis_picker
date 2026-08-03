@@ -16,7 +16,48 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.2.1) — your chord verdicts, actioned
+## On the phone right now (v3.2.3) — E♭add9 again, the die, and four more chords
+
+**`E♭add9` is now `6 6 5 0 6 6`** — your fix. String 6 sounds (no more muting it),
+and you don't need a partial barre: one finger moves between string 6 and string 1
+(both fret 6) as needed, the same way a finger comes on and off string 6 for the
+low bass note some players add under an open C. It's not just easier — B♭ (the
+5th) now has a real bass-string home, so **Root–Fifth alternates E♭ ↔ B♭
+properly** instead of going root-only, which the previous version couldn't do.
+
+**The chord die can be tapped while its own wheel is open.** It sits right next
+to the chord field, so the wheel's outside-tap catcher used to swallow the first
+press — you had to tap twice to actually roll (once to close the wheel, once
+more to hit the die). One tap now does both.
+
+**The four chords you flagged — I got the read wrong on the first pass, then
+corrected it.** You caught it: *"barres aren't a total deal breaker, especially a
+standard all the way across type,"* and the muted, sparse alternatives I first
+proposed were worse than what they replaced. Checked the shapes properly instead
+of guessing again:
+
+- **`C♯m6`, `Cm6`, `F♯6` are UNCHANGED.** All three are already the app's own
+  movable barre-chord template — a full index barre across every string, with
+  3–4 fingers layered on top in a tight window. That's exactly the "standard,
+  all the way across" shape you said is fine, and it's what every other m6/6
+  chord in the library already uses.
+- **`Csus4` was the real outlier**, and it wasn't a template shape at all — a
+  leftover hand-voicing from taking open C and bumping its 3rd to a 4th, which
+  forces two disconnected partial barres (open C's own bass-string cluster and
+  treble-string cluster don't touch). That's genuinely the thing you flagged.
+  It's now `3 3 5 5 6 3` — one full barre, same family as the other three.
+  Bonus: the bass improves too, root ↔ 5th instead of root ↔ 4th.
+
+**Worth a look on the phone:** the new Csus4 shape (it used to ring an open G
+string; that's gone now, traded for the cleaner single barre), and the E♭add9
+diagram, which now shows two separate dots at fret 6 rather than a barre — check
+that reads clearly and doesn't look like a smudge.
+
+**Budget untouched** — 55.09 / 384.84 / 11.06 / no overflow. 104/104 green.
+
+---
+
+## Previously on the phone (v3.2.1) — your chord verdicts, actioned
 
 **You were right and my ranking was wrong.** I'd sorted the awkward chords by fret
 span, which put `G♯sus2` at the top and `Dadd9` well down the list — the opposite

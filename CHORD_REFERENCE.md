@@ -67,6 +67,18 @@ Two conventions worth knowing before you flag something as wrong:
   string 6 anyway** — the shape said mute, the app picked it. The chord box made
   it visible by drawing an × over a string you hear. All ten now sound it, and a
   test forbids any chord from playing a string its own shape mutes.
+- **`Csus4` is no longer hand-declared** (v3.2.3, his note). The old `x33011`
+  took open C's own shape and bumped each 3rd up to a 4th — which sounds simple,
+  but open C already has a gap between its bass-string cluster (frets 3/3 near
+  the root) and its treble-string cluster (frets 0/1), and sus4 forces BOTH
+  clusters to fret at once: a 3-string partial barre *and* a 2-string partial
+  barre, with nothing linking them. That's the specific thing he flagged as
+  hard — distinct from a single full barre, which he says is fine. Removing the
+  hand-declaration lets the general A-shape template take over: one coherent
+  6-string index barre at fret 3, `3 3 5 5 6 3`, with three fingers layered on
+  top in a 3-fret window — the same family every other barre chord in this
+  library already uses. Bonus: the alternating bass improves too, root ↔ 5th
+  (C ↔ G) instead of root ↔ 4th, since the open G string is gone.
 - **Wide stretches** (5-fret spans): `F♯sus2` (2–6), `G♯sus2` (4–8), `Fsus2` (1–5),
   `C♯add9` (4–8), `B♭add9` (1–5), `Badd9` (2–6). **All six were played and kept**
   (v3.2.1). The three sus2 need a partial barre — one finger across strings 5+4 —
@@ -112,7 +124,7 @@ target, and it's the least idiomatic for this style.)*
 | **C6** | `3 3 2 2 1 0` | G C E A C E | 5 R 3 6 R 3 | C (s5) ↔ E (s4) | G (s6) | 3 |
 | **Cm6** | `3 3 5 5 4 5` | G C G C E♭ A | 5 R 5 R ♭3 6 | C (s5) ↔ G (s4) | G (s6) | 5 |
 | **Csus2** | `3 3 0 0 3 3` | G C D G D G | 5 R 9 5 9 5 | C (s5) ↔ D (s4) | G (s6) | 3 |
-| **Csus4** | `3 3 3 0 1 1` | G C F G C F | 5 R 4 5 R 4 | C (s5) ↔ F (s4) | G (s6) | 3 |
+| **Csus4** | `3 3 5 5 6 3` | G C G C F G | 5 R 5 R 4 5 | C (s5) ↔ G (s4) | G (s6) | 6 |
 | **Cadd9** | `3 3 2 0 3 0` | G C E G D E | 5 R 3 5 9 3 | C (s5) ↔ E (s4) | G (s6) | 3 |
 
 ### C♯

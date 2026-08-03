@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [33d](#where-things-stand-session-33d--v323-2026-08-03) | **v3.2.3** | four more chords flagged too hard, corrected: full barres are fine, only Csus4's two-disconnected-partial-barres was real, revoiced to a single standard barre |
 | [33c](#where-things-stand-session-33c--v322-2026-08-03) | **v3.2.2** | E♭add9 revoiced again (string 6 sounds now, no partial barre — Root–Fifth alternates properly); the chord die can be tapped while its own wheel is open |
 | [33b](#where-things-stand-session-33b--v321-2026-08-03) | **v3.2.1** | he played the chords: span was the wrong difficulty metric — `E♭add9` revoiced, `Dadd9` and the six wide barres kept, `A`/`Am`/`A7` now sound string 6 (the chord box exposed it), plus two guards |
 | [33](#where-things-stand-session-33-2026-08-03) | **v3.2.0** | the chord-shape diagram under the wheel's drums, marking the thumb's alternating pair (item 9's revisit condition finally fired at 120 chords / 75 barres); plus the measurement that cut his playability audit from 120 chords to 12 |
@@ -47,6 +48,53 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 33d — v3.2.3, 2026-08-03)
+
+**He flagged four more chords as too hard: `C♯m6`, `Csus4`, `F♯6`, `Cm6`.**
+"Avoid any partial barres if at all possible." The first pass guessed wrong —
+worth recording exactly how, since the correction is a real rule.
+
+**What went wrong.** Read "avoid barres" too broadly and searched for fully
+barre-free candidates for all four, favouring low finger counts and minimal
+reach — the same search approach that worked for `E♭add9`. He caught it before
+anything was applied: *"Better than the muted strings in those options... barres
+aren't a total deal breaker, especially a standard all the way across type."*
+The candidates were sparse (2–3 muted strings each) specifically to avoid ANY
+shared fret, and that sparseness was worse than a full, familiar barre.
+
+**Checking the shapes' own topology settled it.** `C♯m6`, `Cm6` and `F♯6` were
+never hand-declared — they come straight from the movable A-/E-shape TEMPLATES,
+which always barre the full width (index across every string, with 3–4 fingers
+layered on top in a small window above it). That's exactly the "standard, all
+the way across" family he says is fine, and it's the same shape every other
+maj6/min6/maj7/etc. barre chord in the library already uses. **None of the three
+needed to change.**
+
+**`Csus4` was the one genuine outlier**, and it wasn't template-derived at all —
+a leftover hand-declaration from the session-30 "C/D/G-family open forms" pass
+(`x33011`, open C with each 3rd bumped to a 4th). Open C's own shape already has
+a gap — a fret-3 cluster on the bass strings, a fret-0/1 cluster on the treble
+strings, nothing linking them — and sus4 needs to fret BOTH clusters at once,
+producing genuinely **two disconnected partial barres** rather than one full
+one. That's precisely what he'd flagged as hard, and precisely what's different
+from the other three. Removing the hand-declaration lets the general A-shape
+template take over: `3 3 5 5 6 3`, one coherent 6-string barre at fret 3 with
+three fingers above it. Bonus, not just comfort: the alternating bass improves
+too — root ↔ 5th (C ↔ G) instead of root ↔ 4th, since the open G string that
+constrained the old voicing is gone.
+
+**The lesson, on top of "playability is not span" from earlier this session:**
+a barre and a partial barre are different things, and "avoid barres" needs to be
+read as "avoid the ones that don't reach all the way across" unless told
+otherwise. Checking a shape's actual barre topology (which strings sound the low
+fret, and whether that spans the full width) before proposing a fix would have
+caught this on the first pass.
+
+104/104 green. Budget re-measured, unchanged: 55.09 / 384.84 / 11.06 / no
+overflow.
 
 ---
 
