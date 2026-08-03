@@ -1487,12 +1487,21 @@ check("dropdown: renders optgroup section headers", () => {
   assert(groups.length === 1 && groups[0].textContent === "Group A", "an optgroup renders one header");
   assert(document.querySelectorAll(".dd-panel .dd-option").length === 2, "options under the group render");
 
-  document.querySelector(".dd-catcher").click(); // close for a clean DOM
+  document.querySelector(".dd-catcher")?.click(); // close for a clean DOM
   assert(!document.querySelector(".dd-panel"), "panel closes");
   host.remove();
 });
 
 // ---- the chord wheel (DOM) ----
+// THESE THREE DRIVE REAL SCROLLS AND WAIT FOR REAL SETTLES, so they were the
+// only expensive checks in the suite: ~19s of the run, and in a throttled tab
+// (which clamps every timer) they stalled the whole page and one of them flaked
+// outright — reporting a stale reel value as a failure. `settleMs` is injectable
+// for exactly this; the app never passes it and 110ms is still the feel. Waiting
+// a hair over the injected settle is what the test is actually waiting for, so
+// the wait is derived from it rather than being a second magic number.
+const WHEEL_SETTLE_MS = 1;
+const afterSettle = () => new Promise((r) => setTimeout(r, WHEEL_SETTLE_MS + 15));
 // It's a RENDERER over the same hidden <select>, so the contract it has to keep
 // is the dropdown's contract: the select stays the source of truth and a pick
 // fires exactly one bubbling `change`. What's specific to the wheel is that a
@@ -1512,7 +1521,7 @@ acheck("wheel: two reels write one chord id, and the panel stays open", async ()
   document.body.appendChild(host);
 
   let ticks = 0;
-  enhanceSelect(sel, { render: createChordWheel({ tick: () => { ticks++; } }) });
+  enhanceSelect(sel, { render: createChordWheel({ tick: () => { ticks++; }, settleMs: WHEEL_SETTLE_MS }) });
   const trigger = host.querySelector(".dd-trigger");
   trigger.click();
 
@@ -1560,12 +1569,12 @@ acheck("wheel: two reels write one chord id, and the panel stays open", async ()
   Object.defineProperty(reel, "scrollTop", { value: 2 * 38, writable: true }); // row 2 = Minor; ITEM_H=38
   reel.dispatchEvent(new Event("scroll"));
   assert(ticks === 1, `a name passing the window ticks once, got ${ticks}`);
-  await new Promise((r) => setTimeout(r, 200));
+  await afterSettle();
   assert(sel.value === "Em", `settling on Minor over root E should give Em, got ${sel.value}`);
   assert(changes === 1, `one bubbling change per settle, got ${changes}`);
   assert(document.querySelector(".dd-wheel"), "the panel stays open after a pick");
   assert(host.querySelector(".dd-label").textContent === "Em", "the trigger follows");
-  document.querySelector(".dd-catcher").click();
+  document.querySelector(".dd-catcher")?.click();
   host.remove();
 });
 
@@ -1630,7 +1639,7 @@ acheck("wheel: key × progression drives two selects, and re-cuts on a mode chan
   };
 
   enhanceSelect(progSel, {
-    render: createKeyProgWheel({ keySelect: () => keySel, commitKey }),
+    render: createKeyProgWheel({ keySelect: () => keySel, commitKey, settleMs: WHEEL_SETTLE_MS }),
     label: keyProgSplitLabel(() => keySel),
     watch: [keySel],
   });
@@ -1680,7 +1689,7 @@ acheck("wheel: key × progression drives two selects, and re-cuts on a mode chan
     const reel = panel.querySelector(`.reel-${reelCls}`);
     reel.scrollTop = i * 38; // ITEM_H in wheel.js
     reel.dispatchEvent(new Event("scroll"));
-    await new Promise((r) => setTimeout(r, 200));
+    await afterSettle();
   };
 
   // The progression reel writes the panel's OWN select. Rows now interleave a
@@ -1710,7 +1719,12 @@ acheck("wheel: key × progression drives two selects, and re-cuts on a mode chan
   const halves = [...host.querySelectorAll(".dd-label .tl-half")].map((h) => h.textContent);
   assert(halves.join() === "Am,i–VII", `the trigger shows both halves, got ${halves}`);
 
-  document.querySelector(".dd-catcher").click();
+  // Teardown, not an assertion — hence the `?.`. An open panel closes on any
+  // window `resize` (dropdown.js's reflow), so anything that resizes the window
+  // WHILE this runs takes the catcher with it and the teardown throws a null
+  // deref that reads like a wheel bug and isn't one. On the dev box that's the
+  // Browser pane: taking a screenshot mid-run is enough to do it.
+  document.querySelector(".dd-catcher")?.click();
   host.remove();
 });
 
@@ -1736,7 +1750,7 @@ acheck("wheel: a pick that rebuilds the select keeps the panel working", async (
     }
     sel.value = value;
     host.appendChild(sel);
-    enhanceSelect(sel, { render: createChordWheel() });
+    enhanceSelect(sel, { render: createChordWheel({ settleMs: WHEEL_SETTLE_MS }) });
     // …and re-point any open panel at the replacement, the way app.js does.
     retargetOpenPanel((old) => host.querySelector(`select.bar-chord[data-bar="${old.dataset.bar}"]`));
     return sel;
@@ -1752,7 +1766,7 @@ acheck("wheel: a pick that rebuilds the select keeps the panel working", async (
   const spin = async (i) => {
     Object.defineProperty(root, "scrollTop", { value: i * 38, writable: true, configurable: true });
     root.dispatchEvent(new Event("scroll"));
-    await new Promise((r) => setTimeout(r, 200));
+    await afterSettle();
   };
 
   await spin(5); // E -> F
@@ -1762,7 +1776,7 @@ acheck("wheel: a pick that rebuilds the select keeps the panel working", async (
     `second pick from the same panel should land on G, got ${current.value} (the panel lost its select)`);
   assert(document.querySelector(".dd-wheel"), "and the panel is still open");
 
-  document.querySelector(".dd-catcher").click();
+  document.querySelector(".dd-catcher")?.click();
   host.remove();
 });
 
@@ -3054,6 +3068,11 @@ acheck("metronome: a context that can't resume fails the start instead of hangin
 acheck("metronome: a resume that NEVER settles is still an answer, and the rebuild plays", async () => {
   // The nastier half of the bug: not a rejection but a promise that hangs
   // forever. Raced against a timeout, so the click handler always gets a verdict.
+  //
+  // This is the ONE check that has to wait out a real timeout to prove anything,
+  // which is why `resumeTimeoutMs` is injectable — at the shipped 1500ms it cost
+  // 7.7s of the suite on its own. The race is what's under test, not the length
+  // of the fuse.
   let built = 0;
   await withFakeAudio(
     () => {
@@ -3063,7 +3082,7 @@ acheck("metronome: a resume that NEVER settles is still an answer, and the rebui
         : fakeAudioContext({ state: "running" });
     },
     async () => {
-      const m = createMetronome();
+      const m = createMetronome({ resumeTimeoutMs: 5 });
       const ok = await m.start(1);
       assert(ok === true, "the replacement context must actually start the transport");
       assert(m.running === true, "…and leave it running");

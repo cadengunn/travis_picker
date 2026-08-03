@@ -31,7 +31,12 @@ import { renderChordBox } from "./chordbox.js";
 
 const ITEM_H = 38;   // px per name; JS owns it and hands it to CSS (--reel-item)
 const VISIBLE = 5;   // names in the window at once — an odd number has a centre
-const SETTLE_MS = 110; // quiet time after the last scroll event before committing
+// Quiet time after the last scroll event before committing. INJECTABLE only so
+// the tests don't have to sleep on the wall clock: three wheel checks drive real
+// scrolls and wait for real settles, which cost ~19s of a suite that is otherwise
+// near-instant, and in a throttled tab they stalled the run and flaked outright.
+// The app never passes it — 110ms is the feel, and nothing in the UI may change it.
+const SETTLE_MS = 110;
 
 // How far the barrel has turned by the time a name leaves the window.
 //
@@ -54,7 +59,7 @@ const DEG_PER_STEP = 26;
 // groove, since there's no name to engrave. So the visual barrel is `rows` —
 // headers interleaved with options — while `list` stays the pure options (1:1
 // with the <select>), which is what index/commit and list() reason about.
-function buildDrum(parent, { cls, legend, items, value, onSettle }, tick) {
+function buildDrum(parent, { cls, legend, items, value, onSettle }, { tick, settleMs }) {
   const drum = document.createElement("div");
   drum.className = `drum drum-${cls}`;
   parent.appendChild(drum);
@@ -180,7 +185,7 @@ function buildDrum(parent, { cls, legend, items, value, onSettle }, tick) {
       tick();
     }
     clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => onSettle(rows[nearestOpt(rowIndex)].value), SETTLE_MS);
+    settleTimer = setTimeout(() => onSettle(rows[nearestOpt(rowIndex)].value), settleMs);
   });
 
   el.addEventListener("keydown", (e) => {
@@ -203,7 +208,7 @@ function buildDrum(parent, { cls, legend, items, value, onSettle }, tick) {
 }
 
 // One housing, N drums, a hairline axle between each pair.
-function buildHousing(panel, variant, specs, tick) {
+function buildHousing(panel, variant, specs, opts) {
   panel.classList.add("dd-wheel");
   if (variant) panel.classList.add(variant);
   panel.style.setProperty("--reel-item", `${ITEM_H}px`);
@@ -228,7 +233,7 @@ function buildHousing(panel, variant, specs, tick) {
       rule.className = "wheel-split";
       drums.appendChild(rule);
     }
-    built.push(buildDrum(drums, spec, tick));
+    built.push(buildDrum(drums, spec, opts));
   });
   return built;
 }
@@ -250,7 +255,7 @@ function optionItems(select) {
 // CHORD × QUALITY — two reels writing ONE composite select value
 // ---------------------------------------------------------------------------
 
-export function createChordWheel({ tick = () => {} } = {}) {
+export function createChordWheel({ tick = () => {}, settleMs = SETTLE_MS } = {}) {
   return function renderChordWheel(select, panel, { commit }) {
     const start = splitChordId(select.value) || { root: ROOTS[0].id, quality: QUALITIES[0].id };
     const chosen = { root: start.root, quality: start.quality };
@@ -295,7 +300,7 @@ export function createChordWheel({ tick = () => {} } = {}) {
         value: () => chosen.quality,
         onSettle: (v) => { chosen.quality = v; apply(); },
       },
-    ], tick);
+    ], { tick, settleMs });
 
     panel.append(shape);
     drawShape();
@@ -318,7 +323,7 @@ export function createChordWheel({ tick = () => {} } = {}) {
 //
 // The panel is opened on the PROGRESSION select, so `commit` targets that one and
 // the key reel writes through `commitKey`.
-export function createKeyProgWheel({ tick = () => {}, keySelect, commitKey } = {}) {
+export function createKeyProgWheel({ tick = () => {}, settleMs = SETTLE_MS, keySelect, commitKey } = {}) {
   return function renderKeyProgWheel(select, panel, { commit }) {
     const reels = buildHousing(panel, "wheel-keyprog", [
       {
@@ -350,7 +355,7 @@ export function createKeyProgWheel({ tick = () => {}, keySelect, commitKey } = {
         // makes app.js set this select to Custom, so the reel opens on it.
         onSettle: (v) => commit(v),
       },
-    ], tick);
+    ], { tick, settleMs });
 
     return {
       afterOpen() { for (const r of reels) r.open(); },

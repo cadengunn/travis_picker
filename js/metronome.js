@@ -55,6 +55,9 @@ export const hasDrifted = (nextSlotTime, now) => now - nextSlotTime > MAX_DRIFT;
 // all, only replaced. Rebuilding is exactly what leaving and returning was doing
 // by hand. start() reports success as a boolean and never throws, so the UI can
 // always put the button back.
+// INJECTABLE via createMetronome({ resumeTimeoutMs }) only so the tests don't
+// sleep on the wall clock — the "resume that never settles" check has to wait out
+// a real timeout to prove the race works. The app never passes it.
 const RESUME_TIMEOUT_MS = 1500;
 
 // --- pure helpers (unit-tested) ---
@@ -93,7 +96,11 @@ export function stepToPosition(step) {
   return { bar: Math.floor(step / SLOTS_PER_BAR), slot: (step % SLOTS_PER_BAR) + 1 };
 }
 
-export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}) {
+export function createMetronome({
+  onStep = () => {},
+  onCountIn = () => {},
+  resumeTimeoutMs = RESUME_TIMEOUT_MS,
+} = {}) {
   let ctx = null;
   let timer = null;
   let raf = null;
@@ -139,7 +146,7 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
     try {
       await Promise.race([
         ctx.resume(),
-        new Promise((resolve) => setTimeout(resolve, RESUME_TIMEOUT_MS)),
+        new Promise((resolve) => setTimeout(resolve, resumeTimeoutMs)),
       ]);
     } catch { /* treated as "didn't resume" */ }
     return ctx.state === "running";
