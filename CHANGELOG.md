@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [33c](#where-things-stand-session-33c--v322-2026-08-03) | **v3.2.2** | E♭add9 revoiced again (string 6 sounds now, no partial barre — Root–Fifth alternates properly); the chord die can be tapped while its own wheel is open |
 | [33b](#where-things-stand-session-33b--v321-2026-08-03) | **v3.2.1** | he played the chords: span was the wrong difficulty metric — `E♭add9` revoiced, `Dadd9` and the six wide barres kept, `A`/`Am`/`A7` now sound string 6 (the chord box exposed it), plus two guards |
 | [33](#where-things-stand-session-33-2026-08-03) | **v3.2.0** | the chord-shape diagram under the wheel's drums, marking the thumb's alternating pair (item 9's revisit condition finally fired at 120 chords / 75 barres); plus the measurement that cut his playability audit from 120 chords to 12 |
 | [32](#where-things-stand-session-32-2026-08-02) | **v3.1.0** | the four deferred small fixes: settings persist (`tp-prefs`, BPM included — a reversal); the intermittent dead Play traced to an iOS `"interrupted"` AudioContext and hardened; the landscape sheet bug fixed at the cause (a stale inline viewport box); 3 of 9 "dead" symbols actually dead |
@@ -46,6 +47,39 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 33c — v3.2.2, 2026-08-03)
+
+Two more of his notes off the same guitar session, both shipped. 103/103 green
+(chordbox tests unaffected — no new test needed for the die fix beyond the
+source-level one, since it's app.js glue exercised live).
+
+**`E♭add9` revoiced again, and it's a genuine upgrade.** He pointed out string 6
+doesn't need to stay muted and doesn't need a partial barre either: one finger
+moves between string 6 and string 1 (both fret 6) as the pattern needs them, the
+same way a finger comes on and off string 6 for the low bass note some players
+add under an open C — the app doesn't model *how* a string gets fretted, only
+*what* sounds, so this is simply `6 6 5 0 6 6`. The win isn't just comfort: B♭
+(the 5th) now has a real bass-string home, so **Root–Fifth alternates E♭ ↔ B♭
+properly** instead of going root-only, which v3.2.1's version couldn't do.
+
+**The chord die can now be tapped while its own wheel is open.** The die sits
+right beside the chord field, so the wheel's full-screen outside-tap catcher
+covered it too — confirmed live before touching anything (`elementFromPoint` at
+the die's centre returned `.dd-catcher`, not the button). A tap there used to be
+a dead first press that only closed the wheel; rolling took two taps. Fixed the
+same way the codebase already fixes this class of bug (`overOpenTrigger`,
+session 28): a rect check against the die, wired to fire on the bubble *after*
+the catcher's own listener has closed the panel, so the roll always lands clean.
+Verified with a real driven click, not a synthetic one — a synthetic
+`dispatchEvent` on the catcher initially looked like it wasn't working, which
+turned out to be a different, unrelated red herring (the page had booted into
+progression mode from a leftover `tp-prefs` value, so the "before/after" check
+was reading `#chord`, a field the die doesn't touch in that mode). Cleared
+storage and re-verified: `E → Gadd9` in one tap, panel closed, 2 oscillator
+starts (the normal ka-chunk).
 
 ---
 

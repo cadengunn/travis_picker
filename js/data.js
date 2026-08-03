@@ -237,14 +237,17 @@ const OPEN_CHORDS = {
   // Dadd9 (which he then found a fingering for: barre the 2s, pinky on 5 — so
   // Dadd9 above is deliberately UNCHANGED).
   //
-  // `x 6 5 0 6 6` is one fret of reach: a finger each on strings 5 and 4, string 3
-  // ringing open, and a two-string partial barre on 2/1. The trade he accepted is
-  // that the 5th (B♭) has no home on a bass string here — it exists only on string
-  // 1 — so `fifth` points at the ROOT'S own string. That's the documented
-  // closed-voicing convention: the Travis preset then alternates between identical
-  // notes, i.e. thumb-on-root. The alternating pair is E♭ ↔ G either way, exactly
-  // as the old voicing did, so nothing about the bass actually changes.
-  Ebadd9: { root: 5, alt: 4, fifth: 5, fifthFret: 6, shape: { 6: null, 5: 6, 4: 5, 3: 0, 2: 6, 1: 6 } }, // Eb G G F Bb
+  // REVISED AGAIN (his note): string 6 doesn't need to go unplayed, and it
+  // doesn't need a partial barre either — one finger moves between string 6 and
+  // string 1 (both fret 6) as the thumb/fingers need them, the same way a finger
+  // comes on and off string 6 for the low bass note some players add under an
+  // open C. `x 6 5 0 6 6` is now `6 6 5 0 6 6`: strings 5/4 each get their own
+  // finger, string 3 rings open, and string 6/1 (both B♭, the 5th) share one
+  // finger moved in time rather than held together. That gives the 5th a real
+  // bass-string home, so `fifth` now points at string 6 instead of doubling the
+  // root — Root–Fifth alternates E♭ ↔ B♭ properly on this chord now, same as
+  // every other chord in the library, rather than going root-only.
+  Ebadd9: { root: 5, alt: 4, fifth: 6, fifthFret: 6, shape: { 6: 6, 5: 6, 4: 5, 3: 0, 2: 6, 1: 6 } }, // Bb Eb G G F Bb
 };
 
 // ----- Movable barre templates: one shape slid up the neck -----

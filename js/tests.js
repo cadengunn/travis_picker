@@ -2831,6 +2831,31 @@ check("the generator never picks a string the chord's shape mutes", () => {
   }
 });
 
+acheck("app: the die can be tapped while its own wheel is open", async () => {
+  // The die sits right beside the field that opens the wheel, so the wheel's
+  // full-screen outside-tap catcher covered it too — a tap on the die used to be
+  // a dead first press that only closed the wheel, and rolling took two taps
+  // (his ask, session 33). app.js glue isn't imported here (see the Play-button
+  // and tab-wiring tests above for the same reasoning), so this is asserted at
+  // the source, the same way those are. Verified LIVE first, not just here: a
+  // real `computer` click at the die's on-screen rect while the chord wheel was
+  // open both closed the panel and rolled a new chord in one tap, with the
+  // normal two-oscillator ka-chunk.
+  const appjs = await (await fetch("js/app.js")).text();
+  assert(/const overOpenDie = \(e\) =>/.test(appjs),
+    "overOpenDie must exist, mirroring overOpenTrigger's rect-check for the die");
+  const dieCheck = appjs.match(/const overOpenDie[\s\S]{0,400}/)?.[0] || "";
+  assert(/getElementById\("randomize-chords"\)/.test(dieCheck) || /el\("randomize-chords"\)/.test(dieCheck),
+    "overOpenDie must check the die's own bounding rect");
+  assert(/if \(overOpenDie\(e\)\) randomizeChords\(\);/.test(appjs),
+    "a click landing on the die's rect (via the catcher) must actually roll — not just close the wheel");
+  // The die must sound like every other button, not go silent just because its
+  // press happened to land on the catcher.
+  const pointerdown = appjs.match(/pointerdown["'][\s\S]{0,300}/)?.[0] || "";
+  assert(/overOpenTrigger\(e\) \|\| overOpenDie\(e\)/.test(pointerdown),
+    "the die's catcher-passthrough press must sound, alongside the trigger's");
+});
+
 // ---- the chord box (session 33) ----
 
 check("chordbox: every chord in the library draws, and fits the 5-fret window", () => {

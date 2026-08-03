@@ -66,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.2.1";
+const APP_VERSION = "v3.2.2";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1301,6 +1301,22 @@ function attach() {
     return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
   };
 
+  // The die sits right beside the field that opens the wheel, so its own catcher
+  // covers it too — a tap on the die used to be a dead first press that only
+  // closed the wheel, and rolling took two taps (his ask, session 33). Same rect
+  // check as overOpenTrigger, just against the die instead of the trigger.
+  const overOpenDie = (e) => {
+    if (!e.target.classList || !e.target.classList.contains("dd-catcher")) return false;
+    const r = el("randomize-chords").getBoundingClientRect();
+    return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+  };
+  // Fires on the bubble AFTER the catcher's own listener (dropdown.js) has
+  // already closed the panel, so the roll always lands on a clean, closed sheet
+  // — never on stale reel positions from the wheel that just went away.
+  document.addEventListener("click", (e) => {
+    if (overOpenDie(e)) randomizeChords();
+  });
+
   // A latching key that's already SEATED is a no-op when pressed again — like the
   // capo at an end-stop, it should stay silent; only the POPPED-OUT one sounds
   // (his note). Both the page tabs and the Format toggle are `.segmented button`,
@@ -1317,7 +1333,7 @@ function attach() {
   let pressNoop = false;
   document.addEventListener("pointerdown", (e) => {
     let s = pressStrength(e);
-    if (s == null && overOpenTrigger(e)) s = 0.82;
+    if (s == null && (overOpenTrigger(e) || overOpenDie(e))) s = 0.82;
     if (s == null) return;
     pressSilenced = metronome.running;
     pressNoop = seatedLatch(e);
@@ -1325,7 +1341,7 @@ function attach() {
   });
   document.addEventListener("pointerup", (e) => {
     let s = pressStrength(e);
-    if (s == null && overOpenTrigger(e)) s = 0.82;
+    if (s == null && (overOpenTrigger(e) || overOpenDie(e))) s = 0.82;
     if (s == null || pressSilenced || pressNoop) return;
     playRelease(s);
   });

@@ -47,14 +47,15 @@ Two conventions worth knowing before you flag something as wrong:
 - **`Gadd9` alternates G ↔ B** (the 3rd) rather than G↔D like the other G chords,
   because its shape puts B on string 5. A "walk to the 3rd" bass — common in
   fingerstyle, but inconsistent with its neighbours.
-- **`E♭add9` alternates E♭ ↔ G** (the 3rd) — a hand-voicing, because the A-shape
-  add9 lands on fret 10 for this root. **Revoiced at v3.2.1** from `x 1 1 0 4 1`,
-  which you found unplayable: it asked for fret 4 on string 2 while holding fret 1
-  on strings 5/4 *and* string 1, stranding a finger past the pinky. `x 6 5 0 6 6`
-  is one fret of reach. \*Its only trade: B♭ (the 5th) exists solely on string 1
-  here, so the `fifth` role doubles the root — meaning **Root–Fifth and Dead Thumb
-  play root-only on this one chord**. Travis and Alternating are unaffected, still
-  E♭ ↔ G.
+- **`E♭add9` is now `6 6 5 0 6 6`** (v3.2.2, your note). It went through two
+  revisions: `x 1 1 0 4 1` (unplayable — a finger stranded past the pinky) →
+  `x 6 5 0 6 6` (v3.2.1, muted string 6) → this. You pointed out string 6 doesn't
+  need to go unplayed and doesn't need a partial barre either — one finger moves
+  between string 6 and string 1 (both fret 6) as needed, the same way a finger
+  comes on and off string 6 for the low bass note some players add under an open
+  C. That gives B♭ (the 5th) a real bass-string home, so **Root–Fifth now
+  alternates E♭ ↔ B♭ properly**, like every other chord — no longer root-only.
+  Travis/Alternating are unchanged, still E♭ ↔ G (the 3rd).
 - **maj7 / m7 on E-shape roots alternate root ↔ 7** (`Emaj7` is E↔E♭, `Em7` is
   E↔D, `F♯maj7` is F♯↔F). This is the deliberate trade documented for dom7 — the
   7th's only playable home inside an E-shape is the alt-bass string. A-shape roots
@@ -157,7 +158,7 @@ target, and it's the least idiomatic for this style.)*
 | **E♭m6** | `6 6 8 8 7 8` | B♭ E♭ B♭ E♭ F♯ C | 5 R 5 R ♭3 6 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 8 |
 | **E♭sus2** | `6 6 8 8 6 6` | B♭ E♭ B♭ E♭ F B♭ | 5 R 5 R 9 5 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 8 |
 | **E♭sus4** | `x 1 1 3 4 4` | x B♭ E♭ B♭ E♭ G♯ | · 5 R 5 R 4 | E♭ (s4) ↔ B♭ (s5) | B♭ (s3) | 4 |
-| **E♭add9** | `x 6 5 0 6 6` | x E♭ G G F B♭ | · R 3 3 9 5 | E♭ (s5) ↔ G (s4) | E♭ (s5)\* | 6 |
+| **E♭add9** | `6 6 5 0 6 6` | B♭ E♭ G G F B♭ | 5 R 3 3 9 5 | E♭ (s5) ↔ G (s4) | B♭ (s6) | 6 |
 
 ### E
 

@@ -886,6 +886,23 @@ Four dependency-free modules, all precached:
     catcher tap whose point falls within `openDropdownTrigger()`'s rect (exported by
     `dropdown.js`); a bare outside tap lands on the catcher AWAY from the trigger and
     stays silent, which is correct. Verified: 2+2 on the trigger, 0 off it.
+  - **The die can be tapped WHILE ITS OWN WHEEL IS OPEN** (`overOpenDie`, session
+    33, his ask). The die sits right beside the chord field, so the same catcher
+    that covers the trigger also covers the die — a tap on it used to be a dead
+    first press that only closed the wheel, and rolling a new chord took two
+    taps. `overOpenDie` in `app.js` is the same rect-check `overOpenTrigger` uses,
+    against `#randomize-chords` instead of the trigger, wired to a document-level
+    `click` listener that calls `randomizeChords()` when it matches. It fires on
+    the BUBBLE, after the catcher's own listener (`dropdown.js`) has already
+    closed the panel — so the roll always lands on a clean, closed sheet, never
+    on a wheel whose reels are now stale. Both `overOpenTrigger` and `overOpenDie`
+    feed the same sound exception, so the die still ka-chunks even though the
+    press technically landed on a bare `<div>`. Verified live: a real `computer`
+    click at the die's on-screen rect while the chord wheel was open closed the
+    panel, rolled a new chord, and fired the normal 2-oscillator press+release —
+    all in the one tap. Works for the Key×Progression wheel too, since it's the
+    same physical button in both chord modes and the check only cares about
+    coordinates.
 
 **Platform integrations** (`platform.js`) — four OS behaviours the musical model
 knows nothing about. **Every one is feature-detected and degrades to a silent
@@ -1391,8 +1408,15 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     same fret are on *adjacent* strings, one finger covers both (a partial barre)
     and the shape survives — that's his own solution for the three sus2. Only
     `Dadd9` and `E♭add9` genuinely failed, and `Dadd9` he then found a fingering
-    for (barre the 2s, pinky on 5), so **`E♭add9` alone was revoiced**, to
-    `x 6 5 0 6 6`. All the wide sus2/add9 barres are deliberately KEPT.
+    for (barre the 2s, pinky on 5), so **`E♭add9` alone was revoiced** — twice.
+    First to `x 6 5 0 6 6` (v3.2.1, string 6 muted), then his note: string 6
+    doesn't need to go unplayed and doesn't need a partial barre either — one
+    finger moves between string 6 and string 1 (both fret 6) as needed, the same
+    way a finger comes on and off string 6 for the low bass note some players add
+    under an open C. **v3.2.2 is `6 6 5 0 6 6`**, and it's a genuine upgrade, not
+    just a preference: B♭ (the 5th) now has a real bass-string home, so
+    Root–Fifth alternates E♭ ↔ B♭ properly instead of going root-only. All the
+    wide sus2/add9 barres are deliberately KEPT.
   - **🎲 rolls the whole library** (his call, with the wheel) — it used to roll the
     open "campfire" chords only, but a picker that offers all 36 with equal
     ceremony should have a die that does the same.
