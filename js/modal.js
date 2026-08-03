@@ -111,8 +111,3 @@ export function promptModal(opts = {}) {
     present(parts, (r) => resolve(r === "ok" ? parts.input.value : null));
   });
 }
-
-// So callers/tests can tell whether a dialog is up (e.g. to gate Escape).
-export function modalOpen() {
-  return openCount > 0;
-}

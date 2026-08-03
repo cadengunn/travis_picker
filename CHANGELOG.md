@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [32](#where-things-stand-session-32-2026-08-02) | **v3.1.0** | the four deferred small fixes: settings persist (`tp-prefs`, BPM included — a reversal); the intermittent dead Play traced to an iOS `"interrupted"` AudioContext and hardened; the landscape sheet bug fixed at the cause (a stale inline viewport box); 3 of 9 "dead" symbols actually dead |
 | [31](#where-things-stand-session-31-2026-08-02) | **v3.0.0** → v3.0.1 | the last two qualities — sus2 + add9; completes the requested set (dim7 stays out); library now 120 chords. **V3 marks the finished chords + progressions revamp (sessions 29–31).** Then v3.0.1: Dadd9 was D major — fixed, plus a chord-tone test |
 | [30](#where-things-stand-session-30-2026-08-02) | v2.14.14 | new chord qualities — the clean 5 (m7, maj7, 6, m6, sus4); quality reel grouped; id parsers unified through splitChordId |
 | [29](#where-things-stand-session-29-2026-08-02) | v2.14.12 → v2.14.13 | the progression revamp (ragtime/Piedmont secondary dominants, minor blues, modern minor); then engraved style-name headers on the drum (his design B) |
@@ -43,6 +44,128 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 32, 2026-08-02)
+
+**v3.1.0 — the four deferred small fixes off his notes.** No new features beyond
+persistence; this was a session of causes, not symptoms. 96/96 green (was 91).
+
+### 1. Landscape — the cause, not the symptom
+
+His report: rotate to landscape and back, and the Options sheet opens
+mis-positioned ("at the top of the sheet"). His instinct was to disable landscape
+outright.
+
+**The cause was `syncSheetToViewport()`.** It exists for one reason — iOS puts
+`position: fixed` against the LAYOUT viewport, so a bottom-anchored sheet sits
+*behind* the on-screen keyboard when the Save-name field is focused — and it does
+its job by writing **inline** `height`/`top`/`bottom` over `.sheet { inset: 0 }`
+on every `visualViewport` event. Two facts made it the culprit: **nothing ever
+removed those inline styles**, and the loop **skipped hidden sheets**. iOS reports
+transitional viewport numbers for a frame or two mid-rotation, so a box captured
+during a turn outlived the turn; and a sheet closed during a rotation kept a
+landscape box into portrait, where the panel then bottom-anchored inside the wrong
+box. Exactly the reported symptom, and permanent until some later event happened
+to re-fire the sync.
+
+**The fix is a subtraction.** With no keyboard the visual viewport *equals* the
+layout viewport, so the pin was only ever a no-op in that case — so it now applies
+**only while the keyboard is actually up** and **clears the inline box otherwise**,
+hidden sheets included. The stylesheet is right at every orientation, so rotating
+self-corrects and there is **no orientation handling anywhere in the app**. A
+`resize`/`orientationchange` scroll-to-top patch would have hidden this rather
+than fixed it.
+
+**Landscape is NOT blocked in a Safari tab** (his call). The manifest's
+`"orientation": "portrait"` already covers the installed PWA, and a CSS lockout
+would need a `max-height` guard or it fires on a desktop browser too — real
+maintenance for a case the fix above already makes harmless.
+
+### 2. Settings persist — a third store, `tp-prefs`
+
+Chord mode, chord, key, capo, progression, thumb, fingers, pattern length, note
+labels **and BPM** now survive a relaunch. Four decisions, all his:
+
+- **BPM is in.** This **reverses** the documented rule that tempo is too volatile
+  to remember (unlike swing, which you settle on and keep). Asked, and he changed
+  his mind: *"Everything including BPM."* Recorded as a reversal rather than
+  quietly dropping the old line.
+- **Loading a saved pattern updates the defaults too** — "reopen how you left it".
+  That falls out for free, because `savePrefs()` is called from **`render()`**, the
+  one funnel every persisted control already passes through (`loadSaved` included).
+  A per-handler call would have needed ten call sites and would silently miss the
+  eleventh.
+- **A third store, not an extension of `tp-audio`**, which stays the four sound
+  toggles + swing. Swing was deliberately not moved; migrating it would strand
+  real settings for nothing.
+- **The capo persists as a SESSION DEFAULT**, which is a different thing from the
+  capo inside a saved item's `context` (musical content). The saved one still
+  wins — `loadSaved` runs long after boot's restore.
+
+Two things that had to be got right: **`restorePrefs` runs before `generate()`**,
+or the session's first pattern is rolled against the default chord and then
+re-chorded underneath; and **every restored value is validated against its
+select's live options**, because chords/keys/progressions are data and do change
+between releases — a stale id must be ignored, not forced into a control whose
+menu no longer contains it. There is **no seeded default blob**: it reads the raw
+stored object and applies only the keys present, which handles the documented
+"a blob seeded with defaults can never tell you *unset*" footgun by construction.
+
+### 3. The intermittent dead Play — a real mechanism
+
+He couldn't reproduce it and asked for hardening over a guessed one-liner. The
+trace found something better: a mechanism that explains **both halves** of his
+report, including why leaving the app and coming back was the cure.
+
+iOS has a third AudioContext state beyond running/suspended — **`"interrupted"`**
+(a call, Siri, another app taking the audio session) — and `resume()` on one of
+those may reject **or never settle at all**. `running = true` sat *after* that
+await in `start()`, and `togglePlay` branches on `running`, so the transport never
+started and **every later press re-entered the same start path**. `stopTransport`
+early-returned on `running` too, so it could never clean up; the button sat
+showing STOP over a silent app with the audio category still claimed. And nothing
+anywhere repaired audio on the way back to foreground — his workaround worked
+because **iOS** clears the interruption on foreground, not because the app did
+anything.
+
+Four changes: the resume is caught **and raced against a 1.5s timeout**; a context
+that still isn't running is **thrown away and rebuilt** (the synth goes with it —
+its buffer cache is bound to that context); **`start()` returns a boolean and
+never throws**, so `app.js` can pay back its optimistic button flip
+(`releasePlayback()`, deliberately *not* gated on `metronome.running` — that gate
+is what made the old failure unrecoverable); and **`recoverAudio()` runs on every
+return to foreground**, via a new `onShown` on the playback guard, which is the
+automated version of his workaround.
+
+**Verified against the pre-fix code**, not reasoned about: a stub context whose
+`resume()` rejects made `start()` **throw**, with one context built and none
+closed; a stub whose `resume()` hangs made `start()` **never resolve at all** —
+it hung the whole test page. Both now return a verdict.
+
+*What is still unproven:* the phone. The interruption can't be provoked on the dev
+box, so the evidence that this was his bug is mechanistic, not observed.
+
+### 4. Dead code — the list was half wrong
+
+`OPEN_ITEMS.md` named nine symbols as "referenced nowhere". Only **three** were:
+`romanize`, `romanDegrees` (which only `romanize` fed) and `modalOpen`. Deleted.
+The other six — `roleFor`, `SAVED_KEY`, `SCHEMA_VERSION`, `getTheme`,
+`savedThemeId`, `resolveMergedBar` — are all **live internally** and merely
+exported unnecessarily; dropping an `export` keyword is churn on working code for
+no gain, and he agreed to leave them.
+
+### Verified here vs. left for the phone
+
+Measured live at 375×553, 4 bars, progression, capo 4, a hand-edited Custom
+progression: **55.09 / 384.84 / 11.06 / no overflow** — pixel-identical to the
+standing budget. Persistence was verified by round-tripping a real reload twice
+(single mode, then progression mode with a hand-edited Custom progression), and
+the restored dropdown *trigger faces* were checked too, since those repaint off
+the wrapped `value` setter rather than the select. The sheet's viewport pin was
+driven both ways by faking the keyboard. Play/stop was driven with a real click.
+**Left for the phone:** the actual rotate, and whether Play ever goes dead again.
 
 ---
 

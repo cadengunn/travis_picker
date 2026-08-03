@@ -16,7 +16,57 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.0.1) — one chord fix
+## On the phone right now (v3.1.0) — the four deferred small fixes
+
+All four items from your `NEXT_SESSION_PROMPT.md`. Nothing here is a new feature
+except persistence.
+
+**1. The app remembers your settings now.** Chord mode, chord, key, capo,
+progression, thumb, fingers, pattern length, note labels **and BPM** come back on
+relaunch. Loading a saved pattern also updates those defaults, so it genuinely
+reopens how you left it. The capo persisting as a session default is separate
+from the capo stored *inside* a saved pattern — that one still wins on load.
+
+**2. The landscape bug is fixed, and landscape stays usable in a tab** (your
+call). The cause was worth finding: the code that lifts a sheet above the iOS
+keyboard was writing an inline height/top box on every viewport event and never
+taking it off — so a box measured mid-rotation (when iOS briefly reports wrong
+numbers) outlived the rotation, and a sheet closed during a turn carried a
+landscape box into portrait. It now only pins while the keyboard is actually up
+and clears the box otherwise, which means rotating self-corrects and there's no
+orientation code anywhere.
+
+**3. The Play bug has a real mechanism, and it explains your workaround.** iOS
+has an "interrupted" audio state (a call, Siri, another app taking audio) where
+`resume()` can hang forever or fail — and the flag that says "we're playing" was
+set *after* that call, so the transport never started, the button sat on STOP,
+and every later press retried the same dead path. Leaving and returning worked
+because **iOS** clears the interruption, not because the app did anything. Now:
+the resume can't hang (it's timed out), a context that won't wake is thrown away
+and rebuilt, a failed start springs the button back to ▶ instead of lying, and
+coming back to the app repairs the audio automatically — which is your workaround,
+done for you.
+- **What to watch for:** if it ever happens again, the tell is now different — the
+  button should bounce back to ▶ rather than sit on ■. If you see *that*, tell me;
+  it means the rebuild failed too, which is a different problem. If Play just
+  works from now on, that's the fix.
+- I could not reproduce the interruption on the dev box, so this is a mechanism
+  that fits your symptoms exactly, not an observed cure. Your phone is the test.
+
+**4. The dead-code list was half wrong.** Only three of the nine were actually
+dead (`romanize`, `romanDegrees`, `modalOpen`) — deleted. The other six are live
+and just over-exported, and we left them alone per your call.
+
+**Budget untouched** — 375×553, 4 bars, progression, capo 4, hand-edited Custom
+progression: 55.09 / 384.84 / 11.06 / no overflow. 96/96 green.
+
+**Still open from that prompt's "also outstanding" list:** pre-loaded patterns
+(needs you to pick them), the G♯sus2 stretch, and whether the key drum keeps its
+MAJOR/MINOR headers.
+
+---
+
+## Previously on the phone (v3.0.1) — one chord fix
 
 **`Dadd9` was D major** — it had no 9th in it at all. Fixed to `xx0252`. Found while
 generating `CHORD_REFERENCE.md` for you, not by a test, so there's now a test that
@@ -840,8 +890,15 @@ majors). "Curate first, expand later."
   structural tidy **attached to** the chord-library refactor, which is the change
   that would rewrite `data.js` anyway.
   **What genuinely did need it was the docs** — **done, session 19.** CLAUDE.md
-  went 1,982 → 867 lines; the history is in `CHANGELOG.md`. The code cleanup
-  itself is still deferred to whatever session next touches those files.
+  went 1,982 → 867 lines; the history is in `CHANGELOG.md`.
+  **The code cleanup rode along in session 32, and the list above was half wrong:**
+  only `romanize`, `romanDegrees` and `modalOpen` were genuinely unreferenced
+  (deleted). The other six are all live *internally* and merely exported
+  unnecessarily — left alone by his call, since dropping an `export` keyword is
+  churn on working code for no gain.
+- **BPM persists across launches** (session 32, his call) — which **reverses** the
+  earlier rule that tempo is too volatile to remember, unlike swing. It lives in
+  the new `tp-prefs` store with the rest of the set-once-and-keep controls.
 - **The chord picker is two cylinders, not a grid** (v2.14.0, your call) — a
   barrel that rolls under the thumb reads as part of the instrument; a grid of
   cells reads as a menu. Both chord pickers use it, so they can't diverge.

@@ -209,10 +209,21 @@ export function createAppUpdater({
 // shade — so all of those stop the transport too. That's the right behaviour
 // anyway: none of them leave you looking at the grid. `pagehide` covers the
 // harder exits (bfcache, termination) that never report a visibility change.
-export function createPlaybackGuard({ doc = document, win = window, onHidden = () => {} } = {}) {
+//
+// It owns the RETURN trip too (`onShown`, session 32). Backgrounding is exactly
+// what leaves iOS's audio session interrupted, and nothing used to repair it on
+// the way back — which is why "leave the app and come back" was the user's own
+// fix for a dead Play button. Same event, same concern, so it belongs on the
+// same listener rather than a second one racing it.
+export function createPlaybackGuard({
+  doc = document,
+  win = window,
+  onHidden = () => {},
+  onShown = () => {},
+} = {}) {
   let started = false;
 
-  const onVisible = () => { if (doc.visibilityState === "hidden") onHidden(); };
+  const onVisible = () => { (doc.visibilityState === "hidden" ? onHidden : onShown)(); };
   const onPageHide = () => { onHidden(); };
 
   return {

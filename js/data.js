@@ -492,8 +492,7 @@ export const DEFAULT_PATTERN_BARS = 1;
 // reads VI7), so adding a token is a KEYS edit only — no numeral-map change.
 //   • II and ♭VII are kept in the map for hand-edit/transpose robustness even
 //     though no shipped progression uses them now (same as `v` below).
-// A token is already its own display string, so romanize() is essentially the
-// identity here (the integer map below is only a legacy fallback).
+// A token is already its own display string, so it needs no numeral conversion.
 //
 // Each key carries a `mode` (major/minor) and a token→chord map. A key's mode
 // also decides which PROGRESSIONS are offered (major keys see the major styles,
@@ -581,17 +580,6 @@ export function progressionGroups(mode) {
     g.items.push({ value: p.id, label: p.label });
   }
   return groups;
-}
-
-// Roman-numeral display. Tokens are already Roman numerals so this is the
-// identity for them; the integer map is a legacy fallback (nothing passes ints now).
-const ROMAN = { 1: "I", 2: "ii", 3: "iii", 4: "IV", 5: "V", 6: "vi", 7: "vii°" };
-export function romanize(token) {
-  if (token == null) return "?";
-  return ROMAN[token] ?? String(token);
-}
-export function romanDegrees(tokens, sep = " – ") {
-  return tokens.map(romanize).join(sep);
 }
 
 // Cycle a list to exactly n entries (repeat if shorter, trim if longer).

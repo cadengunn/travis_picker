@@ -106,6 +106,45 @@ function seeded(seed) {
   };
 }
 
+// A stand-in AudioContext, enough of one for the metronome and the synth. Real
+// Web Audio can't be put into iOS's "interrupted" state on demand, and that state
+// is the whole of the intermittent-Play bug — so the tests drive it with this.
+function fakeAudioContext({ state = "running", resume } = {}) {
+  const param = () => ({
+    value: 0,
+    setValueAtTime() {}, exponentialRampToValueAtTime() {}, linearRampToValueAtTime() {},
+  });
+  const node = (extra = {}) => ({ connect() {}, disconnect() {}, ...extra });
+  const ctx = {
+    state,
+    currentTime: 0,
+    sampleRate: 44100,
+    destination: node(),
+    createOscillator: () => node({ frequency: param(), start() {}, stop() {} }),
+    createGain: () => node({ gain: param() }),
+    createBufferSource: () => node({ buffer: null, start() {}, stop() {} }),
+    createDynamicsCompressor: () => node({
+      threshold: param(), ratio: param(), attack: param(), release: param(),
+    }),
+    createBuffer: (_ch, len) => ({ length: len, getChannelData: () => new Float32Array(len) }),
+    resume: resume || (async () => { ctx.state = "running"; }),
+    close: async () => {},
+  };
+  return ctx;
+}
+
+// Swap in a fake AudioContext constructor for the duration of `fn`. Always
+// restores, so one failing check can't poison every later one.
+async function withFakeAudio(make, fn) {
+  const real = window.AudioContext;
+  window.AudioContext = function () { return make(); };
+  try {
+    return await fn();
+  } finally {
+    window.AudioContext = real;
+  }
+}
+
 const ALL_BASS = BASS_PRESETS.map((p) => p.id);
 const ALL_CHAOS = ["tame", "loose", "unruly", "chaos"];
 const ALL_PATTERN_BARS = [1, 2, 4];
@@ -2753,6 +2792,140 @@ acheck("pwa: the precache bypasses the HTTP cache (or a deploy can install stale
   // The install must still fail loudly on a bad response, so a half-filled
   // cache never gets to skipWaiting and replace a working app shell.
   assert(/res\.ok/.test(swText), "a failed precache response must abort the install");
+});
+
+// ---- the intermittent-Play bug (session 32) ----
+// iOS can leave an AudioContext "interrupted" (a call, Siri, another app taking
+// the session), and resume() on one of those may reject OR never settle. Since
+// `running = true` sits after that await, the transport silently never started —
+// and togglePlay() branches on `running`, so every later press re-entered the
+// same path. Play looked dead until the app was backgrounded and foregrounded.
+
+acheck("metronome: a context that can't resume fails the start instead of hanging", async () => {
+  let built = 0;
+  let closed = 0;
+  await withFakeAudio(
+    () => {
+      built++;
+      const ctx = fakeAudioContext({
+        state: "interrupted",
+        resume: () => Promise.reject(new Error("interrupted")),
+      });
+      ctx.close = async () => { closed++; };
+      return ctx;
+    },
+    async () => {
+      const m = createMetronome();
+      const ok = await m.start(1);
+      assert(ok === false, "start() must RESOLVE false on a dead context — never throw, never hang");
+      assert(m.running === false, "a failed start must leave the transport stopped");
+      // One rebuild attempt: the first context is discarded and a fresh one tried.
+      assert(built === 2, `an unrevivable context must be replaced once (built ${built})`);
+      assert(closed === 1, "the dead context must be closed, not leaked");
+      m.stop();
+    }
+  );
+});
+
+acheck("metronome: a resume that NEVER settles is still an answer, and the rebuild plays", async () => {
+  // The nastier half of the bug: not a rejection but a promise that hangs
+  // forever. Raced against a timeout, so the click handler always gets a verdict.
+  let built = 0;
+  await withFakeAudio(
+    () => {
+      built++;
+      return built === 1
+        ? fakeAudioContext({ state: "interrupted", resume: () => new Promise(() => {}) })
+        : fakeAudioContext({ state: "running" });
+    },
+    async () => {
+      const m = createMetronome();
+      const ok = await m.start(1);
+      assert(ok === true, "the replacement context must actually start the transport");
+      assert(m.running === true, "…and leave it running");
+      assert(built === 2, `exactly one rebuild (built ${built})`);
+      m.stop();
+    }
+  );
+});
+
+acheck("metronome: recoverAudio discards a context it can't repair", async () => {
+  // The automated version of the user's own workaround (leave the app, come
+  // back). Runs on every return to foreground, so the NEXT Play starts from
+  // something healthy rather than presenting a dead button.
+  let last = null;
+  let closed = 0;
+  await withFakeAudio(
+    () => {
+      last = fakeAudioContext({ state: "running" });
+      last.close = async () => { closed++; };
+      return last;
+    },
+    async () => {
+      const m = createMetronome();
+      await m.start(1);
+      m.stop();
+      assert(m.audioState === "running", "the context should be live after a start");
+      last.state = "interrupted";               // what backgrounding does on iOS
+      last.resume = () => Promise.reject(new Error("interrupted"));
+      const repaired = await m.recoverAudio();
+      assert(repaired === false, "an unrepairable context can't report success");
+      assert(closed === 1, "…it must be discarded so the next Play builds a fresh one");
+      assert(m.audioState === "none", "…and the metronome must know it has no context");
+    }
+  );
+});
+
+check("platform: the playback guard reports the return to foreground too", () => {
+  // Backgrounding is exactly what interrupts the audio session, so the trip back
+  // is the moment to repair it. Same event, same concern, one listener.
+  const listeners = {};
+  const doc = {
+    visibilityState: "visible",
+    addEventListener: (t, f) => { listeners[t] = f; },
+    removeEventListener: () => {},
+  };
+  const win = { addEventListener() {}, removeEventListener() {} };
+  let hidden = 0;
+  let shown = 0;
+  const guard = createPlaybackGuard({
+    doc, win, onHidden: () => hidden++, onShown: () => shown++,
+  });
+  guard.start();
+  doc.visibilityState = "hidden";
+  listeners.visibilitychange();
+  assert(hidden === 1 && shown === 0, "going hidden must stop the transport and nothing else");
+  doc.visibilityState = "visible";
+  listeners.visibilitychange();
+  assert(shown === 1 && hidden === 1, "coming back must fire the repair, not the stop");
+  guard.stop();
+});
+
+acheck("app: a failed Play springs the button back, and settings restore before the first roll", async () => {
+  // app.js glue isn't imported here, and all three of these fail SILENTLY — the
+  // app still looks like it works — so they're asserted against the source, the
+  // same way the sw.js precache and the tab wiring are.
+  const appjs = await (await fetch("js/app.js")).text();
+
+  // The optimistic button flip must always be paid back.
+  assert(/if \(!started\) releasePlayback\(\);/.test(appjs),
+    "a start that failed must put the Play button and the audio category back");
+  const release = appjs.match(/function releasePlayback\(\)[\s\S]*?\n\}/)?.[0] || "";
+  assert(release && !/metronome\.running/.test(release),
+    "releasePlayback must NOT be gated on metronome.running — a failed start never set it");
+
+  // Restore has to beat generate(), or the session's first pattern is rolled
+  // against the default chord and then silently re-chorded underneath.
+  const boot = appjs.match(/async function boot\(\)[\s\S]*?await generate\(\)/)?.[0] || "";
+  assert(/restorePrefs\(loadPrefs\(\)\)/.test(boot),
+    "persisted settings must be restored inside boot(), before the first generate()");
+
+  // The landscape fix: the visual-viewport pin writes INLINE styles over
+  // `.sheet { inset: 0 }`, and a box captured mid-rotation outlived the rotation
+  // because nothing ever took them off again.
+  const sync = appjs.match(/function syncSheetToViewport\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/style\.height = ""/.test(sync) && /style\.top = ""/.test(sync),
+    "the sheet's viewport pin must CLEAR its inline box when there's no keyboard, or a rotation leaves a stale one");
 });
 
 // ---- render report ----

@@ -41,6 +41,22 @@ export const DEFAULT_BPM = 90;
 export const MAX_DRIFT = 0.25;                            // seconds, ≈2 8ths at the top tempo
 export const hasDrifted = (nextSlotTime, now) => now - nextSlotTime > MAX_DRIFT;
 
+// THE INTERMITTENT-PLAY BUG (session 32). iOS gives an AudioContext a third
+// state beyond running/suspended: "interrupted" — a phone call, Siri, or another
+// app taking the audio session. A context in that state can leave `resume()`
+// PENDING FOREVER, and `running = true` sits after that await in start(). So the
+// transport never started, and because togglePlay() branches on `running`, every
+// later press re-entered the same start path: Play looked dead until the app was
+// backgrounded and foregrounded, which is iOS clearing the interruption.
+//
+// Three defences, in order: the resume is caught, it's RACED AGAINST A TIMEOUT so
+// it can never hang the click handler, and if the context still isn't running
+// it's thrown away and rebuilt — an interrupted context often can't be revived at
+// all, only replaced. Rebuilding is exactly what leaving and returning was doing
+// by hand. start() reports success as a boolean and never throws, so the UI can
+// always put the button back.
+const RESUME_TIMEOUT_MS = 1500;
+
 // --- pure helpers (unit-tested) ---
 export const secondsPerSlot = (bpm) => 30 / bpm;          // an 8th = half a beat
 export const isBeatSlot = (slotInBar) => slotInBar % 2 === 0; // 0,2,4,6 -> beats 1..4
@@ -99,6 +115,35 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
   let swing = DEFAULT_SWING;
 
   const slotsTotal = () => bars * SLOTS_PER_BAR;
+
+  function newContext() {
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    return new Ctor();
+  }
+
+  // Let go of a context we can't use. The synth goes with it: its buffer cache
+  // holds AudioBuffers created BY that context, which are useless to any other.
+  function dropContext() {
+    const dead = ctx;
+    ctx = null;
+    synth = null;
+    try { dead?.close?.(); } catch { /* already closed, or refusing to */ }
+  }
+
+  // Resolve true only if the context is actually running by the time we give up
+  // on it — a rejected resume and one that never settles are the same outcome
+  // here, and both must be an answer rather than a hang (see RESUME_TIMEOUT_MS).
+  async function resumeContext() {
+    if (!ctx) return false;
+    if (ctx.state === "running") return true;
+    try {
+      await Promise.race([
+        ctx.resume(),
+        new Promise((resolve) => setTimeout(resolve, RESUME_TIMEOUT_MS)),
+      ]);
+    } catch { /* treated as "didn't resume" */ }
+    return ctx.state === "running";
+  }
 
   // Short percussive blip. Accent (beat 1) and count-in are pitched up so you
   // can hear where you are without looking.
@@ -209,12 +254,36 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
       return swing;
     },
 
+    // What the audio hardware thinks it's doing: "running", "suspended",
+    // "interrupted" (iOS), or "none" before the first play. Diagnostic only —
+    // nothing in the app branches on it.
+    get audioState() { return ctx ? ctx.state : "none"; },
+
+    // Called on every return to foreground. If the context went bad while we
+    // were away, repair it — or discard it so the NEXT Play builds a fresh one
+    // — instead of leaving the user to discover a dead button. This is the
+    // automated version of "leave the app and come back".
+    async recoverAudio() {
+      if (running || !ctx || ctx.state === "running") return false;
+      if (await resumeContext()) return true;
+      dropContext();
+      return false;
+    },
+
+    // Resolves TRUE if the transport actually started. It never throws and never
+    // hangs: a failed start has to be reportable, or the Play button is left
+    // lying about the state of the app (which is precisely the bug — see
+    // RESUME_TIMEOUT_MS above).
     async start(barCount) {
-      if (running) return;
+      if (running) return true;
       // Created/resumed inside the click handler — iOS Safari stays silent
       // otherwise.
-      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-      if (ctx.state !== "running") await ctx.resume();
+      ctx = ctx || newContext();
+      if (!(await resumeContext())) {
+        dropContext();              // unrevivable; a brand new one usually works
+        ctx = newContext();
+        if (!(await resumeContext())) return false;
+      }
       synth = synth || createStringSynth(ctx); // lazy: needs the unlocked ctx
 
       bars = Math.max(1, barCount);
@@ -225,6 +294,7 @@ export function createMetronome({ onStep = () => {}, onCountIn = () => {} } = {}
       running = true;
       scheduler();
       raf = requestAnimationFrame(frame);
+      return true;
     },
 
     stop() {

@@ -66,7 +66,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.0.1";
+const APP_VERSION = "v3.1.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -186,9 +186,17 @@ function initControls() {
   el("label-mode").value = state.labelMode;
   el("key").value = state.key;
   el("pattern").value = String(DEFAULT_PATTERN_BARS);
-  el("bpm").value = String(DEFAULT_BPM);
-  el("bpm-value").textContent = String(DEFAULT_BPM);
+  setBpm(DEFAULT_BPM);
+}
+
+// One place that pushes tempo into the scheduler, the slider and the readout, so
+// the fader, the boot default and the restored preference can't drift apart.
+function setBpm(next) {
+  const bpm = metronome.setBpm(Number(next));
+  el("bpm").value = String(bpm);
+  el("bpm-value").textContent = String(bpm);
   paintSlider(el("bpm"));
+  return bpm;
 }
 
 // Paint the "traveled" portion of a fader in accent. WebKit has no
@@ -465,6 +473,10 @@ function render() {
   ind.textContent = LABEL[t] ?? "";
   ind.title = DETAIL[t] ?? "";
   ind.className = "type-indicator " + t;
+
+  // Remember the settings you keep. Render is the one funnel they all pass
+  // through, so this can't miss a control the way a per-handler call would.
+  savePrefs();
 }
 
 // Hand-drawn work is the only thing here that can't be re-rolled back, so warn
@@ -626,6 +638,100 @@ function saveAudioPrefs() {
   } catch {}
 }
 
+// ----- session preferences -----
+// The controls you set ONCE AND KEEP, restored on the next launch (session 32,
+// his ask). Separate store from `tp-audio`, which stays exactly what it is — the
+// four sound toggles plus swing.
+//
+// NO SEEDED DEFAULT BLOB, deliberately: the documented footgun is that a blob
+// pre-filled with defaults can never tell you "unset". This reads the RAW stored
+// object and applies only the keys that are actually present, leaving the app's
+// own defaults to cover the rest — so a future migration can still tell "never
+// set" from "set to the default value".
+//
+// BPM IS IN HERE, which REVERSES the old rule that tempo is too volatile to
+// persist (his call, session 32 — he changed his mind when asked). Swing stays
+// in `tp-audio` where it already lives; moving it would strand real settings for
+// no gain.
+const PREFS_KEY = "tp-prefs";
+
+function loadPrefs() {
+  try {
+    return JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") || {};
+  } catch {
+    return {}; // corrupt, or private mode — launch on the defaults
+  }
+}
+
+// Written from render(), which is the ONE funnel every control here already goes
+// through (capo, chord, key, progression, thumb, fingers, pattern length, labels
+// and the mode switch all re-render). That includes loadSaved(), which is what
+// makes "reopen how you left it" true of a loaded pattern too — his call. BPM
+// doesn't render, so it saves itself.
+function savePrefs() {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({
+      chordMode: state.chordMode,
+      chord: el("chord").value,
+      key: state.key,
+      // Persisted as a SESSION DEFAULT. That's a different thing from the capo
+      // inside a saved pattern's context, which is musical content and still
+      // wins — loadSaved() runs long after this is restored.
+      capo: state.capo,
+      progression: [...state.progression],
+      bass: el("bass").value,
+      chaos: el("chaos").value,
+      patternBars: patternBars(),
+      labelMode: state.labelMode,
+      bpm: metronome.bpm,
+    }));
+  } catch { /* quota or private mode: the app simply won't remember */ }
+}
+
+// Put a stored value back only if it's still a real option. Chords, keys,
+// progressions and presets are all DATA and do change between releases, so a
+// stale id has to be ignored rather than wedge a control on a value its menu no
+// longer contains.
+function restoreSelect(id, value) {
+  if (value == null) return false;
+  const sel = el(id);
+  if (![...sel.options].some((o) => o.value === String(value))) return false;
+  sel.value = String(value);
+  return true;
+}
+
+// Runs after initControls/enhanceAll — the menus have to exist, and going through
+// the wrapped `value` setter is what repaints the dropdown triggers — and BEFORE
+// generate(), so the session's first pattern is rolled against the restored chord
+// rather than the default one. `render()` no-ops while `state.pattern` is null,
+// which is what makes the setChordMode call at the end safe this early.
+function restorePrefs(stored) {
+  if (LABEL_MODES.some((m) => m.id === stored.labelMode)) {
+    state.labelMode = stored.labelMode;
+    el("label-mode").value = stored.labelMode;
+  }
+  if (stored.capo != null) state.capo = clampCapo(stored.capo);
+  if (KEYS[stored.key]) {
+    state.key = stored.key;
+    el("key").value = stored.key;
+    syncProgressionOptions(); // this key's mode decides what's on the menu
+  }
+  restoreSelect("bass", stored.bass);
+  restoreSelect("chaos", stored.chaos);
+  restoreSelect("pattern", stored.patternBars);
+  restoreSelect("chord", stored.chord);
+  // Every bar must still be a chord we ship, or the grid renders a hole.
+  const prog = stored.progression;
+  if (Array.isArray(prog) && prog.length && prog.every((c) => CHORDS[c])) {
+    state.progression = [...prog];
+  }
+  if (stored.bpm != null) setBpm(stored.bpm);
+  // Last, exactly as in loadSaved(): it's the call that also lays out the mode's
+  // fields, and it must see the restored progression or it would overwrite it
+  // with the key's first preset.
+  if (stored.chordMode === "progression") setChordMode("progression");
+}
+
 // The playhead touches cells directly rather than re-rendering the grid — it
 // moves up to 8 times a bar and a full re-render would be wasteful (and would
 // fight edit mode).
@@ -702,23 +808,54 @@ const metronome = createMetronome({
 function stopTransport() {
   if (!metronome.running) return;
   metronome.stop();
+  releasePlayback();
+}
+
+// Everything that has to be undone whether the transport ran or merely tried to.
+// It is deliberately NOT gated on `metronome.running`: a start that failed never
+// set it, and that gate is what used to make the failure unrecoverable —
+// stopTransport() returned early, so the audio category stayed claimed and the
+// button stayed showing STOP forever.
+function releasePlayback() {
   audioSession.setPlayback(false); // back to a category that respects silent mode
   el("play").setAttribute("aria-pressed", "false");
   showCountIn(null); // clears the dim and resets the label
 }
+
+// Guards against a second press landing while the first is still waiting on the
+// audio hardware. `metronome.running` is only true at the END of that wait, so
+// without this a double-tap starts the claim twice.
+let startingTransport = false;
 
 async function togglePlay() {
   if (metronome.running) {
     stopTransport();
     return;
   }
+  if (startingTransport) return;
+  startingTransport = true;
+  // Flip the button OPTIMISTICALLY — the press should feel instant, and a start
+  // normally resolves within a frame. What matters is that the optimism is
+  // always paid back: if the start fails the button springs back, so it can
+  // never sit there showing STOP over a silent app (session 32).
   el("play").setAttribute("aria-pressed", "true");
   el("play").textContent = GLYPH_STOP;
   // Claim the playback audio category BEFORE the AudioContext is created, so the
   // transport sounds through a silenced ring switch (see platform.js).
   audioSession.setPlayback(true);
-  // Started from the click handler so iOS Safari unlocks audio.
-  await metronome.start(phraseChords().length);
+  let started = false;
+  try {
+    // Started from the click handler so iOS Safari unlocks audio.
+    started = await metronome.start(phraseChords().length);
+  } catch (err) {
+    console.error("Transport failed to start.", err);
+  } finally {
+    startingTransport = false;
+  }
+  // The button returning to ▶ is the failure report. metronome.start() has
+  // already thrown the bad AudioContext away by this point, so simply pressing
+  // Play again retries against a fresh one.
+  if (!started) releasePlayback();
 }
 
 // ----- saved library -----
@@ -930,16 +1067,38 @@ function setOptionsOpen(open) {
 // bottom-anchored sheet stays put behind the on-screen keyboard when a field in
 // it is focused (the Save name input) — the panel appeared to run off the screen
 // on the phone. Pin any OPEN sheet to the VISUAL viewport instead, so it rides
-// above the keyboard. With no keyboard the visual viewport equals the layout
-// viewport, so this is a no-op then.
+// above the keyboard.
+//
+// ONLY WHILE THE KEYBOARD IS UP, and this is the whole landscape fix (session
+// 32). These are INLINE styles overriding `.sheet { inset: 0 }`, and nothing used
+// to remove them — so a height captured during a rotation outlived it. iOS
+// reports transitional visual-viewport numbers for a frame or two mid-rotate, and
+// the sync also skipped hidden sheets, so a sheet closed during the turn kept a
+// landscape box into portrait: the panel then bottom-anchored inside the wrong
+// box, which is the "Options opens at the top" report.
+//
+// With no keyboard the visual viewport EQUALS the layout viewport, so the pin was
+// only ever a no-op in that case anyway. Clearing it instead of writing a no-op
+// snapshot means the stylesheet governs whenever there's no keyboard — and the
+// stylesheet is right at every orientation, so rotating now self-corrects with no
+// orientation handling at all.
+const KEYBOARD_SLACK = 40; // px of viewport loss that isn't a keyboard (URL bar)
 function syncSheetToViewport() {
   const vv = window.visualViewport;
   if (!vv) return;
+  const keyboardUp = window.innerHeight - vv.height > KEYBOARD_SLACK;
   for (const s of document.querySelectorAll(".sheet")) {
-    if (s.hidden) continue;
-    s.style.height = `${vv.height}px`;
-    s.style.top = `${vv.offsetTop}px`;
-    s.style.bottom = "auto";
+    if (keyboardUp && !s.hidden) {
+      s.style.height = `${vv.height}px`;
+      s.style.top = `${vv.offsetTop}px`;
+      s.style.bottom = "auto";
+    } else {
+      // Hand the box back to the stylesheet. Hidden sheets are cleared too —
+      // a stale box on a closed sheet is exactly what survived the rotation.
+      s.style.height = "";
+      s.style.top = "";
+      s.style.bottom = "";
+    }
   }
 }
 
@@ -1174,8 +1333,12 @@ function attach() {
   // Transport
   el("play").addEventListener("click", togglePlay);
   el("bpm").addEventListener("input", (e) => {
-    el("bpm-value").textContent = metronome.setBpm(Number(e.target.value));
-    paintSlider(e.target);
+    setBpm(Number(e.target.value));
+    // Tempo is the one persisted control that doesn't go through render(), so
+    // it writes its own. `input` fires per pixel of drag; that's a handful of
+    // localStorage writes per gesture, which is what the app already does for
+    // the swing fader's saveAudioPrefs().
+    savePrefs();
   });
 
   // What Play emits: independent Click and Pattern toggles (persisted).
@@ -1300,7 +1463,12 @@ const updater = createAppUpdater({
 });
 // Lock the screen (or switch apps) mid-take and the take is over — a frozen page
 // can't hold a beat, and its backlog comes out as a burst on the way back.
-const playbackGuard = createPlaybackGuard({ onHidden: stopTransport });
+// ...and on the way back, repair the audio the backgrounding may have broken,
+// so the next Play starts from a healthy context instead of a dead button.
+const playbackGuard = createPlaybackGuard({
+  onHidden: stopTransport,
+  onShown: () => { metronome.recoverAudio(); },
+});
 
 // Register the offline service worker — but ONLY on the real HTTPS origin.
 // On localhost a cache-first SW would fight serve.py's no-store and feed you
@@ -1324,6 +1492,8 @@ function registerServiceWorker() {
 async function boot() {
   initControls();
   enhanceAll(document, chordPicker); // custom dropdowns / the chord wheel (theme fills later)
+  // Before generate(), so the session's first roll uses the chord you left set.
+  restorePrefs(loadPrefs());
   const stored = loadAudioPrefs();
   el("click-toggle").checked = audioPrefs.click;
   el("pattern-toggle").checked = audioPrefs.pattern;

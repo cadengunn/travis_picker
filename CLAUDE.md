@@ -493,6 +493,33 @@ only if v2's pattern playback actually needs a synth library.
   why `onStep` calls `showCountIn(null)`.
 - `start()` creates/resumes the `AudioContext` **inside the click handler**, or
   iOS Safari stays silent. BPM 40–240, clamped in `setBpm`.
+- **THE AUDIO CONTEXT CAN GO BAD, AND `resume()` IS NOT TO BE TRUSTED**
+  (session 32 — this was the intermittent dead-Play bug). iOS has a third context
+  state beyond running/suspended: **`"interrupted"`** (a call, Siri, another app
+  taking the audio session), and `resume()` on one of those may reject **or never
+  settle at all**. `running = true` sits after that await, so the transport simply
+  never started — and because `togglePlay` branches on `running`, `stopTransport`
+  early-returns on it, and nothing repaired audio on the way back to foreground,
+  every later press re-entered the same dead path. Play looked broken until the
+  app was backgrounded and foregrounded, which is **iOS** clearing the
+  interruption, not the app doing anything. Four rules now hold:
+  - the resume is caught **and raced against `RESUME_TIMEOUT_MS`**, so a click
+    handler can never be left waiting on a promise that will not settle;
+  - if the context still isn't running it is **thrown away and rebuilt** — an
+    interrupted context often can't be revived at all, only replaced. `dropContext`
+    nulls the **synth** with it: its buffer cache holds `AudioBuffer`s made by
+    that context and useless to any other;
+  - **`start()` returns a boolean and never throws.** A failed start has to be
+    reportable, or the Play button lies about the state of the app — which was
+    half the bug. `app.js` flips the button optimistically (the press must feel
+    instant) and **always pays that optimism back**: `releasePlayback()` on
+    failure, and it is deliberately *not* gated on `metronome.running`, which is
+    the gate that made the old failure unrecoverable;
+  - **`recoverAudio()` runs on every return to foreground** (the playback guard's
+    `onShown`), repairing or discarding a context that went bad while away. It is
+    the automated version of the user's own workaround.
+  Verified by driving a stub context that rejects, and one that hangs: pre-fix,
+  `start()` threw on the first and **never resolved** on the second.
 
 **Swing** (`slotSeconds()` in `metronome.js`, session 18): the whole feature is
 one pure function saying how long slot 0–7 lasts. Each beat is paired with its
@@ -533,7 +560,8 @@ one pure function saying how long slot 0–7 lasts. Each beat is paired with its
   0.447/0.22.
 - **Swing is a FEEL setting, not pattern content** — it persists in `tp-audio`
   alongside the sound toggles and is deliberately not part of a saved pattern's
-  context (same class as BPM, which isn't saved either).
+  context. (BPM is the same class of thing: also not saved with a pattern, though
+  since session 32 it *does* persist across launches — see "Session preferences".)
 
 **Pattern playback** (`synth.js` + `metronome.js`, session 7): you can *hear* a
 generated pattern, not just see it and the click. It **rides the same lookahead
@@ -586,6 +614,38 @@ then re-renders — it never re-rolls. `rename(id, name)` (v2.4.5) updates the n
 in place (trims, ignores blanks, keeps pattern/id/savedAt); each Load-menu item is
 Load / Rename / Delete. `save()` de-dupes names Finder-style via `uniqueName()`:
 the original keeps its plain name, later saves become `Name (2)`, `Name (3)`.
+
+**Session preferences** (`tp-prefs`, in `app.js`, session 32): the controls you
+**set once and keep**, restored on the next launch — chord mode, chord, key,
+capo, progression, thumb, fingers, pattern length, note labels and **BPM**.
+- **It's a THIRD store, not an extension of `tp-audio`**, which stays exactly what
+  it is (the four sound toggles + swing). Swing was **not** moved: it already
+  lives there, and migrating it would strand real settings for no gain.
+- **BPM persisting REVERSES a documented decision** (his call, session 32 —
+  asked, and he changed his mind). The old rule was that tempo is too volatile to
+  be worth remembering, unlike swing.
+- **`savePrefs()` is called from `render()`**, the one funnel every one of those
+  controls already passes through, so it can't miss one the way a per-handler
+  call would. BPM doesn't render, so it saves itself from the fader's `input`
+  handler. That funnel includes `loadSaved()`, which is what makes "reopen how
+  you left it" true of a loaded pattern too (his call). The capo persists here as
+  a **session default** — a different thing from the capo inside a saved item's
+  context, which is musical content and still wins, since `loadSaved` runs long
+  after the restore.
+- **`restorePrefs()` runs inside `boot()` after `initControls`/`enhanceAll` and
+  BEFORE `generate()`.** The menus have to exist and the wrapped `value` setter is
+  what repaints the dropdown triggers; and the session's first roll has to be made
+  against the restored chord, not the default one. Calling `setChordMode` that
+  early is safe **only because `render()` no-ops while `state.pattern` is null** —
+  and it must come last in the restore, or it overwrites the restored progression
+  with the key's first preset.
+- **Every restored value is validated against its select's live options** (and
+  chords against `CHORDS`). Chords, keys and progressions are data and do change
+  between releases, so a stale id has to be ignored rather than forced into a
+  control whose menu no longer contains it. There is **no seeded default blob**:
+  it reads the raw stored object and applies only the keys actually present,
+  which handles the "a pref blob seeded with defaults can never tell you unset"
+  footgun by construction instead of by discipline.
 
 **UI components — we draw our own, because iOS draws the OS's** (session 11).
 Four dependency-free modules, all precached:
@@ -837,7 +897,12 @@ only the physical behaviour needs a phone.
   web offers and **cannot distinguish a screen lock from an app switch or a
   pulled-down notification shade**; ending the take on all of them is right
   anyway, since none leaves you looking at the grid. `pagehide` covers the exits
-  that never report a visibility change (bfcache, termination). **`stopTransport()`
+  that never report a visibility change (bfcache, termination). It owns the
+  **return trip** too (`onShown`, session 32), calling `metronome.recoverAudio()`:
+  backgrounding is exactly what leaves the audio session interrupted, and nothing
+  used to repair it on the way back — which is why "leave the app and come back"
+  was the user's own fix for a dead Play button. Same event, same concern, so it
+  rides the same listener rather than a second one racing it. **`stopTransport()`
   in `app.js` is the single stop path**, so the guard and the Play button can't
   drift apart — handing the audio category back matters as much as killing the
   scheduler. The backstop for a freeze nothing tells us about (a slept laptop, an
@@ -932,6 +997,25 @@ rgba because it's texture, not hue**, so it rides every theme.
   touch. Note iOS Safari has ignored `user-scalable=no` in a browser *tab* since
   iOS 10 but honours it in a standalone install, so `touch-action` is what carries
   the tab case.
+- **THE SHEET'S VIEWPORT PIN ONLY APPLIES WHILE THE KEYBOARD IS UP** (session 32,
+  and this is the landscape fix). `syncSheetToViewport()` writes **inline**
+  `height`/`top`/`bottom` over `.sheet { position: fixed; inset: 0 }` so a
+  bottom-anchored sheet rides above the iOS keyboard instead of sitting behind it
+  (the Save-name field). It used to write those on every `visualViewport` event
+  and **never remove them** — and it skipped hidden sheets. iOS reports
+  transitional viewport numbers for a frame or two mid-rotation, so a box captured
+  during a turn outlived the turn, and a sheet closed during one carried a
+  landscape box into portrait: the panel then bottom-anchored inside the wrong box,
+  which is the "Options opens at the top" report. With no keyboard the visual
+  viewport EQUALS the layout viewport, so the pin was only ever a no-op then —
+  hence the fix is to **clear the inline box** rather than write a no-op snapshot,
+  hidden sheets included. The stylesheet is correct at every orientation, so
+  rotating now self-corrects and **no orientation handling exists anywhere**.
+  Landscape itself is deliberately NOT blocked in a Safari tab (his call): the
+  manifest's `"orientation": "portrait"` covers the installed PWA, and a CSS
+  lockout would need a `max-height` guard or it would also fire on a desktop
+  browser. Verified here by faking the keyboard both ways; the real rotate needs
+  a phone.
 - **A READOUT needs the same `user-select: none` a control does.** `.bpm-readout`
   was in neither touch list — it isn't a button — so a long-press on "90 BPM"
   selected it and raised the callout (v2.14.4, his note). Any new readout too.
@@ -1280,19 +1364,26 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v2.14.9 — a full hardware-polish pass; every surface now speaks one of four
-material families.** 89/89 checks green. Off a picky visual audit of every screen
-(session 28): the **two sliders became faders** (machined slot + accent fill +
-grooved cap), the **four Sound toggles became latching keys** (seat when on — his
-flag), and the **primary-action buttons** (Save / Load / modal confirm) became
-**carved accent keys** (theme-derived, not literal gold) instead of flat slabs; the
-Rename/Delete secondaries got the carved chamfer too. His item-3 question
-(dropdowns as buttons) was discussed and **left as wells** — a dropdown holds a
-standing value, so it belongs with the well family, and this pass makes the whole
-sheet a bank of wells. Waiting on his phone: the fader feel and the seated-toggle
-read.
-(v2.14.8 before it: the die and Format toggle became carved keys in wells, and the
-page tabs + Format now act on release via `pointerup`.)
+**v3.1.0 — the deferred small fixes: the app remembers your settings, the
+intermittent dead Play is diagnosed and hardened, and the landscape sheet bug is
+fixed at the cause.** 96/96 checks green. Session 32, all four items off his
+notes:
+- **`tp-prefs`** — chord mode, chord, key, capo, progression, thumb, fingers,
+  pattern length, note labels **and BPM** survive a relaunch. BPM persisting
+  reverses a documented decision (his call). See "Session preferences".
+- **The Play bug had a real mechanism**, not a guess: an iOS `"interrupted"`
+  AudioContext whose `resume()` rejects or never settles, with `running = true`
+  behind that await and nothing repairing audio on foreground. See the metronome
+  section for the four rules that now hold.
+- **The landscape mis-position was a stale inline viewport box** that nothing ever
+  cleared. Landscape itself is left usable in a Safari tab (his call).
+- **Dead code:** only three of the nine listed symbols were actually dead
+  (`romanize`, `romanDegrees`, `modalOpen`) — deleted; the other six are live and
+  merely over-exported, and were left alone (his call).
+
+Waiting on his phone: the real rotate, and whether Play ever goes dead again.
+(v2.14.9 before this run of sessions: the hardware-polish pass — faders, latching
+Sound toggles, carved accent keys — then v3.0.0's chord/progression revamp.)
 **The wheel is signed off** (v2.14.0–.2: the detent, the
 spin, the curve, the die's pool and the F7/F♯7/G♯7 ♭7 bass are all "good as is" —
 his call, don't revisit unless he raises it), as are Wild Card and Unruly.
