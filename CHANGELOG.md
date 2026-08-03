@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [33](#where-things-stand-session-33-2026-08-03) | **v3.2.0** | the chord-shape diagram under the wheel's drums, marking the thumb's alternating pair (item 9's revisit condition finally fired at 120 chords / 75 barres); plus the measurement that cut his playability audit from 120 chords to 12 |
 | [32](#where-things-stand-session-32-2026-08-02) | **v3.1.0** | the four deferred small fixes: settings persist (`tp-prefs`, BPM included — a reversal); the intermittent dead Play traced to an iOS `"interrupted"` AudioContext and hardened; the landscape sheet bug fixed at the cause (a stale inline viewport box); 3 of 9 "dead" symbols actually dead |
 | [31](#where-things-stand-session-31-2026-08-02) | **v3.0.0** → v3.0.1 | the last two qualities — sus2 + add9; completes the requested set (dim7 stays out); library now 120 chords. **V3 marks the finished chords + progressions revamp (sessions 29–31).** Then v3.0.1: Dadd9 was D major — fixed, plus a chord-tone test |
 | [30](#where-things-stand-session-30-2026-08-02) | v2.14.14 | new chord qualities — the clean 5 (m7, maj7, 6, m6, sus4); quality reel grouped; id parsers unified through splitChordId |
@@ -44,6 +45,84 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 33, 2026-08-03)
+
+**v3.2.0 — the chord-shape diagram, under the wheel's drums.** His v3.1.0 phone
+tests all came back good, and the question was what's next; the answer came out of
+his own remark that he still had to test playability across all the chords.
+
+### The audit turned out to be 12 chords, not 120
+
+Before building anything, the live library was measured rather than eyeballed.
+Span histogram across all 120: **12 chords at span 1, 22 at 2, 74 at 3, 6 at 4,
+6 at 5** — so 108 are ordinary shapes. 75 are barres, 45 have open strings, and
+nothing exceeds fret 8.
+
+**The trouble is concentrated in the two qualities shipped last.** Eight of the
+ten qualities top out at a 3-fret span (avg 2.5–2.8, i.e. a normal barre chord).
+Only `sus2` and `add9` reach span 5, and only `sus4` reaches 4:
+
+- **span 5:** `G♯sus2` (4-8), `C♯add9` (4-8), `F♯sus2` (2-6), `Fsus2` (1-5),
+  `Badd9` (2-6), `B♭add9` (1-5)
+- **span 4:** `C♯sus4`, `Bsus4`, `B♭sus4`, `E♭sus4`, `Dadd9`, `E♭add9`
+- **position, not stretch:** the nine E♭ shapes all sit at frets 6-8, the highest
+  in the library, but at normal spans
+
+This confirms `CHORD_REFERENCE.md`'s prediction that `G♯sus2` is the one he'd
+most likely overrule, and gives the guitar session a target list.
+
+### Item 9 finally earned it
+
+The chord-shape diagram was rejected in an earlier session, and correctly: while
+every chord was one he already knew, the grid's fret numbers told him everything.
+The condition recorded at the time was "revisit if and only if the library grows
+unfamiliar shapes" — and 75 barre chords is that. The grid says which frets the
+notes you *pick* sit on, which is not the same as knowing where to put your left
+hand for E♭m.
+
+**Two calls were his**, both taken as recommended:
+
+- **It marks the thumb's alternating pair**, in the grid's own colours, rather
+  than being a plain chord box. That's the "root ↔ alt" column of
+  `CHORD_REFERENCE.md`, shown at the moment you're choosing — and it's the one
+  thing a diagram from any chord book can't tell you.
+- **It redraws on settle**, the same instant the wheel commits, not per detent. A
+  chart flickering under a spinning barrel is motion under a mechanism that's
+  already moving.
+
+**One structural constraint decided the placement, and wasn't a fork:** the
+panel's width is pinned to the Options field (`--wheel-w`, his v2.14.3 call), so
+the diagram had to go BELOW the drums. Beside them would have widened the one
+object both are cut from, and broken its test. `.wheel-shape` is
+`width: var(--drums-w)` so it can never drive the hug wider.
+
+**A bug the build exposed, worth recording because it's a rule not a typo:** the
+first pass coloured the whole barre by its lowest string's role, so `G♯sus2` —
+whose root sits *under* its barre at fret 4 — drew the entire five-string bar in
+the thumb colour. A bar is one finger across five strings, most of which aren't
+bass notes. The bar is now always the finger colour, and a bass role beneath it
+gets its own rimmed dot on top, so the pair stays visible without the bar lying.
+
+**It cost the panel's height cap.** `.dd-panel` caps at `52vh` and scrolls the
+overflow; a mechanism must not scroll, so the wheel took
+`max-height: min(78vh, 430px)`. At 52vh (287px on an SE) the diagram was simply
+clipped off — caught on screen, not in a test.
+
+### Verified here vs. left for the phone
+
+Panel measures **237×342** at 375×553 with 194px of viewport to spare, and the
+width is unchanged at 237 in **both** pickers (Key × Progression correctly grows
+no diagram). Redraw-on-settle was proved by driving a spin and reading the
+diagram mid-spin (unchanged) and after (changed). The per-bar chip entry point
+gets the diagram for free, confirmed. A contact sheet of twelve representative
+shapes was rendered and read: nut bars for open shapes, position numerals for
+`E♭` and `G♯sus2`, barres, and ×/○ markers all correct.
+
+**Left for the phone:** whether the diagram is legible at arm's length —
+`.chordbox { width }` is the single dial, and the panel's height follows it.
 
 ---
 

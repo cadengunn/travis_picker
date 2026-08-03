@@ -74,6 +74,7 @@ import { createChordWheel, createKeyProgWheel, keyProgSplitLabel } from "./wheel
 import { confirmModal, promptModal } from "./modal.js";
 import { isNav, helpTargetFor, createHelp, NAV_SELECTOR } from "./help.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
+import { chordBoxModel, renderChordBox, BOX_FRETS } from "./chordbox.js";
 
 const results = [];
 function check(name, fn) {
@@ -2792,6 +2793,117 @@ acheck("pwa: the precache bypasses the HTTP cache (or a deploy can install stale
   // The install must still fail loudly on a bad response, so a half-filled
   // cache never gets to skipWaiting and replace a working app shell.
   assert(/res\.ok/.test(swText), "a failed precache response must abort the install");
+});
+
+// ---- the chord box (session 33) ----
+
+check("chordbox: every chord in the library draws, and fits the 5-fret window", () => {
+  // The window is why the diagram can be small: the library's widest span is 5
+  // (G♯sus2, frets 4-8), so five rows always suffice. If a future voicing broke
+  // that, the shape would silently draw notes outside its own box.
+  for (const id of CHORD_IDS) {
+    const m = chordBoxModel(id);
+    assert(m, `no chord box model for ${id}`);
+    assert(m.span <= BOX_FRETS, `${id} spans ${m.span} frets, more than the box shows`);
+    const notes = [...m.dots, ...(m.barre ? [{ fret: m.barre.fret }] : [])];
+    for (const n of notes) {
+      const row = n.fret - m.first;
+      assert(row >= 0 && row < BOX_FRETS,
+        `${id}: fret ${n.fret} falls outside the window starting at ${m.first}`);
+    }
+    // Six strings accounted for exactly once, as a dot, a mark, or under the barre.
+    const seen = new Set();
+    for (const d of m.dots) seen.add(d.index);
+    for (const k of m.marks) seen.add(k.index);
+    if (m.barre) for (let i = m.barre.from; i <= m.barre.to; i++) seen.add(i);
+    assert(seen.size === 6, `${id}: ${seen.size} of 6 strings drawn`);
+  }
+});
+
+check("chordbox: open shapes sit at the nut, barre shapes print their position", () => {
+  // A chord chart's two modes. An open shape is anchored at the nut because the
+  // open strings only mean anything against it; anything up the neck says where
+  // it is instead.
+  const openC = chordBoxModel("C");
+  assert(openC.nut === true, "C is an open shape and must be drawn at the nut");
+  assert(openC.position === null, "a nut shape needs no position numeral");
+  assert(openC.first === 1, "a nut shape's window starts at fret 1");
+
+  const eb = chordBoxModel("Eb");            // 6 6 8 8 8 6 — a barre at fret 6
+  assert(eb.nut === false, "E♭ is up the neck and must not draw a nut");
+  assert(eb.position === 6, `E♭ should print its position 6, got ${eb.position}`);
+  assert(eb.first === 6, "the window starts at the barre");
+
+  // The worst shape in the library, and the one he's most likely to overrule.
+  const gs = chordBoxModel("G#sus2");
+  assert(gs.span === 5 && gs.low === 4 && gs.high === 8,
+    `G♯sus2 should span frets 4-8, got ${gs.low}-${gs.high}`);
+  assert(gs.position === 4, "G♯sus2 prints position 4");
+});
+
+check("chordbox: a barre is a real barre, not just a repeated fret", () => {
+  // Drawing a bar across a shape you don't barre would be a lie, so the model
+  // requires no open string in the way AND something fretted above it.
+  const f = chordBoxModel("F");
+  assert(f.barre, "F is a barre chord");
+  assert(f.barre.fret === 1 && f.barre.from === 0 && f.barre.to === 5,
+    "F barres all six strings at fret 1");
+
+  // An open chord can repeat a fret across strings and must NOT read as a barre.
+  for (const id of CHORD_IDS) {
+    const m = chordBoxModel(id);
+    if (!m.barre) continue;
+    assert(!m.marks.some((k) => k.kind === "open"),
+      `${id}: a shape with an open string cannot be barred`);
+    assert(m.high > m.barre.fret, `${id}: a barre needs a note above it`);
+  }
+});
+
+check("chordbox: the thumb's alternating pair is marked, and only that pair", () => {
+  // The reason this beats a diagram from any chord book (his call): it says which
+  // two notes the thumb rocks between. It reuses the grid's convention, so the
+  // colours already mean thumb vs fingers.
+  for (const id of CHORD_IDS) {
+    const m = chordBoxModel(id);
+    const c = CHORDS[id];
+    const thumbs = new Set([c.root, c.alt]);
+    const marked = new Set();
+    for (const d of m.dots) if (d.role === "thumb") marked.add(m.strings[d.index]);
+    for (const k of m.marks) if (k.role === "thumb") marked.add(m.strings[k.index]);
+    // BOTH bass notes must be visible as the thumb's, including one that lies
+    // under a barre — that's the case G♯sus2 exposed, where the root sits at the
+    // barre fret and would otherwise be swallowed by the bar.
+    for (const s of thumbs) {
+      assert(marked.has(s),
+        `${id}: bass string ${s} (root ${c.root} / alt ${c.alt}) is not marked as the thumb's`);
+    }
+    // ...and nothing that isn't a bass role may wear the thumb colour.
+    for (const d of m.dots) {
+      if (d.role === "thumb") {
+        assert(thumbs.has(m.strings[d.index]),
+          `${id}: string ${m.strings[d.index]} is marked thumb but is not a bass role`);
+      }
+    }
+    // The BAR itself is never the thumb's: it's one finger across five strings,
+    // most of which are not bass notes.
+    if (m.barre) assert(m.barre.role === "finger", `${id}: a barre must not be thumb-coloured`);
+  }
+});
+
+check("chordbox: it draws SVG and never types a glyph it doesn't own", () => {
+  // The house rule: anything typed that isn't in a bundled face has to be DRAWN.
+  // × and ○ would otherwise come from whatever system font happened to have them
+  // — the exact bug the sheet's ✕ had. Only the position numeral is text.
+  const svg = renderChordBox("Eb");
+  assert(svg.tagName.toLowerCase() === "svg", "the chord box is an SVG");
+  const texts = [...svg.querySelectorAll("text")];
+  assert(texts.length === 1 && texts[0].textContent === "6",
+    "the only text in a chord box is its position numeral");
+  assert(svg.getAttribute("aria-label").startsWith("E♭"),
+    "the picture needs a spoken equivalent");
+  // An unknown chord draws nothing rather than throwing.
+  assert(renderChordBox("nope").querySelectorAll("*").length === 0,
+    "an unknown chord id must draw an empty box, not throw");
 });
 
 // ---- the intermittent-Play bug (session 32) ----

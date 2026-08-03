@@ -27,6 +27,7 @@
 // its own — which name is in the window, and when it stopped moving.
 
 import { ROOTS, QUALITIES, CHORDS, chordIdFor, splitChordId } from "./data.js";
+import { renderChordBox } from "./chordbox.js";
 
 const ITEM_H = 38;   // px per name; JS owns it and hands it to CSS (--reel-item)
 const VISIBLE = 5;   // names in the window at once — an odd number has a centre
@@ -260,7 +261,21 @@ export function createChordWheel({ tick = () => {} } = {}) {
     // `commit` comes from dropdown.js and targets whatever select is CURRENT — in
     // progression mode a pick re-renders the grid and replaces the one we opened
     // on, and capturing it here is what broke the second spin.
-    const apply = () => commit(chordIdFor(chosen.root, chosen.quality));
+    // The left-hand shape, under the drums (see chordbox.js). BELOW and not
+    // beside, because the panel's width is pinned to the Options field it opens
+    // from (--wheel-w, his call v2.14.3: "the chord/quality button should be the
+    // same size as the drum") — putting it alongside would widen the one object
+    // both are cut from. It redraws ON SETTLE, the same instant the wheel
+    // commits (his call): a diagram flickering under a spinning barrel is motion
+    // under a mechanism that's already moving.
+    const shape = document.createElement("div");
+    shape.className = "wheel-shape";
+    const drawShape = () => shape.replaceChildren(renderChordBox(chordIdFor(chosen.root, chosen.quality)));
+
+    const apply = () => {
+      drawShape();
+      commit(chordIdFor(chosen.root, chosen.quality));
+    };
 
     const reels = buildHousing(panel, null, [
       {
@@ -281,6 +296,9 @@ export function createChordWheel({ tick = () => {} } = {}) {
         onSettle: (v) => { chosen.quality = v; apply(); },
       },
     ], tick);
+
+    panel.append(shape);
+    drawShape();
 
     return {
       afterOpen() { for (const r of reels) r.open(); },

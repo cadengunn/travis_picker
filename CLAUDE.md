@@ -160,6 +160,8 @@ js/modal.js       confirm / prompt modals in the app's own language
 js/dropdown.js    custom dropdowns OVER the native <select> — read the invariant
 js/wheel.js       the chord picker: two cylinders (root × quality). A dropdown.js
                   panel RENDERER, not a control of its own
+js/chordbox.js    the left-hand shape as a chord box, under the chord wheel's
+                  drums. Pure model + an SVG renderer; no deps but data.js
 js/help.js        help mode: the "?" latches and every tap explains instead of acting
 js/platform.js    OS integrations: wake lock, iOS audio session, SW auto-update,
                   playback guard
@@ -774,6 +776,37 @@ Four dependency-free modules, all precached:
     outside the well and must be inset by that 10px** or each caption starts left
     of the barrel it names; a test pins the centres. Three tests cover this bullet
     (field == panel, half == drum, legend == half).
+  - **THE LEFT-HAND SHAPE RIDES UNDER THE DRUMS** (`chordbox.js`, session 33 —
+    OPEN_ITEMS item 9, whose stated revisit condition finally fired). It was
+    rejected once and correctly: while every chord was one he already knew, the
+    grid's fret numbers said everything. The library is now **120 chords, 75 of
+    them barres**, and the grid tells you which frets the notes you *pick* are on,
+    which is not where to put your left hand for E♭m. Four things pin it:
+    - **BELOW the drums, never beside.** The panel's width is the Options field's
+      width (`--wheel-w`, v2.14.3), so widening the panel would break the one
+      object both are cut from — and its test. `.wheel-shape` is therefore
+      `width: var(--drums-w)`, so the diagram can't drive the hug wider whatever
+      it contains.
+    - **It marks the THUMB'S ALTERNATING PAIR** (his call) in the grid's own
+      colours (thumb `--active`, fingers `--accent`), which is the one thing a
+      chord chart out of any book cannot tell you and the reason it earns space.
+      **The BARRE is always the finger colour**: it's one finger across five
+      strings, mostly not bass notes — `G♯sus2`, whose root sits *under* its
+      barre, is what exposed that, and a bass role beneath a bar now gets its own
+      rimmed dot drawn on top rather than being swallowed by it.
+    - **Redraws on SETTLE, not per detent** (his call) — the same instant the
+      wheel commits. A diagram flickering under a spinning barrel is motion under
+      a mechanism that's already moving.
+    - **It cost the panel's height cap.** `.dd-panel` caps every panel at `52vh`
+      and scrolls the overflow, but a mechanism must not scroll, so the wheel got
+      `max-height: min(78vh, 430px)` — at 52vh (287px on an SE) the diagram was
+      simply clipped off. That rule must stay *after* `.dd-panel` in the file; it
+      wins on source order, the same way the `position` note in `.dd-wheel` does.
+      The panel measures **237×342** at 375×553 with ~194px of viewport to spare.
+    Only the **chord** wheel gets one — Key × Progression has no shape — and both
+    entry points (the Options field and every per-bar chip) get it for free, since
+    they open the same panel. `.chordbox { width }` is the single dial if the
+    diagram wants to be bigger; the panel's height follows it.
   - **It's a real scroll container with CSS scroll-snap, not a hand-rolled drag**:
     that buys iOS momentum, rubber-banding and detents for free, and it's
     physically right (a flick spins the barrel and it coasts).
@@ -1363,6 +1396,18 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.2.0 — the chord-shape diagram, under the wheel's drums.** 101/101 green.
+Session 33: OPEN_ITEMS item 9's revisit condition ("if and only if the library
+grows unfamiliar shapes") fired at 120 chords / 75 barres, so the wheel now draws
+the left-hand shape below its two cylinders, marking **the thumb's alternating
+pair** in the grid's own colours. Redraws on settle; below the drums, never
+beside (the panel's width is the Options field's). See the wheel section.
+Riding along: the library was measured, which cut his playability audit from 120
+chords to **12** — all the awkward spans live in `sus2`/`add9`/`sus4`, and the
+other seven qualities top out at a normal 3-fret barre. Waiting on his phone:
+whether the diagram is legible at arm's length (`.chordbox { width }` is the
+dial).
 
 **v3.1.0 — the deferred small fixes: the app remembers your settings, the
 intermittent dead Play is diagnosed and hardened, and the landscape sheet bug is

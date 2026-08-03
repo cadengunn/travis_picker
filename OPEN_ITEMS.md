@@ -16,7 +16,56 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.1.0) — the four deferred small fixes
+## On the phone right now (v3.2.0) — the chord-shape diagram
+
+**The wheel draws the shape now.** Spin to a chord and the left-hand fingering
+appears under the two drums — and the two dots your **thumb alternates between**
+are in the grid's thumb colour, with everything else in the finger colour. That
+marking is the reason it beats a diagram out of any chord book, and it's the
+"root ↔ alt" column of `CHORD_REFERENCE.md` shown where you're actually choosing.
+
+- It's in **both** chord pickers (the Options field and every per-bar chip), since
+  they open the same panel. Key × Progression correctly grows no diagram.
+- It **redraws when the wheel settles**, not on every detent, so nothing flickers
+  while you spin.
+- **What only the phone can judge: is it big enough?** It's 104px wide in a 237px
+  panel. That's one number, and the panel's height follows it, so "bigger" is a
+  one-line change.
+- One thing to look at specifically: a **barre chord whose root sits under the
+  bar** (G♯sus2, F, E♭). The bar is drawn in the finger colour with the bass dot
+  on top of it — check that reads clearly rather than looking like a smudge.
+
+### Your chord audit is 12 chords, not 120
+
+I measured the library rather than guessing. 108 of the 120 are ordinary shapes
+(span ≤ 3). **Eight of the ten qualities top out at a normal 3-fret barre** — all
+the awkwardness is in the two you shipped last, plus sus4.
+
+**Play these six first (5-fret spans):**
+```
+G#sus2   4 6 6 8 4 6   frets 4-8    ← the one I'd bet on failing
+C#add9   4 4 6 8 6 4   frets 4-8
+F#sus2   2 4 4 6 2 4   frets 2-6
+Fsus2    1 3 3 5 1 3   frets 1-5
+Badd9    2 2 4 6 4 2   frets 2-6
+Bbadd9   1 1 3 5 3 1   frets 1-5
+```
+**Then these six (4-fret):** `C♯sus4`, `Bsus4`, `B♭sus4`, `E♭sus4`, `Dadd9`,
+`E♭add9`.
+
+**A different question, not a stretch:** the nine **E♭ shapes all sit at frets
+6–8**, the highest in the library. Normal spans — it's about whether that
+position is comfortable.
+
+If any play badly, the fix is a hand-voiced form for those roots — a data edit,
+the same shape as the `Dadd9` and `E♭add9` outliers already in there.
+
+**Budget untouched** — 55.09 / 384.84 / 11.06 / no overflow. The panel is
+237×342 at 375×553 with 194px to spare.
+
+---
+
+## Previously on the phone (v3.1.0) — the four deferred small fixes
 
 All four items from your `NEXT_SESSION_PROMPT.md`. Nothing here is a new feature
 except persistence.
@@ -795,7 +844,13 @@ milder, 3 for spicier) if it ever bothers you again.
 "Keep it." Wild Card stays the off-the-curve discovery setting. Elliott's
 observation was an accurate description of what it is, not a bug.
 
-### 9. Chord shape diagram (Elliott) — ITS TRIGGER HAS FIRED (v2.14.0)
+### 9. Chord shape diagram (Elliott) — DONE (v3.2.0)
+
+Built in session 33, in the wheel exactly as this item argued. The trigger
+condition written here — "revisit if and only if the library grows unfamiliar
+shapes" — was met at 120 chords, 75 of them barres. It marks the thumb's
+alternating pair, which is the part a generic chord chart can't do. See the top
+of this file.
 You called it redundant given the fret-number labels, and I agreed — *while every
 chord was one you already knew*. The condition I wrote was "revisit if and only if
 the library grows unfamiliar shapes", and it just grew 22 barre chords: the grid
