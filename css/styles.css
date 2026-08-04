@@ -1558,27 +1558,39 @@ main {
   .save-lamp.blink { animation-duration: 0.3s; }
 }
 
-/* Export/Import: same carved-key material as the saved-item row buttons —
-   this is a secondary action, not the sheet's primary (that's Load, in the
-   accent). Library-wide only (see app.js exportLibrary) so it's one row here,
-   not a fourth button on every saved-item. */
-.library-toolbar { display: flex; gap: 8px; margin-bottom: 8px; }
-.library-toolbar button {
-  flex: 1;
-  color: var(--text);
+/* Export/Import: moved onto the sheet's title line (session 39, his call),
+   same trick the Options sheet's page tabs already use — costs no extra
+   height since it rides the header row alongside the title and the ✕.
+   Modeled on `.segmented.seg-tabs button`'s narrow-key material (same radius,
+   legend font, raised gradient, eased :active press) but DELIBERATELY without
+   that class's jewel dot or .active/latching state: his note was explicit —
+   these are one-shot actions, not a page switch, "no toggle or lamp needed."
+   Reusing .seg-tabs directly would still be wrong even so, since its jewel is
+   unconditional on every button in it. */
+.library-actions { display: flex; gap: 6px; margin-left: auto; flex: 0 0 auto; }
+.library-actions button {
+  flex: 0 0 auto;
+  padding: 7px 8px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px;
-  font-family: var(--serif);
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 5px;
+  font-family: var(--legend);
+  font-size: 10px;
+  letter-spacing: var(--legend-track);
+  font-weight: var(--legend-weight);
+  text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
-  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.14)), var(--control);
-  box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.34);
+  color: var(--muted);
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.16)), var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16), 0 2px 3px rgba(0, 0, 0, 0.34);
+  transition: box-shadow 0.07s ease;
 }
-.library-toolbar button:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
-.library-toolbar button:disabled { opacity: 0.45; cursor: default; }
-.library-toolbar button:disabled:active { transform: none; box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.34); }
+.library-actions button:active {
+  color: var(--text);
+  box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.62), inset 0 -1px 0 var(--bevel-hi);
+}
+.library-actions button:disabled { opacity: 0.45; cursor: default; }
+.library-actions button:disabled:active { box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16), 0 2px 3px rgba(0, 0, 0, 0.34); }
 #import-hint:empty { display: none; }
 
 .saved-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }

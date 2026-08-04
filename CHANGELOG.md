@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [39](#where-things-stand-session-39--v361-2026-08-04) | **v3.6.1** | his phone review of v3.6.0's export/import — confirmed working; two follow-ups actioned (Export/Import moved onto the Load sheet's title line, a hand-edited pattern's Load-list line shows "Custom" instead of its stale preset names) and folders sized for a future session |
 | [38](#where-things-stand-session-38--v360-2026-08-04) | **v3.6.0** | JSON export/import of the Saved library (item 4) — library-wide export, merge-only import, built first so patterns for item 2 (pre-loaded patterns) can travel as a file instead of a screenshot |
 | [37](#where-things-stand-session-37--docs--tooling-2026-08-04) | *(no version)* | `CHORD_REFERENCE.md`'s tables are generated now, not hand-typed — a browser tool reads `js/data.js` directly, which also caught a second staleness bug the "STALE" banner hadn't flagged (Cm6/C♯m6's alt string was mislabeled) |
 | [36c](#where-things-stand-session-36c--v352-2026-08-04) | **v3.5.2** | his second phone review, and it found the real bug: the pass lamps had NEVER lit — the selector was re-typed at the call site as `.pass-lamp[data-bar=…]` when `data-bar` is on the container, so it matched nothing, and the markup-shape test passed the whole time. Selector moved into `grid.js` and imported. Lamps also re-centred and given the beat lamp's exact material; single mode now locks ×2 to ×1 with a press that pops back out rather than a dead disabled key |
@@ -61,6 +62,56 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 39 — v3.6.1, 2026-08-04)
+
+**He tested v3.6.0's export/import on his phone — "working as expected."**
+Three follow-ups came back from that same message.
+
+**Export/Import moved onto the Load sheet's title line.** They'd been a
+full-width text-button row above the list; now they ride `#saved-sheet`'s
+`.sheet-head` alongside "Load" and the ✕, the same trick the Options sheet's
+Setup/Preferences tabs already use to cost no extra height. His reference was
+explicit — style them like those tabs — but **without** the jewel dot or the
+`.active`/latching state: these are one-shot actions, not a page switch, "no
+toggle or lamp needed." Reusing `.segmented.seg-tabs` directly would have been
+wrong regardless, since that class's jewel is unconditional on every button in
+it; the new `.library-actions` rule mirrors the same narrow-key material
+(radius, legend font, raised gradient, eased `:active`) without carrying that
+along. Considered and ruled out first: promoting them to the always-visible
+header's four-pill row — that row is documented as a deliberate, settled
+count, the capo tag beside it already has only ~5px of margin before its
+worst-case label clips, and Export/Import aren't guitar-in-hand controls by
+the app's own placement rule anyway.
+
+**A hand-edited pattern's Load-list line no longer shows a stale preset
+name.** His concern: after hand-editing a pattern in Edit mode, the list still
+read "E · Travis · Tame" even though the notes on screen might no longer
+resemble either preset. Checked before touching anything: `regenerateBass`/
+`regenerateTreble` (`generator.js`) never read `pattern.bass`/`pattern.chaos`
+back to decide what to re-roll — the target always comes from whichever
+Thumb/Fingers dropdown value is live — so those fields are pure display
+metadata once a pattern's been edited, safe to stop trusting for the summary
+line without touching storage or breaking anything. `summarize()` now shows
+"Custom" in place of both preset names whenever `item.source === "drawn"`,
+the same principle `detectProgression()` already uses for a hand-edited chord
+progression that no longer matches a known preset. `pattern.bass`/`.chaos`
+stay stored exactly as before — still needed to restore the Thumb/Fingers
+dropdowns when a saved pattern is reloaded.
+
+**Folders — sized, not built.** His ask, worth doing, deliberately deferred to
+its own session rather than bolted on here: a `folder` string field per saved
+item (no separate folder table — Finder-tag style, matching how `storage.js`
+already avoids schema elsewhere), the Load list grouped with the app's
+existing engraved-section-header idiom, a per-item `dropdown.js`-enhanced
+`<select>` to assign/move/create a folder, and folder rename/delete on the
+group header (delete un-files, never deletes a pattern — non-destructive,
+same principle as import being a merge). Full design in `OPEN_ITEMS.md` item
+4b. Best paired with pre-loaded patterns (item 2, still unbuilt) so the
+Built-in folder has real content rather than shipping empty.
+
+118/118 unaffected (`summarize()` lives in `app.js`, which `tests.js`
+deliberately never imports — verified manually in the Browser pane instead).
 
 ## Where things stand (session 38 — v3.6.0, 2026-08-04)
 

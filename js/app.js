@@ -64,7 +64,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.6.0";
+const APP_VERSION = "v3.6.1";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1119,17 +1119,27 @@ function importLibrary(file) {
 function summarize(item) {
   const ctx = item.context || {};
   const p = item.pattern || {};
-  const bassName = BASS_PRESETS.find((b) => b.id === p.bass)?.name ?? p.bass;
-  // The preset's NAME, not its stored id — the id is `chaos` but the menu says
-  // "Wild Card", and a saved item that disagrees with the control is confusing.
-  const fingersName = CHAOS_PRESETS[p.chaos]?.name ?? p.chaos;
   const where =
     ctx.chordMode === "progression"
       ? `${(ctx.progression || []).map((c) => degreeLabel(c, ctx.key)).join("–")} (key ${ctx.key})`
       : ctx.chord;
+  // A hand-edited pattern no longer necessarily resembles the preset it was
+  // generated from (regenerateBass/regenerateTreble never read these fields
+  // back — they're pure display metadata once edited), so showing the stale
+  // preset names would be misleading. Same principle as detectProgression()'s
+  // Custom fallback for a hand-edited chord progression.
+  const presetInfo = item.source === "drawn"
+    ? ["Custom"]
+    : [
+        // The preset's NAME, not its stored id — the id is `chaos` but the menu
+        // says "Wild Card", and a saved item that disagrees with the control
+        // is confusing.
+        BASS_PRESETS.find((b) => b.id === p.bass)?.name ?? p.bass,
+        CHAOS_PRESETS[p.chaos]?.name ?? p.chaos,
+      ];
   // Only when set: two saves that differ only by capo would otherwise look
   // identical in the list (and collide on the default name).
-  return [where, capoLabel(ctx.capo), bassName, fingersName, ctx.x2 ? "×2" : ""]
+  return [where, capoLabel(ctx.capo), ...presetInfo, ctx.x2 ? "×2" : ""]
     .filter(Boolean).join(" · ");
 }
 
@@ -1259,7 +1269,7 @@ function openSheet(mode) {
   const saving = mode === "save";
   el("saved-title").textContent = saving ? "Save" : "Load";
   el("save-section").hidden = !saving;
-  el("library-toolbar").hidden = saving;
+  el("library-actions").hidden = saving;
   el("saved-list").hidden = saving;
 
   if (saving) {

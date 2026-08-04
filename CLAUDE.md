@@ -484,9 +484,29 @@ trusted even if every entry inside is unreadable (reported as `skipped`, not
 rejected); a **bare array** is accepted too, leniently, but only if at least
 one entry actually looks like a stored pattern — otherwise an unrelated JSON
 array would silently "import" as zero patterns instead of being reported as
-the wrong file. The two buttons live in a small toolbar inside the Load
-sheet's list mode (`#library-toolbar` in `index.html`); Export is disabled
-whenever the library is empty, same convention as the Load pill.
+the wrong file. **The two buttons ride the Load sheet's title line**
+(`#library-actions` in `index.html`, session 39) — the same trick the Options
+sheet's Setup/Preferences tabs use to cost no extra height, styled with that
+same narrow-key material but **deliberately without its jewel or
+`.active`/latching state**, since these are one-shot actions, not a page
+switch (his call — "no toggle or lamp needed"). Considered and rejected:
+promoting them into the always-visible header's four-pill row — that count is
+documented as deliberate, the capo tag beside it already has only ~5px of
+margin, and Export/Import aren't guitar-in-hand controls by the app's own
+placement rule. Export is disabled whenever the library is empty, same
+convention as the Load pill.
+
+**A hand-edited pattern shows "Custom," not a stale preset name** (session
+39). `summarize()` (the Load-list sub-line, "E · Travis · Tame") reads
+`item.pattern.bass`/`.chaos` for display — but `regenerateBass`/
+`regenerateTreble` never read those fields back to decide what to re-roll
+(the target is always whichever Thumb/Fingers dropdown is live), so once a
+pattern's been hand-edited they're pure display metadata that can go stale.
+When `item.source === "drawn"`, `summarize()` shows `"Custom"` in place of
+both preset names — the same fallback principle `detectProgression()` already
+uses for a hand-edited chord progression. The fields themselves stay stored
+untouched (still needed to restore the Thumb/Fingers dropdowns on load); this
+is display-only.
 
 **Session preferences** (`tp-prefs`, in `app.js`, session 32): the controls you
 **set once and keep**, restored on the next launch — chord mode, chord, key,
@@ -1082,11 +1102,16 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.6.0, 118/118 green.** Session 37 regenerated `CHORD_REFERENCE.md`'s tables
+**v3.6.1, 118/118 green.** Session 37 regenerated `CHORD_REFERENCE.md`'s tables
 straight from `js/data.js` instead of hand-typing them (a doc-only pass, no
 version bump); session 38 shipped JSON export/import of the Saved library
 (item 4), built ahead of pre-loaded patterns (item 2) so patterns can travel to
-me as a file instead of a screenshot. Session 36 removed Pattern length (the generator now
+me as a file instead of a screenshot. **Session 39 was his phone review of
+that** — export/import confirmed working, plus two follow-ups (Export/Import
+moved onto the Load sheet's title line; a hand-edited pattern shows "Custom"
+instead of a stale preset name) — and folders sized for a future session
+(item 4b in `OPEN_ITEMS.md`), likely paired with pre-loaded patterns. Session
+36 removed Pattern length (the generator now
 always makes one distinct bar, per his real-guitar testing) and replaced it with
 ×2 mode — a progression chord can ring for two bars, the grid still shows 4, two
 pass lamps per bar mark which pass is sounding. Swing also started saving with

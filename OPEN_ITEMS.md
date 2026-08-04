@@ -1046,14 +1046,50 @@ bidirectional swing (sub-50 pre-delay), and any generator change.
 **Nothing owed on it** — the Guide line about the `2 & 4` feel is moot now that
 the feel is gone.
 
-### 4. JSON export/import of the Saved library — DONE (session 37, v3.6.0)
+### 4. JSON export/import of the Saved library — DONE (session 38, v3.6.0)
 Export is library-wide (one file, both the backup case and handing someone a
 pattern); import is a merge, never a replace, using the same `save()` every
 other path uses, so name collisions get the ordinary `(2)` suffix. See
-`CLAUDE.md`'s "Saved library" section. **Not yet confirmed on his phone**:
-whether a real download lands somewhere usable in installed-PWA iOS Safari,
-and whether the iOS file picker can select a `.json` from Files/iCloud for
-import — the dev box can't answer either.
+`CLAUDE.md`'s "Saved library" section. **Confirmed working on his phone**
+(session 39). Two follow-up UI notes from that test, both actioned the same
+session: Export/Import moved from a full-width row above the Load list onto
+the sheet's own title line (matching the Options sheet's Setup/Preferences
+tabs, no jewel/latch); a hand-edited pattern's Load-list line now shows
+"Custom" instead of its stale original bass/fingers preset names.
+
+### 4b. Saved-library folders — OPEN, design sized and agreed (session 39)
+His ask, discussed and shaped but **not built** — deliberately deferred to its
+own session, likely paired with item 2 (pre-loaded patterns) so the Built-in
+folder has real content from the start rather than shipping empty.
+
+**The shape, agreed:**
+- A `folder` string field per saved item (`null`/absent = unfiled). **No
+  separate folder table** — folders are the distinct set of names in use,
+  Finder-tag style, matching how `storage.js` already avoids schema
+  ("`context` is a plain object... a data-shape convention enforced by
+  callers, not code").
+- **Load list**: grouped with a small header row per folder, reusing the
+  app's existing "engraved section header" idiom (the same mechanism the
+  progression/quality drum menus already use for their style groups) —
+  "Unfiled" trailing. Deliberately not a drill-down folder browser: one
+  screen, no back button, consistent with the rest of the app.
+- **Assigning/moving a pattern**: a per-item `<select>`, enhanced by the
+  existing `dropdown.js` (the same mechanism every other picker in the app
+  already uses) — Unfiled + existing folder names + "+ New Folder…"
+  (prompted via `promptModal`, same as Rename). No new UI paradigm.
+- **Built-in patterns stay separate** — a read-only, static data source (per
+  item 2's already-settled design), rendered as its own folder-like group at
+  the top of the same list, but never stored via the `folder` field. Keeps
+  "yours" and "built-in" data cleanly apart while looking unified.
+- **Folder rename/delete**: lives on the group header itself (tap → a small
+  Rename/Delete action set). **Delete un-files its items, never deletes the
+  patterns** — non-destructive, same principle as import being a merge rather
+  than a replace.
+
+Open detail not yet nailed down: whether deleting a folder needs a
+`confirmModal` (it can't lose data, only reorganizes — so probably not, same
+reasoning as import needing none — but worth a beat of thought when this is
+actually built, since it does touch many items at once).
 
 ### 5. App icon: full bleed — OPEN, needs regenerated art
 The icon is done and signed off (v2.9.2, built from Jerry's own theme values).
