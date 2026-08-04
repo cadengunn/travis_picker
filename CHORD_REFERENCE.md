@@ -1,8 +1,27 @@
 # Chord reference — every chord the app supports
 
-Generated from the live library at **v3.0.0**, A-family rows updated at **v3.2.1** (12 roots × 10 qualities = **120
-chords**). This is a cross-check sheet, not a source: the truth is `OPEN_CHORDS` +
-`BARRE_TEMPLATES` in `js/data.js`.
+> ## ⚠️ STALE — DO NOT PLAY FROM THIS SHEET (as of v3.4.2)
+>
+> Written by hand at **v3.0.0/v3.2.1**, and **about 25 of the 120 chords have been
+> revoiced since**, mostly in session 35's playability pass. Tab, notes and the
+> thumb's root ↔ alt are all wrong for those. Known-wrong here: the whole **add9
+> family** (C♯ D E♭ F F♯ — one shape now), the **m7 family** off E-shape roots
+> (Em7 is `0 2 2 0 3 0`), **F6/F♯6, F/F♯sus2, B♭m6/Bm6/E♭m6/Cm6/C♯m6, E♭sus4,
+> Csus4, G♯6, Gadd9**, and the **moving-finger list** (cut to C, C7, C6, B7).
+> The "everything stays ≤ fret 8" note below is also void — the ceiling was raised
+> to 12 in v3.2.4 and E♭m6/C♯m6 reach 11.
+>
+> **The app itself is correct** — open a chord on the wheel and read its diagram.
+> The truth is `OPEN_CHORDS` + `BARRE_TEMPLATES` in `js/data.js`.
+>
+> The fix is queued (see `NEXT_SESSION_PROMPT.md`): split the hand-written
+> commentary from the tables and **generate** the tables, so this can't rot again.
+> The prose below is kept because the reasoning is still worth reading — just
+> check any fret against the app before you put your fingers on it.
+
+Written from the live library at **v3.0.0**, A-family rows updated at **v3.2.1**
+(12 roots × 10 qualities = **120 chords**). This is a cross-check sheet, not a
+source: the truth is `OPEN_CHORDS` + `BARRE_TEMPLATES` in `js/data.js`.
 
 ## How to read it
 
