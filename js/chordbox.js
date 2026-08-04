@@ -64,8 +64,11 @@ export function chordBoxModel(chordId) {
   // open strings only mean anything against it. Everything else slides up the
   // neck and prints its position instead — which is exactly how a chord chart
   // does it, and why the box needs no more than five rows for a library whose
-  // widest span is five (C♯add9, frets 4-8 — G♯sus2 held that title until its
-  // session 35 revoicing moved it to the nut).
+  // widest span is five — B♭add9 (frets 1-5) and Badd9 (2-6), the A-shape add9's
+  // 4-fret reach on string 3. That title has moved twice as his playability
+  // passes landed: G♯sus2 held it, then C♯add9, and both were revoiced away
+  // (sessions 35 / 35b). The two that hold it now sit low on the neck, where the
+  // same stretch is easy.
   //
   // ...but only if the fretted notes actually FIT there. A shape that mixes an
   // open string with notes above the 5th fret can't be anchored at the nut — the

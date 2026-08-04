@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [35](#where-things-stand-session-35--v341-2026-08-03) | **v3.4.1** | his 14-chord playability spec applied (the roles moved, not just the frets — a rule fell out: role strings never go below string 3); then barres got drawn the way a hand actually makes them, with his review setting the threshold from both sides — 4 in a row is a bar, 3 is three fingers, and open A is the anchor. Hollow got scarcer on the same principle; Em7's family revoiced |
+| [35](#where-things-stand-session-35--v342-2026-08-03) | **v3.4.2** | his 14-chord playability spec applied (the roles moved, not just the frets — a rule fell out: role strings never go below string 3); then barres got drawn the way a hand actually makes them, with his review setting the threshold from both sides — 4 in a row is a bar, 3 is three fingers, and open A is the anchor. Hollow got scarcer on the same principle; Em7's family revoiced |
 | [34b](#where-things-stand-session-34b--v330-2026-08-03) | **v3.3.0** | the chord diagram shows the MOVING FINGER as a hollow dot (no established symbol exists; this borrows the fingerstyle "alternate bass" ring). Root-only accent replaces marking the thumb's whole pair. B7 added; G#6 revoiced to his fingering |
 | [34](#where-things-stand-session-34--docs--tests-2026-08-03) | *(no version)* | adversarial review: CLAUDE.md became a hub and `DESIGN.md` was split out (1,570 → 990 lines, 18.2k → 11.0k words); the four sleeping tests stopped waiting on the wall clock, and the wheel "flake" turned out to be the screenshot resizing the pane |
 | [33g](#where-things-stand-session-33g--v326-2026-08-03) | **v3.2.6** | real bug caught by ear: F#6's alt===fifth collapsed Travis's bass to one repeated note; fixed + a new library-wide guard test; plus two audits answering "anything else like this?" |
@@ -57,7 +57,7 @@ has the original build order.
 
 ---
 
-## Where things stand (session 35 — v3.4.1, 2026-08-03)
+## Where things stand (session 35 — v3.4.2, 2026-08-03)
 
 **His ask, part one:** a spec document of 14 chord voicings he'd played through
 manually and found awkward, given as fret strings low-to-high. Applied verbatim.
@@ -121,10 +121,24 @@ note is added, so something has to move. Cmaj7 frets three notes; Csus2 and Cadd
 leave a finger spare once strings 6/5 are taken as a pair. **C itself is the
 marginal one** and stays on his own session-34 statement rather than on the rule.
 
-**`Fadd9` was the miss he caught** — *"should be same shape as F♯"* — so the
-D/E♭/F/F♯add9 family is now contiguous. `C♯add9` is the remaining root of that
-class still on a wide derived A-shape (`4 4 6 8 6 4`), and it's flagged in the
-data rather than changed unasked.
+**`Fadd9` was the miss he caught** — *"should be same shape as F♯"* — and at the
+close of the session he called `C♯add9` in too (`1 4 1 1 4 1`), the last root
+still on the wide derived A-shape. **So the add9 family is now one shape at five
+roots** (C♯, D, E♭, F, F♯), all playing Travis as root–3rd–5th–3rd, and the five
+entries were regrouped in `data.js` under a single header: the roles were being
+restated per chord, which is exactly the copy-drift `CLAUDE.md` warns about.
+
+That also **retired the library's widest span** for the second time this session
+— G♯sus2 held it, then C♯add9 — so the chord-box fixture was re-pointed rather
+than relaxed again, to `Badd9` (frets 2-6). The 5-row window is still needed:
+`B♭add9` and `Badd9` are the same A-shape reach, but low on the neck where it's
+easy, which is the whole reason he left them alone.
+
+**Two rulings that changed nothing, recorded so they aren't re-opened:** the m7
+family keeps its **root ↔ octave** bass (the m3-on-string-3 alternative was
+offered and declined), and **C keeps its hollow dot** — it's marginal by the
+finger-count rule and survives on his own session-34 description of that exact
+chord, which is now stated as such in the data.
 
 **`Em7` revoiced to `0 2 2 0 3 0`, whole E-shape family with it** (his call, on
 the voicing alone — *"what we have isn't wrong, but I think it's a nicer

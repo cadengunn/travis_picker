@@ -368,43 +368,39 @@ const OPEN_CHORDS = {
   "G#sus2": { root: 6, alt: 5, fifth: 4, fifthFret: 1, shape: { 6: 4, 5: 1, 4: 1, 3: 1, 2: 4, 1: 4 } },
   // --- add9 ---
   Cadd9: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 2, 3: 0, 2: 3, 1: 0 } }, // x32030, 9 (D) on 2
-  // Dadd9 — his session 35 revoicing, REPLACING the open xx0252 form (which had
-  // the 3rd and 9th stuck on strings 2/1, see the superseded comment this one
-  // replaced). A full index barre at fret 2 across strings 6/4/3/1, with two
-  // fingers lifting strings 5 and 2 to fret 5. `root` is string 5 (the only
-  // string carrying D); the 5th (A) only reaches a finger string (3), same as
-  // Ebsus4's precedent below; `alt` walks to the 3rd (F♯), reachable on the
-  // bass-domain string 6. Travis plays D, F♯, A, F♯ — a real three-note walk.
-  Dadd9: { root: 5, alt: 6, fifth: 3, fifthFret: 2, shape: { 6: 2, 5: 5, 4: 2, 3: 2, 2: 5, 1: 2 } },
   // Gadd9 — his session 35 revoicing: string 5 opens (was fretted 2, the 3rd),
   // so the bass rocks on an open A instead. That changes what `alt` actually
   // plays — it's now the 9th (A) rather than the 3rd, since the 3rd (B) is no
   // longer reachable on any bass-domain string. Travis now plays G, A, D, A
   // (root, 9th, 5th, 9th).
   Gadd9: { root: 6, alt: 5, fifth: 4, fifthFret: 0, shape: { 6: 3, 5: 0, 4: 0, 3: 2, 2: 0, 1: 3 } }, // G A D A B G
-  // E♭add9 — his session 35 revoicing, REPLACING the session-33 form above
-  // (which needed the string-6/1 moving finger — see the superseded comment
-  // this one replaces). Same family as the new Dadd9: a full index barre at
-  // fret 3 (strings 6/4/3/1), fingers lifting strings 5 and 2 to fret 6. `root`
-  // is string 5, `fifth` the finger string 3 (the "5th only reaches a finger
-  // string" shape Dadd9 also has), `alt` walks to the 3rd (G) on string 6.
-  // Travis plays E♭, G, B♭, G. NO MOVING FINGER: every note is held
-  // simultaneously by the barre plus two fingers, unlike the shape it replaces
-  // — worth confirming on the guitar since it drops that technique.
-  Ebadd9: { root: 5, alt: 6, fifth: 3, fifthFret: 3, shape: { 6: 3, 5: 6, 4: 3, 3: 3, 2: 6, 1: 3 } },
-  // F/F♯add9 — his session 35 tabs, same family/shape as Dadd9 and E♭add9 (index
-  // barre + two lifted fingers), one and two frets higher again. `root` string 5,
-  // `fifth` string 3 (finger domain, same as the rest of this family), `alt`
-  // walks to the 3rd on string 6. Travis plays F, A, C, A / F♯, B♭, C♯, B♭.
   //
-  // Fadd9 was the one his spec missed ("Fadd9 should be same shape as F♯", 35b);
-  // it had been deriving to the E-shape add9 barre. Watch for this class — the
-  // family covers D/E♭/F/F♯ now, and C♯add9 is the remaining root whose derived
-  // A-shape voicing (`4 4 6 8 6 4`) is the same kind of stretch these replaced.
+  // THE add9 FAMILY — ONE SHAPE, FIVE ROOTS (C♯, D, E♭, F, F♯), kept together
+  // here so the roles are stated once and can't drift apart. A full index barre
+  // with strings 5 and 2 lifted +3; `root` string 5, `fifth` the finger string 3
+  // (which is what this shape gives — Ebsus4 has the same trade), `alt` walking
+  // to the 3rd on string 6. So all five play Travis as root-3rd-5th-3rd, a real
+  // three-note walk, and Root–Fifth alternates properly.
+  //
+  // It arrived in three passes, and what each REPLACED is the part worth keeping:
+  //   • D / E♭ / F♯ — his session 35 spec. E♭add9 dropped the session-33 shape
+  //     that needed a string-6/1 MOVING FINGER, and Dadd9 dropped the open
+  //     `xx0252`, whose 3rd and 9th were stranded on strings 2/1.
+  //   • F — the one his spec missed ("Fadd9 should be same shape as F♯", 35b);
+  //     it had been deriving to the E-shape add9 barre.
+  //   • C♯ — the last root still on the derived A-shape `4 4 6 8 6 4` (35b, his
+  //     call). That retired the library's WIDEST SPAN, which is now B♭add9 /
+  //     Badd9 — the same A-shape reach, but low on the neck. See chordbox.js.
+  // NONE of them has a moving finger: the barre plus two fingers holds every
+  // note at once. E♭add9 and F♯6 are the two where that's a change of technique,
+  // so both are still waiting on his guitar.
+  "C#add9": { root: 5, alt: 6, fifth: 3, fifthFret: 1, shape: { 6: 1, 5: 4, 4: 1, 3: 1, 2: 4, 1: 1 } },
+  Dadd9:    { root: 5, alt: 6, fifth: 3, fifthFret: 2, shape: { 6: 2, 5: 5, 4: 2, 3: 2, 2: 5, 1: 2 } },
+  Ebadd9:   { root: 5, alt: 6, fifth: 3, fifthFret: 3, shape: { 6: 3, 5: 6, 4: 3, 3: 3, 2: 6, 1: 3 } },
   Fadd9:    { root: 5, alt: 6, fifth: 3, fifthFret: 5, shape: { 6: 5, 5: 8, 4: 5, 3: 5, 2: 8, 1: 5 } },
   "F#add9": { root: 5, alt: 6, fifth: 3, fifthFret: 6, shape: { 6: 6, 5: 9, 4: 6, 3: 6, 2: 9, 1: 6 } },
-  // G♯add9 — his session 35 tabs: a different shape family from the D/E♭/F♯add9
-  // barre-lift form (`4 1 1 3 1 4`). `root` string 6, `fifth` string 4 (the
+  // G♯add9 — his session 35 tabs: a different shape from the five-root family
+  // above (`4 1 1 3 1 4`). `root` string 6, `fifth` string 4 (the
   // true 5th). The 3rd (C) only reaches string 2, outside the strings-3–6
   // domain every role string in this library stays within, so `alt` takes the
   // 9th (B♭) on string 5 instead — reachable and still a genuine walking bass.

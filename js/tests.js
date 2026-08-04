@@ -2902,8 +2902,8 @@ acheck("app: the die can be tapped while its own wheel is open", async () => {
 
 check("chordbox: every chord in the library draws, and fits the 5-fret window", () => {
   // The window is why the diagram can be small: the library's widest span is 5
-  // (C♯add9, frets 4-8), so five rows always suffice. If a future voicing broke
-  // that, the shape would silently draw notes outside its own box.
+  // (B♭add9 frets 1-5, Badd9 2-6), so five rows always suffice. If a future
+  // voicing broke that, the shape would silently draw notes outside its own box.
   for (const id of CHORD_IDS) {
     const m = chordBoxModel(id);
     assert(m, `no chord box model for ${id}`);
@@ -2937,14 +2937,14 @@ check("chordbox: open shapes sit at the nut, barre shapes print their position",
   assert(eb.position === 6, `E♭ should print its position 6, got ${eb.position}`);
   assert(eb.first === 6, "the window starts at the barre");
 
-  // The worst shape in the library, and the one he's most likely to overrule —
-  // which is exactly what happened to the chord that held this title before it:
-  // G♯sus2 spanned frets 4-8 too, until his session 35 revoicing moved it down
-  // to a low nut-anchored shape (see chordbox.js's widest-span comment).
-  const cs = chordBoxModel("C#add9");
-  assert(cs.span === 5 && cs.low === 4 && cs.high === 8,
-    `C♯add9 should span frets 4-8, got ${cs.low}-${cs.high}`);
-  assert(cs.position === 4, "C♯add9 prints position 4");
+  // The widest shape in the library, and the one he's most likely to overrule —
+  // which is what happened to BOTH chords that held this title before it. G♯sus2
+  // spanned 4-8, then C♯add9 did; each was revoiced away (sessions 35 / 35b), so
+  // this fixture is deliberately re-pointed rather than relaxed each time.
+  const b9 = chordBoxModel("Badd9"); // 2 2 4 6 4 2 — the A-shape add9's reach
+  assert(b9.span === 5 && b9.low === 2 && b9.high === 6,
+    `Badd9 should span frets 2-6, got ${b9.low}-${b9.high}`);
+  assert(b9.position === 2, "Badd9 prints position 2");
 });
 
 check("chordbox: an open string with high frets anchors by position, not the nut", () => {

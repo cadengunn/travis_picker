@@ -935,7 +935,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v3.4.1, 106/106 green.** The chord library and the progression revamp are
+**v3.4.2, 106/106 green.** The chord library and the progression revamp are
 finished (sessions 29–33): 120 chords, the drum pickers, and the chord-shape
 diagram under the wheel. Sessions 32–33 also landed `tp-prefs`, the diagnosed
 dead-Play bug, the landscape sheet fix, and four rounds of his guitar verdicts on
