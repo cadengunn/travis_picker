@@ -1,144 +1,106 @@
 # Chord reference — every chord the app supports
 
-> ## ⚠️ STALE — DO NOT PLAY FROM THIS SHEET (as of v3.4.2)
->
-> Written by hand at **v3.0.0/v3.2.1**, and **about 25 of the 120 chords have been
-> revoiced since**, mostly in session 35's playability pass. Tab, notes and the
-> thumb's root ↔ alt are all wrong for those. Known-wrong here: the whole **add9
-> family** (C♯ D E♭ F F♯ — one shape now), the **m7 family** off E-shape roots
-> (Em7 is `0 2 2 0 3 0`), **F6/F♯6, F/F♯sus2, B♭m6/Bm6/E♭m6/Cm6/C♯m6, E♭sus4,
-> Csus4, G♯6, Gadd9**, and the **moving-finger list** (cut to C, C7, C6, B7).
-> The "everything stays ≤ fret 8" note below is also void — the ceiling was raised
-> to 12 in v3.2.4 and E♭m6/C♯m6 reach 11.
->
-> **The app itself is correct** — open a chord on the wheel and read its diagram.
-> The truth is `OPEN_CHORDS` + `BARRE_TEMPLATES` in `js/data.js`.
->
-> The fix is queued (see `NEXT_SESSION_PROMPT.md`): split the hand-written
-> commentary from the tables and **generate** the tables, so this can't rot again.
-> The prose below is kept because the reasoning is still worth reading — just
-> check any fret against the app before you put your fingers on it.
+A cross-check sheet, not a source — the truth is `OPEN_CHORDS` + `BARRE_TEMPLATES`
+in `js/data.js`. **The tables below are GENERATED, not hand-typed**, which is
+the fix for how this doc rotted once already: ~25 of the 120 chords were
+revoiced across session 35 alone and the hand-written tables silently fell out
+of sync with what the app actually plays. Never hand-edit anything between the
+`GENERATED:START` / `GENERATED:END` markers — regenerate it instead:
 
-Written from the live library at **v3.0.0**, A-family rows updated at **v3.2.1**
-(12 roots × 10 qualities = **120 chords**). This is a cross-check sheet, not a
-source: the truth is `OPEN_CHORDS` + `BARRE_TEMPLATES` in `js/data.js`.
+1. Serve the repo over HTTP (`python3 serve.py` — ES modules need it, see
+   `CLAUDE.md`'s "Running it").
+2. Open `tools/gen_chord_reference.html`. It imports `js/data.js` directly and
+   renders the same two tables you see below into a textarea.
+3. Select all, copy, and paste over everything between the markers.
+
+The commentary outside the markers (this intro, "How to read it", "Worth your
+eye") is hand-written and stays hand-written — it's reasoning and judgment
+calls, not derivable from the data. Session-by-session narrative (whose call a
+voicing was, what it replaced) belongs in `CHANGELOG.md`, not here, so this
+file only ever has to say what's true *now*.
 
 ## How to read it
 
 - **Tab** is `6 5 4 3 2 1` — low E string first, `x` = not played. Numbers are
-  frets, `0` = open. **Capo is not included** — these are shape frets, exactly what
-  the grid shows you.
+  frets, `0` = open. **Capo is not included** — these are shape frets, exactly
+  what the grid shows you.
 - **Notes** are the sounding pitches of that shape, same string order.
 - **Intervals** are those notes relative to the chord's root: `R 3 5 ♭7 △7 6 9 4`.
   A `·` is a muted string.
-- **Thumb: root ↔ alt** is the alternating bass the generator uses — the two notes
-  your thumb rocks between, with the string each sits on. **Fifth** is the third
-  bass role (used by the Travis and Root–Fifth presets).
-- **Max fret** is the highest fretted note; everything stays ≤ 8 by design.
+- **Thumb: root ↔ alt** is the alternating bass the generator uses — the two
+  notes your thumb rocks between, with the string each sits on. **Fifth** is
+  the third bass role (used by the Travis and Root–Fifth presets).
+- **Max fret** is the highest fretted note. Most of the library stays ≤ 8;
+  **`Cm6` and `C♯m6` are a deliberate, named exception** (his call, session 33 —
+  he supplied these exact frets to play the E-shape min6 template at its higher
+  position rather than the auto-picked lower one), reaching 10 and 11. The
+  library's general ceiling is 12.
 
 Two conventions worth knowing before you flag something as wrong:
 
-1. **A full barre is assumed**, so the low string counts as an available bass note
-   even where a textbook voicing mutes it (this is why B7 frets string 6, and why
-   the barre chords all show a note there).
-2. **Open-position voicings are hand-declared** (the shapes you'd actually play);
-   everything else is derived from an E-shape or A-shape template, *whichever
-   barres lower*.
+1. **A full barre is assumed**, so the low string counts as an available bass
+   note even where a textbook voicing mutes it (this is why B7 frets string 6,
+   and why the barre chords all show a note there).
+2. **Open-position voicings are hand-declared** (the shapes you'd actually
+   play); everything else is derived from an E-shape or A-shape template,
+   *whichever barres lower*.
 
 ---
 
-## ⚠️ Worth your eye — judgment calls and one bug I just fixed
+## Worth your eye — durable judgment calls, not fret trivia
 
-**A real bug, found while generating this and fixed before writing it:**
+These are standing facts about the library's design, current as of whatever
+`js/data.js` says right now (that's what the generator reads). If a shape
+below ever looks off against one of these, trust the table, not this list —
+and it means this section needs an update, not the table.
 
-- **`Dadd9` was D major.** It shipped as `x00232`, which contains no 9th at all —
-  the E is simply absent. It's now **`x00252`** (D A E F♯). Strings 4/3 are forced
-  to D/A, so the 3rd and the 9th both have to come off strings 2/1, and E at fret 5
-  + F♯ at fret 2 is the only pair that stays low. **There is now a test** that
-  computes each chord's sounded pitch classes and requires them to equal the
-  quality's formula — it would have caught this, and it guards all 120.
-
-**Judgment calls you may want to overrule (all deliberate, none broken):**
-
-- **sus2 alternates root ↔ 9th** where the voicing leaves no fifth on a bass
-  string: `Csus2` is C↔D, `Gsus2` is G↔A. sus2 has no third, so the open bass
-  string gives the 2nd. Musically fine, but it's an unusual thumb.
-- **`Gadd9` alternates G ↔ B** (the 3rd) rather than G↔D like the other G chords,
-  because its shape puts B on string 5. A "walk to the 3rd" bass — common in
-  fingerstyle, but inconsistent with its neighbours.
-- **`E♭add9` is now `6 6 5 0 6 6`** (v3.2.2, your note). It went through two
-  revisions: `x 1 1 0 4 1` (unplayable — a finger stranded past the pinky) →
-  `x 6 5 0 6 6` (v3.2.1, muted string 6) → this. You pointed out string 6 doesn't
-  need to go unplayed and doesn't need a partial barre either — one finger moves
-  between string 6 and string 1 (both fret 6) as needed, the same way a finger
-  comes on and off string 6 for the low bass note some players add under an open
-  C. That gives B♭ (the 5th) a real bass-string home, so **Root–Fifth now
-  alternates E♭ ↔ B♭ properly**, like every other chord — no longer root-only.
-  Travis/Alternating are unchanged, still E♭ ↔ G (the 3rd).
-- **maj7 / m7 on E-shape roots alternate root ↔ 7** (`Emaj7` is E↔E♭, `Em7` is
-  E↔D, `F♯maj7` is F♯↔F). This is the deliberate trade documented for dom7 — the
-  7th's only playable home inside an E-shape is the alt-bass string. A-shape roots
-  and the open forms keep a clean root↔fifth.
-- **The A family is uniform as of v3.2.1.** `A`, `Am` and `A7` used to mute
-  string 6 while `Amaj7`, `Am7`, `A6`, `Am6`, `Asus2`, `Asus4` and `Aadd9`
-  sounded the open low E. That was harmless musically (E is A's fifth) but it was
-  a genuine contradiction: all three declared `fifth: 6`, so **the thumb played
-  string 6 anyway** — the shape said mute, the app picked it. The chord box made
-  it visible by drawing an × over a string you hear. All ten now sound it, and a
-  test forbids any chord from playing a string its own shape mutes.
-- **`Csus4` is no longer hand-declared** (v3.2.3, his note). The old `x33011`
-  took open C's own shape and bumped each 3rd up to a 4th — which sounds simple,
-  but open C already has a gap between its bass-string cluster (frets 3/3 near
-  the root) and its treble-string cluster (frets 0/1), and sus4 forces BOTH
-  clusters to fret at once: a 3-string partial barre *and* a 2-string partial
-  barre, with nothing linking them. That's the specific thing he flagged as
-  hard — distinct from a single full barre, which he says is fine. Removing the
-  hand-declaration lets the general A-shape template take over: one coherent
-  6-string index barre at fret 3, `3 3 5 5 6 3`, with three fingers layered on
-  top in a 3-fret window — the same family every other barre chord in this
-  library already uses. Bonus: the alternating bass improves too, root ↔ 5th
-  (C ↔ G) instead of root ↔ 4th, since the open G string is gone.
-- **`Cm6` and `C♯m6` moved up the neck (v3.2.4, his call).** Both were the
-  auto-picked A-shape barre — technically "whichever barres lower," the app's
-  own default rule, and what shipped in v3.2.3 as "no change needed." He
-  supplied the E-shape min6 template's *other* position instead: `8 10 10 8
-  10 8` and `9 11 11 9 11 9`. Same shape family, same full-barre-plus-three-
-  fingers pattern the app already uses everywhere — just the position he
-  prefers to play it at. His note: *"I'm allowing frets higher up the neck for
-  these... anything up to fret 12 acceptable."* The library's general fret
-  ceiling stays 8; these two are a named, deliberate exception in the test.
-  The alternating bass is unaffected — both the old and new shapes give root ↔
-  5th (C ↔ G / C♯ ↔ G♯); only the position on the neck changed.
-- **`F♯6` is now `9 9 8 8 11 9`** (v3.2.5, his tabs from a photo). It replaces
-  the auto-derived E-shape barre (`2 4 4 3 4 2`, a full 6-string index barre)
-  with a genuinely different shape: only strings 4/3 share a fret (a small
-  2-string barre at fret 8), and the root (string 5) and the 5th (string 6) sit
-  on *adjacent* strings at the same fret (9) rather than both under one barre.
-  His note: **"you move the finger back and forth for the bass like on C"** —
-  the same technique `E♭add9` uses. One fingertip relocates between strings 6
-  and 5 rather than holding both, so the fretting hand never needs more than
-  thumb + 3 fingers at any single moment, even though the shape has four
-  distinct fret/string positions on paper.
-  **A real bug shipped first and was caught by ear, not by a test** (his note:
-  "something strange with the F♯6 Travis bass pattern"). `alt` was set to
-  string 6 to match the physical technique — but Travis's cycle is
-  root-alt-fifth-alt, and with `alt === fifth` three of the four beats
-  collapsed onto the identical note (F♯, C♯, C♯, C♯, no walking bass at all).
-  `fifth` stays string 6 (the genuine 5th, correct for Root–Fifth); `alt` moved
-  to string 4 (the 3rd, already fretted as half of the strings-4/3 partial
-  barre, so it costs nothing new) — the same "walk to the 3rd" convention as
-  `Gadd9`. Travis now plays F♯, B♭, C♯, B♭: three distinct notes, a real
-  walking bass. A test now asserts `alt !== fifth` across the whole library.
-- **Wide stretches** (5-fret spans): `F♯sus2` (2–6), `G♯sus2` (4–8), `Fsus2` (1–5),
-  `C♯add9` (4–8), `B♭add9` (1–5), `Badd9` (2–6). **All six were played and kept**
-  (v3.2.1). The three sus2 need a partial barre — one finger across strings 5+4 —
-  on top of the main barre: doable, but not beginner-friendly. The three add9 need
-  a genuine finger-crossing and are the harder half. Span alone was the wrong
-  measure here; what makes a shape hard is a *low-fret note stranded on the far
-  side of a high-fret one*, which is why `Dadd9` and `E♭add9` (span 4, not 5) were
-  the two that actually had to be dealt with.
+- **sus2 alternates root ↔ 9th, not root ↔ fifth,** wherever the open voicing
+  leaves no fifth on a bass string — `Csus2` walks C ↔ D, `Gsus2` walks G ↔ A.
+  sus2 has no third, so the open bass string gives the 2nd instead. Musically
+  fine, but it's an unusual thumb pattern worth knowing about before you hear
+  it and wonder.
+- **maj7 and m7 don't behave the same way on an E-shape barre root**, even
+  though they're siblings in the template. maj7 puts the major 7th on the
+  alt-bass string, so those roots alternate root ↔ 7 — the same trade dom7
+  makes. **m7 does not** (session 35b, his call on the voicing): it keeps a
+  plain root ↔ octave bass, with the ♭7 sounding only as a finger colour. Check
+  a specific chord's own row for which it does — the point of this note is
+  that "maj7 and m7 sound similar" is not a safe assumption here.
+- **The A family is uniform**: `A`, `Am`, `A7`, and every other A-quality chord
+  all sound the open low E string as their fifth. They didn't always — three of
+  them used to mute string 6 while declaring it as a bass role, a genuine
+  contradiction between the shape and what the thumb played. A test now forbids
+  any chord in the library from doing that.
+- **`Csus4` is a single full 6-string barre**, not two disconnected partial
+  barres. The tempting "take open C and bump the 3rd to a 4th" voicing forces
+  two separate partial-barre clusters that don't touch — the specific kind of
+  hard he flagged, distinct from an ordinary full barre, which he's fine with.
+  Falling through to the general A-shape template gives the one coherent barre
+  instead.
+- **The moving finger is data, not geometry**, and it's a short, closed list:
+  **`C`, `C7`, `C6`, `B7`** — that's all of it (`MOVING` in `data.js`). The
+  obvious geometric rule (two bass-role notes, adjacent strings, same fret)
+  fires on 82 of the 120 chords and is wrong on most of them — an ordinary F
+  barre has exactly that shape and nothing moves, you just hold both notes with
+  ring and pinky. What actually forces a finger to travel is a hand-fact (the
+  standard shape already commits every finger before the low bass note is
+  added), which is why it has to be declared per chord rather than derived.
+  `F♯6` and `E♭add9` both had an entry here through earlier revoicings and lost
+  it when a later voicing pass replaced them with shapes that hold every note
+  as a static barre — **worth confirming on the guitar**, since dropping a
+  moving-finger technique changes what your hand actually does, not just what
+  the diagram shows.
+- **Nothing in the current library needs more than a 4-fret stretch.** The
+  widest shapes are `B♭add9` and `Badd9`, both span 4; everything else is 3 or
+  less. That weren't always true — an earlier voicing pass had several 5-fret
+  spans (`G♯sus2`, `F♯sus2`, `Fsus2`, `C♯add9` among them) that a later
+  playability pass (session 35) replaced with tighter, full-barre shapes. If
+  you ever hit a shape that feels like a real stretch, it's worth flagging —
+  the library isn't supposed to have one left.
 
 ---
+
+<!-- GENERATED:START — regenerate via tools/gen_chord_reference.html, see the intro above. Do not hand-edit below this line. -->
 
 ## The 10 qualities
 
@@ -172,7 +134,7 @@ target, and it's the least idiomatic for this style.)*
 | **Cmaj7** | `3 3 2 0 0 0` | G C E G B E | 5 R 3 5 △7 3 | C (s5) ↔ E (s4) | G (s6) | 3 |
 | **Cm7** | `3 3 5 3 4 3` | G C G B♭ E♭ G | 5 R 5 ♭7 ♭3 5 | C (s5) ↔ G (s4) | G (s6) | 5 |
 | **C6** | `3 3 2 2 1 0` | G C E A C E | 5 R 3 6 R 3 | C (s5) ↔ E (s4) | G (s6) | 3 |
-| **Cm6** | `8 10 10 8 10 8` | C G C E♭ A C | R 5 R ♭3 6 R | C (s6) ↔ G (s5) | G (s5) | 10 |
+| **Cm6** | `8 10 10 8 10 8` | C G C E♭ A C | R 5 R ♭3 6 R | C (s6) ↔ C (s4) | G (s5) | 10 |
 | **Csus2** | `3 3 0 0 3 3` | G C D G D G | 5 R 9 5 9 5 | C (s5) ↔ D (s4) | G (s6) | 3 |
 | **Csus4** | `3 3 5 5 6 3` | G C G C F G | 5 R 5 R 4 5 | C (s5) ↔ G (s4) | G (s6) | 6 |
 | **Cadd9** | `3 3 2 0 3 0` | G C E G D E | 5 R 3 5 9 3 | C (s5) ↔ E (s4) | G (s6) | 3 |
@@ -187,10 +149,10 @@ target, and it's the least idiomatic for this style.)*
 | **C♯maj7** | `4 4 6 5 6 4` | G♯ C♯ G♯ C F G♯ | 5 R 5 △7 3 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 6 |
 | **C♯m7** | `4 4 6 4 5 4` | G♯ C♯ G♯ B E G♯ | 5 R 5 ♭7 ♭3 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 6 |
 | **C♯6** | `4 4 6 6 6 6` | G♯ C♯ G♯ C♯ F B♭ | 5 R 5 R 3 6 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 6 |
-| **C♯m6** | `9 11 11 9 11 9` | C♯ G♯ C♯ E B♭ C♯ | R 5 R ♭3 6 R | C♯ (s6) ↔ G♯ (s5) | G♯ (s5) | 11 |
+| **C♯m6** | `9 11 11 9 11 9` | C♯ G♯ C♯ E B♭ C♯ | R 5 R ♭3 6 R | C♯ (s6) ↔ C♯ (s4) | G♯ (s5) | 11 |
 | **C♯sus2** | `4 4 6 6 4 4` | G♯ C♯ G♯ C♯ E♭ G♯ | 5 R 5 R 9 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 6 |
 | **C♯sus4** | `4 4 6 6 7 4` | G♯ C♯ G♯ C♯ F♯ G♯ | 5 R 5 R 4 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 7 |
-| **C♯add9** | `4 4 6 8 6 4` | G♯ C♯ G♯ E♭ F G♯ | 5 R 5 9 3 5 | C♯ (s5) ↔ G♯ (s4) | G♯ (s6) | 8 |
+| **C♯add9** | `1 4 1 1 4 1` | F C♯ E♭ G♯ E♭ F | 3 R 9 5 9 3 | C♯ (s5) ↔ F (s6) | G♯ (s3) | 4 |
 
 ### D
 
@@ -205,7 +167,7 @@ target, and it's the least idiomatic for this style.)*
 | **Dm6** | `x 0 0 2 0 1` | x A D A B F | · 5 R 5 6 ♭3 | D (s4) ↔ A (s3) | A (s5) | 2 |
 | **Dsus2** | `x 0 0 2 3 0` | x A D A D E | · 5 R 5 R 9 | D (s4) ↔ A (s3) | A (s5) | 3 |
 | **Dsus4** | `x 0 0 2 3 3` | x A D A D G | · 5 R 5 R 4 | D (s4) ↔ A (s3) | A (s5) | 3 |
-| **Dadd9** | `x 0 0 2 5 2` | x A D A E F♯ | · 5 R 5 9 3 | D (s4) ↔ A (s3) | A (s5) | 5 |
+| **Dadd9** | `2 5 2 2 5 2` | F♯ D E A E F♯ | 3 R 9 5 9 3 | D (s5) ↔ F♯ (s6) | A (s3) | 5 |
 
 ### E♭
 
@@ -217,10 +179,10 @@ target, and it's the least idiomatic for this style.)*
 | **E♭maj7** | `6 6 8 7 8 6` | B♭ E♭ B♭ D G B♭ | 5 R 5 △7 3 5 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 8 |
 | **E♭m7** | `6 6 8 6 7 6` | B♭ E♭ B♭ C♯ F♯ B♭ | 5 R 5 ♭7 ♭3 5 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 8 |
 | **E♭6** | `6 6 8 8 8 8` | B♭ E♭ B♭ E♭ G C | 5 R 5 R 3 6 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 8 |
-| **E♭m6** | `6 6 8 8 7 8` | B♭ E♭ B♭ E♭ F♯ C | 5 R 5 R ♭3 6 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 8 |
+| **E♭m6** | `11 9 8 8 11 8` | E♭ F♯ B♭ E♭ B♭ C | R ♭3 5 R 5 6 | E♭ (s6) ↔ F♯ (s5) | B♭ (s4) | 11 |
 | **E♭sus2** | `6 6 8 8 6 6` | B♭ E♭ B♭ E♭ F B♭ | 5 R 5 R 9 5 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 8 |
-| **E♭sus4** | `x 1 1 3 4 4` | x B♭ E♭ B♭ E♭ G♯ | · 5 R 5 R 4 | E♭ (s4) ↔ B♭ (s5) | B♭ (s3) | 4 |
-| **E♭add9** | `6 6 5 0 6 6` | B♭ E♭ G G F B♭ | 5 R 3 3 9 5 | E♭ (s5) ↔ G (s4) | B♭ (s6) | 6 |
+| **E♭sus4** | `6 6 8 8 9 6` | B♭ E♭ B♭ E♭ G♯ B♭ | 5 R 5 R 4 5 | E♭ (s5) ↔ B♭ (s4) | B♭ (s6) | 9 |
+| **E♭add9** | `3 6 3 3 6 3` | G E♭ F B♭ F G | 3 R 9 5 9 3 | E♭ (s5) ↔ G (s6) | B♭ (s3) | 6 |
 
 ### E
 
@@ -230,7 +192,7 @@ target, and it's the least idiomatic for this style.)*
 | **Em** | `0 2 2 0 0 0` | E B E G B E | R 5 R ♭3 5 R | E (s6) ↔ E (s4) | B (s5) | 2 |
 | **E7** | `0 2 2 1 3 0` | E B E G♯ D E | R 5 R 3 ♭7 R | E (s6) ↔ E (s4) | B (s5) | 3 |
 | **Emaj7** | `0 2 1 1 0 0` | E B E♭ G♯ B E | R 5 △7 3 5 R | E (s6) ↔ E♭ (s4) | B (s5) | 2 |
-| **Em7** | `0 2 0 0 0 0` | E B D G B E | R 5 ♭7 ♭3 5 R | E (s6) ↔ D (s4) | B (s5) | 2 |
+| **Em7** | `0 2 2 0 3 0` | E B E G D E | R 5 R ♭3 ♭7 R | E (s6) ↔ E (s4) | B (s5) | 3 |
 | **E6** | `0 2 2 1 2 0` | E B E G♯ C♯ E | R 5 R 3 6 R | E (s6) ↔ E (s4) | B (s5) | 2 |
 | **Em6** | `0 2 2 0 2 0` | E B E G C♯ E | R 5 R ♭3 6 R | E (s6) ↔ E (s4) | B (s5) | 2 |
 | **Esus2** | `0 2 2 4 0 2` | E B E B B F♯ | R 5 R 5 5 9 | E (s6) ↔ E (s4) | B (s5) | 4 |
@@ -245,12 +207,12 @@ target, and it's the least idiomatic for this style.)*
 | **Fm** | `1 3 3 1 1 1` | F C F G♯ C F | R 5 R ♭3 5 R | F (s6) ↔ F (s4) | C (s5) | 3 |
 | **F7** | `1 3 1 2 1 1` | F C E♭ A C F | R 5 ♭7 3 5 R | F (s6) ↔ E♭ (s4) | C (s5) | 3 |
 | **Fmaj7** | `1 3 2 2 1 1` | F C E A C F | R 5 △7 3 5 R | F (s6) ↔ E (s4) | C (s5) | 3 |
-| **Fm7** | `1 3 1 1 1 1` | F C E♭ G♯ C F | R 5 ♭7 ♭3 5 R | F (s6) ↔ E♭ (s4) | C (s5) | 3 |
-| **F6** | `1 3 3 2 3 1` | F C F A D F | R 5 R 3 6 R | F (s6) ↔ F (s4) | C (s5) | 3 |
+| **Fm7** | `1 3 3 1 4 1` | F C F G♯ E♭ F | R 5 R ♭3 ♭7 R | F (s6) ↔ F (s4) | C (s5) | 4 |
+| **F6** | `8 8 10 10 10 10` | C F C F A D | 5 R 5 R 3 6 | F (s5) ↔ C (s4) | C (s6) | 10 |
 | **Fm6** | `1 3 3 1 3 1` | F C F G♯ D F | R 5 R ♭3 6 R | F (s6) ↔ F (s4) | C (s5) | 3 |
-| **Fsus2** | `1 3 3 5 1 3` | F C F C C G | R 5 R 5 5 9 | F (s6) ↔ F (s4) | C (s5) | 5 |
+| **Fsus2** | `8 8 10 10 8 8` | C F C F G C | 5 R 5 R 9 5 | F (s5) ↔ C (s4) | C (s6) | 10 |
 | **Fsus4** | `1 3 3 3 1 1` | F C F B♭ C F | R 5 R 4 5 R | F (s6) ↔ F (s4) | C (s5) | 3 |
-| **Fadd9** | `1 3 3 2 1 3` | F C F A C G | R 5 R 3 5 9 | F (s6) ↔ F (s4) | C (s5) | 3 |
+| **Fadd9** | `5 8 5 5 8 5` | A F G C G A | 3 R 9 5 9 3 | F (s5) ↔ A (s6) | C (s3) | 8 |
 
 ### F♯
 
@@ -260,12 +222,12 @@ target, and it's the least idiomatic for this style.)*
 | **F♯m** | `2 4 4 2 2 2` | F♯ C♯ F♯ A C♯ F♯ | R 5 R ♭3 5 R | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 4 |
 | **F♯7** | `2 4 2 3 2 2` | F♯ C♯ E B♭ C♯ F♯ | R 5 ♭7 3 5 R | F♯ (s6) ↔ E (s4) | C♯ (s5) | 4 |
 | **F♯maj7** | `2 4 3 3 2 2` | F♯ C♯ F B♭ C♯ F♯ | R 5 △7 3 5 R | F♯ (s6) ↔ F (s4) | C♯ (s5) | 4 |
-| **F♯m7** | `2 4 2 2 2 2` | F♯ C♯ E A C♯ F♯ | R 5 ♭7 ♭3 5 R | F♯ (s6) ↔ E (s4) | C♯ (s5) | 4 |
-| **F♯6** | `9 9 8 8 11 9` | C♯ F♯ B♭ E♭ B♭ C♯ | 5 R 3 6 3 5 | F♯ (s5) ↔ B♭ (s4) | C♯ (s6) | 11 |
+| **F♯m7** | `2 4 4 2 5 2` | F♯ C♯ F♯ A E F♯ | R 5 R ♭3 ♭7 R | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 5 |
+| **F♯6** | `9 9 11 11 11 11` | C♯ F♯ C♯ F♯ B♭ E♭ | 5 R 5 R 3 6 | F♯ (s5) ↔ C♯ (s4) | C♯ (s6) | 11 |
 | **F♯m6** | `2 4 4 2 4 2` | F♯ C♯ F♯ A E♭ F♯ | R 5 R ♭3 6 R | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 4 |
-| **F♯sus2** | `2 4 4 6 2 4` | F♯ C♯ F♯ C♯ C♯ G♯ | R 5 R 5 5 9 | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 6 |
+| **F♯sus2** | `9 9 11 11 9 9` | C♯ F♯ C♯ F♯ G♯ C♯ | 5 R 5 R 9 5 | F♯ (s5) ↔ C♯ (s4) | C♯ (s6) | 11 |
 | **F♯sus4** | `2 4 4 4 2 2` | F♯ C♯ F♯ B C♯ F♯ | R 5 R 4 5 R | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 4 |
-| **F♯add9** | `2 4 4 3 2 4` | F♯ C♯ F♯ B♭ C♯ G♯ | R 5 R 3 5 9 | F♯ (s6) ↔ F♯ (s4) | C♯ (s5) | 4 |
+| **F♯add9** | `6 9 6 6 9 6` | B♭ F♯ G♯ C♯ G♯ B♭ | 3 R 9 5 9 3 | F♯ (s5) ↔ B♭ (s6) | C♯ (s3) | 9 |
 
 ### G
 
@@ -275,12 +237,12 @@ target, and it's the least idiomatic for this style.)*
 | **Gm** | `3 5 5 3 3 3` | G D G B♭ D G | R 5 R ♭3 5 R | G (s6) ↔ G (s4) | D (s5) | 5 |
 | **G7** | `3 2 0 0 0 1` | G B D G B F | R 3 5 R 3 ♭7 | G (s6) ↔ D (s4) | B (s5) | 3 |
 | **Gmaj7** | `3 2 0 0 0 2` | G B D G B F♯ | R 3 5 R 3 △7 | G (s6) ↔ D (s4) | B (s5) | 3 |
-| **Gm7** | `3 5 3 3 3 3` | G D F B♭ D G | R 5 ♭7 ♭3 5 R | G (s6) ↔ F (s4) | D (s5) | 5 |
+| **Gm7** | `3 5 5 3 6 3` | G D G B♭ F G | R 5 R ♭3 ♭7 R | G (s6) ↔ G (s4) | D (s5) | 6 |
 | **G6** | `3 2 0 0 0 0` | G B D G B E | R 3 5 R 3 6 | G (s6) ↔ D (s4) | B (s5) | 3 |
 | **Gm6** | `3 5 5 3 5 3` | G D G B♭ E G | R 5 R ♭3 6 R | G (s6) ↔ G (s4) | D (s5) | 5 |
 | **Gsus2** | `3 0 0 0 3 3` | G A D G D G | R 9 5 R 5 R | G (s6) ↔ A (s5) | D (s4) | 3 |
 | **Gsus4** | `3 5 5 5 3 3` | G D G C D G | R 5 R 4 5 R | G (s6) ↔ G (s4) | D (s5) | 5 |
-| **Gadd9** | `3 2 0 2 0 3` | G B D A B G | R 3 5 9 3 R | G (s6) ↔ B (s5) | D (s4) | 3 |
+| **Gadd9** | `3 0 0 2 0 3` | G A D A B G | R 9 5 9 3 R | G (s6) ↔ A (s5) | D (s4) | 3 |
 
 ### G♯
 
@@ -290,12 +252,12 @@ target, and it's the least idiomatic for this style.)*
 | **G♯m** | `4 6 6 4 4 4` | G♯ E♭ G♯ B E♭ G♯ | R 5 R ♭3 5 R | G♯ (s6) ↔ G♯ (s4) | E♭ (s5) | 6 |
 | **G♯7** | `4 6 4 5 4 4` | G♯ E♭ F♯ C E♭ G♯ | R 5 ♭7 3 5 R | G♯ (s6) ↔ F♯ (s4) | E♭ (s5) | 6 |
 | **G♯maj7** | `4 6 5 5 4 4` | G♯ E♭ G C E♭ G♯ | R 5 △7 3 5 R | G♯ (s6) ↔ G (s4) | E♭ (s5) | 6 |
-| **G♯m7** | `4 6 4 4 4 4` | G♯ E♭ F♯ B E♭ G♯ | R 5 ♭7 ♭3 5 R | G♯ (s6) ↔ F♯ (s4) | E♭ (s5) | 6 |
-| **G♯6** | `4 6 6 5 6 4` | G♯ E♭ G♯ C F G♯ | R 5 R 3 6 R | G♯ (s6) ↔ G♯ (s4) | E♭ (s5) | 6 |
+| **G♯m7** | `4 6 6 4 7 4` | G♯ E♭ G♯ B F♯ G♯ | R 5 R ♭3 ♭7 R | G♯ (s6) ↔ G♯ (s4) | E♭ (s5) | 7 |
+| **G♯6** | `4 3 1 1 1 1` | G♯ C E♭ G♯ C F | R 3 5 R 3 6 | G♯ (s6) ↔ C (s5) | E♭ (s4) | 4 |
 | **G♯m6** | `4 6 6 4 6 4` | G♯ E♭ G♯ B F G♯ | R 5 R ♭3 6 R | G♯ (s6) ↔ G♯ (s4) | E♭ (s5) | 6 |
-| **G♯sus2** | `4 6 6 8 4 6` | G♯ E♭ G♯ E♭ E♭ B♭ | R 5 R 5 5 9 | G♯ (s6) ↔ G♯ (s4) | E♭ (s5) | 8 |
+| **G♯sus2** | `4 1 1 1 4 4` | G♯ B♭ E♭ G♯ E♭ G♯ | R 9 5 R 5 R | G♯ (s6) ↔ B♭ (s5) | E♭ (s4) | 4 |
 | **G♯sus4** | `4 6 6 6 4 4` | G♯ E♭ G♯ C♯ E♭ G♯ | R 5 R 4 5 R | G♯ (s6) ↔ G♯ (s4) | E♭ (s5) | 6 |
-| **G♯add9** | `4 6 6 5 4 6` | G♯ E♭ G♯ C E♭ B♭ | R 5 R 3 5 9 | G♯ (s6) ↔ G♯ (s4) | E♭ (s5) | 6 |
+| **G♯add9** | `4 1 1 3 1 4` | G♯ B♭ E♭ B♭ C G♯ | R 9 5 9 3 R | G♯ (s6) ↔ B♭ (s5) | E♭ (s4) | 4 |
 
 ### A
 
@@ -322,7 +284,7 @@ target, and it's the least idiomatic for this style.)*
 | **B♭maj7** | `1 1 3 2 3 1` | F B♭ F A D F | 5 R 5 △7 3 5 | B♭ (s5) ↔ F (s4) | F (s6) | 3 |
 | **B♭m7** | `1 1 3 1 2 1` | F B♭ F G♯ C♯ F | 5 R 5 ♭7 ♭3 5 | B♭ (s5) ↔ F (s4) | F (s6) | 3 |
 | **B♭6** | `1 1 3 3 3 3` | F B♭ F B♭ D G | 5 R 5 R 3 6 | B♭ (s5) ↔ F (s4) | F (s6) | 3 |
-| **B♭m6** | `1 1 3 3 2 3` | F B♭ F B♭ C♯ G | 5 R 5 R ♭3 6 | B♭ (s5) ↔ F (s4) | F (s6) | 3 |
+| **B♭m6** | `6 8 8 6 8 6` | B♭ F B♭ C♯ G B♭ | R 5 R ♭3 6 R | B♭ (s6) ↔ B♭ (s4) | F (s5) | 8 |
 | **B♭sus2** | `1 1 3 3 1 1` | F B♭ F B♭ C F | 5 R 5 R 9 5 | B♭ (s5) ↔ F (s4) | F (s6) | 3 |
 | **B♭sus4** | `1 1 3 3 4 1` | F B♭ F B♭ E♭ F | 5 R 5 R 4 5 | B♭ (s5) ↔ F (s4) | F (s6) | 4 |
 | **B♭add9** | `1 1 3 5 3 1` | F B♭ F C D F | 5 R 5 9 3 5 | B♭ (s5) ↔ F (s4) | F (s6) | 5 |
@@ -337,12 +299,9 @@ target, and it's the least idiomatic for this style.)*
 | **Bmaj7** | `2 2 4 3 4 2` | F♯ B F♯ B♭ E♭ F♯ | 5 R 5 △7 3 5 | B (s5) ↔ F♯ (s4) | F♯ (s6) | 4 |
 | **Bm7** | `2 2 4 2 3 2` | F♯ B F♯ A D F♯ | 5 R 5 ♭7 ♭3 5 | B (s5) ↔ F♯ (s4) | F♯ (s6) | 4 |
 | **B6** | `2 2 4 4 4 4` | F♯ B F♯ B E♭ G♯ | 5 R 5 R 3 6 | B (s5) ↔ F♯ (s4) | F♯ (s6) | 4 |
-| **Bm6** | `2 2 4 4 3 4` | F♯ B F♯ B D G♯ | 5 R 5 R ♭3 6 | B (s5) ↔ F♯ (s4) | F♯ (s6) | 4 |
+| **Bm6** | `7 9 9 7 9 7` | B F♯ B D G♯ B | R 5 R ♭3 6 R | B (s6) ↔ B (s4) | F♯ (s5) | 9 |
 | **Bsus2** | `2 2 4 4 2 2` | F♯ B F♯ B C♯ F♯ | 5 R 5 R 9 5 | B (s5) ↔ F♯ (s4) | F♯ (s6) | 4 |
 | **Bsus4** | `2 2 4 4 5 2` | F♯ B F♯ B E F♯ | 5 R 5 R 4 5 | B (s5) ↔ F♯ (s4) | F♯ (s6) | 5 |
 | **Badd9** | `2 2 4 6 4 2` | F♯ B F♯ C♯ E♭ F♯ | 5 R 5 9 3 5 | B (s5) ↔ F♯ (s4) | F♯ (s6) | 6 |
 
----
-
-*Regenerate this after any voicing change: the tables are derived from
-`CHORDS` / `CHORD_SHAPES` in `js/data.js`.*
+<!-- GENERATED:END -->

@@ -9,6 +9,8 @@
 
 export const SAVED_KEY = "travis-picker:saved";
 export const SCHEMA_VERSION = 1;
+const EXPORT_APP = "travis-picker";
+const EXPORT_KIND = "saved-library";
 
 function newId() {
   if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
@@ -102,6 +104,74 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
       return readAll().length;
     },
   };
+}
+
+// ----- Export/import (item 4): belt-and-braces insurance against iOS
+// evicting localStorage, and the way patterns move between devices/people. -----
+
+// A single pattern and a whole library share one wrapper, so import only
+// ever needs one code path. `items` is exactly what list() returns — the
+// full stored shape (id/savedAt included) travels with the file for
+// provenance, even though import only reads name/pattern/context/source back
+// out of it (see parseImport).
+export function buildExport(items) {
+  return {
+    app: EXPORT_APP,
+    exportKind: EXPORT_KIND,
+    schema: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    items: items.slice(),
+  };
+}
+
+function looksLikePattern(pattern) {
+  return !!pattern && typeof pattern === "object" &&
+    Array.isArray(pattern.thumbBars) && Array.isArray(pattern.trebleBars);
+}
+
+// Parses and validates an imported file. NEVER THROWS — an untrusted file is
+// a real system boundary, so this is the one place in the feature that
+// validates shape rather than trusting it (readAll()'s "corrupt input
+// degrades quietly" convention, extended to a whole file rather than one
+// stored blob). Individual malformed entries are skipped rather than failing
+// the whole import; only a file that isn't recognizable as a Travis Picker
+// export at all is rejected outright.
+export function parseImport(raw) {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false, error: "That file isn't valid JSON." };
+  }
+
+  // The wrapped shape is the real format, and self-identifies via `app` — so
+  // it's trusted as "items" even if every entry inside turns out unreadable
+  // (that's a "skipped" result below, not a rejection: the file WAS clearly
+  // ours). A bare array has no such tag, so it's only accepted as a lenient
+  // alternate format when at least one entry actually looks like a pattern —
+  // otherwise an unrelated JSON array (e.g. `[1,2,3]`) would silently "import"
+  // as zero patterns instead of being reported as the wrong file entirely.
+  const wrapped = parsed && parsed.app === EXPORT_APP && Array.isArray(parsed.items);
+  const bareArray = Array.isArray(parsed) &&
+    parsed.some((e) => e && typeof e === "object" && looksLikePattern(e.pattern));
+  const entries = wrapped ? parsed.items : bareArray ? parsed : null;
+  if (!entries) return { ok: false, error: "That doesn't look like a Travis Picker export." };
+
+  const items = [];
+  let skipped = 0;
+  for (const entry of entries) {
+    if (entry && typeof entry === "object" && looksLikePattern(entry.pattern)) {
+      items.push({
+        name: typeof entry.name === "string" ? entry.name : "",
+        pattern: entry.pattern,
+        context: entry.context && typeof entry.context === "object" ? entry.context : {},
+        source: entry.source === "drawn" ? "drawn" : "generated",
+      });
+    } else {
+      skipped++;
+    }
+  }
+  return { ok: true, items, skipped };
 }
 
 export const savedStore = createStore();

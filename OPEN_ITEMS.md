@@ -1024,6 +1024,13 @@ field for free.
 **Probably the best-value item on the list**, and the only big-ish one with no
 decision blocking it. The one thing I'd want from you is the *patterns* — either
 a handful you've saved and like, or a nod to pick a spread across the tiers.
+**Item 4 (export) shipped specifically to make this reliable** — export your
+library and send the file rather than screenshots, no transcription risk.
+Naming: real names (his call, e.g. "The Claw," "Stumpwater") — feel/technique
+names were the lower-risk default, but the picking pattern itself can't
+reproduce a specific recording's melody (there's no field for one; only chord
+role strings and hand-domain events), and a title alone is a reference, not a
+reproduction, commercial use or not.
 
 ### 3. Swing — DONE (v2.13.2)
 One **SWING** slider on the Generation page, 50–75%, smooth like the Tempo one.
@@ -1039,10 +1046,14 @@ bidirectional swing (sub-50 pre-delay), and any generator change.
 **Nothing owed on it** — the Guide line about the `2 & 4` feel is moot now that
 the feel is gone.
 
-### 4. JSON export/import of the Saved library — OPEN
-Insurance against iOS evicting localStorage after ~7 days of not opening the app.
-The home-screen install is the main defence; this is the belt-and-braces one, and
-it's the most *defensive* item on the list.
+### 4. JSON export/import of the Saved library — DONE (session 37, v3.6.0)
+Export is library-wide (one file, both the backup case and handing someone a
+pattern); import is a merge, never a replace, using the same `save()` every
+other path uses, so name collisions get the ordinary `(2)` suffix. See
+`CLAUDE.md`'s "Saved library" section. **Not yet confirmed on his phone**:
+whether a real download lands somewhere usable in installed-PWA iOS Safari,
+and whether the iOS file picker can select a `.json` from Files/iCloud for
+import — the dev box can't answer either.
 
 ### 5. App icon: full bleed — OPEN, needs regenerated art
 The icon is done and signed off (v2.9.2, built from Jerry's own theme values).

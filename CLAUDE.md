@@ -151,6 +151,9 @@ tools/            make_icons.py + icon-master.png; authoring only, nothing
                   ABORTS rather than writing if the art drifts outside the
                   maskable safe zone. Icons are opaque colour-type-2 — iOS
                   composites black behind any alpha in a home-screen icon.
+                  gen_chord_reference.html regenerates CHORD_REFERENCE.md's
+                  tables from js/data.js (session 37) — also authoring-only,
+                  needs the dev server for its ES module import.
 css/styles.css    mobile-first "tweed faceplate" (v2.1); colors are CSS vars set by js/theme.js
 js/data.js        pure data tables + small pure helpers (no generation logic)
 js/generator.js   pure generatePattern() + resolveBar/resolvePattern/resolvePhrase
@@ -462,6 +465,28 @@ then re-renders — it never re-rolls. `rename(id, name)` (v2.4.5) updates the n
 in place (trims, ignores blanks, keeps pattern/id/savedAt); each Load-menu item is
 Load / Rename / Delete. `save()` de-dupes names Finder-style via `uniqueName()`:
 the original keeps its plain name, later saves become `Name (2)`, `Name (3)`.
+
+**Export/import** (session 38, item 4): belt-and-braces insurance against iOS
+evicting localStorage, and how a library moves between devices or people.
+`buildExport(items)`/`parseImport(raw)` are pure functions beside the store
+(no DOM, no browser APIs), so they're unit-tested the same way as everything
+else here. **Export is library-wide only, never per-pattern** — one file
+covers both the backup case and "hand someone a pattern," without a fourth
+button crowding the saved-item row. A single item and a full library share
+one wrapper shape (`{ app: "travis-picker", exportKind, schema, exportedAt,
+items }`), so import only ever needs one code path. **Import is a MERGE, never
+a replace** — it writes each parsed item through the same `save()` every other
+save path uses, so name collisions get the ordinary Finder-style `(2)` suffix
+and nothing existing is ever overwritten or deleted. That's also why it needs
+no confirmation dialog — `confirmModal` is reserved for actions that can lose
+data, and merging can't. The wrapped shape self-identifies via `app` and is
+trusted even if every entry inside is unreadable (reported as `skipped`, not
+rejected); a **bare array** is accepted too, leniently, but only if at least
+one entry actually looks like a stored pattern — otherwise an unrelated JSON
+array would silently "import" as zero patterns instead of being reported as
+the wrong file. The two buttons live in a small toolbar inside the Load
+sheet's list mode (`#library-toolbar` in `index.html`); Export is disabled
+whenever the library is empty, same convention as the Load pill.
 
 **Session preferences** (`tp-prefs`, in `app.js`, session 32): the controls you
 **set once and keep**, restored on the next launch — chord mode, chord, key,
@@ -1057,7 +1082,11 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.5.2, 112/112 green.** Session 36 removed Pattern length (the generator now
+**v3.6.0, 118/118 green.** Session 37 regenerated `CHORD_REFERENCE.md`'s tables
+straight from `js/data.js` instead of hand-typing them (a doc-only pass, no
+version bump); session 38 shipped JSON export/import of the Saved library
+(item 4), built ahead of pre-loaded patterns (item 2) so patterns can travel to
+me as a file instead of a screenshot. Session 36 removed Pattern length (the generator now
 always makes one distinct bar, per his real-guitar testing) and replaced it with
 ×2 mode — a progression chord can ring for two bars, the grid still shows 4, two
 pass lamps per bar mark which pass is sounding. Swing also started saving with
@@ -1083,8 +1112,11 @@ and Unruly, and the app as a whole on the guitar as of v2.13.3. The build order 
 `travis-picker-workflow.md` is complete.
 
 **Waiting on his phone:** whether the chord diagram is legible at arm's length
-(`.chordbox { width }` is the dial), the real landscape rotate, and whether Play
-ever goes dead again. **And on his guitar (session 35):** `F♯6` and `E♭add9` both
+(`.chordbox { width }` is the dial), the real landscape rotate, whether Play
+ever goes dead again, and (session 38) whether a real download lands somewhere
+usable in installed-PWA iOS Safari and whether the iOS file picker can select a
+`.json` from Files/iCloud for import — the dev box can't answer either.
+**And on his guitar (session 35):** `F♯6` and `E♭add9` both
 dropped the moving-finger technique for static barres, and `E♭sus4` moved back up
 to frets 6–9 — each replaces a voicing reasoned out only a session or two before.
 

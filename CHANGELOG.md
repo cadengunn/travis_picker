@@ -11,6 +11,8 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [38](#where-things-stand-session-38--v360-2026-08-04) | **v3.6.0** | JSON export/import of the Saved library (item 4) — library-wide export, merge-only import, built first so patterns for item 2 (pre-loaded patterns) can travel as a file instead of a screenshot |
+| [37](#where-things-stand-session-37--docs--tooling-2026-08-04) | *(no version)* | `CHORD_REFERENCE.md`'s tables are generated now, not hand-typed — a browser tool reads `js/data.js` directly, which also caught a second staleness bug the "STALE" banner hadn't flagged (Cm6/C♯m6's alt string was mislabeled) |
 | [36c](#where-things-stand-session-36c--v352-2026-08-04) | **v3.5.2** | his second phone review, and it found the real bug: the pass lamps had NEVER lit — the selector was re-typed at the call site as `.pass-lamp[data-bar=…]` when `data-bar` is on the container, so it matched nothing, and the markup-shape test passed the whole time. Selector moved into `grid.js` and imported. Lamps also re-centred and given the beat lamp's exact material; single mode now locks ×2 to ×1 with a press that pops back out rather than a dead disabled key |
 | [36b](#where-things-stand-session-36b--v351-2026-08-04) | **v3.5.1** | his phone review of v3.5.0, same session: the pass lamps weren't visible (wrong corner, and a jewel gradient tuned for dark wells vanished on light themes), the ×2 toggle wore the wrong material (Sound-toggle lamp instead of Format's segmented carved keys), and he wanted a persistent ×2 chip like ABS/MIX. The long-unnoticed numeral chip came out too, his call |
 | [36](#where-things-stand-session-36--v350-2026-08-04) | **v3.5.0** | the kickoff prompt asked for ×2 mode additive to Pattern length; his guitar testing (many real Jerry Reed pieces) found the picking pattern repeats every bar regardless, so Pattern length was removed instead — `generatePattern` now always makes one distinct bar — and ×2 replaced it: a progression chord rings for two bars, the grid still shows 4, two pass lamps per bar mark which pass is sounding. Swing also started saving with the pattern, additively |
@@ -59,6 +61,97 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 38 — v3.6.0, 2026-08-04)
+
+**JSON export/import of the Saved library, item 4.** Built ahead of item 2
+(pre-loaded patterns) on purpose — it's also the reliable way for him to hand
+me the patterns he wants pre-loaded: export the library, send the file, name
+which items to use. No screenshot transcription.
+
+**Two pure functions in `storage.js`, no DOM.** `buildExport(items)` wraps
+whatever `list()` returns in a small tagged shape (`{ app: "travis-picker",
+exportKind, schema, exportedAt, items }`); `parseImport(raw)` parses and
+validates it back, never throwing. A single pattern and a full library share
+the exact same wrapper, so import only needs one code path regardless of
+which produced the file.
+
+**Export is library-wide only, his call** — covers the backup case and the
+"send Claude patterns" case both, without a fourth button on the saved-item
+row (which already carries Load/Rename/Delete).
+
+**Import is a merge, never a replace.** Every parsed item goes back through
+the same `savedStore.save()` every other save path already uses — nothing
+existing is overwritten or deleted, and a same-named import gets the ordinary
+Finder-style `(2)` suffix. Being non-destructive is also why it needed no
+`confirmModal`: that's reserved for actions that can lose data, and this
+can't.
+
+**A test caught a real leniency bug before it shipped.** The first cut of
+`parseImport` accepted *any* bare JSON array as a lenient alternate format —
+so `[1, 2, 3]`, which is valid JSON and technically an array, "imported" as
+zero patterns instead of being reported as the wrong file. Fixed: a bare array
+is only accepted if at least one entry actually looks like a stored pattern;
+the wrapped shape is still trusted unconditionally since it self-identifies
+via `app`, even if every entry inside turns out unreadable (that's `skipped`,
+not a rejection — the file was clearly ours, just partly corrupt).
+
+**Verified in the Browser-pane dev server**, working around a real quirk of
+it: synthetic `computer`-tool clicks weren't registering on the header
+buttons at all (confirmed by checking `#saved-sheet.hidden` via JS after each
+click — stayed `true`), while a JS-dispatched `.click()` on the same element
+opened it immediately. Everything from here was driven that way — real DOM
+clicks, verified through direct state reads rather than trusting the
+screenshot. Confirmed: Export produces the right wrapper/count against the
+live store; a garbage file is rejected with a clear message; re-importing the
+same library produces the `(2)`-suffixed duplicate through the real UI, not
+just the pure function; Export disables at zero saved patterns via the real
+Delete flow. **Not confirmed, and can't be from here**: whether a real
+download lands somewhere usable in installed-PWA iOS Safari, and whether the
+iOS file picker can select a `.json` from Files/iCloud for import.
+
+118/118 green (112 + 6 new checks for `buildExport`/`parseImport` and the
+merge path, following the existing `createStore` + in-memory-stub pattern).
+
+## Where things stand (session 37 — docs + tooling, 2026-08-04)
+
+**`CHORD_REFERENCE.md` was rebuilt so it can't rot the way it just had.**
+Written by hand at v3.0.0/v3.2.1, it had drifted ~25 chords out of sync with
+the real voicings by session 35 and was carrying a "STALE — DO NOT PLAY FROM
+THIS SHEET" banner as a stopgap. The fix is `tools/gen_chord_reference.html` —
+an authoring-only page (nothing at runtime imports it, same category as
+`make_icons.py`) that imports `js/data.js` directly, computes every chord's
+tab/notes/intervals/thumb-bass/max-fret, and renders the two generated tables
+into a textarea to paste over a marked block in the doc. The hand-written
+commentary (intro, "How to read it", the judgment-call notes) stays outside the
+markers and stays hand-written — that reasoning isn't derivable from the data.
+
+**Regenerating it surfaced a bug the banner's own known-wrong list had missed.**
+`Cm6` and `C♯m6`'s "Thumb: root ↔ alt" column had always shown the alt note as
+identical to the Fifth column (`C (s6) ↔ G (s5)` with Fifth also `G (s5)`) —
+but `data.js` declares `alt: 4`, a different string entirely, and the real note
+there is the root's octave, not the fifth. Not a session-35 revoicing casualty
+like the rest of the list — this one predates it, likely from whenever Cm6/C♯m6
+moved up the neck in v3.2.4 and the hand-typed row wasn't fully re-derived.
+Machine-generated from the same fields the app resolves from, it can't happen
+again the same way.
+
+**The "Worth your eye" section was rewritten rather than carried forward.**
+Most of its paragraphs described specific voicings that session 35 had already
+replaced (E♭add9's moving-string-6/1 trick, Gadd9's root↔3rd bass, F♯6's
+moving-finger read) — exactly the CLAUDE.md session-34 lesson about doc rot
+("a 'session N' attribution is a pointer into CHANGELOG.md, not a summary of
+it"). Replaced with present-tense, durable statements only (the moving-finger
+list is short and closed — `C`, `C7`, `C6`, `B7` — so it's stated directly; the
+old "5-fret stretch" list is gone because it's no longer true — the widest
+shape in the library today is 4 frets, computed live rather than asserted).
+
+**Also fixed:** the Browser-pane rsync mirror in `.claude/launch.json` pointed
+at a previous session's now-gone scratchpad path (per CLAUDE.md's dev-box notes,
+this file is untracked and has to be re-pointed at the start of a session that
+wants to preview anything).
+
+No app file changed; 112/112 unaffected, no version bump, no `CACHE` bump.
 
 ## Where things stand (session 36c — v3.5.2, 2026-08-04)
 

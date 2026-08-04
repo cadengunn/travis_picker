@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CHORD_REFERENCE.md table generator</title>
+</head>
+<body>
+<!--
+  Authoring tool, not part of the app — nothing at runtime imports this page,
+  and it isn't in sw.js's PRECACHE. It regenerates the TABLE portion of
+  ../CHORD_REFERENCE.md straight from js/data.js, so the reference sheet can't
+  drift out of sync with a voicing change the way the hand-typed original did
+  (~25 chords went stale across session 35 alone).
+
+  How to use: serve the repo over HTTP (ES modules need it — see CLAUDE.md's
+  "Running it"), open this page, copy the textarea's contents, and paste them
+  in over everything between the GENERATED:START / GENERATED:END markers in
+  CHORD_REFERENCE.md. The hand-written prose above and below those markers
+  (the intro, "How to read it", the "Worth your eye" judgment-call notes) is
+  not touched — it's a separate, load-bearing part of the doc and is edited
+  by hand, same as always.
+-->
+<pre id="status">loading js/data.js…</pre>
+<textarea id="out" style="width: 100%; height: 80vh; font-family: monospace; white-space: pre;" readonly></textarea>
+<script type="module">
+  import {
+    ROOTS, QUALITIES, CHORDS, CHORD_SHAPES, CHORD_IDS, OPEN_STRING_MIDI,
+  } from "../js/data.js";
+
+  const STRINGS = [6, 5, 4, 3, 2, 1];
+
+  // Same spelling table the app itself uses (ROOTS[].name), indexed by pc —
+  // reusing it rather than re-typing PC_NAME is the whole point: a pitch can't
+  // be spelled two ways between the app and this sheet.
+  const pcName = new Array(12);
+  for (const r of ROOTS) pcName[r.pc] = r.name;
+  const rootPcById = Object.fromEntries(ROOTS.map((r) => [r.id, r.pc]));
+
+  const openPc = Object.fromEntries(STRINGS.map((s) => [s, OPEN_STRING_MIDI[s] % 12]));
+  const pcAt = (string, fret) => (openPc[string] + fret) % 12;
+
+  // Standard interval-name spelling, degree numbers only for the ones this
+  // library actually uses (no dim/aug quality, so no ♭5/♯5 ever appears).
+  const INTERVAL = ["R", "♭9", "9", "♭3", "3", "4", "♯4", "5", "♭6", "6", "♭7", "△7"];
+
+  // The quality's chord-tone formula — music theory, not a voicing, so it's a
+  // constant of the quality itself and can't go stale the way a fret shape can.
+  const FORMULA = {
+    major: "R 3 5", minor: "R ♭3 5",
+    dom7: "R 3 5 ♭7", maj7: "R 3 5 △7", min7: "R ♭3 5 ♭7",
+    maj6: "R 3 5 6", min6: "R ♭3 5 6",
+    sus2: "R 9 5", sus4: "R 4 5", add9: "R 3 5 9",
+  };
+  const REEL_SECTION = { major: "Triads", minor: "Triads", dom7: "Sevenths", maj7: "Sevenths", min7: "Sevenths",
+    maj6: "Sixths", min6: "Sixths", sus2: "Suspended", sus4: "Suspended", add9: "Added" };
+
+  function qualityTable() {
+    const rows = QUALITIES.map((q) =>
+      `| ${REEL_SECTION[q.id]} | ${q.name} | ${q.suffix ? "\`" + q.suffix + "\`" : "*(none)*"} | ${FORMULA[q.id]} |`
+    );
+    return [
+      "| Reel section | Quality | Suffix | Formula |",
+      "|---|---|---|---|",
+      ...rows,
+    ].join("\n");
+  }
+
+  function chordRow(id) {
+    const chord = CHORDS[id];
+    const shape = CHORD_SHAPES[id];
+    const rootPc = rootPcById[chord.rootId];
+
+    const tab = STRINGS.map((s) => (shape[s] == null ? "x" : String(shape[s])));
+    const notes = STRINGS.map((s) => (shape[s] == null ? "x" : pcName[pcAt(s, shape[s])]));
+    const intervals = STRINGS.map((s) =>
+      shape[s] == null ? "·" : INTERVAL[(pcAt(s, shape[s]) - rootPc + 12) % 12]
+    );
+
+    // Same lookup the app's own resolver uses (generator.js resolveBar): root
+    // and alt read the shape fret at their string (falling back to open, 0,
+    // if the shape doesn't specify it); fifth reads the chord's dedicated
+    // fifthFret rather than the shape, since it can sit on a string the shape
+    // itself doesn't fret (C's fifth is string 6 fret 3 in a shape that mutes
+    // string 6... no, C frets it; the general case is real regardless).
+    const rootFret = shape[chord.root] ?? 0;
+    const altFret = shape[chord.alt] ?? 0;
+    const rootNote = pcName[pcAt(chord.root, rootFret)];
+    const altNote = pcName[pcAt(chord.alt, altFret)];
+    const fifthNote = pcName[pcAt(chord.fifth, chord.fifthFret)];
+
+    const fretted = STRINGS.map((s) => shape[s]).filter((f) => f != null);
+    const maxFret = Math.max(...fretted, chord.fifthFret);
+
+    return `| **${chord.name}** | \`${tab.join(" ")}\` | ${notes.join(" ")} | ${intervals.join(" ")} | ${rootNote} (s${chord.root}) ↔ ${altNote} (s${chord.alt}) | ${fifthNote} (s${chord.fifth}) | ${maxFret} |`;
+  }
+
+  function chordTables() {
+    const header = [
+      "| Chord | Tab (6→1) | Notes (6→1) | Intervals | Thumb: root ↔ alt | Fifth | Max fret |",
+      "|---|---|---|---|---|---|---|",
+    ];
+    const sections = [];
+    let currentRoot = null;
+    let rows = [];
+    const flush = () => {
+      if (currentRoot != null) {
+        sections.push(`### ${currentRoot}\n\n${header.join("\n")}\n${rows.join("\n")}`);
+      }
+    };
+    for (const id of CHORD_IDS) {
+      const chord = CHORDS[id];
+      const rootName = pcName[rootPcById[chord.rootId]];
+      if (rootName !== currentRoot) {
+        flush();
+        currentRoot = rootName;
+        rows = [];
+      }
+      rows.push(chordRow(id));
+    }
+    flush();
+    return sections.join("\n\n");
+  }
+
+  const md = [
+    "## The 10 qualities",
+    "",
+    qualityTable(),
+    "",
+    "*(dim7 is deliberately absent — no perfect fifth means no natural alternating-bass",
+    "target, and it's the least idiomatic for this style.)*",
+    "",
+    "---",
+    "",
+    "## Every chord, by root",
+    "",
+    chordTables(),
+  ].join("\n");
+
+  document.getElementById("out").value = md;
+  document.getElementById("status").textContent =
+    `generated from js/data.js — ${CHORD_IDS.length} chords, ${QUALITIES.length} qualities. Select all, copy, paste over the GENERATED block in CHORD_REFERENCE.md.`;
+</script>
+</body>
+</html>

@@ -35,7 +35,7 @@ import {
 } from "./generator.js";
 import { renderGrid, passLampSelector } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
-import { savedStore } from "./storage.js";
+import { savedStore, buildExport, parseImport } from "./storage.js";
 import { toggleNote } from "./editor.js";
 import {
   createMetronome,
@@ -64,7 +64,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.5.2";
+const APP_VERSION = "v3.6.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -988,6 +988,7 @@ function refreshSavedCount() {
   el("open-load").setAttribute("aria-label", label);
   el("open-load").title = n ? `Load (${n} saved)` : "Load";
   el("open-load").disabled = n === 0;
+  el("export-btn").disabled = n === 0;
 }
 
 function renderSavedList() {
@@ -1063,6 +1064,56 @@ function renderSavedList() {
     li.append(meta, load, rename, del);
     list.appendChild(li);
   }
+}
+
+// Whole-library backup, and how patterns move between devices or to someone
+// else — belt-and-braces insurance against iOS evicting localStorage, item 4.
+// Export is deliberately library-wide, never per-pattern: it covers both
+// jobs (backup, and handing someone a file) without a fourth button crowding
+// the saved-item row.
+function exportLibrary() {
+  const payload = buildExport(savedStore.list());
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `travis-picker-library-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Import is a MERGE, never a replace — nothing existing is overwritten or
+// deleted, so it needs no confirmModal (that's reserved for actions that can
+// lose data). Name collisions get the same Finder-style "(2)" suffix a manual
+// double-Save already produces, via the same savedStore.save() every other
+// save path uses.
+function importLibrary(file) {
+  const hint = el("import-hint");
+  const reader = new FileReader();
+  reader.onload = () => {
+    const result = parseImport(String(reader.result));
+    if (!result.ok) {
+      hint.textContent = result.error;
+      return;
+    }
+    let saved = 0;
+    for (const item of result.items) {
+      if (savedStore.save(item)) saved++;
+    }
+    const failed = result.items.length - saved;
+    const parts = [`Imported ${saved} pattern${saved === 1 ? "" : "s"}`];
+    if (result.skipped) parts.push(`skipped ${result.skipped} unreadable`);
+    if (failed) parts.push(`${failed} failed to save`);
+    hint.textContent = parts.join(", ") + ".";
+    renderSavedList();
+    refreshSavedCount();
+  };
+  reader.onerror = () => {
+    hint.textContent = "Couldn't read that file.";
+  };
+  reader.readAsText(file);
 }
 
 function summarize(item) {
@@ -1208,6 +1259,7 @@ function openSheet(mode) {
   const saving = mode === "save";
   el("saved-title").textContent = saving ? "Save" : "Load";
   el("save-section").hidden = !saving;
+  el("library-toolbar").hidden = saving;
   el("saved-list").hidden = saving;
 
   if (saving) {
@@ -1538,6 +1590,13 @@ function attach() {
   // Save / Load sheets
   el("open-save").addEventListener("click", () => openSheet("save"));
   el("open-load").addEventListener("click", () => openSheet("load"));
+  el("export-btn").addEventListener("click", exportLibrary);
+  el("import-btn").addEventListener("click", () => el("import-file").click());
+  el("import-file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    e.target.value = ""; // clear so re-importing the same file still fires change
+    if (file) importLibrary(file);
+  });
   el("save-btn").addEventListener("click", saveCurrent);
   el("save-name").addEventListener("keydown", (e) => {
     if (e.key === "Enter") saveCurrent();

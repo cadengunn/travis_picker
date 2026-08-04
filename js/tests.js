@@ -53,7 +53,7 @@ import {
 } from "./generator.js";
 import * as GeneratorExports from "./generator.js";
 import * as DataExports from "./data.js";
-import { createStore } from "./storage.js";
+import { createStore, buildExport, parseImport } from "./storage.js";
 import { toggleNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
 import { renderGrid, passLampSelector } from "./grid.js";
 import {
@@ -1138,6 +1138,91 @@ check("saved: duplicate names get a Finder-style (n) suffix", () => {
   const u2 = store.save({ name: "", pattern, context: ctx });
   assert(u1.name === "Untitled", `blank -> "Untitled", got "${u1.name}"`);
   assert(u2.name === "Untitled (2)", `second blank -> "Untitled (2)", got "${u2.name}"`);
+});
+
+// 10b) Export/import (item 4): buildExport/parseImport are pure data
+//      functions, so no DOM/FileReader is needed to test them — only the
+//      merge itself goes through a real store, same memoryStorage stub.
+check("buildExport wraps the library without mutating it", () => {
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("C", { rng: seeded(21) });
+  const ctx = { chordMode: "single", chord: "C", key: "C", progression: [] };
+  store.save({ name: "a", pattern, context: ctx });
+  store.save({ name: "b", pattern, context: ctx });
+
+  const items = store.list();
+  const before = JSON.stringify(items);
+  const payload = buildExport(items);
+  assert(payload.app === "travis-picker", "export should be tagged with the app id");
+  assert(Array.isArray(payload.items) && payload.items.length === 2, "export should carry every item");
+  assert(typeof payload.exportedAt === "string", "export should carry a timestamp");
+  assert(JSON.stringify(items) === before, "buildExport must not mutate its input");
+});
+
+check("parseImport round-trips buildExport's output", () => {
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("G", { rng: seeded(22) });
+  const ctx = { chordMode: "single", chord: "G", key: "G", progression: [] };
+  const saved = store.save({ name: "roundtrip", pattern, context: ctx });
+
+  const payload = buildExport(store.list());
+  const result = parseImport(JSON.stringify(payload));
+  assert(result.ok, "a real export should parse as ok");
+  assert(result.skipped === 0, "a real export should skip nothing");
+  assert(result.items.length === 1, "should recover exactly one item");
+  assert(result.items[0].name === "roundtrip", "name should round-trip");
+  assert(JSON.stringify(result.items[0].pattern) === JSON.stringify(saved.pattern), "pattern should round-trip");
+  assert(JSON.stringify(result.items[0].context) === JSON.stringify(ctx), "context should round-trip");
+});
+
+check("parseImport accepts a bare array, same as the wrapped shape", () => {
+  const pattern = generatePattern("C", { rng: seeded(23) });
+  const bare = [{ name: "x", pattern, context: {} }];
+  const result = parseImport(JSON.stringify(bare));
+  assert(result.ok && result.items.length === 1, "a bare array should be accepted leniently");
+});
+
+check("parseImport rejects unrelated JSON and invalid text", () => {
+  for (const bad of ['"just a string"', "{}", "[1,2,3]", "not json at all"]) {
+    const result = parseImport(bad);
+    assert(result.ok === false, `should reject: ${bad}`);
+    assert(typeof result.error === "string" && result.error.length > 0, `should explain why: ${bad}`);
+  }
+});
+
+check("parseImport skips malformed entries but keeps the valid ones", () => {
+  const pattern = generatePattern("C", { rng: seeded(24) });
+  const payload = {
+    app: "travis-picker", exportKind: "saved-library", schema: 1, exportedAt: "x",
+    items: [
+      { name: "good", pattern, context: {} },
+      { name: "no pattern field" },
+      { name: "broken pattern", pattern: { thumbBars: "not an array" }, context: {} },
+      null,
+    ],
+  };
+  const result = parseImport(JSON.stringify(payload));
+  assert(result.ok, "a file with some bad entries is still a usable file");
+  assert(result.items.length === 1, `should keep only the valid entry, got ${result.items.length}`);
+  assert(result.skipped === 3, `should count the three bad entries, got ${result.skipped}`);
+});
+
+check("import merges into an existing library with Finder-style de-dupe", () => {
+  const source = createStore("test", memoryStorage());
+  const pattern = generatePattern("D", { rng: seeded(25) });
+  const ctx = { chordMode: "single", chord: "D", key: "D", progression: [] };
+  source.save({ name: "Lick", pattern, context: ctx });
+  const payload = buildExport(source.list());
+
+  const dest = createStore("test", memoryStorage());
+  dest.save({ name: "Lick", pattern, context: ctx }); // pre-existing same-named item
+  const result = parseImport(JSON.stringify(payload));
+  for (const item of result.items) dest.save(item);
+
+  assert(dest.count() === 2, "import should ADD, never replace, existing items");
+  const names = dest.list().map((i) => i.name).sort();
+  assert(JSON.stringify(names) === JSON.stringify(["Lick", "Lick (2)"]),
+    `duplicate name on import should get the (2) suffix, got ${JSON.stringify(names)}`);
 });
 
 // 11) Manual editor: tap inference, add/remove, shared-cell editing, and the
