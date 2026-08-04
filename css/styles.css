@@ -587,40 +587,42 @@ main {
    his call) — reading order is already left-right, top-bottom, so it was
    redundant, and on light themes its --muted-on--control contrast read as
    absent anyway.
-   ×2 pass lamps sit at the TOP-LEFT CORNER of the bar's chord label, a badge
-   overlapping the control rather than sitting inline beside it. Left lights on
-   the FIRST pass through this bar's chord, right on the SECOND — app.js's
-   playhead (highlightColumn) touches them directly the same way it touches
-   .cell.playing (no re-render, no second clock; see metronome.js's
-   splitAudioBar).
-   Idle fill is `--muted` (a SOLID colour, not the jewel-off gradient the beat
-   lamp/Sound toggles use) — those are tuned to sit inside a dark recessed
-   well, and read as nearly invisible on a light theme's pale header
-   background. `--muted` is the token already relied on for legible secondary
-   text on every theme, light or dark. LIT uses the theme-derived
-   `--lamp-hot`/`--active`/`--lamp-rim` family, not a fixed hue — this marks
-   POSITION (which pass you're on), not a caution, so it doesn't borrow the
-   ABS/MIX amber. */
+   ×2 pass lamps sit at the left of the bar's chord label, CENTRED VERTICALLY
+   in it (session 36c, his note — pinned near the top edge they read as
+   crowding the border). Left lights on the FIRST pass through this bar's
+   chord, right on the SECOND — app.js's playhead (highlightColumn) touches
+   them directly the same way it touches .cell.playing (no re-render, no second
+   clock; see metronome.js's splitAudioBar and grid.js's passLampSelector).
+   THE MATERIAL IS THE BEAT LAMP'S, EXACTLY (his call, session 36c): same 11px
+   jewel, same idle glass, same rim, same inset. They're the same KIND of
+   object — a lamp reporting where you are in the loop — so they should be
+   indistinguishable at rest, and a brief detour through a solid `--muted` fill
+   (an attempt to fix a legibility report that turned out to be the dead
+   selector, not the colour) made them visibly diverge. The one deliberate
+   difference is LIT: the beat lamp animates a decaying flash per beat, while a
+   pass lamp holds steady for the whole pass it marks — so this borrows
+   beat-blink's 0% keyframe as a STEADY state. Rim stays constant either way,
+   per the pure-flash convention (only the glass brightens, nothing moves). */
 .pass-lamps {
   position: absolute;
   left: 5px;
-  top: 2px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   gap: 4px;
   z-index: 1;
 }
 .pass-lamp {
-  width: 9px;
-  height: 9px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  background: var(--muted);
-  border: 1px solid rgba(0, 0, 0, 0.55);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
+  background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .pass-lamp.lit {
   background: radial-gradient(circle at 38% 32%, var(--lamp-hot), var(--active) 55%, var(--lamp-rim));
-  border-color: var(--lamp-rim);
-  box-shadow: 0 0 4px 1px var(--lamp-glow), inset 0 0 1px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 7px 2px var(--lamp-glow);
 }
 
 .bar-chord {
@@ -1412,12 +1414,17 @@ main {
   transition: box-shadow 0.07s ease;
 }
 .segmented button + button { border-left: 1px solid rgba(0, 0, 0, 0.4); }
-/* ×2 in single-chord mode (session 36): stays VISIBLE, just inert — a jumping
-   sheet was a specific complaint. `.active`'s own seated look is a class, not
-   a pseudo-class, so it still shows dimmed rather than disappearing; only the
-   opacity/cursor are new here. A real <button disabled>, so pressStrength()'s
-   ka-chunk gate and the tap itself are both blocked natively. */
-.segmented button:disabled { opacity: 0.45; cursor: default; }
+/* LOCKED (×2 in single-chord mode): stays VISIBLE — a jumping sheet was a
+   specific complaint — and stays PRESSABLE, which is the point. The keys are
+   NOT `disabled`, because a disabled button never matches `:active`, so a press
+   gave no travel at all and read as dead (his note, session 36c). Enabled keys
+   keep the press-in look from the rule above and app.js refuses the commit, so
+   it visibly presses in and pops back out. The dim goes on the WELL, not each
+   key, so the whole control reads as one unavailable object rather than two
+   greyed labels. Lighter than the stepper's 0.45 because this one is still a
+   live target you're meant to be able to hit. */
+.segmented[data-locked] { opacity: 0.55; }
+.segmented[data-locked] button { cursor: default; }
 /* SEATED == SELECTED, so `:active` and `.active` are ONE rule — pressing a key is
    seating it, and declaring the two together is what stops the release flash (the
    v2.14.6/.7 lesson: a bare frame of the raised state between them). The switch is

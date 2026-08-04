@@ -41,9 +41,20 @@ function labelFor(ev, labelMode) {
 // it also carries two small pass lamps at the top-left corner: left lights on
 // the first pass through this bar's chord, right on the second. app.js's
 // playhead lights them directly (same no-re-render approach as the cell
-// highlight) by querying [data-bar]/[data-pass], so the markup only needs to
-// exist — nothing here drives it live. Omitted entirely (not hidden) when x2
-// is false.
+// highlight) by querying `passLampSelector()` below, so the markup only needs
+// to exist — nothing here drives it live. Omitted entirely (not hidden) when
+// x2 is false.
+//
+// THE SELECTOR LIVES HERE, beside the markup it has to match, and app.js
+// imports it — it must never be re-typed at the call site. Session 36b: it was,
+// as `.pass-lamp[data-bar=…][data-pass=…]`, and matched nothing, because
+// `data-bar` is on the CONTAINER and only `data-pass` is on the lamp. The lamps
+// silently never lit, and a test that asserted the markup's SHAPE (counts,
+// data-attrs) passed the whole time — shape is not the contract, the query is.
+export function passLampSelector(bar, pass) {
+  return `.pass-lamps[data-bar="${bar}"] .pass-lamp[data-pass="${pass}"]`;
+}
+
 function buildHeader(chordId, barIdx, editableChords, x2) {
   const header = document.createElement("div");
   header.className = "bar-header";

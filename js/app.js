@@ -33,7 +33,7 @@ import {
   regenerateBass,
   regenerateTreble,
 } from "./generator.js";
-import { renderGrid } from "./grid.js";
+import { renderGrid, passLampSelector } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
 import { savedStore } from "./storage.js";
 import { toggleNote } from "./editor.js";
@@ -64,7 +64,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.5.1";
+const APP_VERSION = "v3.5.2";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -555,10 +555,14 @@ function setChordMode(mode) {
   el("field-chord").hidden = prog;
   el("field-keyprog").hidden = !prog;
   // ×2 stays VISIBLE (not hidden) in single mode, so the sheet doesn't jump —
-  // just disabled, since with one chord there's nothing to double. Real
-  // <button disabled>s, so pressStrength()'s ka-chunk gate and the tap itself
-  // are both blocked natively — no aria-disabled workaround needed.
-  for (const b of el("x2-toggle").querySelectorAll("[data-x2]")) b.disabled = !prog;
+  // but it LOCKS TO ×1 (his call, session 36c): with one chord there's nothing
+  // to double, so entering single mode doesn't just grey the control, it turns
+  // ×2 off. That REVERSES the original "persists across mode switches like the
+  // capo" design — coming back to progression mode starts at ×1 and you turn it
+  // on again. `data-locked` (not `disabled`) is what lets a press still show
+  // its press-in/pop-out travel; see index.html and switchX2 below.
+  if (!prog) state.x2 = false;
+  el("x2-toggle").toggleAttribute("data-locked", !prog);
   for (const b of el("chord-mode").querySelectorAll("[data-mode]")) {
     b.classList.toggle("active", b.dataset.mode === mode);
   }
@@ -781,7 +785,12 @@ function restorePrefs(stored) {
   // Last, exactly as in loadSaved(): it's the call that also lays out the mode's
   // fields, and it must see the restored progression or it would overwrite it
   // with the key's first preset.
-  if (stored.chordMode === "progression") setChordMode("progression");
+  // Called UNCONDITIONALLY, single mode included (session 36c) — it's now also
+  // what applies ×2's lock, and a stored `x2: true` alongside a stored single
+  // mode would otherwise restore a seated ×2 key inside a control that's
+  // supposed to be locked to ×1. Harmless for single mode: it just re-lays the
+  // fields and calls render(), which no-ops while state.pattern is null.
+  setChordMode(stored.chordMode === "progression" ? "progression" : "single");
 }
 
 // The playhead touches cells directly rather than re-rendering the grid — it
@@ -813,7 +822,9 @@ function highlightPassLamps(screenBar, pass) {
   for (const l of litLamps) l.classList.remove("lit");
   litLamps = [];
   if (screenBar == null) return;
-  const lamp = el("grid").querySelector(`.pass-lamp[data-bar="${screenBar}"][data-pass="${pass}"]`);
+  // The selector comes from grid.js, which owns the markup — never re-typed
+  // here. It was, once, and matched nothing (see passLampSelector's comment).
+  const lamp = el("grid").querySelector(passLampSelector(screenBar, pass));
   if (lamp) {
     litLamps = [lamp];
     lamp.classList.add("lit");
@@ -1234,13 +1245,17 @@ function attach() {
   el("generate").addEventListener("click", generate);
 
   // ×2 never touches the pattern — same reasoning as the capo — so it just
-  // re-renders. Progression-mode-only in effect (x2Active gates it), but the
-  // value itself persists across mode switches, same as capo. Wired exactly
-  // like Format: a seated key is a no-op re-press (guarded here, and also
-  // covered by seatedLatch()'s silent-ka-chunk rule below since these are
-  // `.segmented button`s), and it commits on pointerup for the same
-  // flash-free reason Format and the page tabs do.
+  // re-renders. Wired exactly like Format: a seated key is a no-op re-press
+  // (guarded here, and also covered by seatedLatch()'s silent-ka-chunk rule
+  // below since these are `.segmented button`s), and it commits on pointerup
+  // for the same flash-free reason Format and the page tabs do.
+  //
+  // LOCKED in single mode (`data-locked`, set by setChordMode): the press is
+  // refused HERE rather than by `disabled`, which is what gives it the
+  // press-in-and-pop-back-out travel he asked for — a disabled button can't be
+  // `:active` at all, so it just sat dead under the finger.
   const switchX2 = (e) => {
+    if (el("x2-toggle").hasAttribute("data-locked")) return;
     const btn = e.target.closest("[data-x2]");
     if (btn && btn.classList.contains("active") === false) {
       state.x2 = btn.dataset.x2 === "on";
@@ -1423,9 +1438,14 @@ function attach() {
   // pair (`pressNoop`), because by pointerup the press has already moved `.active`
   // onto the key you hit — so recomputing there would wrongly silence the chunk of
   // the popped-out key you just seated.
+  // A key in a LOCKED segmented control (×2 in single mode) is the same class of
+  // no-op: it presses in and pops back out without committing anything, so it
+  // takes the same silence. Generic on `[data-locked]` rather than named after
+  // ×2 — any locked-but-still-pressable control gets it for free.
   const seatedLatch = (e) => {
     const seg = e.target.closest?.(".segmented button");
-    return !!(seg && seg.classList.contains("active"));
+    if (!seg) return false;
+    return seg.classList.contains("active") || !!seg.closest("[data-locked]");
   };
 
   let pressSilenced = false;

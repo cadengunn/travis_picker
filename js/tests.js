@@ -55,7 +55,7 @@ import * as GeneratorExports from "./generator.js";
 import * as DataExports from "./data.js";
 import { createStore } from "./storage.js";
 import { toggleNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
-import { renderGrid } from "./grid.js";
+import { renderGrid, passLampSelector } from "./grid.js";
 import {
   createMetronome,
   secondsPerSlot,
@@ -1302,6 +1302,34 @@ check("grid: ×2 renders exactly 4 bars with two pass lamps each; omitted when o
 
   renderGrid(host, phrase, { x2: false, editableChords: true });
   assert(host.querySelectorAll(".pass-lamps").length === 0, "×2 off should omit the pass-lamp markup entirely");
+});
+
+// 13c2) THE QUERY IS THE CONTRACT, not the markup's shape. The check above
+// passed for a whole release while the lamps never lit once: app.js looked up
+// `.pass-lamp[data-bar=…][data-pass=…]`, but `data-bar` is on the CONTAINER, so
+// the selector matched nothing and every lamp silently stayed dark. Counting
+// elements and reading their attributes can't catch that — only running the
+// real lookup against the real markup can. `passLampSelector` now lives in
+// grid.js beside the markup and app.js imports it, so this pins both halves.
+check("grid: passLampSelector actually finds every lamp it names", () => {
+  const host = document.createElement("div");
+  const p = generatePattern("C", { rng: seeded(51) });
+  renderGrid(host, resolvePhrase(p, ["C", "F", "G", "C"]), { x2: true, editableChords: true });
+
+  const seen = new Set();
+  for (let bar = 0; bar < 4; bar++) {
+    for (let pass = 0; pass < 2; pass++) {
+      const found = host.querySelectorAll(passLampSelector(bar, pass));
+      assert(found.length === 1,
+        `passLampSelector(${bar}, ${pass}) matched ${found.length} elements, expected exactly 1`);
+      assert(found[0].classList.contains("pass-lamp"),
+        `passLampSelector(${bar}, ${pass}) matched a non-lamp element`);
+      seen.add(found[0]);
+    }
+  }
+  // …and each of the 8 lamps is addressed by exactly one (bar, pass) pair — no
+  // two coordinates collapsing onto the same element.
+  assert(seen.size === 8, `the 8 (bar, pass) pairs resolved to ${seen.size} distinct lamps`);
 });
 
 // 13d) Regression guard: ×2's doubled audio-chords array must never be written
@@ -2896,6 +2924,40 @@ acheck("layout: the ×2 segmented control fits its slot without wrapping or grow
   assert(textW < boxW, `"×1" needs ${textW.toFixed(1)}px in a ${boxW}px key`);
   assert(Math.abs(wellH - selectH) < 3,
     `the ×2 well is ${wellH.toFixed(1)}px against its Thumb/Fingers siblings' ${selectH.toFixed(1)}px — this row's height would jump`);
+});
+
+// A LOCKED key must still be able to travel (session 36c, his note). The first
+// build used `disabled`, which reads fine but can NEVER match `:active` — so a
+// press gave no feedback at all and the control sat dead under the finger. The
+// fix is a `data-locked` wrapper with the keys left enabled, and this is the
+// property that distinguishes the two: `disabled` would fail the last assert.
+acheck("layout: a locked segmented key still presses in (it is not `disabled`)", async () => {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:200px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="sheet-panel"><div class="segmented" id="locked-well" data-locked>' +
+    '<button type="button" class="active" id="k1">×1</button>' +
+    '<button type="button" id="k2">×2</button>' +
+    '</div><div class="segmented" id="open-well">' +
+    '<button type="button" class="active">×1</button><button type="button" id="k3">×2</button>' +
+    '</div></div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const doc = frame.contentDocument;
+  const k2 = doc.getElementById("k2");
+  const wellCS = doc.defaultView.getComputedStyle(doc.getElementById("locked-well"));
+  const openCS = doc.defaultView.getComputedStyle(doc.getElementById("open-well"));
+  const dimmed = Number(wellCS.opacity) < Number(openCS.opacity);
+  frame.remove();
+
+  assert(dimmed,
+    `a locked well should read as unavailable (opacity ${wellCS.opacity} vs ${openCS.opacity} unlocked)`);
+  // The whole point: enabled, so `:active` can fire and the key visibly travels.
+  assert(k2.disabled === false,
+    "a locked key must NOT be `disabled` — a disabled button can never match :active, so it cannot press in and pop back out");
 });
 
 acheck("type: every bundled face is declared, and the three voices stay separate", async () => {

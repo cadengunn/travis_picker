@@ -253,17 +253,21 @@
              control, same family as Format/Capo/the die (his call, not the
              Sound-toggle lamp material — that belongs to the Preferences
              page, this sheet's Setup page speaks carved-keys-in-a-well).
-             Starts disabled to match the default Single mode (see
+             Starts `data-locked` to match the default Single mode (see
              #field-keyprog's static `hidden` for the same pattern);
-             setChordMode() flips `disabled` on both keys as the mode changes
-             (a plain disabled <button>, so pressStrength()'s ka-chunk gate and
-             the tap itself are both blocked for free, no aria-disabled
-             workaround needed). -->
+             setChordMode() flips it as the mode changes.
+             LOCKED, NOT `disabled` (his call, session 36c): a disabled button
+             can't be `:active`, so a press gave no feedback at all — he wants
+             it to press in and POP BACK OUT, i.e. visibly refuse rather than
+             sit dead. So the keys stay enabled, the lock lives on the wrapper,
+             and app.js refuses the commit; the ka-chunk stays silent because a
+             locked press is a no-op, the same rule as re-pressing an already-
+             seated key or the capo at an end-stop. -->
         <div class="field" data-help="x2">
           <span>×2</span>
-          <div id="x2-toggle" class="segmented" role="group" aria-label="×2 mode">
-            <button type="button" data-x2="off" class="active" disabled>×1</button>
-            <button type="button" data-x2="on" disabled>×2</button>
+          <div id="x2-toggle" class="segmented" role="group" aria-label="×2 mode" data-locked>
+            <button type="button" data-x2="off" class="active">×1</button>
+            <button type="button" data-x2="on">×2</button>
           </div>
         </div>
       </div>

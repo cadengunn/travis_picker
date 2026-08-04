@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [36c](#where-things-stand-session-36c--v352-2026-08-04) | **v3.5.2** | his second phone review, and it found the real bug: the pass lamps had NEVER lit — the selector was re-typed at the call site as `.pass-lamp[data-bar=…]` when `data-bar` is on the container, so it matched nothing, and the markup-shape test passed the whole time. Selector moved into `grid.js` and imported. Lamps also re-centred and given the beat lamp's exact material; single mode now locks ×2 to ×1 with a press that pops back out rather than a dead disabled key |
 | [36b](#where-things-stand-session-36b--v351-2026-08-04) | **v3.5.1** | his phone review of v3.5.0, same session: the pass lamps weren't visible (wrong corner, and a jewel gradient tuned for dark wells vanished on light themes), the ×2 toggle wore the wrong material (Sound-toggle lamp instead of Format's segmented carved keys), and he wanted a persistent ×2 chip like ABS/MIX. The long-unnoticed numeral chip came out too, his call |
 | [36](#where-things-stand-session-36--v350-2026-08-04) | **v3.5.0** | the kickoff prompt asked for ×2 mode additive to Pattern length; his guitar testing (many real Jerry Reed pieces) found the picking pattern repeats every bar regardless, so Pattern length was removed instead — `generatePattern` now always makes one distinct bar — and ×2 replaced it: a progression chord rings for two bars, the grid still shows 4, two pass lamps per bar mark which pass is sounding. Swing also started saving with the pattern, additively |
 | [35](#where-things-stand-session-35--v342-2026-08-03) | **v3.4.2** | his 14-chord playability spec applied (the roles moved, not just the frets — a rule fell out: role strings never go below string 3); then barres got drawn the way a hand actually makes them, with his review setting the threshold from both sides — 4 in a row is a bar, 3 is three fingers, and open A is the anchor. Hollow got scarcer on the same principle; Em7's family revoiced |
@@ -58,6 +59,66 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 36c — v3.5.2, 2026-08-04)
+
+**The headline: the pass lamps had never lit, once, on any theme.** His v3.5.1
+report was "the repeat indicator lamps are not lighting up, tested multiple
+themes" — and he was exactly right, for a reason that has nothing to do with
+colour. `app.js` looked lamps up with
+`.pass-lamp[data-bar="…"][data-pass="…"]`, but `data-bar` is on the
+**container** (`.pass-lamps`) and only `data-pass` is on the lamp itself. The
+selector matched zero elements on every call. `querySelector` returning null is
+silent, the guard was `if (lamp)`, so the feature failed completely and
+noiselessly.
+
+**What let it ship is the part worth keeping.** There WAS a test, and it
+passed: it counted the lamp groups, checked each carried the right `data-bar`,
+and checked each group held a pass-0 and a pass-1 lamp. All true. All useless —
+it asserted the markup's *shape* and never ran the *query*. **Shape is not the
+contract; the query is.** Two changes came out of that: `passLampSelector(bar,
+pass)` now lives in `grid.js` beside the markup it has to match and `app.js`
+imports it (so there is no call site left to re-type it wrong), and there's a
+test that runs the real selector against real rendered markup and asserts each
+of the 8 (bar, pass) pairs resolves to exactly one distinct lamp. **Verified
+the new test fails against the old selector before trusting it** — it reports
+`passLampSelector(0, 0) matched 0 elements, expected exactly 1`.
+
+**This also retires the v3.5.1 colour change, which was a wrong fix for a
+misdiagnosed problem.** I'd read "not visible" as a contrast issue on light
+themes and swapped the idle jewel gradient for a solid `--muted` fill. The real
+cause was the dead selector; the gradient was never the problem. He caught the
+side effect immediately — *"they appear to vary in color in the off state"* —
+and his instruction settles it: **match the BPM beat lamp exactly.** They're
+the same kind of object (a lamp saying where you are in the loop), so at rest
+they should be indistinguishable. Now identical on all five properties
+(measured: background, border, width, height, box-shadow). The one deliberate
+difference is lit: the beat lamp flashes and decays per beat, a pass lamp holds
+steady for its whole pass, so it borrows beat-blink's 0% keyframe as a steady
+state rather than animating.
+
+**Also his, same round:** the lamps sat pinned near the top edge of the chord
+label and read as crowding the border — now centred vertically in it.
+
+**And the ×2 control locks to ×1 in single mode.** Previously it merely
+persisted and greyed out. His spec: entering single mode should switch it to
+×1 and lock it, and pressing ×2 while locked should "pop back out" rather than
+latch. The second half forced a real change — the keys had been
+`<button disabled>`, and **a disabled button can never match `:active`**, so a
+press produced no travel at all and sat dead under the finger. So the lock
+moved to a `data-locked` attribute on the well, the keys stay enabled,
+`switchX2` refuses the commit, and `seatedLatch()` treats a press inside any
+locked well as a no-op so it stays silent — the same rule as re-pressing a
+seated key or the capo at an end-stop. A test pins `disabled === false`
+specifically, since that property IS the difference between the two designs.
+
+One consequence recorded as a reversal: ×2 no longer "persists across mode
+switches like the capo." Entering single mode genuinely turns it off, and
+returning to progression starts at ×1. `restorePrefs` now calls
+`setChordMode()` unconditionally so a stored `x2: true` alongside a stored
+single mode can't restore a seated ×2 inside a locked control.
+
+**112/112 green** (110 + the two new regression tests). Budget unchanged.
 
 ## Where things stand (session 36b — v3.5.1, 2026-08-04)
 
