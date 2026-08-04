@@ -158,7 +158,7 @@ button, select, input, .cell, .lamp, .stepper, .segmented {
    so it was in neither list and long-pressing "90 BPM" selected it and raised the
    callout. The `<output>` inside it inherits. Any new readout needs the same. */
 button, select, .cell, .lamp, .stepper, .segmented, .dd-trigger, .dd-option,
-.pill, .capo-tag, .context, .bar-header, .bar-num, .bpm-readout {
+.pill, .capo-tag, .context, .bar-header, .bpm-readout {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -440,14 +440,21 @@ main {
 .loaded-name.untitled { color: var(--muted); font-style: italic; font-variation-settings: "opsz" 44, "wght" 400; }
 .loaded-name .modified { font-size: 12px; font-style: italic; font-weight: 400; color: var(--muted); margin-left: 5px; }
 
-/* Caution indicator lives bottom-right, above the gear (positioned within
-   .controls), so the header name row is the pattern name's alone. Only shown for
-   absolute/mixed patterns; see the ::before caution lamp below. */
-.type-indicator {
+/* Status chips live bottom-right, above the gear (positioned within
+   .controls), so the header name row is the pattern name's alone. A ROW, not
+   one slot (session 36) — ABS/MIX (bass warning) and ×2 are independent
+   conditions that can both be true at once (e.g. Full Random bass + ×2), so
+   the wrapper positions the row and each chip lays out inside it. */
+.type-indicators {
   position: absolute;
   right: 14px;
   bottom: 100%;
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.type-indicator {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -458,12 +465,16 @@ main {
   color: var(--muted);
   white-space: nowrap;
 }
-/* absolute/mixed bass wears a fixed-amber CAUTION lamp (a warning light — like
-   the red REC lamp, a deliberate fixed-hue convention, not the theme accent) plus
-   a short label. Steady: it marks a persistent state, not an event. The full
-   "bass won't follow chords" explanation stays on the title (hover/long-press). */
+/* absolute/mixed bass and ×2 wear a fixed-amber CAUTION lamp (a warning light —
+   like the red REC lamp, a deliberate fixed-hue convention, not the theme
+   accent) plus a short label. Steady: it marks a persistent state, not an
+   event. The full explanation stays on the title (hover/long-press). ×2's chip
+   deliberately matches this — his call — even though the per-bar pass lamps in
+   the grid (a different job: which PASS is sounding, not a status readout) use
+   the theme-derived lamp colour instead; see CLAUDE.md's ×2 mode section. */
 .type-indicator.absolute::before,
-.type-indicator.mixed::before {
+.type-indicator.mixed::before,
+.type-indicator.x2::before {
   content: "";
   flex: none;
   width: 9px;
@@ -474,7 +485,8 @@ main {
   box-shadow: 0 0 5px 1px rgba(240, 164, 30, 0.6), inset 0 0 2px rgba(0, 0, 0, 0.35);
 }
 .type-indicator.absolute,
-.type-indicator.mixed { color: var(--active); }
+.type-indicator.mixed,
+.type-indicator.x2 { color: var(--active); }
 
 /* The grid is PINNED to a consistent upper position so it never moves when you
    switch single<->progression (B1). A single top gap (::before) grows to a cap on
@@ -571,52 +583,39 @@ main {
   color: var(--active);
   font-variation-settings: "opsz" 40, "wght" 460, "SOFT" 40;
 }
-/* numeral chip — the bar number gets its own little "home": a square sitting
-   INSIDE the chord's rectangle, inset from its left edge (not welded to the
-   shared border corner). */
-.bar-num {
-  position: absolute;
-  left: 5px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--numeral);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--muted);
-  background: var(--control);
-  border: 1px solid var(--line);
-}
-/* ×2 pass lamps (session 36): two small jewels riding the same header as the
-   bar-num chip, just right of it. Left lights on the FIRST pass through this
-   bar's chord, right on the SECOND — app.js's playhead (highlightColumn)
-   touches them directly the same way it touches .cell.playing (no re-render,
-   no second clock; see metronome.js's splitAudioBar). Only ever rendered when
-   ×2 is on, which is always exactly 4 bars, so bar-num is always present too —
-   nothing here needs to handle the numeral's absence.
-   Idle glass matches the beat lamp; LIT uses the same theme-derived family
-   (--lamp-hot / --active / --lamp-rim), not a fixed hue — this marks POSITION
-   (which pass you're on), not a caution, so it doesn't borrow the ABS/MIX amber. */
+/* The numeral chip (bar 1/2/3/4) that used to live here is GONE (session 36,
+   his call) — reading order is already left-right, top-bottom, so it was
+   redundant, and on light themes its --muted-on--control contrast read as
+   absent anyway.
+   ×2 pass lamps sit at the TOP-LEFT CORNER of the bar's chord label, a badge
+   overlapping the control rather than sitting inline beside it. Left lights on
+   the FIRST pass through this bar's chord, right on the SECOND — app.js's
+   playhead (highlightColumn) touches them directly the same way it touches
+   .cell.playing (no re-render, no second clock; see metronome.js's
+   splitAudioBar).
+   Idle fill is `--muted` (a SOLID colour, not the jewel-off gradient the beat
+   lamp/Sound toggles use) — those are tuned to sit inside a dark recessed
+   well, and read as nearly invisible on a light theme's pale header
+   background. `--muted` is the token already relied on for legible secondary
+   text on every theme, light or dark. LIT uses the theme-derived
+   `--lamp-hot`/`--active`/`--lamp-rim` family, not a fixed hue — this marks
+   POSITION (which pass you're on), not a caution, so it doesn't borrow the
+   ABS/MIX amber. */
 .pass-lamps {
   position: absolute;
-  left: 25px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 5px;
+  top: 2px;
   display: flex;
   gap: 4px;
+  z-index: 1;
 }
 .pass-lamp {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
-  border: 1px solid rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
+  background: var(--muted);
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35);
 }
 .pass-lamp.lit {
   background: radial-gradient(circle at 38% 32%, var(--lamp-hot), var(--active) 55%, var(--lamp-rim));
@@ -1413,6 +1412,12 @@ main {
   transition: box-shadow 0.07s ease;
 }
 .segmented button + button { border-left: 1px solid rgba(0, 0, 0, 0.4); }
+/* ×2 in single-chord mode (session 36): stays VISIBLE, just inert — a jumping
+   sheet was a specific complaint. `.active`'s own seated look is a class, not
+   a pseudo-class, so it still shows dimmed rather than disappearing; only the
+   opacity/cursor are new here. A real <button disabled>, so pressStrength()'s
+   ka-chunk gate and the tap itself are both blocked natively. */
+.segmented button:disabled { opacity: 0.45; cursor: default; }
 /* SEATED == SELECTED, so `:active` and `.active` are ONE rule — pressing a key is
    seating it, and declaring the two together is what stops the release flash (the
    v2.14.6/.7 lesson: a bare frame of the raised state between them). The switch is
@@ -1478,20 +1483,6 @@ main {
 }
 .lamp input:not(:checked) ~ .t { color: var(--muted); }
 .lamp input:focus-visible ~ .jewel { outline: 2px solid var(--active); outline-offset: 2px; }
-/* DISABLED (×2 in single-chord mode, session 36): stays visible — a jumping
-   sheet was a specific complaint — just inert. `.lamp` is a <label>, which has
-   no native disabled look of its own, so this is new. Dimmed rather than hidden,
-   same idea as the capo stepper's disabled end-stop keys. `aria-disabled` is
-   what pressStrength() (app.js) checks, since a <label> has no `.disabled`. */
-.lamp:has(input:disabled) { opacity: 0.45; cursor: default; }
-.lamp:has(input:disabled):active { box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16); }
-
-/* Compact variant: one control filling a THIRD of a .control-row (the ×2
-   toggle, replacing what used to be the Pattern length select) rather than half
-   of a 2-column .lamp-row. Same material, tightened to fit — see
-   .control-row.layers for the column math. */
-.lamp-compact { padding: 10px 10px; gap: 6px; font-size: 14px; }
-.lamp-compact .jewel { width: 11px; height: 11px; }
 
 /* The primary action (Save / Load / a modal's confirm) is a CARVED accent key
    now (session 27 polish), not a flat painted slab — a dished highlight, a

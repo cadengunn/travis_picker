@@ -28,29 +28,25 @@ function labelFor(ev, labelMode) {
   return String(ev.fret ?? 0);             // fret mode
 }
 
-// Bar header. When there's more than one bar on screen, it leads with a small
-// numeral chip (its own "home") so the 2x2 reading order is unambiguous. In
-// progression mode it also holds an editable chord <select> (data-bar lets
-// app.js delegate the change). In single mode it carries NO chord — the one
-// chord is shown once, big, above the whole grid (#chord-head), so a per-bar
-// header there would just repeat it; an empty header collapses via CSS.
+// Bar header. In progression mode it holds an editable chord <select>
+// (data-bar lets app.js delegate the change) — that alone is reading order
+// enough (left-right, top-bottom), so there's no separate bar-number chip
+// (removed session 36; his call — "it's clear enough you read left-right top
+// to bottom", and it doubled as easy-to-miss on light themes anyway). In
+// single mode the header carries NO chord — the one chord is shown once, big,
+// above the whole grid (#chord-head), so a per-bar header there would just
+// repeat it; an empty header collapses via CSS.
 //
 // Under ×2 (always exactly 4 bars when it's active — see app.js's x2Active),
-// it also carries two small pass lamps: left lights on the first pass through
-// this bar's chord, right on the second. app.js's playhead lights them
-// directly (same no-re-render approach as the cell highlight) by querying
-// [data-bar]/[data-pass], so the markup only needs to exist — nothing here
-// drives it live. Omitted entirely (not hidden) when x2 is false.
-function buildHeader(chordId, barIdx, editableChords, showNumeral, x2) {
+// it also carries two small pass lamps at the top-left corner: left lights on
+// the first pass through this bar's chord, right on the second. app.js's
+// playhead lights them directly (same no-re-render approach as the cell
+// highlight) by querying [data-bar]/[data-pass], so the markup only needs to
+// exist — nothing here drives it live. Omitted entirely (not hidden) when x2
+// is false.
+function buildHeader(chordId, barIdx, editableChords, x2) {
   const header = document.createElement("div");
   header.className = "bar-header";
-
-  if (showNumeral) {
-    const num = document.createElement("span");
-    num.className = "bar-num";
-    num.textContent = String(barIdx + 1);
-    header.appendChild(num);
-  }
 
   if (x2) {
     const lamps = document.createElement("span");
@@ -107,7 +103,6 @@ export function renderGrid(container, phrase, opts = {}) {
   // scrolling while your hands are on the guitar), so CSS sizes cells from the
   // bar count rather than using a fixed cell width.
   track.dataset.bars = String(phrase.length);
-  const showNumeral = phrase.length > 1;
 
   phrase.forEach(({ chord, bar }, barIdx) => {
     const barEl = document.createElement("div");
@@ -115,7 +110,7 @@ export function renderGrid(container, phrase, opts = {}) {
     barEl.setAttribute("role", "group");
     barEl.setAttribute("aria-label", `Bar ${barIdx + 1}, chord ${chord}`);
 
-    barEl.appendChild(buildHeader(chord, barIdx, editableChords, showNumeral, x2));
+    barEl.appendChild(buildHeader(chord, barIdx, editableChords, x2));
 
     const idx = indexBar(bar);
 

@@ -736,9 +736,10 @@ compare the glyph to the thing.
   upward or a run of numerals inside it — one entry, two shapes, and no mode flag
   reaches `help.js`.
 - **Two things have NO card and fall through to their parent, on purpose** (his
-  call) — the **beat lamp** → Tempo, and a bar's **chord picker** and **number
-  chip** → the grid. Both are one DOM move from being dead taps in a mode whose
-  promise is "tap anything", so **a test pins each fall-through**. The picker's is
+  call) — the **beat lamp** → Tempo, and a bar's **chord picker** → the grid
+  (the number chip this used to also cover is gone, session 36). Both are one
+  DOM move from being dead taps in a mode whose promise is "tap anything", so
+  **a test pins each fall-through**. The picker's is
   correct *only because the grid's copy covers chords*, hence the test asserting
   `HELP.grid.body` mentions them. Note the picker is an overlay button that is a
   **sibling** of the hidden `<select>`, so annotating the select does nothing.
@@ -946,13 +947,17 @@ removed the same session — the two designs collide (see above), and once only
 one distinct bar is ever generated there's nothing left to disambiguate
 "double the chord" from "repeat the bar", which had been an open fork.
 
-- **Progression mode only.** The toggle (`#x2-toggle`, a `.lamp` in Pattern
-  length's old slot in `.control-row.layers`) stays **visible but disabled** in
-  single mode — hiding it would jump the Options sheet, which is a specific,
-  standing complaint. `setChordMode()` sets both the checkbox's `disabled` and
-  its `.lamp` wrapper's `aria-disabled` (a `<label>` has no native disabled
-  look, and `pressStrength()` in `ui-sound.js`'s press-sound gate only honours
-  one of those two, not the input's `disabled` alone). `state.x2` itself
+- **Progression mode only.** The toggle (`#x2-toggle`, a two-key **segmented
+  control** — `×1`/`×2` — in Pattern length's old slot in `.control-row.layers`)
+  stays **visible but disabled** in single mode — hiding it would jump the
+  Options sheet, which is a specific, standing complaint. It's the SAME
+  material as Format/Capo/the die (carved keys in a recessed well), not the
+  Sound-toggle lamp family — his correction: that material belongs to the
+  Preferences page, and this control lives on Setup, which speaks
+  carved-keys-in-a-well throughout. Being real `<button disabled>`s (not a
+  `<label>`-wrapped checkbox, the first design) means `setChordMode()` only has
+  to set `.disabled` — `pressStrength()`'s ka-chunk gate and the tap itself are
+  both blocked natively, no `aria-disabled` workaround needed. `state.x2` itself
   **persists across mode switches** like the capo — switching to single mode
   doesn't reset it, only disables it (`x2Active() = chordMode === "progression" && state.x2`).
 - **The grid stays at 4 visual bars, always — audio and display bar-counts
@@ -970,20 +975,36 @@ one distinct bar is ever generated there's nothing left to disambiguate
   `detectProgression` silently stops recognizing it, which is the regression
   this guards against). `metronome.js` itself needed **zero changes** — it
   stays generic over bar count and ignorant of the screen/audio split.
-- **Two pass lamps per bar header** (`.pass-lamps`/`.pass-lamp`, next to the
-  `.bar-num` chip) mark which of the two passes through that bar's chord is
-  currently sounding — left lights on the first, right on the second. Driven by
-  the **same clock as the playhead and beat lamp**, no second one:
+- **Two pass lamps sit at the top-left corner of each bar's chord label**
+  (`.pass-lamps`/`.pass-lamp`) and mark which of the two passes through that
+  bar's chord is currently sounding — left lights on the first, right on the
+  second. **The old numeral chip (`.bar-num`) that used to occupy that corner
+  is GONE** (also session 36, his call, unprompted by ×2 — reading order is
+  already left-right/top-bottom, and on a light theme its `--muted`-on-
+  `--control` contrast read as absent anyway), so the lamps are a badge on the
+  chord label itself, not sharing space with anything. Idle fill is **solid
+  `--muted`**, not the `--jewel-off` gradient the beat lamp/Sound toggles use —
+  that gradient is tuned to sit inside a dark recessed well and read as
+  invisible against a light theme's pale header (his phone caught this: the
+  lamps genuinely didn't render on the `elizabeth` theme at the first attempt).
+  Driven by the **same clock as the playhead and beat lamp**, no second one:
   `metronome.js`'s `onStep(pos)` reports `pos.bar` in **audio-bar** space
   (0..7 under ×2), and `splitAudioBar(bar, passesPerBar)` (a small pure export,
   tested like `stepToPosition`) translates it to `{ bar: screenBar, pass }` —
   `app.js`'s `highlightColumn` touches the lamp directly by
   `[data-bar][data-pass]`, the same no-re-render approach the cell highlight
   already used. `passesPerBar` is set in `render()` (2 under ×2, else 1) and
-  read by the playhead. Lamp colour is **theme-derived** (`--lamp-*`/`--active`,
+  read by the playhead. LIT colour is **theme-derived** (`--lamp-*`/`--active`,
   like the beat lamp), not the ABS/MIX chips' fixed amber — it marks position
   ("which pass"), not a caution, so it doesn't borrow that convention. The
   markup is **omitted entirely when ×2 is off**, not hidden — no dead DOM.
+- **A persistent "×2" status chip rides beside the ABS/MIX bass-warning
+  indicator** (`#x2-indicator`, in `.type-indicators`, bottom-right above the
+  gear), wearing the exact same fixed-amber-dot treatment — his call, so it
+  reads as the same *kind* of heads-up as "bass won't follow chords," distinct
+  from the pass lamps' theme-derived positional colour. The two chips are
+  independent conditions (bass type vs. harmonic rhythm) and can both show at
+  once, so `.type-indicators` is a flex row, not one slot.
 - **Saved with the pattern, dual-layer like the capo** (musical content: ×2
   changes the harmonic rhythm). A session default lives in `tp-prefs`
   (`state.x2`), and the saved value inside a pattern's own `context.x2` wins on
@@ -1021,11 +1042,17 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.5.0, 110/110 green.** Session 36 removed Pattern length (the generator now
+**v3.5.1, 110/110 green.** Session 36 removed Pattern length (the generator now
 always makes one distinct bar, per his real-guitar testing) and replaced it with
 ×2 mode — a progression chord can ring for two bars, the grid still shows 4, two
 pass lamps per bar mark which pass is sounding. Swing also started saving with
-the pattern, additively. The chord library and the progression revamp finished
+the pattern, additively. His phone review the same session caught three misses:
+the pass lamps weren't legible (repositioned to each bar's top-left corner,
+recoloured off the `--muted` token instead of a well-tuned jewel gradient that
+vanished on light themes), the ×2 toggle wore the wrong material (now a
+Format-style segmented control, not a Sound-toggle lamp), and it wanted a
+persistent status chip like ABS/MIX. The numeral chip (`.bar-num`) that used to
+share the corner with the pass lamps is gone too — his call, unprompted. The chord library and the progression revamp finished
 in sessions 29–33: 120 chords, the drum pickers, and the chord-shape diagram
 under the wheel. Sessions 32–33 also landed `tp-prefs`, the diagnosed dead-Play
 bug, the landscape sheet fix, and four rounds of his guitar verdicts on chord

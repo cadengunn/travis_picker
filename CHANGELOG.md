@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [36b](#where-things-stand-session-36b--v351-2026-08-04) | **v3.5.1** | his phone review of v3.5.0, same session: the pass lamps weren't visible (wrong corner, and a jewel gradient tuned for dark wells vanished on light themes), the ×2 toggle wore the wrong material (Sound-toggle lamp instead of Format's segmented carved keys), and he wanted a persistent ×2 chip like ABS/MIX. The long-unnoticed numeral chip came out too, his call |
 | [36](#where-things-stand-session-36--v350-2026-08-04) | **v3.5.0** | the kickoff prompt asked for ×2 mode additive to Pattern length; his guitar testing (many real Jerry Reed pieces) found the picking pattern repeats every bar regardless, so Pattern length was removed instead — `generatePattern` now always makes one distinct bar — and ×2 replaced it: a progression chord rings for two bars, the grid still shows 4, two pass lamps per bar mark which pass is sounding. Swing also started saving with the pattern, additively |
 | [35](#where-things-stand-session-35--v342-2026-08-03) | **v3.4.2** | his 14-chord playability spec applied (the roles moved, not just the frets — a rule fell out: role strings never go below string 3); then barres got drawn the way a hand actually makes them, with his review setting the threshold from both sides — 4 in a row is a bar, 3 is three fingers, and open A is the anchor. Hollow got scarcer on the same principle; Em7's family revoiced |
 | [34b](#where-things-stand-session-34b--v330-2026-08-03) | **v3.3.0** | the chord diagram shows the MOVING FINGER as a hollow dot (no established symbol exists; this borrows the fingerstyle "alternate bass" ring). Root-only accent replaces marking the thumb's whole pair. B7 added; G#6 revoiced to his fingering |
@@ -57,6 +58,61 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 36b — v3.5.1, 2026-08-04)
+
+**He pushed v3.5.0 to his phone and sent three corrections back within
+minutes, one with a screenshot.** All three landed the same session.
+
+**1. The pass lamps genuinely weren't visible — a real bug, not a perception
+thing.** The screenshot was on `elizabeth`, a light theme, and the idle lamp
+reused `--jewel-off-hi`/`--jewel-off` — the SAME gradient the beat lamp and
+Sound toggles use. That gradient is tuned to sit inside a dark, machined
+recessed well; measured live against `elizabeth`'s actual computed values, the
+"idle" fill (`#e0d7c8` → `#fbf1dc`) was nearly identical to the header's own
+pale background. A dark border alone wasn't enough to save it. Fixed by
+switching the idle fill to a solid `var(--muted)` — the token already relied on
+for legible secondary text on every theme — rather than trying to re-tune a
+jewel gradient built for a different visual context.
+
+**2. Wrong POSITION too.** The lamps sat mid-header, vertically centred beside
+where the (apparently long-invisible) numeral chip used to be. He wanted them
+at the literal top-left corner of the chord label, as a badge overlapping the
+control — moved there directly.
+
+**3. The ×2 toggle wore the wrong material.** It shipped as a `.lamp` — the
+Sound-toggle family, checkbox + jewel + text. His ask: match Format,
+Capo, and the die instead — carved keys in a recessed well, the material every
+*other* control on the Setup page speaks (the lamp family belongs to
+Preferences, one page over). Rebuilt as a real two-key `.segmented` control
+(`×1`/`×2`), which turned out simpler than the lamp version: plain
+`<button disabled>`s cover the disabled-in-single-mode case natively —
+`pressStrength()`'s ka-chunk gate and the tap itself are both blocked for
+free, no `aria-disabled` workaround needed the way the `<label>`-wrapped
+checkbox required.
+
+**4. A fourth ask, mid-fix: a persistent "×2" status chip, styled like the
+ABS/MIX bass warning.** Built as a sibling chip in a new `.type-indicators` flex
+row (bottom-right, above the gear) wearing the identical fixed-amber-dot
+treatment — his call, deliberately not the pass lamps' theme-derived colour,
+since this is a different kind of signal (a persistent "heads up," matching
+ABS/MIX's own job) from the pass lamps' positional one. The two chips are
+independent conditions and can show together (e.g. Full Random bass under
+×2), so the row, not one slot.
+
+**Riding along: the numeral chip is gone.** Investigating the "lamps aren't
+visible" report turned up that `.bar-num` (the small 1/2/3/4 chip, present
+since early sessions) technically still rendered — DOM presence and computed
+styles both confirmed it — but wasn't legible in his screenshot either. Asked
+directly: he confirmed it's been long-unnoticed and should just go. "It's
+clear enough that you read left-right top to bottom." Removed from `grid.js`,
+its CSS, and every doc/test reference to it — not worked around.
+
+**110/110 still green** (one test rewritten for the segmented markup, one
+fixture trimmed of its now-gone numeral chip, both structural not novel).
+Height budget re-verified unchanged: 55.09 / 384.84 / 11.06, no overflow —
+removing the chip and repositioning the lamps both stay inside the existing
+`.bar-header` footprint.
 
 ## Where things stand (session 36 — v3.5.0, 2026-08-04)
 

@@ -1007,6 +1007,10 @@ export const HELP = {
     title: "Bass Warning",
     body: "The bass isn't following your chords. ABS means it's fixed to literal strings (Full Random, Climb, Descend). MIX means some notes follow and some don't.",
   },
+  "x2-indicator": {
+    title: "×2 Active",
+    body: "Each chord is ringing for two bars instead of one.",
+  },
 
   // --- Options: Setup ---
   "chord-mode": {

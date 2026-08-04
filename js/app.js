@@ -64,7 +64,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.5.0";
+const APP_VERSION = "v3.5.1";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -368,12 +368,15 @@ function applySwing() {
   saveAudioPrefs();
 }
 
-// The ×2 toggle's own face: the checkbox and its "Off"/"On" text, kept in sync
-// with state.x2 (which persists across mode switches — see x2Active). Called
-// from render() alongside renderCapo/renderSwing's siblings.
+// The ×2 toggle's own face: a two-key segmented control (Format's family),
+// so the seated key mirrors state.x2 (which persists across mode switches —
+// see x2Active). Called from render() alongside renderCapo/renderSwing's
+// siblings. Same "SEATED == SELECTED" convention as Format: only `.active`
+// needs setting, `:active`/`.active` share one CSS rule.
 function renderX2() {
-  el("x2-toggle").checked = state.x2;
-  el("x2-value").textContent = state.x2 ? "On" : "Off";
+  for (const b of el("x2-toggle").querySelectorAll("[data-x2]")) {
+    b.classList.toggle("active", (b.dataset.x2 === "on") === state.x2);
+  }
 }
 
 // The on-screen capo indicator. It sits in the header row in BOTH chord modes —
@@ -504,6 +507,16 @@ function render() {
   ind.title = DETAIL[t] ?? "";
   ind.className = "type-indicator " + t;
 
+  // Same chip language as the ABS/MIX bass warning, its own indicator (his
+  // call) — a persistent "heads up" readout, independent of the per-bar pass
+  // lamps in the grid. Sits beside ABS/MIX in `.type-indicators`, since both
+  // can be true at once (e.g. Full Random bass + ×2).
+  const x2Ind = el("x2-indicator");
+  x2Ind.hidden = !x2;
+  x2Ind.textContent = x2 ? "×2" : "";
+  x2Ind.title = x2 ? "Each chord rings for two bars instead of one." : "";
+  x2Ind.className = "type-indicator" + (x2 ? " x2" : "");
+
   // Remember the settings you keep. Render is the one funnel they all pass
   // through, so this can't miss a control the way a per-handler call would.
   savePrefs();
@@ -542,12 +555,10 @@ function setChordMode(mode) {
   el("field-chord").hidden = prog;
   el("field-keyprog").hidden = !prog;
   // ×2 stays VISIBLE (not hidden) in single mode, so the sheet doesn't jump —
-  // just disabled, since with one chord there's nothing to double. `.lamp` is a
-  // <label>, which has no native disabled state: pressStrength() (the ka-chunk
-  // gate) only honours a real `disabled` or `aria-disabled="true"` on the
-  // element it's actually testing, so both have to be set here.
-  el("x2-toggle").disabled = !prog;
-  el("x2-toggle").closest(".lamp").toggleAttribute("aria-disabled", !prog);
+  // just disabled, since with one chord there's nothing to double. Real
+  // <button disabled>s, so pressStrength()'s ka-chunk gate and the tap itself
+  // are both blocked natively — no aria-disabled workaround needed.
+  for (const b of el("x2-toggle").querySelectorAll("[data-x2]")) b.disabled = !prog;
   for (const b of el("chord-mode").querySelectorAll("[data-mode]")) {
     b.classList.toggle("active", b.dataset.mode === mode);
   }
@@ -1224,12 +1235,21 @@ function attach() {
 
   // ×2 never touches the pattern — same reasoning as the capo — so it just
   // re-renders. Progression-mode-only in effect (x2Active gates it), but the
-  // value itself persists across mode switches, same as capo.
-  el("x2-toggle").addEventListener("change", (e) => {
-    state.x2 = e.target.checked;
-    markDirty();
-    render();
-  });
+  // value itself persists across mode switches, same as capo. Wired exactly
+  // like Format: a seated key is a no-op re-press (guarded here, and also
+  // covered by seatedLatch()'s silent-ka-chunk rule below since these are
+  // `.segmented button`s), and it commits on pointerup for the same
+  // flash-free reason Format and the page tabs do.
+  const switchX2 = (e) => {
+    const btn = e.target.closest("[data-x2]");
+    if (btn && btn.classList.contains("active") === false) {
+      state.x2 = btn.dataset.x2 === "on";
+      markDirty();
+      render();
+    }
+  };
+  el("x2-toggle").addEventListener("pointerup", switchX2);
+  el("x2-toggle").addEventListener("click", switchX2);
 
   // Thumb and Chaos each re-roll only their own layer, so you can audition bass
   // patterns under one finger part (and vice versa) without losing the other.

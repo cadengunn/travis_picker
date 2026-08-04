@@ -102,8 +102,8 @@ they mean:
   caps **above** a control, silkscreened on the faceplate. One tier only —
   10px / 0.16em / 500 (`--legend-size`/`-track`/`-weight`). A group caption
   (`.sheet-sec`) is the *same object* as a field label, same left edge.
-- **`--numeral` (rounded geometric)** — fret digits in note circles, the bar-num
-  chip, ruler ticks, BPM. A **legibility exception**, not a third opinion.
+- **`--numeral` (rounded geometric)** — fret digits in note circles, ruler
+  ticks, BPM. A **legibility exception**, not a third opinion.
 
 **Jost is bundled (OFL 1.1), not the system Futura it resembles** — referencing a
 commercial system face is free only while every user is on Apple hardware, and an

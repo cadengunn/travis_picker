@@ -2219,7 +2219,7 @@ check("help: an unannotated indicator falls through to the control it sits in", 
     '<div class="slider-wrap" data-help="bpm"><input type="range">' +
     '<div class="bpm-readout"><span id="beat-lamp"></span><output>90</output> BPM</div></div>' +
     '<section id="grid" data-help="grid"><div class="grid-track"><div class="bar">' +
-    '<div class="bar-header"><span class="bar-num">1</span>' +
+    '<div class="bar-header">' +
     '<span class="dd"><select class="bar-chord"></select><button class="dd-trigger">C</button></span>' +
     "</div></div></div></section>";
 
@@ -2231,7 +2231,6 @@ check("help: an unannotated indicator falls through to the control it sits in", 
   // of the trigger matter here.
   const picker = helpTargetFor(frag.querySelector(".dd-trigger"));
   assert(picker && picker.key === "grid", "a bar's chord picker must resolve to the grid card");
-  assert(helpTargetFor(frag.querySelector(".bar-num")).key === "grid", "so must the bar number");
   // …and the grid's copy has to actually COVER them, or this is the v2.13.4 bug
   // again: the picker fell through to a card that said nothing about chords.
   assert(/chord/i.test(HELP.grid.body),
@@ -2853,15 +2852,12 @@ acheck('layout: the Format control spells "Progression" on one line', async () =
     `only ${(boxW - textW).toFixed(1)}px of air around "Progression" (${textW.toFixed(1)}px in ${boxW}px)`);
 });
 
-acheck("layout: the ×2 lamp fits its slot without wrapping or growing the row", async () => {
-  // Session 36: replaced Pattern length's <select> with a compact .lamp toggle
-  // in the same 3rd slot of .control-row.layers, alongside Thumb/Fingers. Same
-  // two failure modes as the Format check above (text wrap lifts a bottom-
-  // anchored sheet; a taller sibling grows the whole row) plus a third this
-  // control introduces: the wrapper had to become a bare <div> rather than a
-  // <label> (nesting <label class="lamp"> inside <label class="field"> is
-  // invalid HTML) — a regression there would silently break the click target,
-  // not the layout, so it isn't caught here; see index.html's comment on it.
+acheck("layout: the ×2 segmented control fits its slot without wrapping or growing the row", async () => {
+  // Session 36, redesigned same session (his call): ×2 is a two-key segmented
+  // control — Format's family (carved keys in a well), not the Sound-toggle
+  // lamp — in the same 3rd slot of .control-row.layers, alongside Thumb/
+  // Fingers. Same two failure modes as the Format check above (text wrap lifts
+  // a bottom-anchored sheet; a taller sibling grows the whole row).
   const frame = document.createElement("iframe");
   frame.setAttribute("aria-hidden", "true");
   frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:300px;border:0";
@@ -2870,33 +2866,36 @@ acheck("layout: the ×2 lamp fits its slot without wrapping or growing the row",
     '<div class="sheet-panel"><div class="control-row layers">' +
     '<label class="field"><span>Thumb</span><select id="thumb-select"><option>Dead Thumb</option></select></label>' +
     '<label class="field"><span>Fingers</span><select id="fingers-select"><option>Wild Card</option></select></label>' +
-    '<div class="field"><span>×2</span><label class="lamp lamp-compact" id="x2-lamp">' +
-    '<input type="checkbox"><span class="jewel"></span><span class="t" id="x2-text">Off</span>' +
-    '</label></div>' +
+    '<div class="field"><span>×2</span><div class="segmented" id="x2-well">' +
+    '<button type="button" class="active" id="x2-btn1">×1</button><button type="button">×2</button>' +
+    '</div></div>' +
     '</div></div>';
   document.body.appendChild(frame);
   await new Promise((resolve) => { frame.onload = resolve; });
 
   const doc = frame.contentDocument;
   await Promise.race([
-    doc.fonts.load("600 15px Fraunces"),
+    doc.fonts.load("600 14px Fraunces"),
     new Promise((r) => setTimeout(r, 3000)),
   ]);
-  assert(doc.fonts.check("600 15px Fraunces"),
+  assert(doc.fonts.check("600 14px Fraunces"),
     "Fraunces did not load in the harness — this measurement would be against the fallback");
 
-  const textEl = doc.getElementById("x2-text");
+  const textEl = doc.getElementById("x2-btn1");
   const range = doc.createRange();
   range.selectNodeContents(textEl);
   const lines = range.getClientRects().length;
+  const textW = range.getBoundingClientRect().width;
+  const boxW = textEl.clientWidth;
 
   const selectH = doc.getElementById("thumb-select").getBoundingClientRect().height;
-  const lampH = doc.getElementById("x2-lamp").getBoundingClientRect().height;
+  const wellH = doc.getElementById("x2-well").getBoundingClientRect().height;
   frame.remove();
 
-  assert(lines === 1, `"Off" wraps to ${lines} lines in the ×2 lamp — the Options sheet will jump`);
-  assert(Math.abs(lampH - selectH) < 3,
-    `the ×2 lamp is ${lampH.toFixed(1)}px against its Thumb/Fingers siblings' ${selectH.toFixed(1)}px — this row's height would jump`);
+  assert(lines === 1, `"×1" wraps to ${lines} lines in the ×2 well — the Options sheet will jump`);
+  assert(textW < boxW, `"×1" needs ${textW.toFixed(1)}px in a ${boxW}px key`);
+  assert(Math.abs(wellH - selectH) < 3,
+    `the ×2 well is ${wellH.toFixed(1)}px against its Thumb/Fingers siblings' ${selectH.toFixed(1)}px — this row's height would jump`);
 });
 
 acheck("type: every bundled face is declared, and the three voices stay separate", async () => {

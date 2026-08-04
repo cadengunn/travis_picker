@@ -87,9 +87,13 @@
   <!-- The only permanently-visible controls: the things you reach for with a
        guitar in your hands. Everything else lives in the Options sheet. -->
   <div class="controls">
-    <!-- Absolute/mixed-bass caution indicator: sits bottom-right, above the gear,
-         so the header name row is reserved for the pattern name. -->
-    <span id="type-indicator" class="type-indicator" data-help="type-indicator"></span>
+    <!-- Status chips: sit bottom-right, above the gear, so the header name row
+         is reserved for the pattern name. Both can show at once (e.g. Full
+         Random bass under ×2), so they're a row, not one slot. -->
+    <div class="type-indicators">
+      <span id="x2-indicator" class="type-indicator" data-help="x2-indicator"></span>
+      <span id="type-indicator" class="type-indicator" data-help="type-indicator"></span>
+    </div>
     <div class="transport">
       <button id="play" class="btn-icon btn-play" type="button" aria-pressed="false" data-help="play"
               aria-label="Start metronome">&#x25B6;&#xFE0E;</button>
@@ -245,19 +249,22 @@
           <span>Fingers</span>
           <select id="chaos"></select>
         </label>
-        <!-- Session 36 — Pattern length's old slot. A plain <div>, not <label>:
-             <label class="lamp"> is itself a label (for the checkbox), and
-             labels can't nest. Starts disabled to match the default Single
-             mode (see #field-keyprog's static `hidden` for the same pattern);
-             setChordMode() flips both `disabled` and the wrapper's
-             `aria-disabled` as the mode changes. -->
+        <!-- Session 36 — Pattern length's old slot. A two-key segmented
+             control, same family as Format/Capo/the die (his call, not the
+             Sound-toggle lamp material — that belongs to the Preferences
+             page, this sheet's Setup page speaks carved-keys-in-a-well).
+             Starts disabled to match the default Single mode (see
+             #field-keyprog's static `hidden` for the same pattern);
+             setChordMode() flips `disabled` on both keys as the mode changes
+             (a plain disabled <button>, so pressStrength()'s ka-chunk gate and
+             the tap itself are both blocked for free, no aria-disabled
+             workaround needed). -->
         <div class="field" data-help="x2">
           <span>×2</span>
-          <label class="lamp lamp-compact">
-            <input id="x2-toggle" type="checkbox" disabled />
-            <span class="jewel"></span>
-            <span class="t" id="x2-value">Off</span>
-          </label>
+          <div id="x2-toggle" class="segmented" role="group" aria-label="×2 mode">
+            <button type="button" data-x2="off" class="active" disabled>×1</button>
+            <button type="button" data-x2="on" disabled>×2</button>
+          </div>
         </div>
       </div>
 
