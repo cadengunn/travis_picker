@@ -306,8 +306,21 @@ Its geometry:
   thumb's whole root↔alt pair in session 34, his call: the thumb is already
   implicit in which string a note is on. **The BARRE is never accented** (one
   finger across five strings, mostly not the root); a root beneath a bar gets its
-  own rimmed dot on top rather than being swallowed by it. `G♯sus2`, whose root
-  sits under its barre, is what exposed that.
+  own rimmed dot on top rather than being swallowed by it. `G♯sus2`'s OLD shape
+  (before its session 35 revoicing) is what exposed that — its root sat under
+  its own barre.
+- **A BARRE GOES ALL THE WAY ACROSS, AND THERE CAN BE TWO** (his call, session
+  35). The bar used to be drawn only between the outermost strings *at* its own
+  fret, which drew F♯6's index as a stub over strings 6–5. That isn't what the
+  hand does — the index lies flat across everything it can reach, and a string
+  carrying a higher note is still barred underneath. So a bar now extends through
+  every neighbouring **fretted** string, stopping only at an open or muted one; in
+  this library that means all six, every time. A run of **≥3** adjacent strings
+  sharing a fret above it is a **second** bar (his F♯6: "one finger all the way
+  across on fret 9, another finger covering the 4 strings at fret 11") — which is
+  also the ring-finger barre every A-shape chord has. **Three, not two**, and the
+  F barre is the evidence: its fret-3 pair on strings 5/4 is ring + pinky, so a
+  2-string run stays two dots.
 - **HOLLOW MEANS "you move a finger here", and it means nothing else.** The moving
   finger (`MOVING` in `data.js`) is drawn as an outlined dot on the string you move
   TO; the home note stays filled. There is **no established symbol for this** in

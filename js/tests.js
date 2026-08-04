@@ -2902,13 +2902,13 @@ acheck("app: the die can be tapped while its own wheel is open", async () => {
 
 check("chordbox: every chord in the library draws, and fits the 5-fret window", () => {
   // The window is why the diagram can be small: the library's widest span is 5
-  // (G♯sus2, frets 4-8), so five rows always suffice. If a future voicing broke
+  // (C♯add9, frets 4-8), so five rows always suffice. If a future voicing broke
   // that, the shape would silently draw notes outside its own box.
   for (const id of CHORD_IDS) {
     const m = chordBoxModel(id);
     assert(m, `no chord box model for ${id}`);
     assert(m.span <= BOX_FRETS, `${id} spans ${m.span} frets, more than the box shows`);
-    const notes = [...m.dots, ...(m.barre ? [{ fret: m.barre.fret }] : [])];
+    const notes = [...m.dots, ...m.barres];
     for (const n of notes) {
       const row = n.fret - m.first;
       assert(row >= 0 && row < BOX_FRETS,
@@ -2918,7 +2918,7 @@ check("chordbox: every chord in the library draws, and fits the 5-fret window", 
     const seen = new Set();
     for (const d of m.dots) seen.add(d.index);
     for (const k of m.marks) seen.add(k.index);
-    if (m.barre) for (let i = m.barre.from; i <= m.barre.to; i++) seen.add(i);
+    for (const b of m.barres) for (let i = b.from; i <= b.to; i++) seen.add(i);
     assert(seen.size === 6, `${id}: ${seen.size} of 6 strings drawn`);
   }
 });
@@ -2937,11 +2937,14 @@ check("chordbox: open shapes sit at the nut, barre shapes print their position",
   assert(eb.position === 6, `E♭ should print its position 6, got ${eb.position}`);
   assert(eb.first === 6, "the window starts at the barre");
 
-  // The worst shape in the library, and the one he's most likely to overrule.
-  const gs = chordBoxModel("G#sus2");
-  assert(gs.span === 5 && gs.low === 4 && gs.high === 8,
-    `G♯sus2 should span frets 4-8, got ${gs.low}-${gs.high}`);
-  assert(gs.position === 4, "G♯sus2 prints position 4");
+  // The worst shape in the library, and the one he's most likely to overrule —
+  // which is exactly what happened to the chord that held this title before it:
+  // G♯sus2 spanned frets 4-8 too, until his session 35 revoicing moved it down
+  // to a low nut-anchored shape (see chordbox.js's widest-span comment).
+  const cs = chordBoxModel("C#add9");
+  assert(cs.span === 5 && cs.low === 4 && cs.high === 8,
+    `C♯add9 should span frets 4-8, got ${cs.low}-${cs.high}`);
+  assert(cs.position === 4, "C♯add9 prints position 4");
 });
 
 check("chordbox: an open string with high frets anchors by position, not the nut", () => {
@@ -2967,21 +2970,56 @@ check("chordbox: an open string with high frets anchors by position, not the nut
   }
 });
 
-check("chordbox: a barre is a real barre, not just a repeated fret", () => {
+check("chordbox: a barre is a real barre, and it goes all the way across", () => {
   // Drawing a bar across a shape you don't barre would be a lie, so the model
   // requires no open string in the way AND something fretted above it.
   const f = chordBoxModel("F");
-  assert(f.barre, "F is a barre chord");
-  assert(f.barre.fret === 1 && f.barre.from === 0 && f.barre.to === 5,
+  assert(f.barres.length === 1, "F is a barre chord, with one bar");
+  assert(f.barres[0].fret === 1 && f.barres[0].from === 0 && f.barres[0].to === 5,
     "F barres all six strings at fret 1");
+  // ...and its fret-3 PAIR on strings 5/4 stays two dots. This is the evidence
+  // for the ≥3 threshold on a second bar: everyone plays that with ring + pinky.
+  assert(f.dots.filter((d) => d.fret === 3).length === 2,
+    "F's fret-3 pair is two fingers, not a bar");
 
-  // An open chord can repeat a fret across strings and must NOT read as a barre.
+  // THE INDEX BAR SPANS EVERY STRING IT CAN REACH (his call, session 35),
+  // including strings carrying a higher note — the finger is still under them.
+  // Before this, a bar was drawn only between the outermost strings AT its own
+  // fret, so F♯6's index read as a stub across strings 6-5.
+  const fs6 = chordBoxModel("F#6"); // 9 9 11 11 11 11 — his worked example
+  assert(fs6.barres.length === 2, `F♯6 should draw two bars, got ${fs6.barres.length}`);
+  assert(fs6.barres[0].fret === 9 && fs6.barres[0].from === 0 && fs6.barres[0].to === 5,
+    "F♯6 bars all six at fret 9");
+  assert(fs6.barres[1].fret === 11 && fs6.barres[1].from === 2 && fs6.barres[1].to === 5,
+    "F♯6's second finger covers strings 4-1 at fret 11");
+
+  // His other example: the low fret is scattered over non-adjacent strings, and
+  // the answer is still one bar all the way across.
+  const gs9 = chordBoxModel("G#add9"); // 4 1 1 3 1 4
+  assert(gs9.barres.length === 1 && gs9.barres[0].from === 0 && gs9.barres[0].to === 5,
+    "G♯add9 just barres all the way across at fret 1");
+
   for (const id of CHORD_IDS) {
     const m = chordBoxModel(id);
-    if (!m.barre) continue;
+    if (!m.barres.length) continue;
     assert(!m.marks.some((k) => k.kind === "open"),
       `${id}: a shape with an open string cannot be barred`);
-    assert(m.high > m.barre.fret, `${id}: a barre needs a note above it`);
+    assert(m.high > m.barres[0].fret, `${id}: a barre needs a note above it`);
+    // Bars stack low-to-high and never overlap on the same fret.
+    for (let i = 1; i < m.barres.length; i++) {
+      assert(m.barres[i].fret > m.barres[i - 1].fret, `${id}: bars out of order`);
+      assert(m.barres[i].to - m.barres[i].from >= 2, `${id}: a stacked bar covers ≥3 strings`);
+    }
+    // Every string a bar covers is fretted at or above it — a finger can't lie
+    // over an open or muted string.
+    const shape = CHORD_SHAPES[id];
+    for (const b of m.barres) {
+      for (let i = b.from; i <= b.to; i++) {
+        const fret = shape[m.strings[i]];
+        assert(fret != null && fret >= b.fret,
+          `${id}: the fret-${b.fret} bar lies over string ${m.strings[i]}, which is ${fret}`);
+      }
+    }
   }
 });
 
@@ -3004,7 +3042,7 @@ check("chordbox: the root is accented, and nothing else is", () => {
     assert(accented.size === 1, `${id}: exactly one string may be accented, got ${[...accented]}`);
     // The BAR itself is never accented: one finger across five strings, and the
     // root beneath it gets its own dot on top.
-    if (m.barre) assert(m.barre.role === "note", `${id}: a barre must not wear the root colour`);
+    for (const b of m.barres) assert(b.role === "note", `${id}: a barre must not wear the root colour`);
   }
 });
 

@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [35](#where-things-stand-session-35--v340-2026-08-03) | **v3.4.0** | his 14-chord playability spec applied (the roles moved, not just the frets — a rule fell out: role strings never go below string 3); then barres got drawn the way a hand actually makes them — all the way across, and F♯6 as two |
 | [34b](#where-things-stand-session-34b--v330-2026-08-03) | **v3.3.0** | the chord diagram shows the MOVING FINGER as a hollow dot (no established symbol exists; this borrows the fingerstyle "alternate bass" ring). Root-only accent replaces marking the thumb's whole pair. B7 added; G#6 revoiced to his fingering |
 | [34](#where-things-stand-session-34--docs--tests-2026-08-03) | *(no version)* | adversarial review: CLAUDE.md became a hub and `DESIGN.md` was split out (1,570 → 990 lines, 18.2k → 11.0k words); the four sleeping tests stopped waiting on the wall clock, and the wheel "flake" turned out to be the screenshot resizing the pane |
 | [33g](#where-things-stand-session-33g--v326-2026-08-03) | **v3.2.6** | real bug caught by ear: F#6's alt===fifth collapsed Travis's bass to one repeated note; fixed + a new library-wide guard test; plus two audits answering "anything else like this?" |
@@ -53,6 +54,48 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 35 — v3.4.0, 2026-08-03)
+
+**His ask, part one:** a spec document of 14 chord voicings he'd played through
+manually and found awkward, given as fret strings low-to-high. Applied verbatim.
+Every one was transcribed correctly — checked by computing each shape's sounded
+pitch classes against its quality formula rather than reading them by eye.
+
+**The part that needed judgement was the ROLES, not the frets.** `root`/`alt`/
+`fifth` are string numbers, and a new shape moves them. The rule that fell out of
+doing all 14: **role strings never go below string 3.** Where a chord's 3rd or
+colour tone only reaches strings 2/1, the thumb walks to whatever IS in the
+bass domain instead — the 9th (`G♯add9`, `Gadd9`, `G♯sus2`), or a reused 5th or
+root (`F`/`F♯` sus2 and 6, `E♭sus4`, `B♭m6`/`Bm6`). That isn't a compromise, it's
+the honest limit of a three-note chord under an alternating thumb. `E♭m6` is the
+one in the batch whose m3 lands on a bass string, so it walks properly.
+
+Three of the fourteen **replace voicings shipped only a session or two ago**, and
+each drops the reasoning that produced it, so each is flagged for his guitar:
+`F♯6` and `E♭add9` both abandon the moving-finger technique for static barres
+(their `MOVING` entries are gone), and `E♭sus4` goes back up to frets 6–9, the
+exact range the session-33 low D-shape existed to avoid.
+
+**His ask, part two, after seeing them drawn:** *"usually a barre goes all the way
+across. Or like on F♯6, that would be two barres."* This was a **rendering** bug,
+not a data one — a barred string carrying a higher note still sounds the higher
+note, so no frets changed. `chordbox.js` had been drawing the bar only between the
+outermost strings at its own fret, which made F♯6's index a stub over strings 6–5.
+Now a bar runs through every neighbouring fretted string (all six, in this
+library), and a run of **≥3** adjacent strings sharing a higher fret is a second
+bar. **Three is the threshold and the F barre is the evidence**: its fret-3 pair
+on strings 5/4 is ring + pinky, which nobody barres — so two stays two dots,
+while three is the ring-finger barre every A-shape chord already had and never
+got drawn.
+
+**Two tests were pinned to voicings that changed**, and both wanted updating
+rather than loosening: G♯sus2 was hardcoded as "the library's widest span, frets
+4–8", a title that now belongs to the untouched `C♯add9`. The barre test was
+rewritten around his two worked examples and gained a sweep asserting no bar ever
+lies over an open or muted string. 106/106.
 
 ---
 

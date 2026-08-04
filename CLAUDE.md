@@ -557,6 +557,11 @@ Four dependency-free modules, all precached:
       chords have one is DATA** (`MOVING` in `data.js`) and cannot be derived: the
       geometric rule fires on 82 of 120 and is wrong on every plain barre, where
       both notes are simply held. See the note above that table.
+    - **A BARRE GOES ALL THE WAY ACROSS, AND A SHAPE CAN HAVE TWO** (his call,
+      session 35). Drawing, not data — a barred string carrying a higher note
+      still sounds the higher note, so no frets moved. A run of ≥3 adjacent
+      strings at a higher fret is a second bar; 2 is two fingers (the F barre's
+      ring + pinky is the evidence). Geometry in `DESIGN.md`.
     It **redraws on SETTLE, not per detent** (his call): a diagram flickering under
     a spinning barrel is motion under a mechanism that's already moving. Only the
     **chord** wheel gets one — Key × Progression has no shape — and both entry
@@ -925,12 +930,13 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v3.2.6, 105/105 green.** The chord library and the progression revamp are
+**v3.4.0, 106/106 green.** The chord library and the progression revamp are
 finished (sessions 29–33): 120 chords, the drum pickers, and the chord-shape
 diagram under the wheel. Sessions 32–33 also landed `tp-prefs`, the diagnosed
 dead-Play bug, the landscape sheet fix, and four rounds of his guitar verdicts on
-chord voicings. Per-session detail is in `CHANGELOG.md`; what each of those left
-open is in `OPEN_ITEMS.md`.
+chord voicings. Session 35 applied his 14-chord playability spec and made barres
+draw the way a hand makes them. Per-session detail is in `CHANGELOG.md`; what each
+of those left open is in `OPEN_ITEMS.md`.
 
 **Signed off, don't revisit unless he raises it:** the wheel (v2.14.0–.2 — the
 detent, the spin, the curve, the die's pool, the F7/F♯7/G♯7 ♭7 bass), Wild Card
@@ -939,7 +945,9 @@ and Unruly, and the app as a whole on the guitar as of v2.13.3. The build order 
 
 **Waiting on his phone:** whether the chord diagram is legible at arm's length
 (`.chordbox { width }` is the dial), the real landscape rotate, and whether Play
-ever goes dead again.
+ever goes dead again. **And on his guitar (session 35):** `F♯6` and `E♭add9` both
+dropped the moving-finger technique for static barres, and `E♭sus4` moved back up
+to frets 6–9 — each replaces a voicing reasoned out only a session or two before.
 
 - **What changed and why, session by session** → `CHANGELOG.md` (newest first).
 - **What's open, what's decided, what needs his call** → `OPEN_ITEMS.md`.

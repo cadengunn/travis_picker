@@ -64,7 +64,8 @@ export function chordBoxModel(chordId) {
   // open strings only mean anything against it. Everything else slides up the
   // neck and prints its position instead — which is exactly how a chord chart
   // does it, and why the box needs no more than five rows for a library whose
-  // widest span is five (G♯sus2, frets 4-8).
+  // widest span is five (C♯add9, frets 4-8 — G♯sus2 held that title until its
+  // session 35 revoicing moved it to the nut).
   //
   // ...but only if the fretted notes actually FIT there. A shape that mixes an
   // open string with notes above the 5th fret can't be anchored at the nut — the
@@ -79,11 +80,48 @@ export function chordBoxModel(chordId) {
   // so there must be no open string in the way, the lowest fret has to appear on
   // at least two strings, and something must sit above it — otherwise it's an
   // ordinary two-finger shape and drawing a bar across it would be a lie.
-  let barre = null;
+  //
+  // A BARRE GOES ALL THE WAY ACROSS (his call, session 35). It used to be drawn
+  // only from the first to the last string AT the barre fret, which drew F♯6's
+  // index finger as a stub over strings 6-5. That's not what the hand does: the
+  // index lies flat across every string it can reach, and a string carrying a
+  // HIGHER note is still barred underneath — the higher finger simply wins. So
+  // the bar extends outward from the low-fret strings through every neighbouring
+  // string that's fretted at all, stopping only at an open or muted one (which a
+  // finger genuinely can't lie over). In this library that means every barre
+  // chord bars all six.
+  //
+  // AND THERE CAN BE MORE THAN ONE (same call). His F♯6: "one finger all the way
+  // across on fret 9, another finger covering the 4 strings at fret 11." A run of
+  // ≥3 adjacent strings sharing a fret ABOVE the barre is a second finger lying
+  // across them — the ring-finger barre every A-shape chord has (B♭'s 3 3 3 on
+  // strings 4/3/2). THREE is the threshold, not two, and the F barre is the
+  // evidence: its fret-3 pair on strings 5/4 is ring + pinky, a shape everyone
+  // plays with two fingers, so a 2-string run must stay two dots.
+  const barres = [];
   if (!anyOpen && high > low) {
     const idx = at.map((f, i) => (f === low ? i : -1)).filter((i) => i >= 0);
-    if (idx.length >= 2) barre = { fret: low, from: idx[0], to: idx[idx.length - 1] };
+    if (idx.length >= 2) {
+      let from = idx[0];
+      let to = idx[idx.length - 1];
+      while (from > 0 && at[from - 1] != null && at[from - 1] > 0) from--;
+      while (to < 5 && at[to + 1] != null && at[to + 1] > 0) to++;
+      barres.push({ fret: low, from, to });
+      // Higher runs, left to right. Only strings fretted ABOVE the index barre
+      // can carry one — anything at the barre fret is already under it.
+      for (let i = 0; i < 6; ) {
+        const f = at[i];
+        if (f == null || f <= low) { i++; continue; }
+        let j = i;
+        while (j + 1 < 6 && at[j + 1] === f) j++;
+        if (j - i + 1 >= 3) barres.push({ fret: f, from: i, to: j });
+        i = j + 1;
+      }
+    }
   }
+  // A string is under a bar only at that bar's OWN fret: a higher note on a
+  // barred string is played by the finger on top, and still needs its dot.
+  const barredAt = (i, fret) => barres.some((b) => b.fret === fret && i >= b.from && i <= b.to);
 
   // ONLY THE ROOT is accented (his call, session 34), which is what an ordinary
   // chord chart marks. This REPLACED marking the thumb's whole alternating pair
@@ -102,10 +140,11 @@ export function chordBoxModel(chordId) {
     const moving = string === movingTo;
     if (fret == null) { marks.push({ index: i, kind: "muted", role: null }); return; }
     if (fret === 0) { marks.push({ index: i, kind: "open", role }); return; }
-    const underBarre = barre && fret === barre.fret && i >= barre.from && i <= barre.to;
+    const underBarre = barredAt(i, fret);
     // A note under the barre needs no dot of its own — the bar is already saying
     // "one finger lies across here". TWO EXCEPTIONS get drawn on top of it: the
-    // ROOT (G♯sus2, whose root sits under its own barre, is what exposed that),
+    // ROOT (G♯sus2's OLD shape, before its session 35 revoicing, is what exposed
+    // that — its root sat under its own barre),
     // and a MOVING note, whose whole point is that it isn't held down with the
     // rest. Colouring the BAR instead would be wrong — it covers five strings
     // that mostly aren't the root.
@@ -124,9 +163,10 @@ export function chordBoxModel(chordId) {
     // The number printed beside the top row. Null at the nut, where the nut
     // itself says where you are.
     position: atNut ? null : first,
-    // The bar is never accented: it's an index finger lying across five strings,
-    // and a root beneath it is marked by its own dot on top (see above).
-    barre: barre ? { ...barre, role: "note" } : null,
+    // A bar is never accented: it's one finger lying across several strings, and
+    // a root beneath it is marked by its own dot on top (see above). Ordered low
+    // fret first, so the index barre draws before anything stacked over it.
+    barres: barres.map((b) => ({ ...b, role: "note" })),
     dots,
     marks,
     // The pair one finger covers, carried through so a future treatment (a tie
@@ -202,12 +242,12 @@ export function renderChordBox(chordId) {
     }
   }
 
-  // The barre, as one finger lying across — a rounded bar, not a row of dots.
-  if (m.barre) {
+  // Each barre, as one finger lying across — a rounded bar, not a row of dots.
+  for (const b of m.barres) {
     svg.appendChild(el("rect", {
-      class: `cb-barre cb-${m.barre.role}`,
-      x: x(m.barre.from) - 5, y: dotY(m.barre.fret) - 5,
-      width: (m.barre.to - m.barre.from) * GAP_X + 10, height: 10, rx: 5,
+      class: `cb-barre cb-${b.role}`,
+      x: x(b.from) - 5, y: dotY(b.fret) - 5,
+      width: (b.to - b.from) * GAP_X + 10, height: 10, rx: 5,
     }));
   }
 
@@ -229,7 +269,10 @@ export function describeShape(m) {
     if (mk) return `string ${s} ${mk.kind === "open" ? "open" : "muted"}`;
     const d = m.dots.find((k) => k.index === i);
     if (d) return `string ${s} fret ${d.fret}`;
-    if (m.barre && i >= m.barre.from && i <= m.barre.to) return `string ${s} fret ${m.barre.fret}`;
+    // Not drawn as a dot, so it's sounding under a bar — name the highest one
+    // covering it, since a higher bar lies over a lower one.
+    const b = m.barres.filter((k) => i >= k.from && i <= k.to).pop();
+    if (b) return `string ${s} fret ${b.fret}`;
     return `string ${s}`;
   });
   return `${m.name}: ${per.join(", ")}`;
