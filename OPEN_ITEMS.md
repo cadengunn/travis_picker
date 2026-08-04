@@ -17,7 +17,20 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.5.2) — ×2 mode, and Pattern length is gone
+## Previously on the phone (v3.5.2) — signed off, ×2 confirmed
+
+**Resolved, session 39.** His words: "×2 mode musically works, pass lamps
+blink correctly." Every open question this section originally posed is
+answered — the pass lamps blink in time, they read as the beat lamp's own
+material at rest, the locked ×2 control presses in and pops back out, and ×2
+at tempo does what it was built for. Both permanent losses from Pattern
+length's removal (single mode always 1-bar; no bar of a progression can differ
+from another) are accepted, not raised as problems. Nothing further needed
+here — the section below is kept verbatim as the original record.
+
+---
+
+### the original v3.5.2 phone-review section, kept for the record
 
 **Pattern length is removed.** Your testing settled it: the picking pattern
 repeats every bar even in complex Jerry Reed material, so the generator now

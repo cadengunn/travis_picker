@@ -1,85 +1,92 @@
-# Next session — open, no single big feature queued
+# Next session — pre-loaded patterns, and maybe folders
 
 Copy everything below the line into a new session.
 
 ---
 
-Travis Picker — new session. **v3.5.2 is live and pushed, 112/112 green.** Read
+Travis Picker — new session. **v3.6.1 is live and pushed, 118/118 green.** Read
 `CLAUDE.md` first; it's a hub, so follow its pointers rather than reading
-everything. Which of the other docs you need depends on what we pick — see the
-table at the top of `CLAUDE.md`.
+everything.
 
-**Nothing is half-built.** Session 36 finished cleanly: Pattern length removed,
-×2 mode shipped, swing now saves with the pattern. Three rounds of my phone
-review are folded in. So this session starts from a clean slate, and **the first
-thing I owe you is what I found playing v3.5.2** — ask, don't guess, before
-proposing work.
+**Nothing is half-built, and nothing is waiting on a phone verdict.**
+Sessions 37–39 all shipped and were confirmed the same day they went out:
+`CHORD_REFERENCE.md`'s tables are generated now, not hand-typed; JSON
+export/import of the Saved library works end to end on his phone; Export/
+Import moved onto the Load sheet's title line and a hand-edited pattern shows
+"Custom" instead of a stale preset name. **This session has two concrete
+pieces of work queued** rather than a blank slate — see below.
 
-## What I'm testing between sessions (v3.5.2)
+## What's queued this session
 
-`OPEN_ITEMS.md`'s top section has the full list. The short version:
+**1. Pre-loaded patterns** (`OPEN_ITEMS.md` item 2) — design already settled:
+read-only "Built-in" data in the Load sheet, "save a copy," never seeded into
+localStorage. **He's bringing the patterns himself** — an exported JSON file
+(via the export button, item 4) plus which named items in it to use as the
+starter set. Read the file he attaches, don't ask him to re-describe the
+patterns.
 
-- **The ×2 pass lamps blinking in time.** They were dead in v3.5.0 *and* v3.5.1
-  (a re-typed selector matched nothing) and only my report caught it — the dev
-  box can't see rAF at all. My eye on the live blink is the real confirmation.
-- **Whether ×2 at tempo does musically what I wanted.** That's the premise of
-  the whole feature and only playing to it answers.
-- **Two permanent losses I agreed to**, and whether they bite in practice:
-  single mode is now always a 1-bar grid, and no bar of a progression can be
-  hand-edited to differ from another (every bar is the same distinct pattern —
-  editing one edits all, with no dial left to change it).
+**2. Folders** (`OPEN_ITEMS.md` item 4b) — "maybe," his word, so **confirm he
+still wants it this session before starting**, and confirm scope: alone, or
+paired with item 1. The design is already sized and agreed, not up for
+re-litigation unless something about it doesn't survive contact with real
+code:
+- A `folder` string field per saved item (`null`/absent = unfiled) — no
+  separate folder table, Finder-tag style.
+- Load list grouped with a header row per folder, reusing the app's existing
+  engraved-section-header idiom (the same mechanism the progression/quality
+  drum menus already use).
+- A per-item `<select>`, enhanced by the existing `dropdown.js`, to
+  assign/move/create a folder.
+- Folder rename/delete lives on the group header (delete un-files, never
+  deletes a pattern).
 
-## The candidates, if I have no notes
-
-Roughly best-value first. **Ask which I want; don't start one on your own read.**
-
-- **Pre-loaded patterns** (`OPEN_ITEMS.md` item 2) — still the best-value item
-  on the list and the only big-ish one with no decision blocking it. Design is
-  settled: read-only "Built-in" data in the Load sheet, "save a copy," never
-  seeded into localStorage. What it needs from me is **the patterns** — either
-  a handful I've saved and like, or a nod for you to propose a spread across
-  the tiers. It inherits the 120-chord library, the capo field and ×2 for free.
-- **`CHORD_REFERENCE.md` is STALE and says so in a banner.** A hand-written
-  cross-check sheet from v3.0.0/v3.2.1; ~25 of the 120 chords were revoiced in
-  session 35. **The fix is to split the hand-written commentary from the tables
-  and generate the tables from `data.js`** so it can't rot again — the prose is
-  worth keeping, which is why it wasn't just deleted. Cheap, and worth doing
-  before the next voicing pass.
-- **JSON export/import of the Saved library** (item 4) — the most defensive
-  item on the list, insurance against iOS evicting localStorage. Gains value
-  the moment there are patterns in there I'd miss.
-- **Small stuff, only if it bites:** saved-name crowding (item 10), an "Add to
-  Home Screen" hint (item 11), the full-bleed app icon (item 5, needs new art).
+**If both ship together, they integrate directly**: Built-in patterns (item 1)
+render as their own read-only, folder-shaped group at the top of the same
+grouped Load list folders (item 4b) introduces — not stored via the `folder`
+field, since they're not really "his," but visually unified with real folders
+rather than a separate UI. This was the whole reason folders was deferred to
+pair with this item instead of shipping standalone.
 
 ## Still unverified on the guitar, from session 35
 
-Carried forward — none of it was re-checked in session 36, which was all
-right-hand and UI work:
+Carried forward again — nothing since has touched left-hand voicings:
 
 - `F♯6` and `E♭add9` both dropped the moving-finger technique for static
   barres, and `E♭sus4` moved back up to frets 6–9. Each replaced a voicing
   reasoned out only a session or two earlier.
 - The **m7 family's Travis bass is now root ↔ octave** (E, E, B, E) after the
-  Em7 revoicing — my call, consistent with the E-shape major, but it's the same
-  class of thing I caught by ear on F♯6.
+  Em7 revoicing — his call, consistent with the E-shape major, but it's the
+  same class of thing he caught by ear on F♯6.
 
 ## Ground rules
 
-- **Agree the design before coding**, surface genuine forks, don't guess. In
-  session 36 that caught four real ones before a line was written (single-mode
-  behaviour, legacy saves, swing's load fallback, lamp colour).
+- **Agree the design before coding**, surface genuine forks, don't guess.
+  Session 39 caught a real one this way: whether "similar to the options
+  toggle" meant promoting Export/Import to the always-visible header (real
+  cost: the capo tag's ~5px margin, the 11px height budget) or restyling them
+  where they already lived (no cost) — asking rather than assuming avoided
+  building the expensive wrong guess.
 - **Tests stay green**; add one for any new invariant. Run `tests.html` in the
-  browser and say the count. It's **112/112** now.
-- **Any chrome change needs the 375×553 re-measure** — 55.09 / 384.84 / 11.06,
-  clearance against `main.bottom`.
-- **Deploy = bump `CACHE` in `sw.js` + `APP_VERSION` in `js/app.js`, push**, and
-  I check on the phone. GitHub noreply identity only.
-- Note the dev-box limits in `CLAUDE.md`. Two earned the hard way in session 36
-  and are worth re-reading before you trust a green check:
+  browser and say the count. It's **118/118** now.
+- **Any chrome change to the MAIN app view needs the 375×553 re-measure** —
+  55.09 / 384.84 / 11.06, clearance against `main.bottom`. The Load/Options
+  sheets are body-level overlays and exempt from that specific budget, but
+  still deserve a screenshot sanity check for overflow/wrapping.
+- **Deploy = bump `CACHE` in `sw.js` + `APP_VERSION` in `js/app.js`, push**,
+  and he checks on the phone. GitHub noreply identity only.
+- Note the dev-box limits in `CLAUDE.md`. Three earned the hard way across
+  sessions 36–39, worth re-reading before trusting a green check:
   - **`rAF` is frozen in the preview tab**, so the playhead, the beat lamp and
-    the ×2 pass lamps can only be confirmed on my phone. Say so plainly rather
-    than implying you saw them run.
+    the ×2 pass lamps can only be confirmed on a real device. Say so plainly
+    rather than implying you saw them run.
   - **A test that asserts markup SHAPE is not a test of BEHAVIOUR.** The pass
     lamps shipped twice completely dead while a test counting elements and
     reading their attributes passed the whole time. If a feature works by
     querying, selecting or matching something, the test has to run that query.
+  - **Synthetic `computer`-tool clicks didn't register on some header-style
+    buttons in this preview tab** (session 39) — confirmed by checking
+    `element.hidden`/state via JS after the click, not by trusting a
+    screenshot. A JS-dispatched `.click()` on the same element worked
+    immediately and is what all of that session's verification was built on.
+    If a button seems dead in the preview, try that before assuming the code
+    is broken.
