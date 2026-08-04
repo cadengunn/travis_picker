@@ -17,7 +17,49 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.3.0) — the moving finger, and two chords
+## On the phone right now (v3.5.2) — ×2 mode, and Pattern length is gone
+
+**Pattern length is removed.** Your testing settled it: the picking pattern
+repeats every bar even in complex Jerry Reed material, so the generator now
+always makes exactly one distinct bar. Two consequences you agreed to, both
+permanent and worth feeling out in practice:
+
+- **Single mode is always a 1-bar grid now.** It can't show 2 or 4 bars of one
+  chord any more — that only existed because Pattern length doubled as single
+  mode's bar count.
+- **You can no longer hand-edit one bar of a progression to differ from
+  another.** Every bar is the same distinct pattern, so editing any bar edits
+  all of them, and there's no dial left to change that. The one to watch for:
+  if you ever reach for "make bar 3 different" and hit a wall, that's this.
+
+**×2 mode replaced it.** Each chord rings for two bars instead of one. The grid
+still shows 4 bars (8 would blow the height budget), with two lamps at the left
+of each chord label — left lights on the first pass, right on the second — plus
+a `×2` chip beside ABS/MIX. It saves with the pattern, like the capo.
+
+**Swing now saves with the pattern too**, your call. It still persists as a
+session default as well; loading a pattern saved before this leaves your
+current swing alone rather than resetting it.
+
+**What's worth checking on the phone:**
+- **The pass lamps actually blinking in time.** This is the one thing the dev
+  box genuinely cannot show (rAF is frozen in a hidden tab), and they were
+  broken in v3.5.0 and v3.5.1 — a re-typed selector matched nothing, so they
+  never lit at all. Fixed and now covered by a test that runs the real query,
+  but your eye on the live blink is the actual confirmation.
+- **The ×2 lamps against the beat lamp** — they should be indistinguishable at
+  rest. Say if the steady lit state wants to be a blink instead.
+- **The locked ×2 control in Single mode** — it should press in and pop back
+  out, silently, rather than feeling dead.
+- **Whether ×2 at speed does what you wanted musically.** That's the whole
+  premise, and it's the one thing only playing to it can answer.
+
+**Budget untouched** — 55.09 / 384.84 / 11.06, no overflow, with ×2 on and a
+capo set. 112/112 green.
+
+---
+
+## Previously on the phone (v3.3.0) — the moving finger, and two chords
 
 **The chord diagram shows the moving finger now.** Where one left-hand finger
 switches between two notes along with the alternating bass, the note you move
