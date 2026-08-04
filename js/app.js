@@ -9,8 +9,6 @@ import {
   BASS_PRESETS,
   CHAOS_GROUPS,
   CHAOS_PRESETS,
-  PATTERN_LENGTHS,
-  DEFAULT_PATTERN_BARS,
   LABEL_MODES,
   KEY_GROUPS,
   KEYS,
@@ -34,7 +32,6 @@ import {
   resolvePhrase,
   regenerateBass,
   regenerateTreble,
-  setPatternBars,
 } from "./generator.js";
 import { renderGrid } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
@@ -46,6 +43,7 @@ import {
   DEFAULT_SWING,
   SWING_MIN,
   clampSwing,
+  splitAudioBar,
 } from "./metronome.js";
 import { setUiSoundEnabled, playPress, playRelease, playTick, playPlace } from "./ui-sound.js";
 import { confirmModal, promptModal } from "./modal.js";
@@ -66,7 +64,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.4.2";
+const APP_VERSION = "v3.5.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -88,6 +86,7 @@ const state = {
   key: DEFAULT_KEY,
   capo: 0,              // shape-first transpose; negative = a down-tuned guitar
   progression: [],      // chord id per phrase bar (progression mode)
+  x2: false,            // progression mode only: each chord rings for 2 bars
   loaded: null,         // { id, name } of the saved pattern on screen, if any
   dirty: false,         // has it been altered since it was loaded/saved?
   editing: false,       // manual edit mode (off by default: no accidental taps)
@@ -175,7 +174,6 @@ function initControls() {
   fillSelectGrouped(el("key"), keyOptionGroups());
   fillSelect(el("bass"), BASS_PRESETS, (p) => p.id, (p) => p.name);
   fillSelectGrouped(el("chaos"), chaosOptionGroups());
-  fillSelect(el("pattern"), PATTERN_LENGTHS, (n) => n, (n) => `${n} bar${n > 1 ? "s" : ""}`);
   fillSelect(el("label-mode"), LABEL_MODES, (m) => m.id, (m) => m.name);
 
   // Progression list is filtered to the current key's mode and grouped by style,
@@ -185,7 +183,6 @@ function initControls() {
   el("chord").value = DEFAULT_CHORD;
   el("label-mode").value = state.labelMode;
   el("key").value = state.key;
-  el("pattern").value = String(DEFAULT_PATTERN_BARS);
   setBpm(DEFAULT_BPM);
 }
 
@@ -224,24 +221,37 @@ function firstProgressionForKey() {
   return PROGRESSIONS.find((p) => p.mode === keyMode())?.id;
 }
 
-// Distinct bars of right-hand pattern (the only length dial).
-const patternBars = () => Number(el("pattern").value);
-
 function readOptions() {
   return {
     bass: el("bass").value,
     chaos: el("chaos").value,
-    patternBars: patternBars(),
   };
 }
 
 // Chords for the bars on screen — one per bar. In progression mode the
-// progression sets the bar count; in single mode the pattern length does.
+// progression sets the bar count; single mode is always the one chord, one bar
+// (every bar plays the same distinct picking pattern, so there's nothing left
+// for a bar count to vary — see generator.js).
 function phraseChords() {
   if (state.chordMode === "progression") {
     return state.progression;
   }
-  return Array.from({ length: patternBars() }, () => el("chord").value);
+  return [el("chord").value];
+}
+
+// ×2 only means anything in progression mode — with one chord there's nothing
+// to double. Persists across mode switches (like the capo); just inert while
+// in single mode.
+function x2Active() {
+  return state.chordMode === "progression" && state.x2;
+}
+
+// Bars the AUDIO loop actually covers. Under ×2 this is double the bars on
+// screen — each displayed bar's chord rings for two bars in a row while the
+// grid keeps showing one (see render()'s audioChords).
+function audioBars() {
+  const n = phraseChords().length;
+  return x2Active() ? n * 2 : n;
 }
 
 // Keep the progression dropdown honest: a preset id, or "Custom".
@@ -358,6 +368,14 @@ function applySwing() {
   saveAudioPrefs();
 }
 
+// The ×2 toggle's own face: the checkbox and its "Off"/"On" text, kept in sync
+// with state.x2 (which persists across mode switches — see x2Active). Called
+// from render() alongside renderCapo/renderSwing's siblings.
+function renderX2() {
+  el("x2-toggle").checked = state.x2;
+  el("x2-value").textContent = state.x2 ? "On" : "Off";
+}
+
 // The on-screen capo indicator. It sits in the header row in BOTH chord modes —
 // it used to ride the context in progression mode and the floating chord label
 // in single mode, which moved it down the screen when you switched. Costs no
@@ -429,12 +447,14 @@ function renderContext() {
 // ----- render -----
 function render() {
   if (!state.pattern) return;
-  const chords = phraseChords();
-  const phrase = resolvePhrase(state.pattern, chords);
+  const chords = phraseChords();                       // un-doubled, ≤4 bars on screen
+  const phrase = resolvePhrase(state.pattern, chords);  // what's DRAWN
+  const x2 = x2Active();
   renderGrid(el("grid"), phrase, {
     labelMode: state.labelMode,
     editableChords: state.chordMode === "progression",
     editable: state.editing,
+    x2,
   });
   // The per-bar chord <select>s are rebuilt every render; give them the same
   // wheel as the Options sheet's chord (idempotent per element).
@@ -448,12 +468,22 @@ function render() {
     : old));
   syncProgressionSelect();
   renderContext();
-  // Re-rendering drops the playhead's cells; keep the loop length in sync too.
+  renderX2();
+  // Re-rendering drops the playhead's cells/lamps; keep the loop length in sync
+  // too. AUDIO can cover more ground than the grid shows: under ×2 each
+  // displayed bar's chord actually rings for two bars in a row. This doubled
+  // array is a local, throwaway transform built fresh every render — it must
+  // NEVER be written into state.progression, or detectProgression/degreeLabel/
+  // the per-bar selects would all start reading a phantom 8-chord progression.
   litCells = [];
-  metronome.setBars(chords.length);
+  highlightPassLamps(null);
+  const audioChords = x2 ? chords.flatMap((c) => [c, c]) : chords;
+  const audioPhrase = x2 ? resolvePhrase(state.pattern, audioChords) : phrase;
+  passesPerBar = x2 ? 2 : 1;
+  metronome.setBars(audioChords.length);
   // Feed the resolved notes to the metronome so Play hears exactly what's on
   // screen — rebuilt every render, so edits/re-rolls/chord changes carry over.
-  metronome.setNotes(noteTable(phrase));
+  metronome.setNotes(noteTable(audioPhrase));
 
   // Short label in the bar, full explanation on hover/long-press.
   //
@@ -511,6 +541,13 @@ function setChordMode(mode) {
   const prog = mode === "progression";
   el("field-chord").hidden = prog;
   el("field-keyprog").hidden = !prog;
+  // ×2 stays VISIBLE (not hidden) in single mode, so the sheet doesn't jump —
+  // just disabled, since with one chord there's nothing to double. `.lamp` is a
+  // <label>, which has no native disabled state: pressStrength() (the ka-chunk
+  // gate) only honours a real `disabled` or `aria-disabled="true"` on the
+  // element it's actually testing, so both have to be set here.
+  el("x2-toggle").disabled = !prog;
+  el("x2-toggle").closest(".lamp").toggleAttribute("aria-disabled", !prog);
   for (const b of el("chord-mode").querySelectorAll("[data-mode]")) {
     b.classList.toggle("active", b.dataset.mode === mode);
   }
@@ -612,10 +649,12 @@ function noteTable(phrase) {
 // an on/off preference (default on) persisted like the theme. localStorage may
 // throw in private mode; fall back to the defaults rather than break boot.
 const AUDIO_KEY = "tp-audio";
-// Swing rides in here rather than in a saved pattern's context: it's a FEEL
-// setting, the same class of thing as BPM, not part of what the pattern is. (It
-// does persist across launches, unlike BPM — you settle on a feel for a tune and
-// keep it, where you move the tempo constantly.)
+// Swing lives here as a SESSION DEFAULT (persists across launches, the same
+// class of thing as BPM used to be before it moved to tp-prefs) — you settle on
+// a feel and keep it, rather than re-picking it every launch. It ALSO now saves
+// with each pattern (currentContext()), musical content same as the capo, with
+// the saved value winning on load (loadSaved()) — additive, not a migration off
+// this store.
 const audioPrefs = {
   click: true, pattern: true, ui: true, countIn: true, swing: DEFAULT_SWING,
 };
@@ -664,10 +703,10 @@ function loadPrefs() {
 }
 
 // Written from render(), which is the ONE funnel every control here already goes
-// through (capo, chord, key, progression, thumb, fingers, pattern length, labels
-// and the mode switch all re-render). That includes loadSaved(), which is what
-// makes "reopen how you left it" true of a loaded pattern too — his call. BPM
-// doesn't render, so it saves itself.
+// through (capo, chord, key, progression, thumb, fingers, ×2, labels and the
+// mode switch all re-render). That includes loadSaved(), which is what makes
+// "reopen how you left it" true of a loaded pattern too — his call. BPM doesn't
+// render, so it saves itself.
 function savePrefs() {
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify({
@@ -681,7 +720,9 @@ function savePrefs() {
       progression: [...state.progression],
       bass: el("bass").value,
       chaos: el("chaos").value,
-      patternBars: patternBars(),
+      // Same dual-layer treatment as capo: a session default here, and musical
+      // content inside a saved pattern's own context, which wins on load.
+      x2: state.x2,
       labelMode: state.labelMode,
       bpm: metronome.bpm,
     }));
@@ -711,6 +752,7 @@ function restorePrefs(stored) {
     el("label-mode").value = stored.labelMode;
   }
   if (stored.capo != null) state.capo = clampCapo(stored.capo);
+  if (typeof stored.x2 === "boolean") state.x2 = stored.x2;
   if (KEYS[stored.key]) {
     state.key = stored.key;
     el("key").value = stored.key;
@@ -718,7 +760,6 @@ function restorePrefs(stored) {
   }
   restoreSelect("bass", stored.bass);
   restoreSelect("chaos", stored.chaos);
-  restoreSelect("pattern", stored.patternBars);
   restoreSelect("chord", stored.chord);
   // Every bar must still be a chord we ship, or the grid renders a hole.
   const prog = stored.progression;
@@ -736,14 +777,36 @@ function restorePrefs(stored) {
 // moves up to 8 times a bar and a full re-render would be wasteful (and would
 // fight edit mode).
 let litCells = [];
+// How many AUDIO bars each SCREEN bar covers — 2 under ×2, else 1. Set in
+// render(), read here to translate the metronome's audio-bar position back to
+// a screen bar + which pass it's on. No second clock: this rides the exact same
+// onStep callback that already drives the cell highlight and the beat lamp.
+let passesPerBar = 1;
 function highlightColumn(pos) {
   for (const c of litCells) c.classList.remove("playing");
   litCells = [];
-  if (!pos) return;
+  if (!pos) { highlightPassLamps(null); return; }
+  const { bar: screenBar, pass } = splitAudioBar(pos.bar, passesPerBar);
   litCells = [...el("grid").querySelectorAll(
-    `.cell[data-bar="${pos.bar}"][data-slot="${pos.slot}"]`
+    `.cell[data-bar="${screenBar}"][data-slot="${pos.slot}"]`
   )];
   for (const c of litCells) c.classList.add("playing");
+  highlightPassLamps(passesPerBar > 1 ? screenBar : null, pass);
+}
+
+// The two pass lamps in a bar's header: left lights on the first pass through
+// that bar's chord, right on the second. Same direct-DOM-touch approach as the
+// cell highlight, for the same reason (no re-render mid-playback).
+let litLamps = [];
+function highlightPassLamps(screenBar, pass) {
+  for (const l of litLamps) l.classList.remove("lit");
+  litLamps = [];
+  if (screenBar == null) return;
+  const lamp = el("grid").querySelector(`.pass-lamp[data-bar="${screenBar}"][data-pass="${pass}"]`);
+  if (lamp) {
+    litLamps = [lamp];
+    lamp.classList.add("lit");
+  }
 }
 
 function showCountIn(n) {
@@ -846,7 +909,7 @@ async function togglePlay() {
   let started = false;
   try {
     // Started from the click handler so iOS Safari unlocks audio.
-    started = await metronome.start(phraseChords().length);
+    started = await metronome.start(audioBars());
   } catch (err) {
     console.error("Transport failed to start.", err);
   } finally {
@@ -871,6 +934,15 @@ function currentContext() {
     // and read back as 0, which is what they were.
     capo: state.capo,
     progression: [...state.progression],
+    // ×2 changes the harmonic rhythm, which is musical content — same tier as
+    // the capo, dual-layer with a tp-prefs session default (see restorePrefs).
+    x2: state.x2,
+    // Swing ALSO saves here now (his call), additively — it stays a tp-audio
+    // session default too (see the comment above audioPrefs). Absent on loads
+    // of a pattern saved before this shipped; loadSaved() leaves the session
+    // swing untouched in that case rather than resetting it, since an old
+    // pattern never "had" a swing value the way it always had a capo.
+    swing: audioPrefs.swing,
   };
 }
 
@@ -882,8 +954,7 @@ function describeCurrent() {
     const label = prog ? prog.label : "Custom";
     return [`${label} in ${state.key}`, capoLabel(state.capo), bassName].filter(Boolean).join(" · ");
   }
-  const n = patternBars();
-  return `${el("chord").value} · ${bassName} · ${n} bar${n > 1 ? "s" : ""}`;
+  return `${el("chord").value} · ${bassName}`;
 }
 
 function refreshSavedCount() {
@@ -983,10 +1054,10 @@ function summarize(item) {
     ctx.chordMode === "progression"
       ? `${(ctx.progression || []).map((c) => degreeLabel(c, ctx.key)).join("–")} (key ${ctx.key})`
       : ctx.chord;
-  const bars = p.patternBars ? `${p.patternBars} bar${p.patternBars > 1 ? "s" : ""}` : "";
   // Only when set: two saves that differ only by capo would otherwise look
   // identical in the list (and collide on the default name).
-  return [where, capoLabel(ctx.capo), bassName, fingersName, bars].filter(Boolean).join(" · ");
+  return [where, capoLabel(ctx.capo), bassName, fingersName, ctx.x2 ? "×2" : ""]
+    .filter(Boolean).join(" · ");
 }
 
 // One warm-green flash on the save-confirmation lamp. Restart the one-shot each
@@ -1036,12 +1107,20 @@ async function loadSaved(id) {
   state.key = ctx.key || DEFAULT_KEY;
   state.capo = clampCapo(ctx.capo); // absent on pre-capo saves -> 0
   state.progression = [...(ctx.progression || [])];
+  state.x2 = !!ctx.x2; // absent (pre-×2 saves) -> off, same hard default as capo
 
   el("bass").value = item.pattern.bass;
   el("chaos").value = item.pattern.chaos;
-  el("pattern").value = String(item.pattern.patternBars ?? 1);
   el("key").value = state.key;
   if (ctx.chord) el("chord").value = ctx.chord;
+  // Swing diverges from capo's precedent: absent doesn't mean "was Straight" the
+  // way absent capo means "was 0" — swing never existed as pattern content
+  // before this, so an old save's silence on it leaves the current session
+  // swing exactly as it was, rather than resetting it.
+  if (ctx.swing != null) {
+    audioPrefs.swing = clampSwing(ctx.swing);
+    applySwing();
+  }
 
   setChordMode(ctx.chordMode === "progression" ? "progression" : "single");
   state.loaded = { id: item.id, name: item.name };
@@ -1143,11 +1222,11 @@ function showOptionsPage(tabId) {
 function attach() {
   el("generate").addEventListener("click", generate);
 
-  // Pattern length EXTENDS rather than re-rolls: growing duplicates what you
-  // already have (so hand-drawn work survives when you need more room), and the
-  // copies can then be edited independently.
-  el("pattern").addEventListener("change", () => {
-    state.pattern = setPatternBars(state.pattern, Number(el("pattern").value));
+  // ×2 never touches the pattern — same reasoning as the capo — so it just
+  // re-renders. Progression-mode-only in effect (x2Active gates it), but the
+  // value itself persists across mode switches, same as capo.
+  el("x2-toggle").addEventListener("change", (e) => {
+    state.x2 = e.target.checked;
     markDirty();
     render();
   });

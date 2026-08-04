@@ -25,7 +25,7 @@ the map, so the next edit sees them:
   the thing itself is fiddly.
 
 **Titles follow the shape of the phrase:** a title-like one is Title Case
-("Help Mode", "Pattern Length", "Bass Warning"), a sentence-like one stays
+("Help Mode", "Capo", "Bass Warning"), a sentence-like one stays
 sentence case ("What you're playing over", "The grid is your right hand").
 Single words — most of them — are unaffected either way. "Count-in" keeps its
 lowercase particle, which is title case for a hyphenated compound and also
@@ -52,7 +52,7 @@ re-measure. A blank line starts a new paragraph.
 ### Edit
 *Tap: the pencil pill.*
 
-> Tapping a cell adds or removes a note. Editing a bar that repeats changes every repeat, so raise Pattern length first if you want one to differ.
+> Tapping a cell adds or removes a note. Every bar plays the same picking pattern, so editing one changes them all.
 
 ### Save
 *Tap: the floppy pill.*
@@ -164,10 +164,10 @@ re-measure. A blank line starts a new paragraph.
 
 > How busy and how hard the finger part is. Changing this re-rolls only the fingers.
 
-### Pattern Length
-*Tap: the Pattern menu.*
+### ×2
+*Tap: the ×2 lamp (progression mode only — visible but disabled in single mode).*
 
-> How many bars are different before the pattern repeats. Growing it copies what you have rather than re-rolling, so raise it when you want one bar to differ from the rest.
+> Repeats each chord for two bars instead of one, so you have more time before the next change. Progression mode only.
 
 ### Swing
 *Tap: the Swing slider.*

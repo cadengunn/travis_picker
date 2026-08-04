@@ -245,10 +245,20 @@
           <span>Fingers</span>
           <select id="chaos"></select>
         </label>
-        <label class="field" data-help="pattern">
-          <span>Pattern</span>
-          <select id="pattern"></select>
-        </label>
+        <!-- Session 36 — Pattern length's old slot. A plain <div>, not <label>:
+             <label class="lamp"> is itself a label (for the checkbox), and
+             labels can't nest. Starts disabled to match the default Single
+             mode (see #field-keyprog's static `hidden` for the same pattern);
+             setChordMode() flips both `disabled` and the wrapper's
+             `aria-disabled` as the mode changes. -->
+        <div class="field" data-help="x2">
+          <span>×2</span>
+          <label class="lamp lamp-compact">
+            <input id="x2-toggle" type="checkbox" disabled />
+            <span class="jewel"></span>
+            <span class="t" id="x2-value">Off</span>
+          </label>
+        </div>
       </div>
 
       <!-- Swing. On the Setup page rather than Preferences because this is

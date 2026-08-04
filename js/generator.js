@@ -259,20 +259,18 @@ export function generatePattern(chordId, options = {}) {
   const {
     bass = "travis",
     chaos = "tame",
-    patternBars = 1,
     rng = Math.random,
   } = options;
 
   const preset = getBassPreset(bass);
   const flags = CHAOS_PRESETS[chaos] || CHAOS_PRESETS.tame;
 
-  // patternBars = how many DISTINCT bars of picking. The renderer cycles them
-  // across however many bars are on screen (see resolvePhrase).
-  const n = Math.max(1, patternBars);
-  // Thumb is deterministic per preset+chord (no adjacency logic), so it's built
-  // bar-by-bar; the finger layer is then generated across the WHOLE loop so
-  // adjacency wraps at the loop point instead of only within each bar.
-  const thumbBars = Array.from({ length: n }, () => generateThumbBar(chordId, preset, rng));
+  // Always exactly one distinct bar (session 36 — real-guitar testing found the
+  // right-hand pattern repeats every bar even in complex material, so the old
+  // "how many DISTINCT bars" dial was pure surface area with nothing behind it).
+  // resolvePhrase/the grid's cellIndex both already reduce mod thumbBars.length,
+  // so this needs no other generator change — n=1 was already a legal input.
+  const thumbBars = [generateThumbBar(chordId, preset, rng)];
   const trebleBars = generateTrebleLoop(flags, thumbBars, rng);
   const bars = thumbBars.map((thumb, i) => mergeBar(thumb, trebleBars[i]));
 
@@ -281,7 +279,6 @@ export function generatePattern(chordId, options = {}) {
     chord: chordId,
     bass,
     chaos,
-    patternBars: n,
     // The two layers are kept so either can be re-rolled without disturbing the
     // other (see regenerateBass / regenerateTreble). `bars` is their merge and
     // is what everything downstream reads.
@@ -309,26 +306,6 @@ export function regenerateBass(pattern, bassId, chordId = pattern.chord, rng = M
     type: patternType(preset),
     thumbBars,
     bars: thumbBars.map((thumb, i) => mergeBar(thumb, pattern.trebleBars[i])),
-  };
-}
-
-// Change how many distinct bars the pattern has WITHOUT re-rolling: growing
-// duplicates the existing bars (cycling), shrinking keeps the first n. Bars are
-// copied deeply enough that the new ones can then be edited independently.
-// This is what the Pattern control uses, so hand-drawn work survives when you
-// realise you need more room.
-export function setPatternBars(pattern, n) {
-  const size = Math.max(1, n);
-  const copy = (bars) =>
-    Array.from({ length: size }, (_, i) => bars[i % bars.length].map((e) => ({ ...e })));
-  const thumbBars = copy(pattern.thumbBars);
-  const trebleBars = copy(pattern.trebleBars);
-  return {
-    ...pattern,
-    patternBars: size,
-    thumbBars,
-    trebleBars,
-    bars: thumbBars.map((t, i) => mergeBar(t, trebleBars[i])),
   };
 }
 

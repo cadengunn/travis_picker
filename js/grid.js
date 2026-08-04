@@ -34,7 +34,14 @@ function labelFor(ev, labelMode) {
 // app.js delegate the change). In single mode it carries NO chord — the one
 // chord is shown once, big, above the whole grid (#chord-head), so a per-bar
 // header there would just repeat it; an empty header collapses via CSS.
-function buildHeader(chordId, barIdx, editableChords, showNumeral) {
+//
+// Under ×2 (always exactly 4 bars when it's active — see app.js's x2Active),
+// it also carries two small pass lamps: left lights on the first pass through
+// this bar's chord, right on the second. app.js's playhead lights them
+// directly (same no-re-render approach as the cell highlight) by querying
+// [data-bar]/[data-pass], so the markup only needs to exist — nothing here
+// drives it live. Omitted entirely (not hidden) when x2 is false.
+function buildHeader(chordId, barIdx, editableChords, showNumeral, x2) {
   const header = document.createElement("div");
   header.className = "bar-header";
 
@@ -43,6 +50,19 @@ function buildHeader(chordId, barIdx, editableChords, showNumeral) {
     num.className = "bar-num";
     num.textContent = String(barIdx + 1);
     header.appendChild(num);
+  }
+
+  if (x2) {
+    const lamps = document.createElement("span");
+    lamps.className = "pass-lamps";
+    lamps.dataset.bar = String(barIdx);
+    for (let pass = 0; pass < 2; pass++) {
+      const lamp = document.createElement("span");
+      lamp.className = "pass-lamp";
+      lamp.dataset.pass = String(pass);
+      lamps.appendChild(lamp);
+    }
+    header.appendChild(lamps);
   }
 
   if (editableChords) {
@@ -72,11 +92,12 @@ function buildHeader(chordId, barIdx, editableChords, showNumeral) {
   return header;
 }
 
-// renderGrid(container, phrase, { labelMode, editableChords })
+// renderGrid(container, phrase, { labelMode, editableChords, editable, x2 })
 export function renderGrid(container, phrase, opts = {}) {
   const labelMode = opts.labelMode || "fret";
   const editableChords = !!opts.editableChords;
   const editable = !!opts.editable;
+  const x2 = !!opts.x2;
   container.innerHTML = "";
 
   const track = document.createElement("div");
@@ -94,7 +115,7 @@ export function renderGrid(container, phrase, opts = {}) {
     barEl.setAttribute("role", "group");
     barEl.setAttribute("aria-label", `Bar ${barIdx + 1}, chord ${chord}`);
 
-    barEl.appendChild(buildHeader(chord, barIdx, editableChords, showNumeral));
+    barEl.appendChild(buildHeader(chord, barIdx, editableChords, showNumeral, x2));
 
     const idx = indexBar(bar);
 

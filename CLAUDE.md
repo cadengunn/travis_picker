@@ -248,7 +248,7 @@ the placement policy; **how these surfaces are drawn is `DESIGN.md`.**
   **height is reserved (22px)** so the grid can't shift; the 40px single-mode
   chord overflows it upward, exactly as it did when the box was zero-height.
 - **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Setup** (Format + capo, then
-  the chord / key+progression row, then Thumb/Fingers/Pattern length, then Swing)
+  the chord / key+progression row, then Thumb/Fingers/×2, then Swing)
   and **Preferences** (the Sound lamp bank, note labels, theme). You set all of it
   sitting down, between takes; the gear always opens on Setup. The split exists to
   buy height — one page had ~27px spare at 375×553. Ids are
@@ -301,10 +301,15 @@ Keep that invariant — a jumping control panel was a specific complaint.
 into `{cellIndex, slot, string, chordId}`):
 - Gated behind a **pencil toggle, off by default** — taps must never nudge a
   pattern while you're playing. Edit mode is signalled by a dashed outline.
-- **Editing a repeat edits the shared cell.** A 1-bar pattern shown across a
-  4-bar progression is *one* cell, so tapping bar 3 changes all four
-  (`cellIndex = screenBar % bars.length`). To make one bar differ, raise Pattern
-  length first. This was a deliberate choice over auto-expanding.
+- **Editing a repeat edits the shared cell, permanently.** A pattern is always
+  one distinct bar (session 36), shown across however many bars are on screen —
+  tapping bar 3 of a 4-bar progression changes all four
+  (`cellIndex = screenBar % bars.length`, and `bars.length` is now always 1).
+  There is **no dial left to make one bar differ** — that capability existed
+  only because of the "Pattern length" control this replaced, and removing the
+  control removes the capability with it. Accepted tradeoff, not a bug: his
+  guitar testing found the picking pattern repeats every bar even in complex
+  material, so there was nothing behind the dial worth keeping a way to reach.
 - **Hand inference:** strings 6/5/4 are always the thumb; 3/2/1 are fingers —
   *except* on an overlap string (a finger string that's also a bass role for
   that chord, e.g. string 3 on D), where it's the thumb on beats and a finger
@@ -436,10 +441,15 @@ the synth skips it.
   amount, `decay`/`seconds` for length, `gain` for level.
 
 **Saved library** (`storage.js`): a saved item is **musical content only** —
-`{ pattern, context: { chordMode, chord, key, capo, progression } }` plus a name,
-id and timestamp. **The capo is in there because it's musical content** — what
-the pattern sounds like, not a preference; items saved before it existed have no
-`capo` and read back as 0, which is what they were. **Never store UI settings** (theme, label mode) with it; a test
+`{ pattern, context: { chordMode, chord, key, capo, progression, x2, swing } }`
+plus a name, id and timestamp. **The capo is in there because it's musical
+content** — what the pattern sounds like, not a preference; items saved before
+it existed have no `capo` and read back as 0, which is what they were. **×2 and
+swing joined it in session 36** (×2 changes the harmonic rhythm; swing was
+"a feel setting, not pattern content" until his call reversed that, additively —
+it stays a `tp-audio` session default too, see "×2 mode" below). `storage.js`
+itself needs no schema — `context` is a plain object, so this is a data-shape
+convention enforced by callers, not code. **Never store UI settings** (theme, label mode) with it; a test
 asserts the serialized item contains none. Nomenclature is "Saved", not
 "Favorites" (favorites may later be a folder within it). `createStore(key,
 storage)` takes its backing store as an argument so tests use an in-memory stub
@@ -455,7 +465,7 @@ the original keeps its plain name, later saves become `Name (2)`, `Name (3)`.
 
 **Session preferences** (`tp-prefs`, in `app.js`, session 32): the controls you
 **set once and keep**, restored on the next launch — chord mode, chord, key,
-capo, progression, thumb, fingers, pattern length, note labels and **BPM**.
+capo, progression, thumb, fingers, ×2, note labels and **BPM**.
 - **It's a THIRD store, not an extension of `tp-audio`**, which stays what it is
   (the four sound toggles + swing). Swing was **not** moved — migrating it would
   strand real settings for no gain. **BPM persisting REVERSES a documented
@@ -465,9 +475,10 @@ capo, progression, thumb, fingers, pattern length, note labels and **BPM**.
   controls already passes through, so it can't miss one the way a per-handler call
   would. BPM doesn't render, so it saves from the fader's `input` handler. That
   funnel includes `loadSaved()`, which is what makes "reopen how you left it" true
-  of a loaded pattern too (his call). The capo persists here as a **session
-  default** — distinct from the capo inside a saved item's context, which is
-  musical content and still wins, since `loadSaved` runs after the restore.
+  of a loaded pattern too (his call). **Capo and ×2 both persist here as a
+  session default** — distinct from their copies inside a saved item's context,
+  which are musical content and still win, since `loadSaved` runs after the
+  restore (see "×2 mode" below).
 - **`restorePrefs()` runs inside `boot()` after `initControls`/`enhanceAll` and
   BEFORE `generate()`** — the menus have to exist (the wrapped `value` setter is
   what repaints the triggers) and the first roll has to be made against the
@@ -482,7 +493,7 @@ capo, progression, thumb, fingers, pattern length, note labels and **BPM**.
 
 **UI components — we draw our own, because iOS draws the OS's** (session 11).
 Four dependency-free modules, all precached:
-- **The five list menus (Thumb, Fingers, Pattern, Note Labels, Theme) stay
+- **The four list menus (Thumb, Fingers, Note Labels, Theme) stay
   LISTS** — short unordered sets, where a barrel would be ceremony. They wear
   the drums' material (`.dd-list`, added by `renderList` so none of it lands on
   `.dd-wheel`); the material rules are in `DESIGN.md`.
@@ -766,10 +777,10 @@ bumping `CACHE`** (two tests guard that).
 Pattern = {
   type: "relative" | "absolute", // relative from chord-aware thumb modes; absolute from Full Random
   chord: "C",                     // reference chord id
-  bass, chaos, patternBars,       // the options it was generated with
-  thumbBars:  [ [ Event, ... ] ], // the two layers, kept separately
-  trebleBars: [ [ Event, ... ] ],
-  bars: [ [ Event, ... ], ... ],  // merge of the layers; exactly `patternBars` DISTINCT bars
+  bass, chaos,                    // the options it was generated with
+  thumbBars:  [ [ Event, ... ] ], // the two layers, kept separately — ALWAYS length 1
+  trebleBars: [ [ Event, ... ] ], // (session 36: one distinct bar, not a `patternBars` dial)
+  bars: [ [ Event, ... ] ],       // merge of the layers; always the one bar
 }
 Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 ```
@@ -912,7 +923,82 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     ABS indicator warns about.
   - **🎲 rolls the whole library** (his call, with the wheel) — a picker that
     offers every chord with equal ceremony should have a die that does the same.
-- **Pattern length** (`PATTERN_LENGTHS`, 1/2/4) is the *only* length dial: how many **distinct** bars of picking. Bars on screen are derived — single mode shows exactly that many; progression mode shows the progression's bars and cycles the pattern across them. Changing it **extends** rather than re-rolls (`setPatternBars`): growing duplicates the existing bars so hand-drawn work survives, and the copies are independent from then on; shrinking keeps the first n. Only **Generate** re-rolls. This replaced a separate Loop + Phrase-length pair whose only useful combinations were "displayed == distinct"; the rest just redrew the same bar. Don't reintroduce a display-length control without that reasoning changing.
+- **`generatePattern` always makes exactly one distinct bar** (session 36 —
+  **replaced** the old "Pattern length" dial, `PATTERN_LENGTHS`/`DEFAULT_PATTERN_BARS`/
+  `setPatternBars`, all deleted). His guitar testing across many real Jerry Reed
+  pieces found the picking pattern repeats every bar even in complex material,
+  so a dial for "how many DISTINCT bars before it repeats" had nothing behind it
+  worth keeping. `resolvePhrase`'s cycling (`i % n`) and the grid's edit-click
+  `cellIndex = screenBar % pattern.bars.length` both already worked generically
+  for any bar count, `n=1` included — so pinning it there needed **no change**
+  to either. Two direct consequences, both accepted rather than worked around:
+  **single-chord mode is now permanently a 1-bar grid** (it used to show
+  Pattern-length-many bars of one chord), and **there is no way left to
+  hand-edit one bar of a progression to differ from another** (every bar is
+  necessarily the same distinct pattern — see the manual editor section above).
+
+## ×2 mode
+
+Idiomatic to Travis picking, especially at high tempo: each chord in a
+progression can ring for **two bars instead of one**, giving more time to
+settle into a change. Session 36, and the direct reason Pattern length was
+removed the same session — the two designs collide (see above), and once only
+one distinct bar is ever generated there's nothing left to disambiguate
+"double the chord" from "repeat the bar", which had been an open fork.
+
+- **Progression mode only.** The toggle (`#x2-toggle`, a `.lamp` in Pattern
+  length's old slot in `.control-row.layers`) stays **visible but disabled** in
+  single mode — hiding it would jump the Options sheet, which is a specific,
+  standing complaint. `setChordMode()` sets both the checkbox's `disabled` and
+  its `.lamp` wrapper's `aria-disabled` (a `<label>` has no native disabled
+  look, and `pressStrength()` in `ui-sound.js`'s press-sound gate only honours
+  one of those two, not the input's `disabled` alone). `state.x2` itself
+  **persists across mode switches** like the capo — switching to single mode
+  doesn't reset it, only disables it (`x2Active() = chordMode === "progression" && state.x2`).
+- **The grid stays at 4 visual bars, always — audio and display bar-counts
+  decouple instead.** Doubling a 4-bar progression's audio to 8 bars and
+  actually drawing 8 bars would blow the 11px height budget (see "The height
+  budget is the constraint" above); a repeat-sign idiom costs nothing. `render()`
+  computes the plain, un-doubled `chords`/`phrase` for the grid, and *separately*
+  a local `audioChords = chords.flatMap(c => [c, c])` / `audioPhrase` pair fed to
+  `metronome.setBars()`/`setNotes()` for playback. **This doubled array is a
+  throwaway, built fresh every render and NEVER written into `state.progression`**
+  — the one discipline the whole feature depends on. Writing it back would feed
+  `detectProgression`/`degreeLabel`/`summarize()`/the per-bar `<select>`s a
+  phantom 8-chord progression; a test drives exactly this (doubling pairwise —
+  C,C,F,F — isn't the shape `fitProgression` cycles a preset into, so
+  `detectProgression` silently stops recognizing it, which is the regression
+  this guards against). `metronome.js` itself needed **zero changes** — it
+  stays generic over bar count and ignorant of the screen/audio split.
+- **Two pass lamps per bar header** (`.pass-lamps`/`.pass-lamp`, next to the
+  `.bar-num` chip) mark which of the two passes through that bar's chord is
+  currently sounding — left lights on the first, right on the second. Driven by
+  the **same clock as the playhead and beat lamp**, no second one:
+  `metronome.js`'s `onStep(pos)` reports `pos.bar` in **audio-bar** space
+  (0..7 under ×2), and `splitAudioBar(bar, passesPerBar)` (a small pure export,
+  tested like `stepToPosition`) translates it to `{ bar: screenBar, pass }` —
+  `app.js`'s `highlightColumn` touches the lamp directly by
+  `[data-bar][data-pass]`, the same no-re-render approach the cell highlight
+  already used. `passesPerBar` is set in `render()` (2 under ×2, else 1) and
+  read by the playhead. Lamp colour is **theme-derived** (`--lamp-*`/`--active`,
+  like the beat lamp), not the ABS/MIX chips' fixed amber — it marks position
+  ("which pass"), not a caution, so it doesn't borrow that convention. The
+  markup is **omitted entirely when ×2 is off**, not hidden — no dead DOM.
+- **Saved with the pattern, dual-layer like the capo** (musical content: ×2
+  changes the harmonic rhythm). A session default lives in `tp-prefs`
+  (`state.x2`), and the saved value inside a pattern's own `context.x2` wins on
+  load — `loadSaved()` hard-defaults absent/pre-×2 saves to `false`, same as
+  capo's absent-means-0.
+- **Swing also now saves with the pattern, additively** (his call: "swing
+  should save with pattern too"). This **reverses** the earlier documented rule
+  that swing is "a FEEL setting, not pattern content" — but only adds to it,
+  doesn't replace it: swing is still a `tp-audio` session default exactly as
+  before (unchanged code), and now *also* lands in `context.swing`, winning on
+  load. **Diverges from capo's absent-means-0 precedent on purpose**: an old
+  save's missing `context.swing` doesn't mean "this pattern wanted Straight" —
+  swing simply wasn't musical content yet when it was saved — so `loadSaved()`
+  **leaves the current session swing untouched** rather than resetting it,
+  preserving today's exact behaviour for every pattern saved before this shipped.
 
 ## Conventions
 
@@ -935,13 +1021,17 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v3.4.2, 106/106 green.** The chord library and the progression revamp are
-finished (sessions 29–33): 120 chords, the drum pickers, and the chord-shape
-diagram under the wheel. Sessions 32–33 also landed `tp-prefs`, the diagnosed
-dead-Play bug, the landscape sheet fix, and four rounds of his guitar verdicts on
-chord voicings. Session 35 applied his 14-chord playability spec and made barres
-draw the way a hand makes them. Per-session detail is in `CHANGELOG.md`; what each
-of those left open is in `OPEN_ITEMS.md`.
+**v3.5.0, 110/110 green.** Session 36 removed Pattern length (the generator now
+always makes one distinct bar, per his real-guitar testing) and replaced it with
+×2 mode — a progression chord can ring for two bars, the grid still shows 4, two
+pass lamps per bar mark which pass is sounding. Swing also started saving with
+the pattern, additively. The chord library and the progression revamp finished
+in sessions 29–33: 120 chords, the drum pickers, and the chord-shape diagram
+under the wheel. Sessions 32–33 also landed `tp-prefs`, the diagnosed dead-Play
+bug, the landscape sheet fix, and four rounds of his guitar verdicts on chord
+voicings. Session 35 applied his 14-chord playability spec and made barres draw
+the way a hand makes them. Per-session detail is in `CHANGELOG.md`; what each of
+those left open is in `OPEN_ITEMS.md`.
 
 **Signed off, don't revisit unless he raises it:** the wheel (v2.14.0–.2 — the
 detent, the spin, the curve, the die's pool, the F7/F♯7/G♯7 ♭7 bass), Wild Card

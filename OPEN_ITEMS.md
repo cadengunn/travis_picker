@@ -1114,9 +1114,14 @@ majors). "Curate first, expand later."
 - **Chaos sits off the difficulty curve** (Tame → Loose → Unruly is the curve).
 - **PIMA stays lowercase** (classical convention).
 - **No Major/Minor toggle** — the selected key's mode filters the progressions.
-- **Pattern length is the only length dial**; bars on screen are derived.
-- **Shared-cell editing** — editing a repeated bar edits all its repeats; raise
-  pattern length to make one bar differ.
+- **Pattern length is GONE (session 36, superseded)** — his real-guitar testing
+  found the picking pattern repeats every bar even in complex material, so
+  `generatePattern` now always makes exactly one distinct bar. ×2 mode (below)
+  replaced it.
+- **Shared-cell editing is now PERMANENT** — every bar is the same one distinct
+  pattern, so editing any bar edits all of them and there is no dial left to
+  make one differ. That was a deliberate tradeoff of removing Pattern length,
+  not a bug.
 - **Note tokens are domes**, not chips (v2.5.2).
 - **Menu labels show the concise idea** (`I–IV–V`), not the padded 4-bar literal.
 - **Capo is shape-first** — you pick the shape and the capo, the concert key is

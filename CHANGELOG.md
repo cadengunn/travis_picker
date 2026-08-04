@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [36](#where-things-stand-session-36--v350-2026-08-04) | **v3.5.0** | the kickoff prompt asked for ×2 mode additive to Pattern length; his guitar testing (many real Jerry Reed pieces) found the picking pattern repeats every bar regardless, so Pattern length was removed instead — `generatePattern` now always makes one distinct bar — and ×2 replaced it: a progression chord rings for two bars, the grid still shows 4, two pass lamps per bar mark which pass is sounding. Swing also started saving with the pattern, additively |
 | [35](#where-things-stand-session-35--v342-2026-08-03) | **v3.4.2** | his 14-chord playability spec applied (the roles moved, not just the frets — a rule fell out: role strings never go below string 3); then barres got drawn the way a hand actually makes them, with his review setting the threshold from both sides — 4 in a row is a bar, 3 is three fingers, and open A is the anchor. Hollow got scarcer on the same principle; Em7's family revoiced |
 | [34b](#where-things-stand-session-34b--v330-2026-08-03) | **v3.3.0** | the chord diagram shows the MOVING FINGER as a hollow dot (no established symbol exists; this borrows the fingerstyle "alternate bass" ring). Root-only accent replaces marking the thumb's whole pair. B7 added; G#6 revoiced to his fingering |
 | [34](#where-things-stand-session-34--docs--tests-2026-08-03) | *(no version)* | adversarial review: CLAUDE.md became a hub and `DESIGN.md` was split out (1,570 → 990 lines, 18.2k → 11.0k words); the four sleeping tests stopped waiting on the wall clock, and the wheel "flake" turned out to be the screenshot resizing the pane |
@@ -56,6 +57,87 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 36 — v3.5.0, 2026-08-04)
+
+**The kickoff prompt's premise didn't survive contact with the guitar.**
+`NEXT_SESSION_PROMPT.md` framed this session as building ×2 mode — each bar of
+a progression plays twice — *additive* to the existing Pattern length control
+(1/2/4 distinct bars). Before any code, he reported testing the idea against
+many real Jerry Reed pieces, including his most complex material, and finding
+the right-hand picking pattern essentially repeats every bar regardless. That's
+a direct answer to a question the kickoff prompt had flagged as unresolved
+("does ×2 double the chord or repeat the bar?") — with only one distinct bar
+ever generated, there's nothing left to disambiguate. So the session became:
+remove Pattern length entirely, and build ×2 as its replacement.
+
+**`generatePattern` now always makes exactly one distinct bar.**
+`PATTERN_LENGTHS`, `DEFAULT_PATTERN_BARS` and `setPatternBars` are all deleted.
+The rest of the pipeline needed **no changes** — `resolvePhrase`'s cycling
+(`i % n`) and the grid's edit-click `cellIndex = screenBar % pattern.bars.length`
+were already written generically over "N distinct bars," and `n=1` was already
+a legal input, just never the only one. Two consequences fell out and were
+surfaced rather than silently absorbed: **single-chord mode is now permanently
+a 1-bar grid** (its bar count used to equal Pattern length), and **there is no
+way left to hand-edit one bar of a progression to differ from another** — every
+bar is necessarily the same distinct pattern now. Both were put to him directly
+before writing the plan, and both were accepted as the correct reading of his
+own testing conclusion, not worked around.
+
+**×2 mode: the grid stays at 4 bars, always — audio and display decouple.**
+Doubling a 4-bar progression to 8 bars of actual grid would blow the 11px
+height budget outright, so the doubling only ever happens at the render/
+playback boundary: `render()` builds the plain 4-chord phrase for the grid and
+a *separate*, throwaway `audioChords = chords.flatMap(c => [c, c])` fed to the
+metronome. The discipline that makes this safe is that the doubled array is
+**never** written into `state.progression` — a test drives exactly the failure
+mode that would follow if it were (doubling pairwise, C,C,F,F, isn't the shape
+`fitProgression` cycles a preset into, so `detectProgression` would silently
+stop recognizing a perfectly normal progression). `metronome.js` needed **zero**
+changes — it stays generic over bar count.
+
+**Two pass lamps per bar mark which pass is sounding**, riding the exact same
+clock as the beat lamp and playhead (`onStep`, no second clock) via a new small
+pure export, `splitAudioBar`, that translates the metronome's audio-bar
+position back to a screen bar + pass. Lamp colour is theme-derived
+(`--lamp-*`/`--active`), not the ABS/MIX chips' fixed amber — his call, on the
+read that it marks position, not a caution.
+
+**Four genuine forks, all put to him before writing the plan, all settled:**
+×2 is progression-mode-only, with the toggle staying **visible but disabled** in
+single mode rather than hidden (so the sheet doesn't jump) — his call, matching
+the standing complaint about a jumping panel. The 8-bar display problem got the
+repeat-sign idiom the kickoff prompt guessed at, refined into his own concrete
+design: two lamps per bar rather than a generic badge. Legacy saved patterns
+with real 2/4-distinct-bar content get **whatever's cleanest** — no back-compat
+code, since nothing saved so far is real ("app hasn't been distributed, mine
+are all just tests"). And ×2 is saved as musical content, dual-layer with a
+`tp-prefs` session default exactly like the capo.
+
+**Riding along, his call: swing now also saves with the pattern.** This
+reverses a documented decision ("a FEEL setting, not pattern content") but only
+adds to it — swing is still a `tp-audio` session default, unchanged, and now
+also lands in a saved pattern's `context.swing`, winning on load. It diverges
+from the capo's own precedent on one point: an old save's *absent* `swing`
+doesn't mean "wanted Straight" (swing wasn't content yet when it was saved), so
+loading one leaves the current session's swing untouched rather than resetting
+it — capo's absent-means-0 doesn't apply, because capo actually was always 0 on
+those old patterns and swing never existed at all.
+
+**One self-caught bug worth recording:** a draft comment in `styles.css`
+explaining the pass lamps' colour choice wrote out `--lamp-*/--active` as
+shorthand for "the --lamp- family and --active" — which contains the literal
+`*/` comment-close token, silently truncating the real comment and corrupting
+roughly 80% of the stylesheet's parsed rules from that point on (51 of the
+expected ~270). Caught before it ever reached him, by noticing the Options
+sheet had reverted to unstyled native form controls after one edit, and
+confirmed with a byte-for-byte rule-count comparison against the file's own
+git history rather than guessing. Fixed by rewording, not by escaping.
+
+**110/110 green.** Height budget re-measured at 375×553 with 4 bars,
+progression mode, capo +2, ×2 on: 55.09 / 384.84 / 11.06, byte-identical to the
+documented baseline — the pass lamps live entirely inside `.bar-header`'s
+existing reserved space.
 
 ## Where things stand (session 35 — v3.4.2, 2026-08-03)
 

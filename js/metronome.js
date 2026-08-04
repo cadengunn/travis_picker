@@ -96,6 +96,15 @@ export function stepToPosition(step) {
   return { bar: Math.floor(step / SLOTS_PER_BAR), slot: (step % SLOTS_PER_BAR) + 1 };
 }
 
+// AUDIO-bar (this module's own bar counter, doubled under ×2 mode) -> which
+// SCREEN bar that is and which pass through it (0 = first, 1 = second). Pure so
+// it's testable without a real metronome; this module doesn't know ×2 exists,
+// it just answers "given N audio-bars per screen-bar, where is bar B" — app.js
+// is the only caller and is what decides passesPerBar.
+export function splitAudioBar(bar, passesPerBar) {
+  return { bar: Math.floor(bar / passesPerBar), pass: bar % passesPerBar };
+}
+
 export function createMetronome({
   onStep = () => {},
   onCountIn = () => {},

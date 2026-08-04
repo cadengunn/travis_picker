@@ -93,6 +93,15 @@ just presets over those flags (leaves room for a future "custom" panel).
   and tells the player nothing. (8-bar phrases were also tried and are too wide
   to read on a phone; revisit if the grid ever gets zoom/wrap.)
 
+*(Deviation, session 36: Pattern length is GONE — generation always makes
+exactly one distinct bar, extending/shrinking included. His testing across many
+real Jerry Reed pieces found the picking pattern repeats every bar regardless of
+the tune's complexity, so the dial had nothing behind it. In its place: **×2
+mode**, a progression-mode-only toggle that plays each chord for two bars
+instead of one — the grid still shows 4 bars, never 8, with two small lamps per
+bar marking which pass is sounding. See `CLAUDE.md`'s "×2 mode" section for the
+mechanism.)*
+
 ## Bass engine presets (data spec — ready to implement)
 
 Each preset is a 4-entry array, one entry per beat. An entry is either a **role** (`"root"`, `"alt"`, `"fifth"`) resolved through the chord table, or an **absolute string number** (6/5/4). A preset containing only roles is fully relative (portable across progressions); any integer entry makes those beats absolute. `"random"` as an entry means "pick from 6/5/4 each roll."
@@ -212,8 +221,11 @@ playing, a stray tap must not alter the pattern. Edit mode is signalled by a
 dashed outline round the grid.
 
 When a short pattern repeats across a longer progression, the bars on screen are
-**one shared cell**, so editing any repeat edits them all. To make a single bar
-differ, raise the pattern length first.
+**one shared cell**, so editing any repeat edits them all.
+
+*(Deviation, session 36: "raise the pattern length first" is no longer
+possible — Pattern length is gone, so there is no dial left to make a single
+bar differ. Sharing is now permanent.)*
 
 Editing = the grid with tapping enabled:
 - Tapping a cell toggles a note; the app infers p/i/m/a from the string row (per hand domains).

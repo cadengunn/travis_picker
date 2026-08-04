@@ -50,15 +50,18 @@ import {
   resolvePhrase,
   regenerateBass,
   regenerateTreble,
-  setPatternBars,
 } from "./generator.js";
+import * as GeneratorExports from "./generator.js";
+import * as DataExports from "./data.js";
 import { createStore } from "./storage.js";
 import { toggleNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
+import { renderGrid } from "./grid.js";
 import {
   createMetronome,
   secondsPerSlot,
   isBeatSlot,
   stepToPosition,
+  splitAudioBar,
   hasDrifted,
   MAX_DRIFT,
   BPM_MIN,
@@ -148,7 +151,6 @@ async function withFakeAudio(make, fn) {
 
 const ALL_BASS = BASS_PRESETS.map((p) => p.id);
 const ALL_CHAOS = ["tame", "loose", "unruly", "chaos"];
-const ALL_PATTERN_BARS = [1, 2, 4];
 const ALL_SLOTS_T = [1, 2, 3, 4, 5, 6, 7, 8];
 
 function everyBar(cb) {
@@ -156,15 +158,13 @@ function everyBar(cb) {
   for (const chord of CHORD_IDS) {
     for (const bass of ALL_BASS) {
       for (const chaos of ALL_CHAOS) {
-        for (const patternBars of ALL_PATTERN_BARS) {
-          for (let seed = 1; seed <= 8; seed++) {
-            const p = generatePattern(chord, {
-              bass, chaos, patternBars, rng: seeded(seed * 97 + n),
-            });
-            const r = resolvePattern(p, chord);
-            for (const bar of r.bars) cb(bar, { chord, bass, chaos, patternBars, seed });
-            n++;
-          }
+        for (let seed = 1; seed <= 8; seed++) {
+          const p = generatePattern(chord, {
+            bass, chaos, rng: seeded(seed * 97 + n),
+          });
+          const r = resolvePattern(p, chord);
+          for (const bar of r.bars) cb(bar, { chord, bass, chaos, seed });
+          n++;
         }
       }
     }
@@ -340,7 +340,7 @@ check("Descend: absolute, walks strings 4-5-6-5 regardless of chord", () => {
 // 4e) Progression mode: one relative cell, per-bar chords. The bass re-maps
 //     per bar while the right hand (fingers/slots) stays identical.
 check("progression: relative bass re-maps per bar; fingers follow, bass overwrites string-3 collisions", () => {
-  const p = generatePattern("C", { bass: "travis", chaos: "tame", patternBars: 1, rng: seeded(9) });
+  const p = generatePattern("C", { bass: "travis", chaos: "tame", rng: seeded(9) });
   const chords = ["C", "G", "D", "Am"];
   const phrase = resolvePhrase(p, chords);
 
@@ -379,7 +379,7 @@ check("progression: relative bass re-maps per bar; fingers follow, bass overwrit
 
 // 4f) Absolute patterns do NOT follow the progression (bass strings frozen).
 check("progression: absolute bass strings stay put across chords", () => {
-  const p = generatePattern("C", { bass: "full_random", chaos: "loose", patternBars: 1, rng: seeded(4) });
+  const p = generatePattern("C", { bass: "full_random", chaos: "loose", rng: seeded(4) });
   const phrase = resolvePhrase(p, ["C", "G", "D", "Am"]);
   const bassOf = (b) => JSON.stringify(b.filter((e) => e.finger === "p").map((e) => e.string));
   const first = bassOf(phrase[0].bar);
@@ -777,22 +777,29 @@ check("detectProgression: matches presets in-mode, falls back to Custom", () => 
     "edited progression should read as Custom");
 });
 
-// 8) Pattern length produces exactly that many distinct bars, and a shorter
-//    pattern cycles cleanly across a longer progression.
-check("patternBars produces that many distinct bars and cycles across a phrase", () => {
-  for (const n of [1, 2, 4]) {
-    const p = generatePattern("C", { patternBars: n, rng: seeded(2) });
-    assert(p.bars.length === n, `patternBars ${n} produced ${p.bars.length} distinct bars`);
-    assert(p.patternBars === n, `pattern should record patternBars ${n}`);
+// 8) generatePattern always makes exactly one distinct bar (session 36 — real-
+//    guitar testing found the picking pattern repeats every bar, so the old
+//    "how many distinct bars" dial is gone). resolvePhrase cycles that one bar
+//    (mod 1, i.e. always bar 0) across however many bars are on screen.
+check("generatePattern always produces exactly one distinct bar", () => {
+  for (const chord of CHORD_IDS) {
+    for (const bass of ALL_BASS) {
+      for (const chaos of ALL_CHAOS) {
+        const p = generatePattern(chord, { bass, chaos, rng: seeded(2) });
+        assert(p.bars.length === 1, `${chord}/${bass}/${chaos}: expected 1 bar, got ${p.bars.length}`);
+        assert(p.thumbBars.length === 1, `${chord}/${bass}/${chaos}: expected 1 thumb bar`);
+        assert(p.trebleBars.length === 1, `${chord}/${bass}/${chaos}: expected 1 treble bar`);
+      }
+    }
   }
 
-  // a 2-bar pattern over a 4-bar progression: bar 3 repeats bar 1, bar 4 repeats bar 2
-  const p2 = generatePattern("C", { patternBars: 2, rng: seeded(6) });
+  // The one bar still cycles (mod 1) across however many bars are on screen —
+  // every bar of a 4-bar phrase is the identical picking pattern.
+  const p2 = generatePattern("C", { rng: seeded(6) });
   const phrase = resolvePhrase(p2, ["C", "C", "C", "C"]);
   const sig = (bar) => JSON.stringify(bar.map((e) => [e.slot, e.finger, e.string]));
-  assert(sig(phrase[2].bar) === sig(phrase[0].bar), "bar 3 should repeat bar 1");
-  assert(sig(phrase[3].bar) === sig(phrase[1].bar), "bar 4 should repeat bar 2");
-  assert(sig(phrase[1].bar) !== sig(phrase[0].bar), "a 2-bar pattern should have two different bars");
+  assert(sig(phrase[1].bar) === sig(phrase[0].bar), "every bar should share the one distinct pattern");
+  assert(sig(phrase[3].bar) === sig(phrase[2].bar), "every bar should share the one distinct pattern");
 });
 
 // DIFFICULTY MODEL (session 6, round 2): difficulty is STRIKE-TIMES — how many
@@ -847,7 +854,7 @@ check("lower tiers roll both all-singles and stacked patterns", () => {
     let singles = 0, stacked = 0, n = 0;
     for (const chord of ["C", "G", "D", "Am"]) {
       for (let seed = 1; seed <= 50; seed++) {
-        const p = generatePattern(chord, { chaos, patternBars: 2, rng: seeded(seed * 17 + 3) });
+        const p = generatePattern(chord, { chaos, rng: seeded(seed * 17 + 3) });
         let hasStack = false;
         for (const bar of p.trebleBars) {
           const byCol = {};
@@ -871,7 +878,7 @@ check("Unruly: every bar stacked, unless it's an all-singles roll", () => {
   let sawStackedPattern = false;
   for (const chord of CHORD_IDS) {
     for (let seed = 1; seed <= 12; seed++) {
-      const p = generatePattern(chord, { bass: "travis", chaos: "unruly", patternBars: 2, rng: seeded(seed * 71) });
+      const p = generatePattern(chord, { bass: "travis", chaos: "unruly", rng: seeded(seed * 71) });
       const stacksPerBar = p.trebleBars.map((bar) => {
         let stacks = 0;
         for (const slot of ALL_SLOTS_T) {
@@ -895,7 +902,7 @@ check("triples are not Chaos-exclusive: every tier can stack three", () => {
   for (const chaos of ["tame", "loose", "unruly", "chaos"]) {
     let sawTriple = false;
     for (let seed = 1; seed <= 80 && !sawTriple; seed++) {
-      const p = generatePattern("C", { chaos, patternBars: 4, rng: seeded(seed * 17 + 1) });
+      const p = generatePattern("C", { chaos, rng: seeded(seed * 17 + 1) });
       for (const bar of p.bars) {
         for (const slot of ALL_SLOTS_T) {
           if (bar.filter((e) => e.slot === slot && e.finger !== "p").length >= 3) sawTriple = true;
@@ -928,14 +935,12 @@ check("Unruly: re-strike pairs capped at maxRestrikes per bar, but present", () 
   };
   let sawRestrike = false;
   for (const chord of CHORD_IDS) {
-    for (const patternBars of [1, 2]) {
-      for (let seed = 1; seed <= 10; seed++) {
-        const p = generatePattern(chord, { chaos: "unruly", patternBars, rng: seeded(seed * 43 + patternBars) });
-        const pairs = pairsInLoop(p);
-        assert(pairs <= 2 * patternBars,
-          `Unruly rolled ${pairs} re-strike pairs, cap is ${2 * patternBars} (${chord} ${patternBars}-bar seed ${seed})`);
-        if (pairs > 0) sawRestrike = true;
-      }
+    for (let seed = 1; seed <= 10; seed++) {
+      const p = generatePattern(chord, { chaos: "unruly", rng: seeded(seed * 43) });
+      const pairs = pairsInLoop(p);
+      assert(pairs <= 2,
+        `Unruly rolled ${pairs} re-strike pairs, cap is 2 (${chord} seed ${seed})`);
+      if (pairs > 0) sawRestrike = true;
     }
   }
   assert(sawRestrike, "Unruly should still produce re-strikes across the sweep");
@@ -952,10 +957,12 @@ check("no blank bars: every bar has ≥1 finger note (all tiers)", () => {
 });
 
 // 5e) Whole-loop generation: for the clean tiers the adjacency ceiling holds
-//     across the ENTIRE loop — interior bar seams AND the wrap from the last 8th
-//     back to the first. This is what circular generation buys over per-bar; a
-//     per-bar generator can't see the loop boundary and would trip there.
-check("clean tiers: no same-string re-strike across bar seams or the loop wrap", () => {
+//     across the loop — every interior seam AND the wrap from the last 8th back
+//     to the first. Session 36: with generatePattern always making exactly one
+//     bar, "the loop" IS that one bar repeating indefinitely under playback, so
+//     the wrap (slot 8 -> slot 1) is now the ONLY seam that exists — and it's
+//     load-bearing on every single generation, not a reduced case.
+check("clean tiers: no same-string re-strike across the loop wrap", () => {
   const stringsAtGlobal = (p, gi) => {
     const bar = Math.floor(gi / 8), slot = (gi % 8) + 1;
     // fingers only: the clean-tier no-re-strike rule is same-finger, thumb aside
@@ -963,18 +970,16 @@ check("clean tiers: no same-string re-strike across bar seams or the loop wrap",
   };
   for (const chaos of ["tame", "loose"]) {
     for (const chord of CHORD_IDS) {
-      for (const patternBars of [1, 2, 4]) {
-        for (let seed = 1; seed <= 6; seed++) {
-          const p = generatePattern(chord, { chaos, patternBars, rng: seeded(seed * 29 + patternBars) });
-          const N = 8 * patternBars;
-          for (let gi = 0; gi < N; gi++) {
-            const a = stringsAtGlobal(p, gi);
-            const b = stringsAtGlobal(p, (gi + 1) % N); // circular: wraps last -> first
-            for (const s of a) {
-              assert(!b.has(s),
-                `${chaos}: string ${s} re-strikes across global slots ${gi}->${(gi + 1) % N} ` +
-                `(${chord} ${patternBars}-bar seed ${seed})`);
-            }
+      for (let seed = 1; seed <= 6; seed++) {
+        const p = generatePattern(chord, { chaos, rng: seeded(seed * 29) });
+        const N = 8;
+        for (let gi = 0; gi < N; gi++) {
+          const a = stringsAtGlobal(p, gi);
+          const b = stringsAtGlobal(p, (gi + 1) % N); // circular: wraps last -> first
+          for (const s of a) {
+            assert(!b.has(s),
+              `${chaos}: string ${s} re-strikes across global slots ${gi}->${(gi + 1) % N} ` +
+              `(${chord} seed ${seed})`);
           }
         }
       }
@@ -985,7 +990,7 @@ check("clean tiers: no same-string re-strike across bar seams or the loop wrap",
 // 9) Layer independence: swapping the bass keeps the exact finger pattern, and
 //    re-rolling the fingers keeps the exact bass.
 check("regenerateBass keeps the right hand; regenerateTreble keeps the bass", () => {
-  const p = generatePattern("C", { bass: "travis", chaos: "tame", patternBars: 2, rng: seeded(21) });
+  const p = generatePattern("C", { bass: "travis", chaos: "tame", rng: seeded(21) });
   const trebleSig = (pat) => JSON.stringify(pat.trebleBars);
   const thumbSig = (pat) => JSON.stringify(pat.thumbBars);
 
@@ -1034,9 +1039,14 @@ function memoryStorage(initial) {
 
 check("saved: round-trips a pattern with its chord context", () => {
   const store = createStore("test", memoryStorage());
-  const pattern = generatePattern("C", { bass: "travis", chaos: "tame", patternBars: 2, rng: seeded(12) });
+  const pattern = generatePattern("C", { bass: "travis", chaos: "tame", rng: seeded(12) });
   // The capo rides along: it's what the pattern SOUNDS like, so it's content.
-  const context = { chordMode: "progression", chord: "C", key: "G", capo: 3, progression: ["G", "C", "D", "G"] };
+  // ×2 and swing (session 36) join it for the same reason — dual-layer with a
+  // tp-prefs/tp-audio session default, but the SAVED value is musical content.
+  const context = {
+    chordMode: "progression", chord: "C", key: "G", capo: 3, progression: ["G", "C", "D", "G"],
+    x2: true, swing: 67,
+  };
 
   assert(store.count() === 0, "new store should be empty");
   const item = store.save({ name: "  Test lick  ", pattern, context });
@@ -1149,7 +1159,7 @@ check("editor: infers thumb vs finger, including the D string-3 overlap", () => 
 });
 
 check("editor: toggling adds then removes a note", () => {
-  const p = generatePattern("C", { patternBars: 1, rng: seeded(31) });
+  const p = generatePattern("C", { rng: seeded(31) });
   const at = { cellIndex: 0, slot: 4, string: 2, chordId: "C" };
   const has = (pat) => pat.bars[0].some((e) => e.slot === 4 && e.string === 2);
 
@@ -1171,7 +1181,7 @@ check("editor: toggling adds then removes a note", () => {
 });
 
 check("editor: a drawn bass note keeps its role when it matches the chord", () => {
-  const p = generatePattern("C", { patternBars: 1, rng: seeded(32) });
+  const p = generatePattern("C", { rng: seeded(32) });
   // C's fifth is string 6 — drawing there should stay RELATIVE (follows chords)
   const onRole = toggleNote(p, { cellIndex: 0, slot: 2, string: 6, chordId: "C" });
   const drawn = onRole.thumbBars[0].find((e) => e.slot === 2);
@@ -1183,7 +1193,7 @@ check("editor: a drawn bass note keeps its role when it matches the chord", () =
 });
 
 check("editor: a bass note matching no role goes absolute and flags the pattern mixed", () => {
-  const p = generatePattern("D", { patternBars: 1, rng: seeded(33) });
+  const p = generatePattern("D", { rng: seeded(33) });
   // D's roles are 4/3/5 — string 6 matches none of them
   const mixed = toggleNote(p, { cellIndex: 0, slot: 2, string: 6, chordId: "D" });
   const drawn = mixed.thumbBars[0].find((e) => e.slot === 2 && e.string === 6);
@@ -1194,7 +1204,7 @@ check("editor: a bass note matching no role goes absolute and flags the pattern 
 });
 
 check("editor: editing a shared cell changes every repeat of it", () => {
-  const p = generatePattern("C", { patternBars: 1, rng: seeded(34) });
+  const p = generatePattern("C", { rng: seeded(34) });
   const chords = ["C", "F", "G", "C"]; // 1-bar pattern across a 4-bar progression
   const before = resolvePhrase(p, chords);
   assert(before.length === 4, "phrase should be 4 bars");
@@ -1220,7 +1230,7 @@ check("editor: editing a shared cell changes every repeat of it", () => {
 //     were stored without `string`, so the hard-rule dedupe key collapsed to
 //     "slot:undefined" and silently swallowed the second one.
 check("editor: two drawn bass notes in one slot both survive", () => {
-  let p = generatePattern("C", { patternBars: 1, rng: seeded(41) });
+  let p = generatePattern("C", { rng: seeded(41) });
   // clear the slot first
   for (const s of [4, 5, 6]) {
     if (p.bars[0].some((e) => e.slot === 2 && e.string === s)) {
@@ -1242,32 +1252,76 @@ check("editor: two drawn bass notes in one slot both survive", () => {
   }
 });
 
-// 13) Pattern length extends instead of re-rolling, so edits survive.
-check("setPatternBars duplicates existing bars and keeps them independent", () => {
-  let p = generatePattern("C", { patternBars: 1, rng: seeded(42) });
-  // draw a distinctive note so we can follow it
-  p = toggleNote(p, { cellIndex: 0, slot: 8, string: 1, chordId: "C" });
-  const sig = (bar) => JSON.stringify(bar.map((e) => [e.slot, e.finger, e.string]).sort());
-  const original = sig(p.bars[0]);
+// 13) Pattern length is fully removed (session 36) — a source-level test, since
+// a stray import lingering unused would otherwise fail silently.
+check("source: PATTERN_LENGTHS/setPatternBars are gone", () => {
+  assert(!("setPatternBars" in GeneratorExports), "generator.js should no longer export setPatternBars");
+  assert(!("PATTERN_LENGTHS" in DataExports), "data.js should no longer export PATTERN_LENGTHS");
+  assert(!("DEFAULT_PATTERN_BARS" in DataExports), "data.js should no longer export DEFAULT_PATTERN_BARS");
+});
 
-  const grown = setPatternBars(p, 4);
-  assert(grown.bars.length === 4, `expected 4 bars, got ${grown.bars.length}`);
-  assert(grown.patternBars === 4, "patternBars should update");
-  for (let i = 0; i < 4; i++) {
-    assert(sig(grown.bars[i]) === original, `bar ${i} should duplicate the original`);
+// 13b) ×2 mode's audio-bar -> screen-bar/pass translation (app.js's
+// highlightColumn), the one piece of non-trivial arithmetic in the feature —
+// pure and exported from metronome.js so it's testable without a real
+// metronome, mirroring stepToPosition just above it.
+check("splitAudioBar: audio-bar position -> screen bar + pass", () => {
+  // ×2 off (passesPerBar=1): identity, every audio bar IS the screen bar.
+  for (let bar = 0; bar <= 3; bar++) {
+    const got = splitAudioBar(bar, 1);
+    assert(got.bar === bar && got.pass === 0,
+      `passesPerBar=1: audio bar ${bar} should map to itself, pass 0, got ${JSON.stringify(got)}`);
   }
+  // ×2 on (passesPerBar=2): audio bars 0..7 -> screen bars 0..3, two passes each.
+  const expected = [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1]];
+  expected.forEach(([screenBar, pass], bar) => {
+    const got = splitAudioBar(bar, 2);
+    assert(got.bar === screenBar && got.pass === pass,
+      `audio bar ${bar} should be screen bar ${screenBar} pass ${pass}, got ${JSON.stringify(got)}`);
+  });
+});
 
-  // the copies are independent: editing bar 2 leaves the others alone
-  const edited = toggleNote(grown, { cellIndex: 1, slot: 6, string: 2, chordId: "C" });
-  assert(sig(edited.bars[0]) === original, "editing bar 2 must not change bar 1");
-  assert(sig(edited.bars[1]) !== original, "bar 2 should have changed");
-  assert(sig(edited.bars[2]) === original, "editing bar 2 must not change bar 3");
+// 13c) ×2's grid stays at 4 bars, never 8 (the height-budget constraint) — the
+// doubled audio content lives only in app.js's playback-time transform, never
+// in what's drawn. The pass lamps only exist when ×2 is on, and are omitted
+// entirely (not hidden) otherwise.
+check("grid: ×2 renders exactly 4 bars with two pass lamps each; omitted when off", () => {
+  const host = document.createElement("div");
+  const p = generatePattern("C", { rng: seeded(50) });
+  const phrase = resolvePhrase(p, ["C", "F", "G", "C"]);
 
-  // shrinking keeps the first n bars
-  const shrunk = setPatternBars(edited, 2);
-  assert(shrunk.bars.length === 2, "shrinking should truncate");
-  assert(sig(shrunk.bars[0]) === sig(edited.bars[0]), "first bar preserved on shrink");
-  assert(sig(shrunk.bars[1]) === sig(edited.bars[1]), "second bar preserved on shrink");
+  renderGrid(host, phrase, { x2: true, editableChords: true });
+  assert(host.querySelectorAll(".bar").length === 4, "×2 must never grow the grid past 4 bars");
+  const lampGroups = [...host.querySelectorAll(".pass-lamps")];
+  assert(lampGroups.length === 4, `expected 4 pass-lamp groups, got ${lampGroups.length}`);
+  lampGroups.forEach((g, i) => {
+    assert(g.dataset.bar === String(i), `pass-lamps group ${i} should carry data-bar="${i}"`);
+    const passes = [...g.querySelectorAll(".pass-lamp")].map((l) => l.dataset.pass);
+    assert(JSON.stringify(passes) === JSON.stringify(["0", "1"]),
+      `bar ${i} should have exactly a pass-0 and a pass-1 lamp, got ${JSON.stringify(passes)}`);
+  });
+
+  renderGrid(host, phrase, { x2: false, editableChords: true });
+  assert(host.querySelectorAll(".pass-lamps").length === 0, "×2 off should omit the pass-lamp markup entirely");
+});
+
+// 13d) Regression guard: ×2's doubled audio-chords array must never be written
+// into state.progression (app.js's render() builds it fresh every call and
+// discards it — see the comment there). This proves WHY that discipline
+// matters: doubling pairwise (C,C,F,F,...) is not the shape fitProgression
+// cycles a preset into (C,F,...,C,F,...), so detectProgression would silently
+// stop recognizing a perfectly normal progression if the doubled array ever
+// leaked into state.
+check("detectProgression: a ×2-doubled chord array is not mistaken for its own preset", () => {
+  const keyId = "C";
+  const preset = PROGRESSIONS.find((p) => p.mode === KEYS[keyId].mode);
+  const chords = progressionChords(preset.id, keyId);
+  assert(chords.length === 4, "progressions are 4-bar phrases");
+  assert(detectProgression(chords, keyId) === preset.id,
+    "sanity: the plain, un-doubled progression should be recognized");
+
+  const doubled = chords.flatMap((c) => [c, c]); // exactly app.js's audioChords
+  assert(detectProgression(doubled, keyId) !== preset.id,
+    "a ×2-doubled array should not read as the underlying preset");
 });
 
 // 14) Metronome timing maths (the audio itself can't be unit-tested here).
@@ -2799,6 +2853,52 @@ acheck('layout: the Format control spells "Progression" on one line', async () =
     `only ${(boxW - textW).toFixed(1)}px of air around "Progression" (${textW.toFixed(1)}px in ${boxW}px)`);
 });
 
+acheck("layout: the ×2 lamp fits its slot without wrapping or growing the row", async () => {
+  // Session 36: replaced Pattern length's <select> with a compact .lamp toggle
+  // in the same 3rd slot of .control-row.layers, alongside Thumb/Fingers. Same
+  // two failure modes as the Format check above (text wrap lifts a bottom-
+  // anchored sheet; a taller sibling grows the whole row) plus a third this
+  // control introduces: the wrapper had to become a bare <div> rather than a
+  // <label> (nesting <label class="lamp"> inside <label class="field"> is
+  // invalid HTML) — a regression there would silently break the click target,
+  // not the layout, so it isn't caught here; see index.html's comment on it.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:300px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="sheet-panel"><div class="control-row layers">' +
+    '<label class="field"><span>Thumb</span><select id="thumb-select"><option>Dead Thumb</option></select></label>' +
+    '<label class="field"><span>Fingers</span><select id="fingers-select"><option>Wild Card</option></select></label>' +
+    '<div class="field"><span>×2</span><label class="lamp lamp-compact" id="x2-lamp">' +
+    '<input type="checkbox"><span class="jewel"></span><span class="t" id="x2-text">Off</span>' +
+    '</label></div>' +
+    '</div></div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const doc = frame.contentDocument;
+  await Promise.race([
+    doc.fonts.load("600 15px Fraunces"),
+    new Promise((r) => setTimeout(r, 3000)),
+  ]);
+  assert(doc.fonts.check("600 15px Fraunces"),
+    "Fraunces did not load in the harness — this measurement would be against the fallback");
+
+  const textEl = doc.getElementById("x2-text");
+  const range = doc.createRange();
+  range.selectNodeContents(textEl);
+  const lines = range.getClientRects().length;
+
+  const selectH = doc.getElementById("thumb-select").getBoundingClientRect().height;
+  const lampH = doc.getElementById("x2-lamp").getBoundingClientRect().height;
+  frame.remove();
+
+  assert(lines === 1, `"Off" wraps to ${lines} lines in the ×2 lamp — the Options sheet will jump`);
+  assert(Math.abs(lampH - selectH) < 3,
+    `the ×2 lamp is ${lampH.toFixed(1)}px against its Thumb/Fingers siblings' ${selectH.toFixed(1)}px — this row's height would jump`);
+});
+
 acheck("type: every bundled face is declared, and the three voices stay separate", async () => {
   const css = await (await fetch("css/styles.css")).text();
 
@@ -2860,7 +2960,7 @@ check("the generator never picks a string the chord's shape mutes", () => {
     // documented feature.
     for (const bass of ALL_BASS) {
       for (let seed = 1; seed <= 6; seed++) {
-        const pattern = generatePattern(id, { bass, chaos: "loose", patternBars: 1, rng: rng(seed) });
+        const pattern = generatePattern(id, { bass, chaos: "loose", rng: rng(seed) });
         if (pattern.type !== "relative") continue;
         for (const { bar } of resolvePhrase(pattern, [id])) {
           for (const ev of bar) {

@@ -666,14 +666,6 @@ export const LABEL_MODES = [
   { id: "none", name: "No labels" },
 ];
 
-// How many DISTINCT bars of right-hand pattern before it repeats. This is the
-// only length dial: in single-chord mode the grid shows exactly this many bars;
-// in progression mode the progression sets the bar count and the pattern cycles
-// across it. (Replaces the old separate Loop + Length pair, whose useful
-// combinations were always "displayed bars == distinct bars".)
-export const PATTERN_LENGTHS = [1, 2, 4];
-export const DEFAULT_PATTERN_BARS = 1;
-
 // ----- Nashville number system -----
 // Progressions are stored as HARMONIC TOKENS (Roman numerals), and the selected
 // KEY resolves each token to an actual chord. Tokens — not bare 1–6 scale numbers
@@ -935,7 +927,7 @@ export function detectProgression(chords, keyId) {
 //     that the thing itself is fiddly.
 //
 // TITLES follow the shape of the phrase, not one blanket rule (v2.13.7, his
-// call): a title-like one is Title Case ("Help Mode", "Pattern Length", "Bass
+// call): a title-like one is Title Case ("Help Mode", "Capo", "Bass
 // Warning"), a sentence-like one stays sentence case ("What you're playing
 // over", "The grid is your right hand"). Single words are unaffected either
 // way, which is most of them. "Count-in" keeps its lowercase particle — that's
@@ -960,7 +952,7 @@ export const HELP = {
   // --- header ---
   "edit-toggle": {
     title: "Edit",
-    body: "Tapping a cell adds or removes a note. Editing a bar that repeats changes every repeat, so raise Pattern length first if you want one to differ.",
+    body: "Tapping a cell adds or removes a note. Every bar plays the same picking pattern, so editing one changes them all.",
   },
   "open-save": {
     title: "Save",
@@ -1052,9 +1044,9 @@ export const HELP = {
     // it in one tap. Don't re-propose.
     body: "How busy and how hard the finger part is. Changing this re-rolls only the fingers.",
   },
-  pattern: {
-    title: "Pattern Length",
-    body: "How many bars are different before the pattern repeats. Growing it copies what you have rather than re-rolling, so raise it when you want one bar to differ from the rest.",
+  x2: {
+    title: "×2",
+    body: "Repeats each chord for two bars instead of one, so you have more time before the next change. Progression mode only.",
   },
   swing: {
     title: "Swing",

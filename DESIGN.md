@@ -226,8 +226,8 @@ compares its legend's height against a row with no class of its own.
 
 ### List panels
 
-**A LIST PANEL IS A HOUSING TOO** (`.dd-list`, v2.14.6, his call). The five list
-menus (Thumb, Fingers, Pattern, Note Labels, Theme) **stay lists** — short
+**A LIST PANEL IS A HOUSING TOO** (`.dd-list`, v2.14.6, his call). The four list
+menus (Thumb, Fingers, Note Labels, Theme) **stay lists** — short
 unordered sets, where a barrel would be ceremony — but wear the drums' material,
 and **the selected row is an aperture, not a lit accent slab** (the accent capsule
 is what a *pressed button* wears, so it said "the one you just hit" rather than

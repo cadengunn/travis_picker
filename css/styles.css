@@ -592,6 +592,38 @@ main {
   background: var(--control);
   border: 1px solid var(--line);
 }
+/* ×2 pass lamps (session 36): two small jewels riding the same header as the
+   bar-num chip, just right of it. Left lights on the FIRST pass through this
+   bar's chord, right on the SECOND — app.js's playhead (highlightColumn)
+   touches them directly the same way it touches .cell.playing (no re-render,
+   no second clock; see metronome.js's splitAudioBar). Only ever rendered when
+   ×2 is on, which is always exactly 4 bars, so bar-num is always present too —
+   nothing here needs to handle the numeral's absence.
+   Idle glass matches the beat lamp; LIT uses the same theme-derived family
+   (--lamp-hot / --active / --lamp-rim), not a fixed hue — this marks POSITION
+   (which pass you're on), not a caution, so it doesn't borrow the ABS/MIX amber. */
+.pass-lamps {
+  position: absolute;
+  left: 25px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 4px;
+}
+.pass-lamp {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, var(--jewel-off-hi), var(--jewel-off) 60%);
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.pass-lamp.lit {
+  background: radial-gradient(circle at 38% 32%, var(--lamp-hot), var(--active) 55%, var(--lamp-rim));
+  border-color: var(--lamp-rim);
+  box-shadow: 0 0 4px 1px var(--lamp-glow), inset 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
 .bar-chord {
   width: 100%;
   appearance: none;
@@ -1158,16 +1190,19 @@ main {
    field's width. Since v2.14.5 it's a single `.field-split` (#field-keyprog) over
    two selects, so it takes that width from `.field-split` like the chord field
    does and there is nothing left to size in this row. */
-/* Thumb / Fingers / Pattern, sized to their CONTENT rather than into three equal
+/* Thumb / Fingers / ×2, sized to their CONTENT rather than into three equal
    thirds. At 375 an even split gave each menu a 75px label box and three Thumb
    values overflowed it — "Dead Thumb" needs 94px, "Alternating" 84, "Root–Fifth"
-   78 — while Pattern's longest ("4 bars", 44.7) sat miles inside its own.
+   78 — while the third slot's longest content sat miles inside its own.
    Measured longest values: Thumb "Dead Thumb" 94, Fingers "Wild Card" 72.8,
-   Pattern "4 bars" 44.7, each needing ~34px of chrome on top, against 327px of
-   track. This split lands 133 / 111 / 83 and leaves all three 4–5px of slack.
+   each needing ~34px of chrome on top, against 327px of track. This split
+   lands 133 / 111 / 83 and leaves the first two 4–5px of slack.
    Re-measure if any VALUE gets longer — and note how little it takes:
    capitalising "Wild card" → "Wild Card" alone cost 2.7px and took that column
-   from 3.9px of slack to 1.2px. */
+   from 3.9px of slack to 1.2px.
+   Session 36: the third slot now holds the ×2 lamp (replacing the Pattern
+   length select, "4 bars" 44.7px) — measured at 82.8px, comfortably inside its
+   83px column (see the "×2 lamp fits its slot" layout test). Ratio unchanged. */
 .control-row.layers { grid-template-columns: 1.22fr 1.02fr 0.76fr; }
 /* Format / Capo / (empty), sized to their CONTENT for the same reason .layers is.
    An even split gave Format 109px — 53.5px a button, and the segmented buttons
@@ -1443,6 +1478,20 @@ main {
 }
 .lamp input:not(:checked) ~ .t { color: var(--muted); }
 .lamp input:focus-visible ~ .jewel { outline: 2px solid var(--active); outline-offset: 2px; }
+/* DISABLED (×2 in single-chord mode, session 36): stays visible — a jumping
+   sheet was a specific complaint — just inert. `.lamp` is a <label>, which has
+   no native disabled look of its own, so this is new. Dimmed rather than hidden,
+   same idea as the capo stepper's disabled end-stop keys. `aria-disabled` is
+   what pressStrength() (app.js) checks, since a <label> has no `.disabled`. */
+.lamp:has(input:disabled) { opacity: 0.45; cursor: default; }
+.lamp:has(input:disabled):active { box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16); }
+
+/* Compact variant: one control filling a THIRD of a .control-row (the ×2
+   toggle, replacing what used to be the Pattern length select) rather than half
+   of a 2-column .lamp-row. Same material, tightened to fit — see
+   .control-row.layers for the column math. */
+.lamp-compact { padding: 10px 10px; gap: 6px; font-size: 14px; }
+.lamp-compact .jewel { width: 11px; height: 11px; }
 
 /* The primary action (Save / Load / a modal's confirm) is a CARVED accent key
    now (session 27 polish), not a flat painted slab — a dished highlight, a
