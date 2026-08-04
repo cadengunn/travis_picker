@@ -559,9 +559,11 @@ Four dependency-free modules, all precached:
       both notes are simply held. See the note above that table.
     - **A BARRE GOES ALL THE WAY ACROSS, AND A SHAPE CAN HAVE TWO** (his call,
       session 35). Drawing, not data — a barred string carrying a higher note
-      still sounds the higher note, so no frets moved. A run of ≥3 adjacent
-      strings at a higher fret is a second bar; 2 is two fingers (the F barre's
-      ring + pinky is the evidence). Geometry in `DESIGN.md`.
+      still sounds the higher note, so no frets moved. **A run of ≥4 adjacent
+      strings at one fret is also a bar; 3 is three fingers** — he set both ends
+      (35b), and open A's fret-2 trio is the anchor. Geometry in `DESIGN.md`.
+    - **Hollow is a WARNING, so it's used only where a finger genuinely must
+      move** (35b) — `MOVING` in `data.js`, cut to C / C7 / C6 / B7.
     It **redraws on SETTLE, not per detent** (his call): a diagram flickering under
     a spinning barrel is motion under a mechanism that's already moving. Only the
     **chord** wheel gets one — Key × Progression has no shape — and both entry
@@ -884,7 +886,10 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     only two homes — string 4 at the barre (the everyday `131211` F7) or string 2
     three frets up (a stretch nobody plays) — so **F7 / F♯7 / G♯7 alternate root ↔
     ♭7** rather than root ↔ octave. Playable shape over tidy rule; one line to
-    flip. maj7/m7 make the same trade on E-shape roots.
+    flip. **maj7** makes the same trade on E-shape roots; **m7 no longer does** —
+    session 35b revoiced Em7 to `0 2 2 0 3 0` (his call, on the voicing), which
+    puts the octave back on string 4 and the ♭7 on string 2 as a finger colour, so
+    the m7 family's bass is now root ↔ octave like the rest of the template.
   - Barre chords assume a *full* barre, so the low string is available as a bass
     note even where the textbook voicing mutes it — the same convention C already
     used (its fifth is string 6 fret 3). B7 is hand-voiced (`x21202`) with string
@@ -930,7 +935,7 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
 
 ## Status
 
-**v3.4.0, 106/106 green.** The chord library and the progression revamp are
+**v3.4.1, 106/106 green.** The chord library and the progression revamp are
 finished (sessions 29–33): 120 chords, the drum pickers, and the chord-shape
 diagram under the wheel. Sessions 32–33 also landed `tp-prefs`, the diagnosed
 dead-Play bug, the landscape sheet fix, and four rounds of his guitar verdicts on

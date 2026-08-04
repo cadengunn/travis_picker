@@ -92,12 +92,21 @@ export function chordBoxModel(chordId) {
   // chord bars all six.
   //
   // AND THERE CAN BE MORE THAN ONE (same call). His F♯6: "one finger all the way
-  // across on fret 9, another finger covering the 4 strings at fret 11." A run of
-  // ≥3 adjacent strings sharing a fret ABOVE the barre is a second finger lying
-  // across them — the ring-finger barre every A-shape chord has (B♭'s 3 3 3 on
-  // strings 4/3/2). THREE is the threshold, not two, and the F barre is the
-  // evidence: its fret-3 pair on strings 5/4 is ring + pinky, a shape everyone
-  // plays with two fingers, so a 2-string run must stay two dots.
+  // across on fret 9, another finger covering the 4 strings at fret 11." So any
+  // run of adjacent strings sharing one fret can be a second finger lying flat.
+  //
+  // FOUR IS THE THRESHOLD, and he set it from both sides (session 35b). THREE in
+  // a row is NOT a bar — "the A-shape family double barre, I usually just play
+  // those with three fingers", which also covers the sus4s and, decisively, keeps
+  // the barre chords consistent with open A (0 0 2 2 2 0), whose identical
+  // fret-2 trio he'd already seen drawn as three dots. FOUR in a row IS one —
+  // "A6 should just have a barre across the 4 high strings".
+  //
+  // A6 is also why this run is judged INDEPENDENTLY of the index barre above: it
+  // has open strings, so it gets no index bar at all, and nothing above fret 2
+  // either. The rule can't be "a run above the barre" — it's just a finger lying
+  // across four strings, which is true with or without a barre elsewhere.
+  const RUN_IS_A_BAR = 4;
   const barres = [];
   if (!anyOpen && high > low) {
     const idx = at.map((f, i) => (f === low ? i : -1)).filter((i) => i >= 0);
@@ -107,18 +116,20 @@ export function chordBoxModel(chordId) {
       while (from > 0 && at[from - 1] != null && at[from - 1] > 0) from--;
       while (to < 5 && at[to + 1] != null && at[to + 1] > 0) to++;
       barres.push({ fret: low, from, to });
-      // Higher runs, left to right. Only strings fretted ABOVE the index barre
-      // can carry one — anything at the barre fret is already under it.
-      for (let i = 0; i < 6; ) {
-        const f = at[i];
-        if (f == null || f <= low) { i++; continue; }
-        let j = i;
-        while (j + 1 < 6 && at[j + 1] === f) j++;
-        if (j - i + 1 >= 3) barres.push({ fret: f, from: i, to: j });
-        i = j + 1;
-      }
     }
   }
+  // Skip a run at the index bar's own fret — that bar is wider and already says
+  // it (the E-shape m7s are `1 3 1 1 1 1`, four in a row under a full barre).
+  const indexFret = barres.length ? barres[0].fret : null;
+  for (let i = 0; i < 6; ) {
+    const f = at[i];
+    if (f == null || f === 0) { i++; continue; }
+    let j = i;
+    while (j + 1 < 6 && at[j + 1] === f) j++;
+    if (j - i + 1 >= RUN_IS_A_BAR && f !== indexFret) barres.push({ fret: f, from: i, to: j });
+    i = j + 1;
+  }
+  barres.sort((a, b) => a.fret - b.fret);
   // A string is under a bar only at that bar's OWN fret: a higher note on a
   // barred string is played by the finger on top, and still needs its dot.
   const barredAt = (i, fret) => barres.some((b) => b.fret === fret && i >= b.from && i <= b.to);

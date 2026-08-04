@@ -315,12 +315,15 @@ Its geometry:
   hand does — the index lies flat across everything it can reach, and a string
   carrying a higher note is still barred underneath. So a bar now extends through
   every neighbouring **fretted** string, stopping only at an open or muted one; in
-  this library that means all six, every time. A run of **≥3** adjacent strings
-  sharing a fret above it is a **second** bar (his F♯6: "one finger all the way
-  across on fret 9, another finger covering the 4 strings at fret 11") — which is
-  also the ring-finger barre every A-shape chord has. **Three, not two**, and the
-  F barre is the evidence: its fret-3 pair on strings 5/4 is ring + pinky, so a
-  2-string run stays two dots.
+  this library that means all six, every time. **A run of ≥4 adjacent strings at
+  one fret is also a bar**, judged on its own rather than as "a run above the
+  barre" — he set that threshold from both sides: three in a row is NOT one ("the
+  A-shape family double barre, I usually just play those with three fingers",
+  which also covers the sus4s, and matches open A's identical fret-2 trio), four
+  in a row IS ("A6 should just have a barre across the 4 high strings"). **A6 is
+  why the run stands alone**: it has open strings, so no index bar and nothing
+  above fret 2, yet four strings under one finger is still a bar. In practice the
+  index bar is every barre chord, and the second bar is the 6 family.
 - **HOLLOW MEANS "you move a finger here", and it means nothing else.** The moving
   finger (`MOVING` in `data.js`) is drawn as an outlined dot on the string you move
   TO; the home note stays filled. There is **no established symbol for this** in
@@ -331,6 +334,11 @@ Its geometry:
   markers are filled discs**, where they used to be rings. Position already says
   "open" — nothing else is drawn above the nut but × and ○ — so the ring was free
   to be reassigned, and hollow stays unambiguous.
+- **HOLLOW ONLY WHEN ABSOLUTELY NECESSARY** (his call, session 35b). It's a
+  warning, so a chord you can simply hold must not wear one. That cut the C family
+  from six entries to three: what survives is the shapes whose four fingers are
+  already committed before the low bass note is added. `MOVING` in `data.js` is
+  the list, and it stays hand-declared — see the note there.
 - **It cost the panel's height cap.** `.dd-panel` caps panels at `52vh` and scrolls
   the overflow, but a mechanism must not scroll, so the wheel got
   `max-height: min(78vh, 430px)` — at 52vh the diagram was clipped off. That rule

@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [35](#where-things-stand-session-35--v340-2026-08-03) | **v3.4.0** | his 14-chord playability spec applied (the roles moved, not just the frets — a rule fell out: role strings never go below string 3); then barres got drawn the way a hand actually makes them — all the way across, and F♯6 as two |
+| [35](#where-things-stand-session-35--v341-2026-08-03) | **v3.4.1** | his 14-chord playability spec applied (the roles moved, not just the frets — a rule fell out: role strings never go below string 3); then barres got drawn the way a hand actually makes them, with his review setting the threshold from both sides — 4 in a row is a bar, 3 is three fingers, and open A is the anchor. Hollow got scarcer on the same principle; Em7's family revoiced |
 | [34b](#where-things-stand-session-34b--v330-2026-08-03) | **v3.3.0** | the chord diagram shows the MOVING FINGER as a hollow dot (no established symbol exists; this borrows the fingerstyle "alternate bass" ring). Root-only accent replaces marking the thumb's whole pair. B7 added; G#6 revoiced to his fingering |
 | [34](#where-things-stand-session-34--docs--tests-2026-08-03) | *(no version)* | adversarial review: CLAUDE.md became a hub and `DESIGN.md` was split out (1,570 → 990 lines, 18.2k → 11.0k words); the four sleeping tests stopped waiting on the wall clock, and the wheel "flake" turned out to be the screenshot resizing the pane |
 | [33g](#where-things-stand-session-33g--v326-2026-08-03) | **v3.2.6** | real bug caught by ear: F#6's alt===fifth collapsed Travis's bass to one repeated note; fixed + a new library-wide guard test; plus two audits answering "anything else like this?" |
@@ -57,7 +57,7 @@ has the original build order.
 
 ---
 
-## Where things stand (session 35 — v3.4.0, 2026-08-03)
+## Where things stand (session 35 — v3.4.1, 2026-08-03)
 
 **His ask, part one:** a spec document of 14 chord voicings he'd played through
 manually and found awkward, given as fret strings low-to-high. Applied verbatim.
@@ -96,6 +96,45 @@ rather than loosening: G♯sus2 was hardcoded as "the library's widest span, fre
 4–8", a title that now belongs to the untouched `C♯add9`. The barre test was
 rewritten around his two worked examples and gained a sweep asserting no bar ever
 lies over an open or muted string. 106/106.
+
+**Then his review of the drawing (v3.4.1), which set the barre threshold from
+both sides.** I'd guessed 3 for a second bar; he cut it to 4. Three in a row is
+three fingers — *"the A-shape family double barre, I usually just play those with
+three fingers"* — and the clinching argument was his own observation that **open
+A was still drawn as three dots**: A is `0 0 2 2 2 0`, the identical fret-2 trio
+the A-shape barre chords have, so drawing one as a bar and the other as dots was
+simply inconsistent. Four in a row IS a bar: *"A6 should just have a barre across
+the 4 high strings."*
+
+**A6 also broke the rule's shape.** It's `0 0 2 2 2 2` — open strings, so no index
+bar, and nothing above fret 2 — so a run can't be defined as "≥N above the
+barre". It's judged on its own: four strings under one flat finger is a bar
+whether or not the chord has one elsewhere. The old "a shape with an open string
+cannot be barred" assertion was exactly wrong and became a per-bar check that no
+bar lies over an open or muted string.
+
+**Hollow got scarcer, on the same principle he applied to the barre — say only
+what's true.** *"Hollow only when absolutely necessary. Csus2 for example."* The
+C family went from six moving-finger entries to three; what survives (C, C7, C6,
+plus B7) is the shapes whose four fingers are committed **before** the low bass
+note is added, so something has to move. Cmaj7 frets three notes; Csus2 and Cadd9
+leave a finger spare once strings 6/5 are taken as a pair. **C itself is the
+marginal one** and stays on his own session-34 statement rather than on the rule.
+
+**`Fadd9` was the miss he caught** — *"should be same shape as F♯"* — so the
+D/E♭/F/F♯add9 family is now contiguous. `C♯add9` is the remaining root of that
+class still on a wide derived A-shape (`4 4 6 8 6 4`), and it's flagged in the
+data rather than changed unasked.
+
+**`Em7` revoiced to `0 2 2 0 3 0`, whole E-shape family with it** (his call, on
+the voicing alone — *"what we have isn't wrong, but I think it's a nicer
+voicing"*). Fm7 becomes `1 3 3 1 4 1`. It moves the ♭7 off string 4, so the m7
+family's Travis bass changes from root ↔ ♭7 to **root ↔ octave**, which makes m7
+consistent with the rest of the template instead of an exception alongside maj7.
+The ♭7 still sounds on string 2 as a finger colour. `alt` could instead walk to
+the m3 on string 3 for a three-note bass — string 3 is legal as a role, D's
+alt-bass proves it — but that's a larger change than the shape he asked for, so
+it's noted in the data and left to him.
 
 ---
 

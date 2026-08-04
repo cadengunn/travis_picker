@@ -166,20 +166,34 @@ export function splitChordId(id) {
 //
 // So this is declared per chord, off the guitar, exactly like the awkward
 // voicings above it. An undeclared chord simply has no moving finger.
+//
+// HOLLOW ONLY WHEN ABSOLUTELY NECESSARY (his call, session 35b) — the symbol is
+// a warning, and a chord that can just be held shouldn't wear one. He named
+// Csus2, and the C family was cut from six entries to three on that test: what
+// the three survivors have in common is that the standard shape ALREADY COMMITS
+// ALL FOUR FINGERS before the low bass note is added, so there is no fifth
+// finger for it and something has to move. The three cut are sparse enough to
+// hold outright — Cmaj7 frets only three notes, and Csus2/Cadd9 leave a finger
+// spare once strings 6/5 (adjacent, same fret) are taken as a pair.
 const MOVING = {
   // The open C family: ring finger, string 5 (root) ↔ string 6 (the low fifth),
   // both at fret 3. His own words for it, back in the E♭add9 note: "the way a
   // finger comes on and off string 6 for the low bass note some players add
   // under an open C."
+  //
+  // C is here on HIS STATEMENT, not on a rule — by the finger-count argument
+  // above it's the marginal one of the three (x32010 is a three-finger shape, so
+  // a pinky could in principle take the low G). It stays because he described
+  // this exact chord as the move, and it's the case the whole feature was built
+  // from. C7 (x32310) and C6 (x32210) are unambiguous: four fingers already down.
   C:      [5, 6],
   C7:     [5, 6],
-  Cmaj7:  [5, 6],
   C6:     [5, 6],
-  Csus2:  [5, 6],
-  Cadd9:  [5, 6],
-  // E♭add9 and F♯6 both had a moving-finger entry here through v3.3.0 — both
-  // were REPLACED in session 35 by voicings that hold every note as a static
-  // barre (see their comments in OPEN_CHORDS below), so neither needs one now.
+  // Cmaj7, Csus2 and Cadd9 had entries here through v3.4.0 and were CUT in
+  // session 35b under the rule above — all three hold without moving anything.
+  // E♭add9 and F♯6 both had one through v3.3.0 — both were REPLACED in session 35
+  // by voicings that hold every note as a static barre (see their comments in
+  // OPEN_CHORDS below), so neither needs one now.
   // B7 — the same story as C exactly (session 34, proposed and confirmed). The
   // open B7 you actually play (x21202) already commits all four fingers: middle
   // on 5, index on 4, ring on 3, pinky on 1. We fret string 6 at 2 so the fifth
@@ -378,10 +392,16 @@ const OPEN_CHORDS = {
   // simultaneously by the barre plus two fingers, unlike the shape it replaces
   // — worth confirming on the guitar since it drops that technique.
   Ebadd9: { root: 5, alt: 6, fifth: 3, fifthFret: 3, shape: { 6: 3, 5: 6, 4: 3, 3: 3, 2: 6, 1: 3 } },
-  // F♯add9 — his session 35 tabs, same family/shape as Dadd9 and E♭add9 (index
-  // barre + two lifted fingers), one fret higher again. `root` string 5,
+  // F/F♯add9 — his session 35 tabs, same family/shape as Dadd9 and E♭add9 (index
+  // barre + two lifted fingers), one and two frets higher again. `root` string 5,
   // `fifth` string 3 (finger domain, same as the rest of this family), `alt`
-  // walks to the 3rd (B♭) on string 6. Travis plays F♯, B♭, C♯, B♭.
+  // walks to the 3rd on string 6. Travis plays F, A, C, A / F♯, B♭, C♯, B♭.
+  //
+  // Fadd9 was the one his spec missed ("Fadd9 should be same shape as F♯", 35b);
+  // it had been deriving to the E-shape add9 barre. Watch for this class — the
+  // family covers D/E♭/F/F♯ now, and C♯add9 is the remaining root whose derived
+  // A-shape voicing (`4 4 6 8 6 4`) is the same kind of stretch these replaced.
+  Fadd9:    { root: 5, alt: 6, fifth: 3, fifthFret: 5, shape: { 6: 5, 5: 8, 4: 5, 3: 5, 2: 8, 1: 5 } },
   "F#add9": { root: 5, alt: 6, fifth: 3, fifthFret: 6, shape: { 6: 6, 5: 9, 4: 6, 3: 6, 2: 9, 1: 6 } },
   // G♯add9 — his session 35 tabs: a different shape family from the D/E♭/F♯add9
   // barre-lift form (`4 1 1 3 1 4`). `root` string 6, `fifth` string 4 (the
@@ -416,11 +436,24 @@ const BARRE_TEMPLATES = {
       major: { 6: 0, 5: 2, 4: 2, 3: 1, 2: 0, 1: 0 },
       minor: { 6: 0, 5: 2, 4: 2, 3: 0, 2: 0, 1: 0 },
       dom7:  { 6: 0, 5: 2, 4: 0, 3: 1, 2: 0, 1: 0 }, // ♭7 on string 4 — see above
-      // maj7 and m7 put the 7 on the ALT-BASS string (string 4), exactly as dom7
-      // does — the same playable-shape trade-off, so E-shape roots of these
-      // qualities alternate root ↔ 7. 6 / m6 / sus4 keep the octave alt bass.
+      // maj7 puts the 7 on the ALT-BASS string (string 4), exactly as dom7 does —
+      // the same playable-shape trade-off, so E-shape roots of maj7 alternate
+      // root ↔ 7. 6 / m6 / sus4 / m7 keep the octave alt bass.
       maj7:  { 6: 0, 5: 2, 4: 1, 3: 1, 2: 0, 1: 0 }, // Emaj7 021100, maj7 on 4
-      min7:  { 6: 0, 5: 2, 4: 0, 3: 0, 2: 0, 1: 0 }, // Em7 020000, ♭7 on 4
+      // m7 was Em7 020000 (♭7 on string 4) until session 35b — his call, on the
+      // voicing alone: "what we have isn't wrong, but I think it's a nicer
+      // voicing and also fairly playable." Fm7 becomes 1 3 3 1 4 1.
+      //
+      // IT MOVES THE ♭7 OFF THE BASS, which is a real change to what the thumb
+      // plays and the reason this note exists. String 4 now carries the octave
+      // root instead of the ♭7, so Em7's Travis bass goes E, E, B, E rather than
+      // E, D, B, D — root-and-octave, exactly like the E-shape major. That makes
+      // m7 CONSISTENT with the rest of this template rather than an exception,
+      // and the ♭7 still sounds, on string 2, as a finger colour. (`alt` could
+      // instead walk to the m3 on string 3 for a three-note bass — string 3 is
+      // legal as a role, D's alt-bass proves it — but that's a bigger change than
+      // the shape he asked for, so it's his to call.)
+      min7:  { 6: 0, 5: 2, 4: 2, 3: 0, 2: 3, 1: 0 }, // Em7 022030, ♭7 on 2
       maj6:  { 6: 0, 5: 2, 4: 2, 3: 1, 2: 2, 1: 0 }, // E6 022120, 6 on 2
       min6:  { 6: 0, 5: 2, 4: 2, 3: 0, 2: 2, 1: 0 }, // Em6 022020, 6 on 2
       sus4:  { 6: 0, 5: 2, 4: 2, 3: 2, 2: 0, 1: 0 }, // Esus4 022200, 4 on 3

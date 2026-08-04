@@ -2977,10 +2977,34 @@ check("chordbox: a barre is a real barre, and it goes all the way across", () =>
   assert(f.barres.length === 1, "F is a barre chord, with one bar");
   assert(f.barres[0].fret === 1 && f.barres[0].from === 0 && f.barres[0].to === 5,
     "F barres all six strings at fret 1");
-  // ...and its fret-3 PAIR on strings 5/4 stays two dots. This is the evidence
-  // for the ≥3 threshold on a second bar: everyone plays that with ring + pinky.
+  // ...and its fret-3 PAIR on strings 5/4 stays two dots — ring + pinky.
   assert(f.dots.filter((d) => d.fret === 3).length === 2,
     "F's fret-3 pair is two fingers, not a bar");
+
+  // FOUR IN A ROW IS A BAR, THREE IS THREE FINGERS (his call, session 35b).
+  // B♭'s fret-3 trio on strings 4/3/2 is the A-shape family's "double barre" he
+  // rejected — "I usually just play those with three fingers" — and the clincher
+  // is that it's the identical trio open A has, which was already three dots.
+  const bb = chordBoxModel("Bb"); // 1 1 3 3 3 1
+  assert(bb.barres.length === 1, `B♭ takes one bar, not two (got ${bb.barres.length})`);
+  assert(bb.dots.filter((d) => d.fret === 3).length === 3, "B♭'s fret-3 trio is three fingers");
+  const a = chordBoxModel("A"); // 0 0 2 2 2 0 — the same trio, and the reason why
+  assert(a.barres.length === 0 && a.dots.filter((d) => d.fret === 2).length === 3,
+    "open A's fret-2 trio is three fingers, which is what B♭ has to match");
+  const fsus4 = chordBoxModel("Fsus4"); // 1 3 3 3 1 1 — "similar deal for the sus4 chords"
+  assert(fsus4.barres.length === 1, "Fsus4's fret-3 trio is three fingers too");
+
+  // A6 is the other side of the threshold, and the reason a run is judged on its
+  // own rather than as "a run above the index barre": it has OPEN strings, so it
+  // gets no index bar and has nothing above fret 2 — but four strings under one
+  // finger is still a bar. His words: "A6 should just have a barre across the 4
+  // high strings."
+  const a6 = chordBoxModel("A6"); // 0 0 2 2 2 2
+  assert(a6.barres.length === 1, `A6 draws its bar (got ${a6.barres.length})`);
+  assert(a6.barres[0].fret === 2 && a6.barres[0].from === 2 && a6.barres[0].to === 5,
+    "A6 bars the four high strings at fret 2");
+  assert(a6.marks.filter((k) => k.kind === "open").length === 2,
+    "A6's two open strings are still open");
 
   // THE INDEX BAR SPANS EVERY STRING IT CAN REACH (his call, session 35),
   // including strings carrying a higher note — the finger is still under them.
@@ -3002,13 +3026,17 @@ check("chordbox: a barre is a real barre, and it goes all the way across", () =>
   for (const id of CHORD_IDS) {
     const m = chordBoxModel(id);
     if (!m.barres.length) continue;
-    assert(!m.marks.some((k) => k.kind === "open"),
-      `${id}: a shape with an open string cannot be barred`);
-    assert(m.high > m.barres[0].fret, `${id}: a barre needs a note above it`);
-    // Bars stack low-to-high and never overlap on the same fret.
+    // Bars stack low-to-high and never share a fret.
     for (let i = 1; i < m.barres.length; i++) {
       assert(m.barres[i].fret > m.barres[i - 1].fret, `${id}: bars out of order`);
-      assert(m.barres[i].to - m.barres[i].from >= 2, `${id}: a stacked bar covers ≥3 strings`);
+    }
+    // Every bar is either the INDEX bar (which needs a note above it to be a
+    // barre rather than a plain shape) or a run of ≥4 under one flat finger.
+    for (const b of m.barres) {
+      const isIndex = b.fret === m.low && !m.marks.length;
+      const run = b.to - b.from + 1;
+      assert(isIndex ? m.high > b.fret : run >= 4,
+        `${id}: the fret-${b.fret} bar covers ${run} strings and isn't the index barre`);
     }
     // Every string a bar covers is fretted at or above it — a finger can't lie
     // over an open or muted string.
@@ -3075,6 +3103,17 @@ check("chordbox: the moving finger is one hollow dot, on a string the chord fret
     assert(moving[0].fret > 0, `${id}: an open string can't be the moving finger`);
   }
   assert(declared >= 3, `the documented moving-finger chords should be declared, got ${declared}`);
+  // HOLLOW ONLY WHEN ABSOLUTELY NECESSARY (his call, session 35b) — the symbol is
+  // a warning, so a chord you can simply hold must not wear one. Cmaj7 (x32000,
+  // three fretted notes), Csus2 — the one he named — and Cadd9 all lost theirs;
+  // what's left is the shapes whose four fingers are committed before the low
+  // bass note is even added.
+  for (const id of ["Cmaj7", "Csus2", "Cadd9"]) {
+    assert(!CHORDS[id].moving, `${id} holds without moving a finger — it must not be hollow`);
+  }
+  for (const id of ["C", "C7", "C6", "B7"]) {
+    assert(CHORDS[id].moving, `${id} still needs its moving finger`);
+  }
 });
 
 check("chordbox: it draws SVG and never types a glyph it doesn't own", () => {
