@@ -954,14 +954,6 @@ export const HELP = {
     title: "Edit",
     body: "Tapping a cell adds or removes a note. Every bar plays the same picking pattern, so editing one changes them all.",
   },
-  "open-save": {
-    title: "Save",
-    body: "Names the current pattern and saves it to this device, along with its chords, key and capo.",
-  },
-  "open-load": {
-    title: "Load",
-    body: "Your saved patterns. Load, rename or delete any of them. Loading brings back the chords it was written over.",
-  },
   "capo-tag": {
     title: "Capo",
     body: "The grid still shows the shapes you play. The arrow points at what they actually sound like.",
@@ -969,6 +961,42 @@ export const HELP = {
   "loaded-name": {
     title: "Pattern Name",
     body: "The saved pattern currently on screen.",
+  },
+
+  // --- Save / Load sheets (session 43) ---
+  // The pills themselves are NAV now (help.js's NAV_SELECTOR) — tapping either
+  // opens its sheet even while armed, same as the gear, because there's real
+  // content inside worth explaining individually. `saved-list` is the one
+  // exception to "every annotated control lives in this file": its rows are
+  // built in app.js, so per the grid's per-bar-chord-picker precedent it
+  // carries no data-help of its own and falls through to `#saved-list`'s.
+  "save-name": {
+    title: "Name",
+    body: "What to call this pattern. Leave it blank and it names itself from the chords and settings.",
+  },
+  "save-btn": {
+    title: "Save",
+    body: "Saves the pattern, its chords, key, capo, swing and tempo to this device. A name already in use offers to overwrite it instead of duplicating.",
+  },
+  "library-menu": {
+    title: "Library",
+    body: "Export your whole library as one file, import a file, or restore any built-in pattern you've deleted.",
+  },
+  "export-btn": {
+    title: "Export",
+    body: "Downloads every saved pattern as one file, a backup or a way to hand someone your library.",
+  },
+  "import-btn": {
+    title: "Import",
+    body: "Adds patterns from an exported file. Never replaces anything already here; a name already in use just gets a (2).",
+  },
+  "restore-builtins-btn": {
+    title: "Restore",
+    body: "Brings back any built-in pattern you've deleted. Renaming or moving one doesn't count as deleting it.",
+  },
+  "saved-list": {
+    title: "Saved Patterns",
+    body: "Tap a pattern to load it and its chords. Unsaved edits on screen are cleared first.\n\nTap the dots to rename, export, delete, or move it to a folder.",
   },
 
   // --- the stage ---

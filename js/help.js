@@ -19,18 +19,24 @@
 //   entry is a tap that silently does nothing — the worst possible bug in a
 //   mode whose entire promise is "tap anything".
 //
-// * NAVIGATION SURVIVES. You can still open the Options sheet, move between its
-//   pages and close it again, because half the controls worth explaining live
-//   in there and would otherwise be unreachable. Everything else — including
-//   Play, the die, Save and Load — becomes educational.
+// * NAVIGATION SURVIVES. You can still open the Options sheet (or the Save/Load
+//   sheet, session 43), move between Options' pages, and close whatever's open,
+//   because most of the controls worth explaining live inside those sheets and
+//   would otherwise be unreachable. Everything else — including Play, the die,
+//   and everything inside an open sheet — becomes educational.
 import { HELP } from "./data.js";
 
 // The allowlist, and it is deliberately tiny. `[data-close]` is the sheet's ✕
 // and its backdrop. The "?" is here so that tapping it reaches its own handler
 // and toggles the mode off — which means the exit needs no special case at all.
-// `.help-pop` lets you dismiss a card by tapping it.
+// `.help-pop` lets you dismiss a card by tapping it. `#open-save`/`#open-load`
+// joined this list in session 43 — they used to explain rather than open (the
+// sheets had little worth tapping around in), but folders, Built-in patterns
+// and export/import/restore gave both sheets enough content that the Options
+// pattern fits better: the pill is a doorway, and the cards live on what's
+// actually inside.
 export const NAV_SELECTOR =
-  "#open-options, #open-help, #tab-setup, #tab-prefs, [data-close], .help-pop";
+  "#open-options, #open-save, #open-load, #open-help, #tab-setup, #tab-prefs, [data-close], .help-pop";
 
 const closestIn = (node, sel) =>
   node && typeof node.closest === "function" ? node.closest(sel) : null;
@@ -99,13 +105,12 @@ function position(pop, anchor) {
 
 // A DISABLED control emits no click at all, so it would be a dead tap in a mode
 // whose promise is "tap anything". That is not a corner case here: the Export
-// button is disabled whenever the real library is empty — the first-run state,
-// i.e. exactly the person most likely to be reading help (the Load pill used to
-// be this example too, until Built-in patterns, session 41, meant it's almost
-// never disabled now) — and the capo's −/+ disable at their end stops. Help mode
-// already guarantees that nothing acts, so `disabled` has no job while it's
-// armed: lift it, remember what we lifted, put it back on exit. `aria-disabled`
-// keeps the state truthful to assistive tech meanwhile.
+// button (inside the Load sheet's revealed library menu) is disabled whenever
+// the real library is empty — the first-run state, i.e. exactly the person
+// most likely to be reading help — and the capo's −/+ disable at their end
+// stops. Help mode already guarantees that nothing acts, so `disabled` has no
+// job while it's armed: lift it, remember what we lifted, put it back on exit.
+// `aria-disabled` keeps the state truthful to assistive tech meanwhile.
 const LIFTED = "data-help-lifted";
 
 function liftDisabled(doc) {

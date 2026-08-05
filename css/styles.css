@@ -990,6 +990,24 @@ main {
 }
 .sheet-close svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; fill: none; }
 .sheet-close:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
+/* The Load sheet's "..." (library-menu-btn): same box as the ✕ so the two read
+   as one family of header icon-buttons, filled dots rather than a stroked
+   glyph so it doesn't compete with the ✕'s cross for attention. */
+.sheet-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--glyph);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.16)), var(--control);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.18), inset 0 -2px 4px rgba(0, 0, 0, 0.28);
+}
+.sheet-menu-btn svg { width: 16px; height: 16px; fill: currentColor; }
+.sheet-menu-btn:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 /* A group caption inside a sheet is THE SAME OBJECT as a field's label — same
    face, size, tracking and left edge (it used to be 9px/0.22em, 2px indented,
    i.e. smaller type on the thing that outranks, and it made the two Options
@@ -1558,17 +1576,16 @@ main {
   .save-lamp.blink { animation-duration: 0.3s; }
 }
 
-/* Export/Import: moved onto the sheet's title line (session 39, his call),
-   same trick the Options sheet's page tabs already use — costs no extra
-   height since it rides the header row alongside the title and the ✕.
-   Modeled on `.segmented.seg-tabs button`'s narrow-key material (same radius,
-   legend font, raised gradient, eased :active press) but DELIBERATELY without
-   that class's jewel dot or .active/latching state: his note was explicit —
-   these are one-shot actions, not a page switch, "no toggle or lamp needed."
-   Reusing .seg-tabs directly would still be wrong even so, since its jewel is
-   unconditional on every button in it. */
-.library-actions { display: flex; gap: 6px; margin-left: auto; flex: 0 0 auto; }
-.library-actions button {
+/* Export/Import/Restore: revealed by the header's "..." (session 43 — they
+   used to ride the title line as three always-visible buttons, his call to
+   tuck them away since they're rarely used). Own row below the header rather
+   than a floating panel, same reveal-in-place idiom `.folder-actions` already
+   uses. Button material is unchanged from the old always-visible row: modeled
+   on `.segmented.seg-tabs button`'s narrow-key look but DELIBERATELY without
+   its jewel dot or .active/latching state — his note was explicit, these are
+   one-shot actions, not a page switch, "no toggle or lamp needed." */
+.library-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 4px; }
+.library-menu button {
   flex: 0 0 auto;
   padding: 7px 8px;
   border: 1px solid var(--line);
@@ -1585,18 +1602,24 @@ main {
   box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16), 0 2px 3px rgba(0, 0, 0, 0.34);
   transition: box-shadow 0.07s ease;
 }
-.library-actions button:active {
+.library-menu button:active {
   color: var(--text);
   box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.62), inset 0 -1px 0 var(--bevel-hi);
 }
-.library-actions button:disabled { opacity: 0.45; cursor: default; }
-.library-actions button:disabled:active { box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16), 0 2px 3px rgba(0, 0, 0, 0.34); }
+.library-menu button:disabled { opacity: 0.45; cursor: default; }
+.library-menu button:disabled:active { box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16), 0 2px 3px rgba(0, 0, 0, 0.34); }
+.library-menu #import-hint { flex: 1 1 100%; margin-top: 2px; }
 #import-hint:empty { display: none; }
 
 .saved-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+/* One row: name+info (tap to load) and the "..." options toggle. The revealed
+   actions (session 43 — Load dropped entirely, since the row itself loads;
+   Rename/Export/Delete/folder moved off the row and behind the toggle) are a
+   second implicit grid row spanning both columns, same shape .saved-folder-row
+   already used for the folder select. */
 .saved-item {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 7px;
   border: 1px solid var(--line);
@@ -1604,10 +1627,40 @@ main {
   padding: 10px;
   background: linear-gradient(180deg, rgba(255, 245, 225, 0.05), rgba(0, 0, 0, 0.10)), var(--control);
 }
-.saved-meta { min-width: 0; }
+.saved-main {
+  display: block;
+  min-width: 0;
+  text-align: left;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+.saved-main:active { opacity: 0.7; }
 .saved-name { font-family: var(--serif); font-size: 16px; font-weight: 600; line-height: 1.3; padding-bottom: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.saved-sub { font-family: var(--serif); font-size: 13px; color: var(--muted); margin-top: 2px; }
-.saved-item button {
+.saved-sub { font-family: var(--serif); font-size: 13px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The kebab (vertical dots) vs. the header menu's meatball (horizontal dots) —
+   a small, deliberate convention: vertical marks a PER-ITEM menu, horizontal a
+   PAGE-level one, so the two never read as the same kind of control. */
+.saved-options-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.14)), var(--control);
+  box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.34);
+}
+.saved-options-btn svg { width: 15px; height: 15px; fill: currentColor; }
+.saved-options-btn:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
+.saved-actions { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
+.saved-actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.saved-actions-row button {
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1621,16 +1674,7 @@ main {
   /* carved-key chamfer to match the pills (session 27), not just a cap highlight */
   box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.34);
 }
-.saved-item button:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
-.saved-item button.load {
-  color: var(--bg);
-  border-color: var(--accent-deep);
-  /* the small form of the carved accent key (see .btn-primary) */
-  background:
-    radial-gradient(120% 120% at 50% 30%, rgba(255, 255, 255, 0.20), transparent 60%),
-    linear-gradient(180deg, var(--accent-hi), var(--accent) 55%, var(--accent-deep));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -2px 4px rgba(0, 0, 0, 0.22);
-}
+.saved-actions-row button:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 .saved-empty { color: var(--muted); font-family: var(--serif); font-size: 15px; padding: 10px 2px; }
 
 /* Load-sheet group headers (items 2 + 4b: the Built-in group, real folders,
@@ -1659,13 +1703,14 @@ main {
 }
 .folder-actions button:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 
-/* The per-item folder-assign select rides its own row under Load/Rename/
-   Delete (`grid-column: 1 / -1` — .saved-item's grid otherwise reads left to
-   right across that same row) so four controls never crowd a phone width.
-   Its trigger needs its own small "well" — bare .dd-trigger has no box at
-   all outside a .field, which sizes its wells for the Options sheet's
-   full-width controls, not a line tucked inside a saved-item card. */
-.saved-folder-row { grid-column: 1 / -1; }
+/* The per-item folder-assign select rides its own row under Rename/Export/
+   Delete, inside the revealed `.saved-actions` (a flex column, so this just
+   stacks — no grid-column needed now that Load is gone and the row lives
+   behind the "..." toggle rather than beside it). Its trigger needs its own
+   small "well" — bare .dd-trigger has no box at all outside a .field, which
+   sizes its wells for the Options sheet's full-width controls, not a line
+   tucked inside a saved-item card. */
+.saved-folder-row { width: 100%; }
 .saved-folder-row .dd-trigger {
   width: auto;
   border: 1px solid rgba(0, 0, 0, 0.4);
@@ -2346,10 +2391,10 @@ body.help-on input[type="range"] {
   cursor: help;
 }
 
-/* THE "?" STAYS ABOVE THE OPTIONS SHEET'S SCRIM (v2.13.7). Half the controls
-   worth explaining live in that sheet, so arming help mode from inside it is
-   the common case — and until now you had to close the sheet, arm, and reopen
-   it. The pill is the one thing the scrim doesn't dim.
+/* THE "?" STAYS ABOVE THE OPTIONS SHEET'S SCRIM (v2.13.7), and the Save/Load
+   SHEET'S TOO (session 43 — the sheets are now nav targets in help mode, so
+   arming from inside either is the common case, same reasoning that already
+   applied to Options). The pill is the one thing the scrim doesn't dim.
 
    z-index 30 clears `.sheet` (20) and stays under `.dd-panel` (40), the modals
    (60) and the help card itself (70), which is the order you want: a dropdown
@@ -2364,7 +2409,8 @@ body.help-on input[type="range"] {
    The shadow is the pill's own, with the outer cast deepened so it reads as
    floating ON the scrim rather than punched through it. Restated in full rather
    than added to, since box-shadow doesn't accumulate. */
-body.options-open #open-help {
+body.options-open #open-help,
+body.saved-open #open-help {
   position: relative;
   z-index: 30;
   box-shadow: inset 0 1px 0 var(--bevel-hi),
@@ -2373,7 +2419,8 @@ body.options-open #open-help {
 }
 /* Armed, it keeps the pressed-in face from `.pill-help[aria-pressed="true"]`,
    so the cast shadow goes with it — a latched key isn't floating. */
-body.options-open .pill-help[aria-pressed="true"] {
+body.options-open .pill-help[aria-pressed="true"],
+body.saved-open .pill-help[aria-pressed="true"] {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4),
               inset 0 -1px 0 var(--bevel-hi);
 }

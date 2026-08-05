@@ -65,7 +65,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.9.0";
+const APP_VERSION = "v3.10.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1160,28 +1160,46 @@ function appendGroupHeader(list, name, { folder = false } = {}) {
   list.appendChild(li);
 }
 
-// A real, personal saved item's row — unchanged from before folders existed,
-// plus its own folder-assignment row underneath (a second grid row, so it
-// never crowds Load/Rename/Delete on a phone width).
+// A real, personal saved item's row (session 43 redesign): one row to load —
+// tap the pattern itself, "Load" as a separate button is gone — plus a "..."
+// that reveals Rename/Export/Delete and the folder-assign select, which used
+// to sit in the open beside Load/Rename/Delete and now moves in with them
+// (his call: the row was crowded, and everything but loading is reached rarely
+// enough to earn its own tap).
 function appendSavedRow(list, item, folders) {
   const li = document.createElement("li");
   li.className = "saved-item";
 
-  const meta = document.createElement("div");
-  meta.className = "saved-meta";
+  const main = document.createElement("button");
+  main.type = "button";
+  main.className = "saved-main";
+  main.setAttribute("aria-label", `Load "${item.name}"`);
   const name = document.createElement("div");
   name.className = "saved-name";
   name.textContent = item.name;
   const sub = document.createElement("div");
   sub.className = "saved-sub";
   sub.textContent = summarize(item);
-  meta.append(name, sub);
+  main.append(name, sub);
+  main.addEventListener("click", () => loadSaved(item.id));
 
-  const load = document.createElement("button");
-  load.className = "load";
-  load.type = "button";
-  load.textContent = "Load";
-  load.addEventListener("click", () => loadSaved(item.id));
+  const actions = document.createElement("div");
+  actions.className = "saved-actions";
+  actions.hidden = true;
+
+  const optionsBtn = document.createElement("button");
+  optionsBtn.type = "button";
+  optionsBtn.className = "saved-options-btn";
+  optionsBtn.setAttribute("aria-label", `Options for "${item.name}"`);
+  // Vertical dots (a kebab) mark a PER-ITEM menu; the header's "..." (a
+  // meatball, horizontal) marks the page-level one — so the two never read as
+  // the same kind of control at a glance.
+  optionsBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>';
+  optionsBtn.addEventListener("click", () => { actions.hidden = !actions.hidden; });
+
+  const actionsRow = document.createElement("div");
+  actionsRow.className = "saved-actions-row";
 
   const rename = document.createElement("button");
   rename.type = "button";
@@ -1203,6 +1221,11 @@ function appendSavedRow(list, item, folders) {
     renderSavedList();
   });
 
+  const exportOne = document.createElement("button");
+  exportOne.type = "button";
+  exportOne.textContent = "Export";
+  exportOne.addEventListener("click", () => exportItem(item));
+
   const del = document.createElement("button");
   del.type = "button";
   del.textContent = "Delete";
@@ -1220,7 +1243,7 @@ function appendSavedRow(list, item, folders) {
     refreshSavedCount();
   });
 
-  li.append(meta, load, rename, del);
+  actionsRow.append(rename, exportOne, del);
 
   // Folder assignment: a plain <select>, enhanced the same way every other
   // picker in the app is (dropdown.js) rather than a new control paradigm —
@@ -1252,8 +1275,9 @@ function appendSavedRow(list, item, folders) {
     renderSavedList();
   });
   folderRow.appendChild(sel);
-  li.appendChild(folderRow);
 
+  actions.append(actionsRow, folderRow);
+  li.append(main, optionsBtn, actions);
   list.appendChild(li);
 }
 
@@ -1318,6 +1342,25 @@ function exportLibrary() {
   URL.revokeObjectURL(url);
 }
 
+// Export ONE pattern (item 6, session 43 — his call, from the per-item "..."
+// menu). The wrapper shape is identical to the whole-library export (a single
+// item and a full library have always shared one wrapper, so import only ever
+// needs one code path, per storage.js) — this just hands buildExport() a
+// one-item array instead of the whole store.
+function exportItem(item) {
+  const payload = buildExport([item]);
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const safeName = item.name.replace(/[^\w\- ]+/g, "").trim() || "pattern";
+  a.download = `travis-picker-${safeName}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // Import is a MERGE, never a replace — nothing existing is overwritten or
 // deleted, so it needs no confirmModal (that's reserved for actions that can
 // lose data). Name collisions get the same Finder-style "(2)" suffix a manual
@@ -1350,30 +1393,25 @@ function importLibrary(file) {
   reader.readAsText(file);
 }
 
+// Rewritten session 43 (his call): the old line led with Thumb/Fingers preset
+// names, falling back to "Custom" for any hand-edited item — and since the
+// built-ins and most real use are hand-edited, that's almost every item in the
+// library. What's actually useful at a glance is what you're playing OVER:
+// format, then the chord (Single) or the key and its numerals (Progression).
+// The custom NAME is already the place for anything else worth remembering.
 function summarize(item) {
   const ctx = item.context || {};
-  const p = item.pattern || {};
-  const where =
-    ctx.chordMode === "progression"
-      ? `${(ctx.progression || []).map((c) => degreeLabel(c, ctx.key)).join("–")} (key ${ctx.key})`
-      : ctx.chord;
-  // A hand-edited pattern no longer necessarily resembles the preset it was
-  // generated from (regenerateBass/regenerateTreble never read these fields
-  // back — they're pure display metadata once edited), so showing the stale
-  // preset names would be misleading. Same principle as detectProgression()'s
-  // Custom fallback for a hand-edited chord progression.
-  const presetInfo = item.source === "drawn"
-    ? ["Custom"]
-    : [
-        // The preset's NAME, not its stored id — the id is `chaos` but the menu
-        // says "Wild Card", and a saved item that disagrees with the control
-        // is confusing.
-        BASS_PRESETS.find((b) => b.id === p.bass)?.name ?? p.bass,
-        CHAOS_PRESETS[p.chaos]?.name ?? p.chaos,
-      ];
-  // Only when set: two saves that differ only by capo would otherwise look
-  // identical in the list (and collide on the default name).
-  return [where, capoLabel(ctx.capo), ...presetInfo, ctx.x2 ? "×2" : ""]
+  const progression = ctx.chordMode === "progression";
+  const parts = progression
+    ? [
+        "Progression",
+        `Key ${ctx.key}`,
+        (ctx.progression || []).map((c) => degreeLabel(c, ctx.key)).join("–"),
+      ]
+    : ["Single", CHORDS[ctx.chord]?.name ?? ctx.chord];
+  // Capo and ×2 are still worth a glance — real hardware/timing facts, not
+  // generation metadata — so they ride along after the format/chord info.
+  return [...parts, capoLabel(ctx.capo), ctx.x2 ? "×2" : ""]
     .filter(Boolean).join(" · ");
 }
 
@@ -1522,8 +1560,15 @@ function openSheet(mode) {
   const saving = mode === "save";
   el("saved-title").textContent = saving ? "Save" : "Load";
   el("save-section").hidden = !saving;
-  el("library-actions").hidden = saving;
+  el("library-menu-btn").hidden = saving;
   el("saved-list").hidden = saving;
+  // The library menu ("...") and its status line never carry over from a
+  // previous visit — closed on every open, same as it is on every close, so
+  // a "Restored N patterns" line can't linger past the moment that opened it
+  // (session 43: it used to survive until the app was force-quit, and showed
+  // on the Save card too, since nothing ever cleared it).
+  el("library-menu").hidden = true;
+  el("import-hint").textContent = "";
 
   if (saving) {
     el("save-name").value = "";
@@ -1533,11 +1578,18 @@ function openSheet(mode) {
     renderSavedList();
   }
   el("saved-sheet").hidden = false;
+  // Same treatment as the Options sheet: half of what's worth explaining now
+  // lives inside, so help mode has to reach the "?" over this sheet's scrim
+  // too (see body.saved-open in styles.css).
+  document.body.classList.add("saved-open");
   syncSheetToViewport();
   if (saving) el("save-name").focus();
 }
 function closeSheet() {
   el("saved-sheet").hidden = true;
+  document.body.classList.remove("saved-open");
+  el("library-menu").hidden = true;
+  el("import-hint").textContent = "";
 }
 
 // The Options sheet's two pages: what the PATTERN is, vs how the APP behaves.
@@ -1853,6 +1905,9 @@ function attach() {
   // Save / Load sheets
   el("open-save").addEventListener("click", () => openSheet("save"));
   el("open-load").addEventListener("click", () => openSheet("load"));
+  el("library-menu-btn").addEventListener("click", () => {
+    el("library-menu").hidden = !el("library-menu").hidden;
+  });
   el("export-btn").addEventListener("click", exportLibrary);
   el("import-btn").addEventListener("click", () => el("import-file").click());
   el("import-file").addEventListener("change", (e) => {

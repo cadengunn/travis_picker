@@ -2293,9 +2293,14 @@ acheck("help: every data-help target has copy, and every entry is reachable", as
 check("help: navigation survives, everything else becomes educational", () => {
   // If the gear, the page tabs and the ✕ didn't keep working, every control in
   // the Options sheet — over half of them — would be unreachable to explain.
+  // open-save/open-load joined this list in session 43, same reasoning: the
+  // Save/Load sheet grew real content (folders, built-ins, export/import/
+  // restore) worth explaining individually, so the pill is a doorway now, not
+  // a terminal card, exactly like the gear.
   const frag = document.createElement("div");
   frag.innerHTML =
     '<button id="open-options"></button>' +
+    '<button id="open-save"></button><button id="open-load"></button>' +
     '<button id="tab-setup"></button><button id="tab-prefs"></button>' +
     '<button data-close></button>' +
     '<button id="open-help" data-help="help-mode">?</button>' +
@@ -2303,7 +2308,7 @@ check("help: navigation survives, everything else becomes educational", () => {
     '<div class="help-pop"><p>x</p></div>' +
     '<button id="stray"></button>';
 
-  for (const id of ["open-options", "tab-setup", "tab-prefs", "open-help"]) {
+  for (const id of ["open-options", "open-save", "open-load", "tab-setup", "tab-prefs", "open-help"]) {
     assert(isNav(frag.querySelector("#" + id)), `#${id} must keep working in help mode`);
   }
   assert(isNav(frag.querySelector("[data-close]")), "the sheet's close control must keep working");
@@ -2391,38 +2396,43 @@ acheck("help: arming intercepts input; disarming gives every control back", asyn
 });
 
 check("help: a disabled control is still explainable (the empty-library trap)", () => {
-  // A disabled button emits NO click, so it would be a dead tap — and the Load
-  // pill is disabled exactly when the library is empty, which is the first-run
-  // state and the likeliest moment to be reading help. Found in-browser rather
-  // than reasoned about: tapping Load in help mode showed the PREVIOUS card.
+  // A disabled button emits NO click, so it would be a dead tap. Export (in
+  // the Load sheet's revealed library menu) is disabled exactly when the
+  // library is empty, which is the first-run state and the likeliest moment
+  // to be reading help. (Until session 41 this example was the Load pill
+  // itself; Built-in patterns made it almost never disabled, and session 43
+  // made it nav rather than a help target at all, so Export took over as the
+  // canonical case — same underlying trap, found in-browser rather than
+  // reasoned about: tapping a disabled target in help mode showed the
+  // PREVIOUS card.)
   const host = document.createElement("div");
   host.style.cssText = "position:absolute;left:-9999px;top:0";
   host.innerHTML =
     '<button id="open-help" data-help="help-mode">?</button>' +
-    '<button id="open-load" data-help="open-load" disabled>load</button>' +
+    '<button id="export-btn" data-help="export-btn" disabled>export</button>' +
     '<div class="field" data-help="capo"><button id="cd" data-capo-step="-1" disabled>-</button></div>';
   document.body.appendChild(host);
 
   const helper = createHelp({ version: "vTEST" });
-  const load = host.querySelector("#open-load");
+  const exportBtn = host.querySelector("#export-btn");
   const step = host.querySelector("#cd");
 
   try {
     helper.arm();
-    assert(!load.disabled, "a disabled control must become tappable while help mode is armed");
-    assert(load.getAttribute("aria-disabled") === "true", "…but must still read as disabled to assistive tech");
+    assert(!exportBtn.disabled, "a disabled control must become tappable while help mode is armed");
+    assert(exportBtn.getAttribute("aria-disabled") === "true", "…but must still read as disabled to assistive tech");
     assert(!step.disabled, "a disabled control nested under a help target is lifted too");
 
-    load.click();
-    assert(helper._shownKey() === "open-load", "tapping the disabled Load pill shows ITS card");
+    exportBtn.click();
+    assert(helper._shownKey() === "export-btn", "tapping the disabled Export button shows ITS card");
     step.click();
     assert(helper._shownKey() === "capo", "a disabled end-stop resolves to its field's card");
   } finally {
     helper.disarm();
   }
 
-  assert(load.disabled && step.disabled, "disabling is restored on exit, or the app forgets its own state");
-  assert(!load.hasAttribute("aria-disabled"), "the aria stand-in is cleaned up too");
+  assert(exportBtn.disabled && step.disabled, "disabling is restored on exit, or the app forgets its own state");
+  assert(!exportBtn.hasAttribute("aria-disabled"), "the aria stand-in is cleaned up too");
   host.remove();
 });
 
@@ -2693,6 +2703,24 @@ acheck("layout: the help ? stays above the Options scrim, and only then", async 
   const zPanel = Number(css.match(/\.dd-panel\b[^}]*?z-index:\s*(\d+)/s)?.[1]);
   assert(Number.isFinite(zPill) && Number.isFinite(zPanel), "both z-indexes should be readable");
   assert(zPill < zPanel, `the pill (${zPill}) must stay under an open dropdown panel (${zPanel})`);
+
+  // The Save/Load sheet needed the same lift (session 43): it's a nav target
+  // in help mode too now, and half of what's worth explaining lives inside it.
+  doc.body.classList.remove("options-open");
+  const savedSheet = doc.createElement("div");
+  savedSheet.id = "saved-sheet";
+  savedSheet.className = "sheet";
+  savedSheet.innerHTML = '<div class="sheet-backdrop" data-close></div><section class="sheet-panel"></section>';
+  doc.body.appendChild(savedSheet);
+
+  const buriedAgain = hit();
+  assert(buriedAgain && buriedAgain.classList.contains("sheet-backdrop"),
+    `without body.saved-open the scrim should cover the pill (got ${buriedAgain && buriedAgain.className})`);
+
+  doc.body.classList.add("saved-open");
+  const liftedAgain = hit();
+  assert(liftedAgain === pill || pill.contains(liftedAgain),
+    `body.saved-open must put the "?" above the scrim (got ${liftedAgain && liftedAgain.className})`);
 
   frame.remove();
 });
@@ -3755,6 +3783,79 @@ acheck("app: built-ins seed into the real library once, and Restore only re-adds
     "the Restore button must disable itself once nothing is actually missing");
   assert(/BUILTIN_PATTERNS\.length/.test(count),
     "the Load pill must stay reachable even with an empty real library, since it's the only way to reach Restore");
+});
+
+acheck("app: the library menu and its status line don't outlive the sheet (session 43)", async () => {
+  // His report: "X patterns restored" lingered until the app was force-quit,
+  // and showed on the SAVE card too, because nothing ever cleared it or
+  // scoped it to Load mode. openSheet()/closeSheet() are app.js glue (they
+  // read/write live DOM), so this is asserted against the source like the
+  // rest of this file's app.js checks.
+  const appjs = await (await fetch("js/app.js")).text();
+
+  const open = appjs.match(/function openSheet\(mode\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/library-menu-btn"\)\.hidden = saving/.test(open),
+    "the library menu button must only show in Load mode, not on the Save card");
+  assert(/library-menu"\)\.hidden = true/.test(open),
+    "opening the sheet must start with the library menu collapsed");
+  assert(/import-hint"\)\.textContent = ""/.test(open),
+    "opening the sheet must clear any status line left over from a previous visit");
+
+  const close = appjs.match(/function closeSheet\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/library-menu"\)\.hidden = true/.test(close) && /import-hint"\)\.textContent = ""/.test(close),
+    "closing the sheet must also clear the library menu and its status line, or reopening on Save briefly shows it");
+});
+
+acheck("app: help mode can reach the Save/Load sheet's own scrim (session 43)", async () => {
+  const appjs = await (await fetch("js/app.js")).text();
+  const open = appjs.match(/function openSheet\(mode\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/classList\.add\("saved-open"\)/.test(open),
+    "opening the Save/Load sheet must mark the body the same way the Options sheet does, or the \"?\" pill is buried under its scrim");
+  const close = appjs.match(/function closeSheet\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/classList\.remove\("saved-open"\)/.test(close),
+    "closing the sheet must clear the lift, or the \"?\" would float above the main screen's scrim-less content");
+});
+
+acheck("app: a saved item's row loads on tap; Rename/Export/Delete/folder live behind \"...\"", async () => {
+  // Session 43, his call: Load as a separate button is gone (the row loads),
+  // and the rest moved off the row entirely rather than just narrowing.
+  const appjs = await (await fetch("js/app.js")).text();
+  const row = appjs.match(/function appendSavedRow\(list, item, folders\)[\s\S]*?\n\}\n/)?.[0] || "";
+
+  assert(/saved-main/.test(row) && /main\.addEventListener\("click", \(\) => loadSaved\(item\.id\)\)/.test(row),
+    "tapping the main row (not a separate Load button) must load the pattern");
+  assert(!/className = "load"/.test(row) && !/textContent = "Load"/.test(row),
+    "a standalone Load button must be gone — the row itself is the tap target now");
+
+  assert(/saved-options-btn/.test(row),
+    "a per-item \"...\" toggle must reveal Rename/Export/Delete/folder");
+  assert(/actions\.hidden = !actions\.hidden/.test(row),
+    "the \"...\" must be a plain reveal toggle, same idiom as the folder header's Rename/Delete");
+  assert(/exportOne\.addEventListener\("click", \(\) => exportItem\(item\)\)/.test(row),
+    "Export must be one of the actions behind the per-item \"...\" (item 6)");
+});
+
+acheck("app: exportItem() wraps a single pattern the same shape buildExport already uses", async () => {
+  const appjs = await (await fetch("js/app.js")).text();
+  const fn = appjs.match(/function exportItem\(item\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/buildExport\(\[item\]\)/.test(fn),
+    "a single-pattern export must reuse buildExport() with a one-item array — the wrapper shape is the same either way, so import needs no second code path");
+});
+
+acheck("app: summarize() leads with what you're playing over, not a Thumb/Fingers preset name", async () => {
+  // Old behaviour showed "Custom" for any hand-edited item, which is almost
+  // the whole library now (the built-ins included) — his report. The chord
+  // (Single) or key + numerals (Progression) is the useful glance, and the
+  // custom NAME is already where anything else worth remembering goes.
+  const appjs = await (await fetch("js/app.js")).text();
+  const fn = appjs.match(/function summarize\(item\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(fn, "summarize() must exist");
+  assert(!/"Custom"/.test(fn), "summarize() must not fall back to a bare \"Custom\" label anymore");
+  assert(!/BASS_PRESETS\.find/.test(fn) && !/CHAOS_PRESETS\[/.test(fn),
+    "summarize() must not read the Thumb/Fingers preset names — that's what read as \"Custom\" for almost every real item");
+  assert(/CHORDS\[ctx\.chord\]\?\.name/.test(fn), "Single mode must show the chord's real display name");
+  assert(/"Progression"/.test(fn) && /`Key \$\{ctx\.key\}`/.test(fn) && /degreeLabel\(/.test(fn),
+    "Progression mode must show the format, the key, and the numerals");
 });
 
 // ---- render report ----

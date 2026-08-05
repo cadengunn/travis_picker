@@ -46,9 +46,13 @@
                `title` carries the words (and the saved count) for a long-press. -->
           <button id="edit-toggle" class="pill pill-icon" type="button" aria-pressed="false" data-help="edit-toggle"
                   aria-label="Edit pattern" title="Toggle manual editing"><span class="rec-lamp" aria-hidden="true"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
-          <button id="open-save" class="pill pill-icon" type="button" data-help="open-save"
+          <!-- Save and Load are NAV in help mode (help.js's NAV_SELECTOR), not
+               educational stops — same treatment as the gear: they're doorways
+               into sheets that now have real content of their own worth
+               explaining, so the card lives on what's inside, not the pill. -->
+          <button id="open-save" class="pill pill-icon" type="button"
                   aria-label="Save pattern" title="Save"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm3-10H5V5h10v4z"/></svg></button>
-          <button id="open-load" class="pill pill-icon" type="button" data-help="open-load"
+          <button id="open-load" class="pill pill-icon" type="button"
                   aria-label="Load pattern" title="Load"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg></button>
           <!-- The Guide moved here from the Options sheet (v2.11.0): it was the
                only ACTION in there wearing a field label, and help belongs with
@@ -351,19 +355,31 @@
     <section class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="saved-title">
       <header class="sheet-head">
         <h2 id="saved-title">Save</h2>
-        <div id="library-actions" class="library-actions" hidden>
-          <button id="export-btn" type="button">Export</button>
-          <button id="import-btn" type="button">Import</button>
-          <button id="restore-builtins-btn" type="button">Restore</button>
-          <input id="import-file" type="file" accept="application/json" hidden />
-        </div>
+        <!-- Export/Import/Restore used to ride this row as three always-visible
+             text buttons (session 39). His review (session 43): they're rarely
+             used and crowded the row. One "..." button now reveals them in a
+             row of their own — the same tap-to-reveal idiom the folder headers
+             below already use (`.folder-actions`), not a new floating-menu
+             mechanism. -->
+        <button id="library-menu-btn" class="sheet-menu-btn" type="button" data-help="library-menu"
+                aria-label="Library options" title="Library options" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
+        </button>
         <button class="sheet-close" type="button" data-close aria-label="Close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 1l10 10M11 1L1 11"/></svg></button>
       </header>
 
+      <div id="library-menu" class="library-menu" hidden>
+        <button id="export-btn" type="button" data-help="export-btn">Export</button>
+        <button id="import-btn" type="button" data-help="import-btn">Import</button>
+        <button id="restore-builtins-btn" type="button" data-help="restore-builtins-btn">Restore</button>
+        <input id="import-file" type="file" accept="application/json" hidden />
+        <p id="import-hint" class="save-hint"></p>
+      </div>
+
       <div id="save-section">
         <div class="save-row">
-          <input id="save-name" type="text" placeholder="Name this pattern" autocomplete="off" />
-          <button id="save-btn" class="btn-primary" type="button">Save</button>
+          <input id="save-name" type="text" placeholder="Name this pattern" autocomplete="off" data-help="save-name" />
+          <button id="save-btn" class="btn-primary" type="button" data-help="save-btn">Save</button>
         </div>
         <div class="save-hint-row">
           <span id="save-lamp" class="save-lamp" aria-hidden="true"></span>
@@ -371,9 +387,12 @@
         </div>
       </div>
 
-      <p id="import-hint" class="save-hint"></p>
-
-      <ul id="saved-list" class="saved-list"></ul>
+      <!-- One card covers every dynamic row inside: the per-item markup is all
+           built in app.js, so (same precedent as the grid's per-bar chord
+           picker, grid.js) it carries no data-help of its own and falls
+           through to this static parent instead — the "every data-help target
+           has copy" test only scans this file, not app.js. -->
+      <ul id="saved-list" class="saved-list" data-help="saved-list"></ul>
     </section>
   </div>
 
