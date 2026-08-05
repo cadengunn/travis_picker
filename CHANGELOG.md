@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [40](#where-things-stand-session-40--v370-2026-08-04) | **v3.7.0** | two of his notes ahead of finalizing the pre-loaded-patterns export: BPM now saves with the pattern (same dual-layer tier as swing, so his beginner built-ins can sit at a slower tempo than the intermediate ones); the manual Save flow offers Overwrite on a name collision instead of always spawning a Finder-style "(2)" — import's merge-only behaviour is untouched |
 | [39](#where-things-stand-session-39--v361-2026-08-04) | **v3.6.1** | his phone review of v3.6.0's export/import — confirmed working; two follow-ups actioned (Export/Import moved onto the Load sheet's title line, a hand-edited pattern's Load-list line shows "Custom" instead of its stale preset names) and folders sized for a future session |
 | [38](#where-things-stand-session-38--v360-2026-08-04) | **v3.6.0** | JSON export/import of the Saved library (item 4) — library-wide export, merge-only import, built first so patterns for item 2 (pre-loaded patterns) can travel as a file instead of a screenshot |
 | [37](#where-things-stand-session-37--docs--tooling-2026-08-04) | *(no version)* | `CHORD_REFERENCE.md`'s tables are generated now, not hand-typed — a browser tool reads `js/data.js` directly, which also caught a second staleness bug the "STALE" banner hadn't flagged (Cm6/C♯m6's alt string was mislabeled) |
@@ -62,6 +63,54 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 40 — v3.7.0, 2026-08-04)
+
+Two of his notes, sent ahead of finalizing the pre-loaded-patterns export
+(item 2) — he's building his built-in library and hit both in the process.
+
+**BPM now saves with the pattern.** Joins swing, not capo, on the reasoning
+that already governs that split: it's musical content (his specific case —
+built-in beginner patterns want a slower tempo than the intermediate ones,
+and that has to travel with the pattern, not live only in the session
+default), but an old save's *absence* of a bpm doesn't mean "it wanted 90"
+the way an absent capo means "it was 0" — tempo simply wasn't pattern content
+before this shipped. So `loadSaved()` leaves the session tempo untouched when
+`context.bpm` is missing, exactly like swing, not reset like capo. `tp-prefs`
+is unchanged — BPM already persisted there as a session default since session
+32; this is additive, the same shape swing took in session 36.
+
+**Manual Save offers Overwrite on a name collision.** His reported friction:
+edit a loaded pattern, save it under the name it already has, and
+`uniqueName()`'s Finder-style de-dupe silently produces a "(2)" — a stale
+near-duplicate to notice and delete by hand later. `saveCurrent()` now checks
+`savedStore.list()` for an existing item with the resolved name first; a
+collision opens a `confirmModal` ("A pattern named "X" already exists.
+Overwrite it?"); Overwrite calls a new `storage.js` method, `update(id, …)`,
+that replaces the pattern/context/source in place and bumps `savedAt`,
+keeping the same id; Cancel aborts the save entirely rather than falling
+through to the old duplicate-with-suffix behaviour, leaving the sheet open so
+he can rename it by hand for a genuine second copy. Scoped to this one path
+only: `importLibrary()` still merges through the plain `save()` de-dupe,
+untouched — a batch import has no one to ask, and that's a settled invariant
+(see "Export/import" in `CLAUDE.md`), not something this reopens.
+
+Both are app.js glue (`currentContext()`/`loadSaved()` read the live
+`metronome` instance and DOM; `saveCurrent()` drives a `confirmModal`), so
+neither is reachable from `tests.js` by import — asserted against the source
+instead, the same convention the session-32 Play-button fix and this file's
+own precedent use, plus real unit tests for `storage.js`'s new `update()` and
+the `bpm` field's round-trip. **120/120.** Manually driven end-to-end in the
+Browser pane too (real clicks, not JS state pokes, per this project's own
+dev-box caveats): saved a pattern at 140 BPM, changed the fader to 90,
+reloaded, confirmed Load put it back to 140; then re-saved under the same
+name three ways — a fresh name (saves silently, no modal), the existing name
++ Overwrite (same id afterward, still one item in the library), the existing
+name + Cancel (no duplicate, nothing changed).
+
+Nothing else queued this session (pre-loaded patterns, item 2, and folders,
+item 4b — paired, per his call) moved yet; both are waiting on the patterns
+file, which these two fixes were blocking him from finalizing.
 
 ## Where things stand (session 39 — v3.6.1, 2026-08-04)
 

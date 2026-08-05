@@ -1041,11 +1041,12 @@ check("saved: round-trips a pattern with its chord context", () => {
   const store = createStore("test", memoryStorage());
   const pattern = generatePattern("C", { bass: "travis", chaos: "tame", rng: seeded(12) });
   // The capo rides along: it's what the pattern SOUNDS like, so it's content.
-  // ×2 and swing (session 36) join it for the same reason — dual-layer with a
-  // tp-prefs/tp-audio session default, but the SAVED value is musical content.
+  // ×2, swing (session 36) and bpm join it for the same reason — dual-layer
+  // with a tp-prefs/tp-audio session default, but the SAVED value is musical
+  // content.
   const context = {
     chordMode: "progression", chord: "C", key: "G", capo: 3, progression: ["G", "C", "D", "G"],
-    x2: true, swing: 67,
+    x2: true, swing: 67, bpm: 76,
   };
 
   assert(store.count() === 0, "new store should be empty");
@@ -1119,6 +1120,26 @@ check("saved: rename updates the name, keeps the pattern, ignores blanks", () =>
   assert(store.rename(a.id, "   ") === false, "a blank rename should be ignored");
   assert(store.get(a.id).name === "new name", "name unchanged after a blank rename");
   assert(store.rename("nope", "x") === false, "renaming an unknown id should report false");
+});
+
+check("saved: update() overwrites content in place, keeping the id", () => {
+  const store = createStore("test", memoryStorage());
+  const ctx = { chordMode: "single", chord: "C", key: "C", progression: [] };
+  const original = generatePattern("C", { rng: seeded(5) });
+  const a = store.save({ name: "Lick", pattern: original, context: ctx });
+
+  const edited = generatePattern("G", { rng: seeded(6) });
+  const newCtx = { chordMode: "single", chord: "G", key: "G", progression: [] };
+  const updated = store.update(a.id, { name: "Lick", pattern: edited, context: newCtx });
+  assert(updated, "update should return the stored item");
+  assert(updated.id === a.id, "update must keep the original id");
+  assert(store.count() === 1, "update must not create a second item");
+  assert(JSON.stringify(updated.pattern) === JSON.stringify(edited), "update should replace the pattern");
+  assert(JSON.stringify(updated.context) === JSON.stringify(newCtx), "update should replace the context");
+  assert(updated.savedAt >= a.savedAt, "update should bump savedAt to now (or tie, same tick)");
+
+  assert(store.update("nope", { name: "x", pattern: edited, context: newCtx }) === null,
+    "updating an unknown id should return null");
 });
 
 check("saved: duplicate names get a Finder-style (n) suffix", () => {
@@ -3515,6 +3536,31 @@ acheck("app: a failed Play springs the button back, and settings restore before 
   const sync = appjs.match(/function syncSheetToViewport\(\)[\s\S]*?\n\}\n/)?.[0] || "";
   assert(/style\.height = ""/.test(sync) && /style\.top = ""/.test(sync),
     "the sheet's viewport pin must CLEAR its inline box when there's no keyboard, or a rotation leaves a stale one");
+});
+
+acheck("app: bpm saves with the pattern, and overwrite is offered on a name collision", async () => {
+  // Same reasoning as the Play-button test above: this is app.js glue
+  // (currentContext/loadSaved read live DOM + the metronome instance;
+  // saveCurrent drives a confirmModal), so it's asserted against the source.
+  const appjs = await (await fetch("js/app.js")).text();
+
+  const ctx = appjs.match(/function currentContext\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/bpm:\s*metronome\.bpm/.test(ctx),
+    "currentContext() must save the current bpm, same tier as swing/x2/capo");
+
+  const load = appjs.match(/async function loadSaved\(id\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/if \(ctx\.bpm != null\) setBpm\(ctx\.bpm\)/.test(load),
+    "loadSaved() must apply a saved bpm, and only when present — same absent handling as swing, not capo");
+
+  const save = appjs.match(/async function saveCurrent\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/savedStore\.list\(\)\.find\(/.test(save),
+    "saveCurrent() must check for an existing item with the same name");
+  assert(/confirmModal\(/.test(save),
+    "a name collision must be confirmed before overwriting, not silently suffixed");
+  assert(/if \(!overwrite\) return;/.test(save),
+    "declining the overwrite must abort the save, not fall through to a duplicate");
+  assert(/savedStore\.update\(existing\.id/.test(save),
+    "confirming the overwrite must update the existing item in place, not create a new one");
 });
 
 // ---- render report ----

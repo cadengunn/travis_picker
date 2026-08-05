@@ -103,6 +103,25 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
     count() {
       return readAll().length;
     },
+
+    // Overwrite an existing item's content in place — same id, savedAt bumped
+    // to now. The manual Save flow offers this when the typed name collides
+    // with an item already in the library, so re-saving an edited pattern
+    // under its own name updates it instead of spawning a uniqueName() "(2)".
+    // Import is untouched by this — it still merges via save()'s de-dupe,
+    // since it has no user to ask.
+    update(id, { name, pattern, context, source = "generated" }) {
+      const items = readAll();
+      const item = items.find((i) => i.id === id);
+      if (!item) return null;
+      const clean = (name || "").trim();
+      if (clean) item.name = clean;
+      item.pattern = pattern;
+      item.context = context;
+      item.source = source;
+      item.savedAt = new Date().toISOString();
+      return writeAll(items) ? item : null;
+    },
   };
 }
 

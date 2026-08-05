@@ -64,7 +64,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.6.1";
+const APP_VERSION = "v3.7.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -965,6 +965,15 @@ function currentContext() {
     // swing untouched in that case rather than resetting it, since an old
     // pattern never "had" a swing value the way it always had a capo.
     swing: audioPrefs.swing,
+    // BPM joins swing, not capo (his call — a beginner built-in pattern wants
+    // a slower tempo than an intermediate one, and that has to travel with
+    // the pattern). Same dual-layer shape: a tp-prefs session default too
+    // (see restorePrefs), with the saved value winning on load. Same absent
+    // handling as swing, not capo: an old save's missing bpm doesn't mean "it
+    // wanted 90" the way a missing capo means "it was 0" — tempo simply
+    // wasn't pattern content yet — so loadSaved() leaves the session tempo
+    // alone rather than resetting it.
+    bpm: metronome.bpm,
   };
 }
 
@@ -1153,15 +1162,31 @@ function blinkSaveLamp() {
   lamp.classList.add("blink");
 }
 
-function saveCurrent() {
+async function saveCurrent() {
   if (!state.pattern) return;
   const typed = el("save-name").value;
-  const item = savedStore.save({
-    name: typed.trim() || describeCurrent(),
-    pattern: state.pattern,
-    context: currentContext(),
-    source: state.pattern.edited ? "drawn" : "generated",
-  });
+  const name = typed.trim() || describeCurrent();
+  const source = state.pattern.edited ? "drawn" : "generated";
+
+  // Re-saving under a name already in the library used to silently spawn a
+  // "(2)" — his reported friction (edit a pattern, save, then hunt down and
+  // delete the stale duplicate by hand). Ask once, and only here: import
+  // still merges via the old suffix behaviour untouched (see storage.js),
+  // since a batch import has no one to ask.
+  const existing = savedStore.list().find((i) => i.name === name);
+  let item;
+  if (existing) {
+    const overwrite = await confirmModal({
+      title: "Overwrite pattern",
+      message: `A pattern named "${name}" already exists. Overwrite it?`,
+      confirmText: "Overwrite",
+      cancelText: "Cancel",
+    });
+    if (!overwrite) return;
+    item = savedStore.update(existing.id, { name, pattern: state.pattern, context: currentContext(), source });
+  } else {
+    item = savedStore.save({ name, pattern: state.pattern, context: currentContext(), source });
+  }
   const hint = el("save-hint");
   if (!item) {
     hint.textContent = "Couldn't save — browser storage is unavailable or full.";
@@ -1204,6 +1229,9 @@ async function loadSaved(id) {
     audioPrefs.swing = clampSwing(ctx.swing);
     applySwing();
   }
+  // Same precedent as swing, for the same reason: absent means "never had a
+  // bpm," not "wanted 90," so an old save leaves the session tempo untouched.
+  if (ctx.bpm != null) setBpm(ctx.bpm);
 
   setChordMode(ctx.chordMode === "progression" ? "progression" : "single");
   state.loaded = { id: item.id, name: item.name };
