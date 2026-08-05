@@ -1308,6 +1308,38 @@ check("saved: save() only sets folder when given one; parseImport carries folder
   assert(noFolder.items[0].folder === null, "parseImport should read a missing folder as null, not undefined");
 });
 
+check("saved: save() only sets builtinId when given one; parseImport carries it through", () => {
+  // Same shape as the folder test above — builtinId (session 41) is the
+  // invisible thread that survives a rename/move so a seeded builtin is
+  // never mistaken for missing just because you edited it.
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("C", { rng: seeded(32) });
+  const ctx = { chordMode: "single", chord: "C", key: "C", progression: [] };
+
+  const plain = store.save({ name: "plain", pattern, context: ctx });
+  assert(!("builtinId" in plain), "save() without a builtinId must not write the field at all");
+  const fromBuiltin = store.save({
+    name: "Beginner 1", pattern, context: ctx, folder: "Built-in", builtinId: "builtin:beginner-1",
+  });
+  assert(fromBuiltin.builtinId === "builtin:beginner-1", "save() should set builtinId when one is given");
+
+  // Renaming and moving must not touch it — that's the whole point of the tag.
+  store.rename(fromBuiltin.id, "My Renamed Copy");
+  store.setFolder(fromBuiltin.id, "Practice");
+  const after = store.get(fromBuiltin.id);
+  assert(after.builtinId === "builtin:beginner-1", "rename/move must not disturb builtinId");
+  assert(after.name === "My Renamed Copy" && after.folder === "Practice",
+    "rename/move must still take effect normally");
+
+  const exported = JSON.stringify(buildExport([fromBuiltin]));
+  const result = parseImport(exported);
+  assert(result.items[0].builtinId === "builtin:beginner-1", "parseImport should carry builtinId through");
+
+  const noBuiltinId = parseImport(JSON.stringify(buildExport([plain])));
+  assert(noBuiltinId.items[0].builtinId === null,
+    "parseImport should read a missing builtinId as null, not undefined");
+});
+
 // 10d) Pre-loaded patterns (item 2): read-only starter data, never written to
 // localStorage. Real data-integrity checks, not source-level ones — this file
 // has no DOM/app.js dependency, so it's tested the same way js/data.js is.
@@ -1322,7 +1354,7 @@ check("builtin patterns: well-shaped, valid chords, and obey the hard rule", () 
     assert(typeof item.name === "string" && item.name.trim(), `builtin "${item.id}" needs a name`);
     assert(item.source === "drawn" || item.source === "generated",
       `builtin "${item.id}" has an invalid source`);
-    assert(!("v" in item) && !("savedAt" in item) && !("folder" in item),
+    assert(!("v" in item) && !("savedAt" in item) && !("folder" in item) && !("builtinId" in item),
       `builtin "${item.id}" must not carry storage.js's own bookkeeping fields`);
 
     const ctx = item.context;
@@ -3661,19 +3693,14 @@ acheck("app: bpm saves with the pattern, and overwrite is offered on a name coll
     "confirming the overwrite must update the existing item in place, not create a new one");
 });
 
-acheck("app: Built-in patterns and folders render as grouped, and folder edits go through storage.js", async () => {
+acheck("app: folders render as grouped, and folder edits go through storage.js", async () => {
   // Same reasoning again: renderSavedList()/appendSavedRow()/refreshSavedCount()
   // read live DOM and drive dropdown.js/modal.js, so this is app.js glue,
   // asserted against the source. builtin-patterns.js itself has no such
   // excuse and is checked for real above ("builtin patterns: well-shaped…").
   const appjs = await (await fetch("js/app.js")).text();
 
-  assert(/import \{ BUILTIN_PATTERNS \} from ".\/builtin-patterns\.js";/.test(appjs),
-    "app.js must import the built-in patterns, not just builtin-patterns.js knowing about itself");
-
   const render = appjs.match(/function renderSavedList\(\)[\s\S]*?\n\}\n/)?.[0] || "";
-  assert(/BUILTIN_PATTERNS\.length/.test(render) && /appendBuiltinRow/.test(render),
-    "renderSavedList() must render the Built-in group when there's data to show");
   assert(/savedStore\.folders\(\)/.test(render) && /appendGroupHeader/.test(render),
     "renderSavedList() must group real items by folder, not just list them flat");
   assert(/enhanceAll\(list\)/.test(render),
@@ -3688,10 +3715,46 @@ acheck("app: Built-in patterns and folders render as grouped, and folder edits g
     "a folder's header must rename/delete through storage.js, not hand-roll its own bulk edit");
   assert(!/confirmModal/.test(header.match(/del\.addEventListener[\s\S]*?\}\);/)?.[0] || ""),
     "deleting a folder only un-files its items, never loses one, so it needs no confirmModal (same as import)");
+});
+
+acheck("app: built-ins seed into the real library once, and Restore only re-adds what's actually missing", async () => {
+  // Session 41 redesign: his verdict on read-only + "save a copy" was that it
+  // cost two entries for one thing. Built-ins are real saved items now, so
+  // this is glue over savedStore/localStorage — same reasoning as above.
+  const appjs = await (await fetch("js/app.js")).text();
+
+  assert(/import \{ BUILTIN_PATTERNS \} from ".\/builtin-patterns\.js";/.test(appjs),
+    "app.js must import the built-in patterns, not just builtin-patterns.js knowing about itself");
+
+  const seedOne = appjs.match(/function seedBuiltin\(entry\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/folder:\s*"Built-in"/.test(seedOne) && /builtinId:\s*entry\.id/.test(seedOne),
+    "a seeded builtin must land in a real \"Built-in\" folder and carry its provenance tag");
+
+  const missing = appjs.match(/function missingBuiltins\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/i\.builtinId/.test(missing),
+    "\"missing\" must be decided by builtinId, not name or folder, so a rename/move isn't mistaken for a delete");
+
+  const seedNew = appjs.match(/function seedNewBuiltins\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/loadSeededBuiltinIds\(\)/.test(seedNew) && /seedBuiltin\(/.test(seedNew),
+    "boot-time seeding must only add ids that have never been seeded before, or a delete wouldn't stick across relaunches");
+  assert(!/missingBuiltins/.test(seedNew),
+    "boot-time seeding must key off seed HISTORY, not current presence — that's the whole difference from Restore");
+
+  const restore = appjs.match(/function restoreMissingBuiltins\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/missingBuiltins\(\)/.test(restore) && /seedBuiltin\(/.test(restore),
+    "the Restore button must re-add whatever's actually missing right now, regardless of seed history");
+
+  const boot = appjs.match(/async function boot\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/seedNewBuiltins\(\)/.test(boot), "boot() must seed new builtins so a fresh install has them without a tap");
+
+  assert(/restore-builtins-btn.*addEventListener\("click"[\s\S]*?restoreMissingBuiltins\(\)/.test(appjs),
+    "the Restore button must be wired to restoreMissingBuiltins()");
 
   const count = appjs.match(/function refreshSavedCount\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/restore-builtins-btn.*disabled\s*=\s*!missingBuiltins\(\)\.length/.test(count),
+    "the Restore button must disable itself once nothing is actually missing");
   assert(/BUILTIN_PATTERNS\.length/.test(count),
-    "the Load pill must stay enabled when Built-ins exist, even with an empty personal library");
+    "the Load pill must stay reachable even with an empty real library, since it's the only way to reach Restore");
 });
 
 // ---- render report ----

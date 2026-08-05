@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [42](#where-things-stand-session-42--v390-2026-08-04) | **v3.9.0** | pre-loaded patterns redesigned on his verdict, same day as v3.8.0 shipped: a built-in now seeds once into the real library (`seedNewBuiltins()`), filed into a real "Built-in" folder, and behaves exactly like any saved item from then on — an invisible `builtinId` tag is what lets a new Restore button (Load sheet title line) tell "renamed/moved" from "actually deleted" and only re-add what's truly missing |
 | [41](#where-things-stand-session-41--v380-2026-08-04) | **v3.8.0** | items 2 and 4b together: five of his own patterns (exported via item 4) shipped as a read-only "Built-in" group in the Load sheet (`builtin-patterns.js`, never seeded into localStorage); Saved-library folders alongside, built to the shape agreed in session 39 — a `folder` field, grouped Load list, per-item assign dropdown, rename/delete on the group header |
 | [40](#where-things-stand-session-40--v370-2026-08-04) | **v3.7.0** | two of his notes ahead of finalizing the pre-loaded-patterns export: BPM now saves with the pattern (same dual-layer tier as swing, so his beginner built-ins can sit at a slower tempo than the intermediate ones); the manual Save flow offers Overwrite on a name collision instead of always spawning a Finder-style "(2)" — import's merge-only behaviour is untouched |
 | [39](#where-things-stand-session-39--v361-2026-08-04) | **v3.6.1** | his phone review of v3.6.0's export/import — confirmed working; two follow-ups actioned (Export/Import moved onto the Load sheet's title line, a hand-edited pattern's Load-list line shows "Custom" instead of its stale preset names) and folders sized for a future session |
@@ -64,6 +65,66 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 42 — v3.9.0, 2026-08-04)
+
+His verdict on v3.8.0, which came back before it ever reached his phone:
+read-only Built-ins + "Save a copy" cost two library entries for what's
+really one thing, an unwanted extra step for what's meant to be a demo. He
+asked for Built-ins to behave exactly like his own saved patterns — rename,
+delete, whatever — starting out in a premade folder, plus a way to bring one
+back if he deleted it and changed his mind. Redesigned same-day.
+
+**A built-in now seeds once into the REAL library, on boot.**
+`seedNewBuiltins()` (`app.js`) writes each `builtin-patterns.js` entry
+through the ordinary `savedStore.save()`, filed into a folder literally
+named `"Built-in"` — after that it's an ordinary saved item, full
+Load/Rename/Delete/folder-move, no special case left anywhere in the
+rendering code. This let `appendBuiltinRow()` and the whole
+`BUILTIN_PATTERNS`-branch of `renderSavedList()` be **deleted outright**:
+Built-ins now flow through exactly the same folder-grouping path every other
+item does, since `"Built-in"` is just another name in `savedStore.folders()`.
+
+**`builtinId`** (`storage.js`, a sibling field to `folder`, same
+absent-means-none convention) is the invisible provenance tag that makes
+this reversible without becoming fragile: it's set once at seed time and
+**never touched by rename, move, or edit**, so a renamed or refiled Built-in
+is still recognized as "present" and never gets duplicated. It's what
+"missing" means for the new **Restore** button
+(`#restore-builtins-btn`, third on the Load sheet's title line beside
+Export/Import): `missingBuiltins()` compares every `builtin-patterns.js`
+entry's `id` against the `builtinId`s actually in the library right now, and
+only those come back. The button disables itself once nothing's missing,
+same convention Export already used for an empty library.
+
+**Boot-time seeding and Restore ask two different questions, and conflating
+them was the bug to avoid.** Boot-time has to add a builtin *exactly once,
+ever* — a delete must stick across relaunches, or "delete" wouldn't mean
+anything — so `seedNewBuiltins()` consults a separate record,
+`tp-builtin-seeded` (a plain array of ids ever seeded), never which ids are
+*currently* present. Restore is the opposite: the explicit "I changed my
+mind" action, so it looks only at current presence and ignores seed history
+entirely. The split has a nice side effect for free: a future release adding
+a new built-in Just Works — its id has never been seeded, so it appears for
+everyone on their next launch without disturbing anyone's decision to have
+deleted an older one.
+
+**The Load pill keeps checking `BUILTIN_PATTERNS.length` alongside
+`count() === 0`**, unchanged from v3.8.0's reasoning, even though Built-ins
+are real saved items now: if literally everything gets deleted, the Load
+sheet — the only way to reach Restore — still has to stay reachable.
+
+126/126 (124 → 126: `appendBuiltinRow` and its source-level test retired;
+two new `storage.js` unit tests for `builtinId`'s save()/parseImport
+passthrough and its survival across rename/move; one new source-level test
+for the seed-vs-restore split in `app.js`, replacing the old Built-in-
+rendering one). Manually verified end-to-end in the Browser pane: fresh boot
+seeds all five into a real "Built-in" folder with full Load/Rename/Delete;
+deleting one enables Restore, which brings back exactly the one deleted (a
+fresh id, same `builtinId`); renaming one and pressing Restore again changes
+nothing (button stays disabled) — confirming a rename is never mistaken for
+a deletion. **Nothing here is confirmed on his phone yet either** — this is
+now the second design in a row still waiting on that.
 
 ## Where things stand (session 41 — v3.8.0, 2026-08-04)
 

@@ -64,12 +64,13 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
       return readAll().find((i) => i.id === id) || null;
     },
 
-    // { name, pattern, context, source, folder } -> the stored item. `folder`
-    // is OMITTED, not written as null, when absent — Finder-tag style, same
-    // "absent = unfiled" convention item.capo used before it was content: a
-    // fresh save never has one until you assign it, and the import path only
-    // sets it when the source item actually carried one (see parseImport).
-    save({ name, pattern, context, source = "generated", folder = null }) {
+    // { name, pattern, context, source, folder, builtinId } -> the stored
+    // item. `folder` and `builtinId` are OMITTED, not written as null, when
+    // absent — Finder-tag style, same "absent = unfiled" convention item.capo
+    // used before it was content: a fresh save never has either until it's
+    // given one, and the import path only sets them when the source item
+    // actually carried them (see parseImport).
+    save({ name, pattern, context, source = "generated", folder = null, builtinId = null }) {
       const items = readAll();
       const base = (name || "").trim() || "Untitled";
       const item = {
@@ -82,6 +83,11 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
         context,
       };
       if (folder) item.folder = folder;
+      // Invisible provenance tag for a pattern seeded from builtin-patterns.js
+      // (item 2) — never shown in the UI, never touched by rename/move/edit.
+      // It's what lets a "Restore" action tell "still here, maybe renamed or
+      // moved" from "actually deleted" without depending on the item's name.
+      if (builtinId) item.builtinId = builtinId;
       items.push(item);
       return writeAll(items) ? item : null;
     },
@@ -248,6 +254,10 @@ export function parseImport(raw) {
         // style, so an imported item with `folder: "Practice"` just joins
         // that folder on the new device, creating the group if it's new.
         folder: typeof entry.folder === "string" ? entry.folder : null,
+        // Same reasoning as folder: keeping a builtin item's provenance tag
+        // across export/import is what stops it from being treated as
+        // "missing" (and re-seeded as a duplicate) on the receiving device.
+        builtinId: typeof entry.builtinId === "string" ? entry.builtinId : null,
       });
     } else {
       skipped++;

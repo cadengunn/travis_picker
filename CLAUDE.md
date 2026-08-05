@@ -160,8 +160,8 @@ js/generator.js   pure generatePattern() + resolveBar/resolvePattern/resolvePhra
 js/grid.js        renderGrid() — resolved phrase -> DOM only
 js/theme.js       loads themes.json, applies a theme as CSS custom properties
 js/storage.js     the Saved library (localStorage); store is injectable for tests
-js/builtin-patterns.js  read-only starter patterns (item 2) — plain data, never
-                  written to localStorage; see "Saved library" below
+js/builtin-patterns.js  starter patterns (item 2) — plain data, seeded once
+                  into the real library on boot; see "Saved library" below
 js/editor.js      pure tap-to-edit logic (toggleNote, hand inference) — no DOM
 js/metronome.js   Web Audio click + pattern playback + playhead scheduling (no deps)
 js/synth.js       Karplus-Strong plucked-string voice (no deps) — pattern audio
@@ -512,74 +512,41 @@ switch (his call — "no toggle or lamp needed"). Considered and rejected:
 promoting them into the always-visible header's four-pill row — that count is
 documented as deliberate, the capo tag beside it already has only ~5px of
 margin, and Export/Import aren't guitar-in-hand controls by the app's own
-placement rule. **Export is disabled whenever the REAL library is empty**
-(`savedStore.count() === 0`) — Built-in patterns (below) were never in the
-store, so an empty personal library still has nothing of its own to export
-even once Built-ins exist. **The Load pill diverges from that same session
-40** (see below): it stays enabled whenever there's anything to browse,
-Built-ins included, not just when the personal library is non-empty.
+placement rule. **Export is disabled whenever the real library is empty**
+(`savedStore.count() === 0`) — the only state Built-in patterns (below)
+being real saved items now doesn't change.
 
-**Pre-loaded patterns** (`builtin-patterns.js`, item 2, session 40): a small,
-hand-picked set of his own patterns — exported from his real library and
-pasted in as data, not authored here — ships with the app as **read-only
-"Built-in" data, never seeded into localStorage**. They survive reinstalls,
-never pollute the real library, and a future release can add more without
-touching anyone's saved items. **The only action on a Built-in row is "Save a
-copy"**, which calls the ordinary `savedStore.save()` — same de-duping, same
-everything a hand save gets, so pressing it twice yields `Name (2)` rather
-than colliding with itself. Shape matches a stored item exactly
-(`name`/`pattern`/`context`/`source`, `folder` never set) so every existing
-renderer (`summarize()`, the Load-list row) treats a Built-in identically to
-a real saved item wherever it only reads. **`v`/`savedAt` are deliberately
-absent** — those are `storage.js`'s own bookkeeping for a real save, and this
-array is never written through that path itself. **Ordered by bpm** (a
-defensible "easy to hard" spread across the tiers, since "Beginner"/
-"Beginner 2"/etc. are his own names, not a schema field) rather than export
-order. **Naming is his real titles**, not feel/technique names — a title is a
-reference, not a reproduction, and the pattern data has no field that could
-hold a specific recording's melody anyway (only chord role strings and
-hand-domain events). **The Load pill's disabled state changed for this**: it
-used to be exactly `count() === 0` ("nothing to load" was exactly "your
-library is empty"); now it's `count() === 0 && BUILTIN_PATTERNS.length ===
-0`, since a fresh install with zero personal saves still has a Built-in group
-to discover — and hiding the pill would hide the one thing meant to be found
-on first launch. (This is why `help.js`'s note that "the Load pill is
-disabled whenever the library is empty, i.e. the first-run state" is now
-mostly historical — it's true only if `BUILTIN_PATTERNS` is ever emptied.)
-
-**Saved-library folders** (item 4b, session 40, paired with item 2 so the
-Built-in group had real content to sit beside): **no separate folder table**
-— a `folder` string field per saved item (absent = unfiled), Finder-tag
-style. A folder is just the distinct set of `folder` values currently in use
-on real items; `storage.js` exposes `setFolder(id, folder)`, `folders()`
-(alphabetical), `renameFolder(oldName, newName)` and `clearFolder(name)` —
-rename/clear are bulk field-updates across whichever items carry that name
-right now, since there's no separate record to keep in sync. **Clearing a
-folder un-files every item in it and never deletes a pattern** — it can only
-reorganize, same principle as import's merge-only behaviour, which is also
-why (his open question, resolved) it needs **no `confirmModal`**: that's
-reserved for actions that can lose data. `save()` only writes the `folder`
-key when one is actually given — a fresh save stays exactly the shape it was
-before folders existed, and `parseImport` carries a source item's `folder`
-through so it travels across export/import too (Finder-tag style: an
-imported "Practice" item just joins the existing "Practice" group, or starts
-one, on the new device).
-- **Load-sheet rendering** (`app.js`): `renderSavedList()` now groups —
-  Built-in first (if any), then one header per real folder in use
-  (alphabetical), then a trailing "Unfiled" group for real items with no
-  folder. **No dead chrome**: folder headers (Unfiled included) only appear
-  once at least one real folder is in use — a user who's never touched
-  folders sees the same flat list as before this shipped, not an "Unfiled"
-  label over every single item. Headers reuse **`.dd-group`'s CSS directly**
-  rather than a new class — the same engraved-legend voice a drum's
-  `<optgroup>` already wears, so a folder and a progression style group read
-  as the same kind of thing (his call, matching the settled design).
-- **Folder headers**: a real folder's Rename/Delete actions are **revealed on
-  tap**, not always visible — `appendGroupHeader()` toggles a hidden
-  `.folder-actions` row. Built-in's and Unfiled's headers are plain, unbuttoned
-  labels: a static data source and the absence of a folder have nothing to
-  rename or delete.
-- **Per-item assignment**: a plain `<select>` per real item (`.folder-select`,
+**Saved-library folders** (item 4b, session 40, design agreed session 39):
+**no separate folder table** — a `folder` string field per saved item
+(absent = unfiled), Finder-tag style. A folder is just the distinct set of
+`folder` values currently in use; `storage.js` exposes `setFolder(id,
+folder)`, `folders()` (alphabetical), `renameFolder(oldName, newName)` and
+`clearFolder(name)` — rename/clear are bulk field-updates across whichever
+items carry that name right now, since there's no separate record to keep in
+sync. **Clearing a folder un-files every item in it and never deletes a
+pattern** — it can only reorganize, same principle as import's merge-only
+behaviour, which is also why (his open question, resolved) it needs **no
+`confirmModal`**: that's reserved for actions that can lose data. `save()`
+only writes the `folder` key when one is actually given — a fresh save stays
+exactly the shape it was before folders existed, and `parseImport` carries a
+source item's `folder` through so it travels across export/import too
+(Finder-tag style: an imported "Practice" item just joins the existing
+"Practice" group, or starts one, on the new device).
+- **Load-sheet rendering** (`app.js`): `renderSavedList()` groups — one
+  header per real folder in use (alphabetical), then a trailing "Unfiled"
+  group for real items with no folder. **No dead chrome**: folder headers
+  (Unfiled included) only appear once at least one real folder is in use — a
+  user who's never touched folders sees a flat list, not an "Unfiled" label
+  over every single item. Headers reuse **`.dd-group`'s CSS directly** rather
+  than a new class — the same engraved-legend voice a drum's `<optgroup>`
+  already wears, so a folder and a progression style group read as the same
+  kind of thing (his call, matching the settled design).
+- **Folder headers**: Rename/Delete are **revealed on tap**, not always
+  visible — `appendGroupHeader()` toggles a hidden `.folder-actions` row.
+  Only "Unfiled" is a plain, unbuttoned label, since it's the absence of a
+  folder rather than something you could rename or delete — **every real
+  folder gets the same treatment, "Built-in" included** (see below).
+- **Per-item assignment**: a plain `<select>` per item (`.folder-select`,
   under its own `.saved-folder-row` so it never crowds Load/Rename/Delete on a
   phone width), enhanced by `dropdown.js` — **the same mechanism every other
   picker in the app already uses**, not a new control paradigm. Options are
@@ -589,9 +556,53 @@ one, on the new device).
   default list panel (`renderList` in `dropdown.js`) closes on every single
   pick, so there's never a stale-select-under-an-open-panel scenario the way
   there is for a picker that stays open across multiple commits.
-- **Built-ins render as their own group but are never stored via `folder`**
-  — keeps "yours" and "his" data cleanly apart while looking unified, per the
-  settled design in `OPEN_ITEMS.md`.
+
+**Pre-loaded patterns** (`builtin-patterns.js`, item 2). **Shipped twice** —
+the first design (session 40, v3.8.0) kept them read-only and unseeded, with
+a "save a copy" button; his verdict after trying it, session 41: that cost
+two library entries for what's really one thing, an unwanted extra step for
+what's meant to be a demo. **The redesign (session 41, v3.9.0) is what
+shipped**: a built-in is seeded once into the REAL library, via the ordinary
+`savedStore.save()`, filed into a folder literally named "Built-in" — after
+that it's a normal saved item. Rename it, move it to another folder, delete
+it, whatever; nothing about it is special anymore except how it got there.
+`builtin-patterns.js` itself is unchanged by the redesign — still plain data,
+still `name`/`pattern`/`context`/`source`, still ordered by bpm (a defensible
+easy-to-hard spread, since "Beginner"/"Beginner 2" are his names, not a
+schema field) and titled with his real titles (a title is a reference, not a
+reproduction, and the pattern data has no field that could hold a specific
+recording's melody anyway).
+- **`builtinId`** (`storage.js`, a sibling field to `folder`, same
+  absent-means-none convention) is the invisible provenance tag a seeded item
+  carries forever — **never shown in the UI, never touched by rename, move,
+  or edit**. It's the one thing that has to survive those, because it's what
+  lets "Restore" tell "still here, maybe renamed or moved" from "actually
+  deleted" without depending on the item's current name or folder. It travels
+  across export/import too, same reasoning as `folder`.
+- **`seedNewBuiltins()` (boot-time) vs. `restoreMissingBuiltins()`
+  (`#restore-builtins-btn`, the Load sheet's third title-line action beside
+  Export/Import) ask two different questions**, and conflating them was the
+  bug to avoid: boot-time seeding has to add a builtin **exactly once, ever**
+  — a delete must stick across relaunches, or "delete" wouldn't mean
+  anything — so it consults `tp-builtin-seeded` (a plain array of ids ever
+  seeded, `app.js`), never which ids are *currently* in the library. Restore
+  is the opposite: it's the explicit "I changed my mind" action, so it looks
+  at what's actually there right now (`missingBuiltins()`, by `builtinId`)
+  and doesn't care about seed history at all. A future release adding a new
+  built-in Just Works under this split — its id has never been seeded, so
+  `seedNewBuiltins()` adds it on the next launch, for everyone, without
+  disturbing anyone's decision to have deleted an older one.
+- **The Restore button disables itself once nothing is actually missing**
+  (`refreshSavedCount()`), same convention as Export disabling on an empty
+  library — not hidden, since "there's nothing to restore right now" is
+  itself useful information, not dead chrome.
+- **The Load pill's disabled condition still checks `BUILTIN_PATTERNS.length`
+  alongside `count() === 0`**, even though Built-ins are real saved items
+  now: if every real item, Built-ins included, is ever deleted, the Load
+  sheet — the only way to reach Restore — has to stay reachable, or there'd
+  be no way back in. (This is why `help.js`'s note that "the Load pill is
+  disabled whenever the library is empty" is mostly historical now — true
+  only in that genuinely-everything-deleted state.)
 
 **A hand-edited pattern shows "Custom," not a stale preset name** (session
 39). `summarize()` (the Load-list sub-line, "E · Travis · Tame") reads
@@ -1199,22 +1210,31 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.8.0, 124/124 green.** Session 40 shipped items 2 and 4b together —
-pre-loaded patterns and Saved-library folders — closing out the two pieces of
-work `OPEN_ITEMS.md` had been carrying as "next." Two of his notes came in
-first, ahead of him finalizing the patterns export, and shipped as their own
-v3.7.0: BPM now saves with the pattern (same dual-layer tier as swing, so his
+**v3.9.0, 126/126 green.** Session 42 redesigned pre-loaded patterns after his
+verdict on the first cut, landed the same day (v3.8.0, session 41): read-only
++ "save a copy" cost two library entries for what's really one thing. Now a
+built-in seeds once into the REAL library (`seedNewBuiltins()`, boot-time),
+filed into a folder literally named "Built-in," and from then on it's an
+ordinary saved item — rename, move, delete, whatever. An invisible
+`builtinId` tag (`storage.js`) is what lets a "Restore" button
+(`restoreMissingBuiltins()`, on the Load sheet's title line beside
+Export/Import) tell "actually deleted" from "renamed or moved," and the
+split between boot-time seeding (once, ever, per id) and Restore (on-demand,
+whatever's actually missing right now) is what makes a delete stick across
+relaunches while still being reversible. See "Saved library" above for the
+full detail. **Session 41 (v3.8.0)** shipped items 2 and 4b together —
+pre-loaded patterns and Saved-library folders, the first design — closing
+out the two pieces of work `OPEN_ITEMS.md` had been carrying as "next."
+**Session 40 (v3.7.0)**, the same day, shipped two smaller notes ahead of
+that: BPM now saves with the pattern (same dual-layer tier as swing, so his
 built-in beginner patterns can sit at a slower tempo); manual Save offers
 Overwrite on a name collision instead of always spawning a Finder-style
-`(2)`. Then he sent five of his own real patterns (exported via item 4) as
-the Built-in starter set — `builtin-patterns.js`, read-only, never seeded
-into localStorage, "Save a copy" to bring one into the real library — and
-folders shipped alongside so the Built-in group had somewhere real to sit:
-a `folder` string field per saved item, the Load list grouped with the app's
+`(2)`. Folders (item 4b) shipped exactly to the shape agreed in session 39: a
+`folder` string field per saved item, the Load list grouped with the app's
 existing engraved-section-header idiom, a per-item `dropdown.js`-enhanced
 `<select>` to assign/move/create one, rename/delete on the group header
-(delete un-files, never deletes a pattern). See "Saved library" above for the
-detail. Session 37 regenerated `CHORD_REFERENCE.md`'s tables
+(delete un-files, never deletes a pattern) — unchanged by session 42's
+redesign of item 2. Session 37 regenerated `CHORD_REFERENCE.md`'s tables
 straight from `js/data.js` instead of hand-typing them (a doc-only pass, no
 version bump); session 38 shipped JSON export/import of the Saved library
 (item 4), built ahead of pre-loaded patterns (item 2) so patterns can travel to
@@ -1252,13 +1272,15 @@ and Unruly, and the app as a whole on the guitar as of v2.13.3. The build order 
 ever goes dead again, and (session 38) whether a real download lands somewhere
 usable in installed-PWA iOS Safari and whether the iOS file picker can select a
 `.json` from Files/iCloud for import — the dev box can't answer either.
-**And (session 40):** the Built-in group and folder rows at real thumb size —
-the dev box confirmed no wrapping/overflow at 375×667 in the Browser pane
-preview, but that's a synthetic viewport, not his hand; whether "Save a
-copy"/folder-assign/the New Folder prompt feel right as taps, not clicks; and
+**And (session 41–42):** the Built-in group and folder rows at real thumb
+size — the dev box confirmed no wrapping/overflow at 375×667 in the Browser
+pane preview, but that's a synthetic viewport, not his hand; whether
+folder-assign/the New Folder prompt/Restore feel right as taps, not clicks;
 whether his five Built-in patterns read the way he expects on the grid
 (`Beginner 1`/`2`, `Fine Enough`, `Clawin'`, `Stumped` — bpm-ascending order,
-his own titles verbatim from the export).
+his own titles verbatim from the export); and specifically the session 42
+redesign — deleting a Built-in item and confirming Restore brings back only
+that one, renaming a Built-in and confirming Restore leaves it alone.
 **And on his guitar (session 35):** `F♯6` and `E♭add9` both
 dropped the moving-finger technique for static barres, and `E♭sus4` moved back up
 to frets 6–9 — each replaces a voicing reasoned out only a session or two before.

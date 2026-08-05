@@ -1,4 +1,4 @@
-// builtin-patterns.js — read-only starter patterns, item 2 (OPEN_ITEMS.md).
+// builtin-patterns.js — starter patterns, item 2 (OPEN_ITEMS.md).
 //
 // His own patterns, hand-picked and exported from his real library (session
 // 40) rather than authored here — a title is a reference, not a
@@ -7,16 +7,20 @@
 // events). Ordered by bpm, a defensible "easy to hard" spread across the
 // tiers rather than an arbitrary one.
 //
-// NEVER SEEDED INTO localStorage — this array IS the data. The Load sheet
-// renders it as its own read-only "Built-in" group; the only action on a row
-// is "save a copy" into the real library via storage.js's ordinary save(),
-// which is how a copy picks up a real id, a folder of its own, and Finder-
-// style de-duping if saved twice. Shape matches a stored item exactly
-// (name/pattern/context/source) so every existing renderer — summarize(),
-// currentContext()-adjacent code — treats a row here identically to a real
-// saved item wherever it only reads, never writes. `v`/`savedAt` are omitted
-// on purpose: those are storage.js's own bookkeeping for a REAL save, and
-// this array is never written through that path itself.
+// THIS ARRAY IS THE SOURCE DATA, not a live view of what's in the library.
+// The first design (v3.8.0) kept these read-only and unseeded, with a
+// "save a copy" button — his session-41 verdict was that this cost two
+// entries for what's really one thing, a needless extra step for what's
+// meant to be a demo/sample. So instead, `app.js`'s `seedNewBuiltins()`
+// writes each entry into the REAL library once, via the ordinary
+// `savedStore.save()`, filed into a folder literally named "Built-in" —
+// after that they're indistinguishable from anything hand-saved: rename,
+// move, delete, whatever. `restoreMissingBuiltins()` (the Load sheet's
+// "Restore" button) re-adds any whose `id` here no longer matches a
+// `builtinId` on a stored item, which is how a rename or a folder move
+// doesn't read as "deleted" — only an actual delete does. Both live in
+// app.js because both need `savedStore`; this file stays pure data, tested
+// the same way `data.js` is (see tests.js's "builtin patterns" check).
 export const BUILTIN_PATTERNS = [
   {
     id: "builtin:beginner-1",

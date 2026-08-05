@@ -17,7 +17,44 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.8.0) — pre-loaded patterns and folders
+## On the phone right now (v3.9.0) — pre-loaded patterns, redesigned
+
+**His verdict on v3.8.0, before it ever reached his phone:** read-only
+Built-ins + "save a copy" cost two library entries for what's really one
+thing, an unwanted extra step for what's meant to be a demo. He asked for
+Built-ins to behave exactly like his own saved patterns — rename, delete,
+whatever — just starting out in a premade folder, plus a way to bring one
+back if he deleted it and changed his mind.
+
+**Session 42 shipped that redesign.** A built-in now seeds once into the
+REAL library on boot (`seedNewBuiltins()`), filed into a folder literally
+named "Built-in" — after that it's an ordinary saved item with full
+Load/Rename/Delete/folder-move, no "Built-in" special case left in the UI at
+all. An invisible `builtinId` tag (never shown, never touched by rename or
+move) is what a new **Restore** button — third on the Load sheet's title
+line, beside Export/Import — uses to tell "still here, maybe renamed" from
+"actually deleted," so it only ever re-adds what's truly missing. It disables
+itself once nothing is missing, same convention as Export disabling on an
+empty library.
+
+**What's waiting on his phone:** the whole thing is unverified on a real
+device still — this is the second design in a row that hasn't reached that
+point yet. Specifically worth his eye this time: deleting a Built-in item and
+confirming Restore brings back only that one; renaming or moving a Built-in
+and confirming Restore leaves it alone (doesn't duplicate it); and whether
+the "Built-in" folder header's Rename/Delete (now identical to any other
+folder's) reads as expected when it's the one holding his starter patterns.
+
+126/126 green (124 → 126: two new `storage.js` builtinId tests, one
+source-level test for the seed/restore split in `app.js`, one old test
+retired along with `appendBuiltinRow`).
+
+---
+
+## Previously on the phone (v3.8.0) — pre-loaded patterns and folders, first design
+**Superseded by v3.9.0 above** — his verdict came back before this ever
+reached his phone, so nothing here was actually confirmed. Kept for the
+record of what the first cut was and why it changed.
 
 **Session 40 closed out both item 2 and item 4b**, the two things this file
 had been carrying as "next" since session 39. Two of his notes shipped first
@@ -29,22 +66,15 @@ collision instead of always spawning a `(2)`.
 Then, using that Overwrite fix and BPM-with-pattern, he built and exported
 five of his own patterns as the Built-in starter set: **Beginner 1, Beginner
 2, Fine Enough, Clawin', Stumped** — his real titles, ordered bpm-ascending
-(90/90/170/200/220) as a defensible easy-to-hard spread. They render as a
+(90/90/170/200/220) as a defensible easy-to-hard spread. They rendered as a
 read-only "Built-in" group at the top of the Load sheet with a "Save a copy"
 button each, exactly the design settled in session 39. Folders shipped
-alongside, not standalone, because the two designs were meant to integrate:
-a `folder` field per saved item, the Load list grouped with the app's
-existing engraved-section-header look, a per-item dropdown to
+alongside, not standalone, because the two designs were meant to integrate —
+**folders themselves were NOT superseded**, only the read-only/"save a copy"
+half of item 2 was: a `folder` field per saved item, the Load list grouped
+with the app's existing engraved-section-header look, a per-item dropdown to
 assign/move/create a folder, rename/delete on the group header. Full detail
 in `CLAUDE.md`'s "Saved library" section.
-
-**What's waiting on his phone:** everything — this shipped and was pushed,
-but not yet confirmed working on a real device. Specifically: whether the
-Built-in group and the per-item folder rows are legible and tappable at real
-thumb size (the dev box confirmed no wrapping at a synthetic 375×667, which
-isn't the same as his hand); whether "Save a copy," the folder-assign
-dropdown and the "+ New Folder…" prompt all feel like the rest of the app's
-touch language; and whether his five patterns play back the way he expects.
 
 **One design detail resolved along the way, not left as a question:**
 whether deleting a folder needs a `confirmModal` — no, same reasoning as
@@ -1065,13 +1095,16 @@ to `Cmaj`, no pitch class ⇒ the numeral reads `?` and the capo tag blanks), an
 
 ## Medium
 
-### 2. Pre-loaded patterns — DONE (session 40, v3.8.0)
+### 2. Pre-loaded patterns — DONE (session 42, v3.9.0, redesigned)
 Shipped as `builtin-patterns.js`: five of his own patterns (Beginner 1,
 Beginner 2, Fine Enough, Clawin', Stumped — his real titles), exported via
-item 4 and sent as a file, read-only "Built-in" data in the Load sheet,
-"Save a copy" the only action. Not seeded into localStorage. See
-`CLAUDE.md`'s "Saved library" section and the "On the phone right now"
-section above for what's still waiting on his device.
+item 4 and sent as a file. **First shipped read-only (session 40, v3.8.0),
+then redesigned on his verdict** (session 42): a builtin now seeds once into
+the real library, filed into a real "Built-in" folder, and behaves exactly
+like any saved item from then on — rename, delete, move, whatever — with a
+Restore button to bring back anything actually deleted. See `CLAUDE.md`'s
+"Saved library" section and the "On the phone right now" section above for
+what's still waiting on his device.
 
 ### 3. Swing — DONE (v2.13.2)
 One **SWING** slider on the Generation page, 50–75%, smooth like the Tempo one.

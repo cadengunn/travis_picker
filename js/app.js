@@ -65,7 +65,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.8.0";
+const APP_VERSION = "v3.9.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -989,6 +989,89 @@ function describeCurrent() {
   return `${el("chord").value} · ${bassName}`;
 }
 
+// ----- built-in pattern seeding (item 2, session 41 redesign) -----
+// His verdict on the first design (v3.8.0, read-only + "save a copy"): it
+// cost two library entries for what's really one thing, for what's meant to
+// be a demo. So a built-in is instead seeded ONCE into the real library, via
+// the ordinary savedStore.save(), filed into a folder literally named
+// "Built-in" — after that it's indistinguishable from a hand-saved pattern:
+// rename, move, delete, whatever. `builtinId` (storage.js) is the invisible
+// thread that survives all of that, and it's what "missing" means below —
+// never the item's current name or folder, both of which are fair game to
+// change.
+const BUILTIN_SEEDED_KEY = "tp-builtin-seeded";
+
+// Ids ever auto-seeded — NOT the same question as which ones are in the
+// library right now. Read raw (no seeded defaults) for the same reason
+// loadAudioPrefs() does: this only has one job, remembering what's already
+// been offered once, and a blob pre-filled with "everything" would make a
+// genuinely-new id in a future release indistinguishable from one that was
+// already seeded.
+function loadSeededBuiltinIds() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(BUILTIN_SEEDED_KEY) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+function saveSeededBuiltinIds(ids) {
+  try {
+    localStorage.setItem(BUILTIN_SEEDED_KEY, JSON.stringify(ids));
+  } catch { /* quota or private mode: seeding just won't stick this session */ }
+}
+
+function seedBuiltin(entry) {
+  savedStore.save({
+    name: entry.name,
+    pattern: entry.pattern,
+    context: entry.context,
+    source: entry.source,
+    folder: "Built-in",
+    builtinId: entry.id,
+  });
+}
+
+// The built-in entries with no matching `builtinId` anywhere in the real
+// library right now — "missing" in the sense the Restore button cares about.
+// A rename or a move to another folder doesn't touch builtinId, so neither
+// counts; only an actual delete does.
+function missingBuiltins() {
+  const present = new Set(savedStore.list().map((i) => i.builtinId).filter(Boolean));
+  return BUILTIN_PATTERNS.filter((b) => !present.has(b.id));
+}
+
+// Boot-time only. Adds any builtin id that's NEVER been seeded before — a
+// true first launch, or a future release adding a new one — and never an id
+// that has been, whether or not it's still in the library. That's what makes
+// a delete stick across relaunches instead of silently reappearing.
+function seedNewBuiltins() {
+  const seeded = new Set(loadSeededBuiltinIds());
+  let added = false;
+  for (const entry of BUILTIN_PATTERNS) {
+    if (seeded.has(entry.id)) continue;
+    seedBuiltin(entry);
+    seeded.add(entry.id);
+    added = true;
+  }
+  if (added) saveSeededBuiltinIds([...seeded]);
+}
+
+// The Restore button (`#restore-builtins-btn`): the explicit, on-demand
+// counterpart to seedNewBuiltins() — adds back whatever's actually missing
+// right now, regardless of seed history. Returns the count restored, for the
+// status line.
+function restoreMissingBuiltins() {
+  const missing = missingBuiltins();
+  for (const entry of missing) seedBuiltin(entry);
+  if (missing.length) {
+    const seeded = new Set(loadSeededBuiltinIds());
+    for (const entry of missing) seeded.add(entry.id);
+    saveSeededBuiltinIds([...seeded]);
+  }
+  return missing.length;
+}
+
 function refreshSavedCount() {
   const n = savedStore.count();
   // The pill is icon-only, so the count lives in the label rather than the face
@@ -997,15 +1080,12 @@ function refreshSavedCount() {
   const label = n ? `Load pattern (${n} saved)` : "Load pattern";
   el("open-load").setAttribute("aria-label", label);
   el("open-load").title = n ? `Load (${n} saved)` : "Load";
-  // The Load pill's disabled state used to just be n === 0 — "nothing to
-  // load" was exactly "your library is empty". Item 2 (Built-in patterns)
-  // means that's no longer true even on a fresh install with zero personal
-  // saves: there's a Built-in group to browse regardless, and disabling the
-  // pill would hide the one thing meant to be discoverable from first launch.
+  // Built-ins are real saved items now (session 41), so n === 0 only happens
+  // if EVERYTHING, Built-ins included, has been deleted — and that's exactly
+  // when the Load sheet, the only way to reach Restore, must stay reachable.
   el("open-load").disabled = n === 0 && BUILTIN_PATTERNS.length === 0;
-  // Export stays tied to the real library only — Built-ins aren't stored, so
-  // there's nothing of theirs an empty personal library could export.
   el("export-btn").disabled = n === 0;
+  el("restore-builtins-btn").disabled = !missingBuiltins().length;
 }
 
 // Sentinel option value for the per-item folder <select>'s trailing "+ New
@@ -1015,9 +1095,10 @@ function refreshSavedCount() {
 const NEW_FOLDER_OPTION = "__new_folder__";
 
 // A group header row: real folders get Rename/Delete (revealed on tap, per
-// his settled design — the actions stay out of the way until you ask), "Built-
-// in" and "Unfiled" are plain labels (there's nothing to rename/delete about
-// either: Built-in is static data, Unfiled is the absence of a folder). Wears
+// his settled design — the actions stay out of the way until you ask).
+// "Built-in" is a real folder (session 41) and gets the same treatment as
+// any other; only "Unfiled" is a plain, unbuttoned label, since it's the
+// absence of a folder rather than one you could rename or delete. Wears
 // the app's existing engraved-section-header idiom (`.dd-group`, the same
 // class an <optgroup> becomes in a drum's list panel) rather than a new one.
 function appendGroupHeader(list, name, { folder = false } = {}) {
@@ -1176,55 +1257,13 @@ function appendSavedRow(list, item, folders) {
   list.appendChild(li);
 }
 
-// A Built-in row (item 2): read-only starter data, never written to
-// localStorage. Its only action copies it into the real library through the
-// ordinary save() — same de-duping, same everything a hand save gets — so a
-// second copy becomes "Name (2)" rather than colliding with itself.
-function appendBuiltinRow(list, item) {
-  const li = document.createElement("li");
-  li.className = "saved-item";
-
-  const meta = document.createElement("div");
-  meta.className = "saved-meta";
-  const name = document.createElement("div");
-  name.className = "saved-name";
-  name.textContent = item.name;
-  const sub = document.createElement("div");
-  sub.className = "saved-sub";
-  sub.textContent = summarize(item);
-  meta.append(name, sub);
-
-  const copy = document.createElement("button");
-  copy.className = "load";
-  copy.type = "button";
-  copy.textContent = "Save a copy";
-  copy.addEventListener("click", () => {
-    const saved = savedStore.save({
-      name: item.name,
-      pattern: item.pattern,
-      context: item.context,
-      source: item.source,
-    });
-    // The Load sheet's own status line, shared with import (both are
-    // library-wide actions that need one place to report what happened).
-    el("import-hint").textContent = saved
-      ? `Saved a copy of "${saved.name}".`
-      : "Couldn't save — browser storage is unavailable or full.";
-    renderSavedList();
-    refreshSavedCount();
-  });
-
-  li.append(meta, copy);
-  list.appendChild(li);
-}
-
 function renderSavedList() {
   const list = el("saved-list");
   list.innerHTML = "";
   const items = savedStore.list();
   const folders = savedStore.folders();
 
-  if (!items.length && !BUILTIN_PATTERNS.length) {
+  if (!items.length) {
     const li = document.createElement("li");
     li.className = "saved-empty";
     li.textContent = "Saved patterns will appear here.";
@@ -1232,14 +1271,11 @@ function renderSavedList() {
     return;
   }
 
-  if (BUILTIN_PATTERNS.length) {
-    appendGroupHeader(list, "Built-in");
-    for (const b of BUILTIN_PATTERNS) appendBuiltinRow(list, b);
-  }
-
   // No dead chrome: group headers (including "Unfiled") only earn their keep
   // once at least one real folder is in use. Nobody who's never touched
-  // folders should see an "Unfiled" label over every single item.
+  // folders should see an "Unfiled" label over every single item. "Built-in"
+  // is a real folder now (session 41) — it earns its header the same way any
+  // other folder does, sorted alphabetically among them, not pinned.
   if (folders.length) {
     for (const name of folders) {
       const inFolder = items.filter((i) => i.folder === name);
@@ -1824,6 +1860,14 @@ function attach() {
     e.target.value = ""; // clear so re-importing the same file still fires change
     if (file) importLibrary(file);
   });
+  el("restore-builtins-btn").addEventListener("click", () => {
+    const n = restoreMissingBuiltins();
+    el("import-hint").textContent = n
+      ? `Restored ${n} built-in pattern${n === 1 ? "" : "s"}.`
+      : "Nothing to restore — every built-in pattern is already in your library.";
+    renderSavedList();
+    refreshSavedCount();
+  });
   el("save-btn").addEventListener("click", saveCurrent);
   el("save-name").addEventListener("keydown", (e) => {
     if (e.key === "Enter") saveCurrent();
@@ -1943,6 +1987,7 @@ async function boot() {
   wakeLock.start();
   playbackGuard.start();
   await generate(); // roll one immediately so the grid is never empty
+  seedNewBuiltins(); // one-time per id; a delete sticks across relaunches
   refreshSavedCount();
 
   // The first fit measured whatever font was available; Fraunces arrives async
