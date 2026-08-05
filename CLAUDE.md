@@ -160,6 +160,8 @@ js/generator.js   pure generatePattern() + resolveBar/resolvePattern/resolvePhra
 js/grid.js        renderGrid() — resolved phrase -> DOM only
 js/theme.js       loads themes.json, applies a theme as CSS custom properties
 js/storage.js     the Saved library (localStorage); store is injectable for tests
+js/builtin-patterns.js  read-only starter patterns (item 2) — plain data, never
+                  written to localStorage; see "Saved library" below
 js/editor.js      pure tap-to-edit logic (toggleNote, hand inference) — no DOM
 js/metronome.js   Web Audio click + pattern playback + playhead scheduling (no deps)
 js/synth.js       Karplus-Strong plucked-string voice (no deps) — pattern audio
@@ -444,17 +446,24 @@ the synth skips it.
   amount, `decay`/`seconds` for length, `gain` for level.
 
 **Saved library** (`storage.js`): a saved item is **musical content only** —
-`{ pattern, context: { chordMode, chord, key, capo, progression, x2, swing } }`
-plus a name, id and timestamp. **The capo is in there because it's musical
-content** — what the pattern sounds like, not a preference; items saved before
-it existed have no `capo` and read back as 0, which is what they were. **×2 and
-swing joined it in session 36** (×2 changes the harmonic rhythm; swing was
-"a feel setting, not pattern content" until his call reversed that, additively —
-it stays a `tp-audio` session default too, see "×2 mode" below). `storage.js`
+`{ pattern, context: { chordMode, chord, key, capo, progression, x2, swing,
+bpm } }` plus a name, id, timestamp, and optionally a `folder`. **The capo is
+in there because it's musical content** — what the pattern sounds like, not a
+preference; items saved before it existed have no `capo` and read back as 0,
+which is what they were. **×2 and swing joined it in session 36** (×2 changes
+the harmonic rhythm; swing was "a feel setting, not pattern content" until his
+call reversed that, additively — it stays a `tp-audio` session default too,
+see "×2 mode" below). **BPM joined it in session 40**, same tier as swing —
+his specific case was wanting his built-in beginner patterns at a slower
+tempo than the intermediate ones — and the same absent-handling precedent:
+`loadSaved()` leaves the session tempo untouched when `context.bpm` is
+missing, rather than resetting it the way absent capo means "was 0". BPM
+still also persists in `tp-prefs` as a session default (session 32,
+unchanged); this is additive, not a migration off that store. `storage.js`
 itself needs no schema — `context` is a plain object, so this is a data-shape
 convention enforced by callers, not code. **Never store UI settings** (theme, label mode) with it; a test
 asserts the serialized item contains none. Nomenclature is "Saved", not
-"Favorites" (favorites may later be a folder within it). `createStore(key,
+"Favorites". `createStore(key,
 storage)` takes its backing store as an argument so tests use an in-memory stub
 and never touch the user's real library — keep it that way. The store degrades
 quietly: corrupt JSON reads as an empty library, and a refused write (quota /
@@ -465,6 +474,16 @@ then re-renders — it never re-rolls. `rename(id, name)` (v2.4.5) updates the n
 in place (trims, ignores blanks, keeps pattern/id/savedAt); each Load-menu item is
 Load / Rename / Delete. `save()` de-dupes names Finder-style via `uniqueName()`:
 the original keeps its plain name, later saves become `Name (2)`, `Name (3)`.
+**`update(id, …)` (session 39) overwrites an item's content in place** — same
+id, `savedAt` bumped to now. The manual Save flow (`saveCurrent()` in
+`app.js`) offers this via a `confirmModal` ("A pattern named … already
+exists. Overwrite it?") whenever the resolved name collides with an item
+already in the library — his reported friction was editing a loaded pattern,
+saving it under its own name, and getting a stale `(2)` duplicate to delete
+by hand. Declining aborts the save entirely, leaving the sheet open, rather
+than falling through to the old duplicate-with-suffix behaviour. **Import is
+untouched by this** — it still merges through the plain `save()` de-dupe,
+since a batch import has no one to ask (see "Export/import" below).
 
 **Export/import** (session 38, item 4): belt-and-braces insurance against iOS
 evicting localStorage, and how a library moves between devices or people.
@@ -493,8 +512,86 @@ switch (his call — "no toggle or lamp needed"). Considered and rejected:
 promoting them into the always-visible header's four-pill row — that count is
 documented as deliberate, the capo tag beside it already has only ~5px of
 margin, and Export/Import aren't guitar-in-hand controls by the app's own
-placement rule. Export is disabled whenever the library is empty, same
-convention as the Load pill.
+placement rule. **Export is disabled whenever the REAL library is empty**
+(`savedStore.count() === 0`) — Built-in patterns (below) were never in the
+store, so an empty personal library still has nothing of its own to export
+even once Built-ins exist. **The Load pill diverges from that same session
+40** (see below): it stays enabled whenever there's anything to browse,
+Built-ins included, not just when the personal library is non-empty.
+
+**Pre-loaded patterns** (`builtin-patterns.js`, item 2, session 40): a small,
+hand-picked set of his own patterns — exported from his real library and
+pasted in as data, not authored here — ships with the app as **read-only
+"Built-in" data, never seeded into localStorage**. They survive reinstalls,
+never pollute the real library, and a future release can add more without
+touching anyone's saved items. **The only action on a Built-in row is "Save a
+copy"**, which calls the ordinary `savedStore.save()` — same de-duping, same
+everything a hand save gets, so pressing it twice yields `Name (2)` rather
+than colliding with itself. Shape matches a stored item exactly
+(`name`/`pattern`/`context`/`source`, `folder` never set) so every existing
+renderer (`summarize()`, the Load-list row) treats a Built-in identically to
+a real saved item wherever it only reads. **`v`/`savedAt` are deliberately
+absent** — those are `storage.js`'s own bookkeeping for a real save, and this
+array is never written through that path itself. **Ordered by bpm** (a
+defensible "easy to hard" spread across the tiers, since "Beginner"/
+"Beginner 2"/etc. are his own names, not a schema field) rather than export
+order. **Naming is his real titles**, not feel/technique names — a title is a
+reference, not a reproduction, and the pattern data has no field that could
+hold a specific recording's melody anyway (only chord role strings and
+hand-domain events). **The Load pill's disabled state changed for this**: it
+used to be exactly `count() === 0` ("nothing to load" was exactly "your
+library is empty"); now it's `count() === 0 && BUILTIN_PATTERNS.length ===
+0`, since a fresh install with zero personal saves still has a Built-in group
+to discover — and hiding the pill would hide the one thing meant to be found
+on first launch. (This is why `help.js`'s note that "the Load pill is
+disabled whenever the library is empty, i.e. the first-run state" is now
+mostly historical — it's true only if `BUILTIN_PATTERNS` is ever emptied.)
+
+**Saved-library folders** (item 4b, session 40, paired with item 2 so the
+Built-in group had real content to sit beside): **no separate folder table**
+— a `folder` string field per saved item (absent = unfiled), Finder-tag
+style. A folder is just the distinct set of `folder` values currently in use
+on real items; `storage.js` exposes `setFolder(id, folder)`, `folders()`
+(alphabetical), `renameFolder(oldName, newName)` and `clearFolder(name)` —
+rename/clear are bulk field-updates across whichever items carry that name
+right now, since there's no separate record to keep in sync. **Clearing a
+folder un-files every item in it and never deletes a pattern** — it can only
+reorganize, same principle as import's merge-only behaviour, which is also
+why (his open question, resolved) it needs **no `confirmModal`**: that's
+reserved for actions that can lose data. `save()` only writes the `folder`
+key when one is actually given — a fresh save stays exactly the shape it was
+before folders existed, and `parseImport` carries a source item's `folder`
+through so it travels across export/import too (Finder-tag style: an
+imported "Practice" item just joins the existing "Practice" group, or starts
+one, on the new device).
+- **Load-sheet rendering** (`app.js`): `renderSavedList()` now groups —
+  Built-in first (if any), then one header per real folder in use
+  (alphabetical), then a trailing "Unfiled" group for real items with no
+  folder. **No dead chrome**: folder headers (Unfiled included) only appear
+  once at least one real folder is in use — a user who's never touched
+  folders sees the same flat list as before this shipped, not an "Unfiled"
+  label over every single item. Headers reuse **`.dd-group`'s CSS directly**
+  rather than a new class — the same engraved-legend voice a drum's
+  `<optgroup>` already wears, so a folder and a progression style group read
+  as the same kind of thing (his call, matching the settled design).
+- **Folder headers**: a real folder's Rename/Delete actions are **revealed on
+  tap**, not always visible — `appendGroupHeader()` toggles a hidden
+  `.folder-actions` row. Built-in's and Unfiled's headers are plain, unbuttoned
+  labels: a static data source and the absence of a folder have nothing to
+  rename or delete.
+- **Per-item assignment**: a plain `<select>` per real item (`.folder-select`,
+  under its own `.saved-folder-row` so it never crowds Load/Rename/Delete on a
+  phone width), enhanced by `dropdown.js` — **the same mechanism every other
+  picker in the app already uses**, not a new control paradigm. Options are
+  Unfiled, every folder currently in use, then `"+ New Folder…"`, which
+  prompts via `promptModal` (same as Rename) and commits through `setFolder`.
+  **No `retargetOpenPanel` needed here** — unlike the chord wheel, the
+  default list panel (`renderList` in `dropdown.js`) closes on every single
+  pick, so there's never a stale-select-under-an-open-panel scenario the way
+  there is for a picker that stays open across multiple commits.
+- **Built-ins render as their own group but are never stored via `folder`**
+  — keeps "yours" and "his" data cleanly apart while looking unified, per the
+  settled design in `OPEN_ITEMS.md`.
 
 **A hand-edited pattern shows "Custom," not a stale preset name** (session
 39). `summarize()` (the Load-list sub-line, "E · Travis · Tame") reads
@@ -1102,15 +1199,29 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.6.1, 118/118 green.** Session 37 regenerated `CHORD_REFERENCE.md`'s tables
+**v3.8.0, 124/124 green.** Session 40 shipped items 2 and 4b together —
+pre-loaded patterns and Saved-library folders — closing out the two pieces of
+work `OPEN_ITEMS.md` had been carrying as "next." Two of his notes came in
+first, ahead of him finalizing the patterns export, and shipped as their own
+v3.7.0: BPM now saves with the pattern (same dual-layer tier as swing, so his
+built-in beginner patterns can sit at a slower tempo); manual Save offers
+Overwrite on a name collision instead of always spawning a Finder-style
+`(2)`. Then he sent five of his own real patterns (exported via item 4) as
+the Built-in starter set — `builtin-patterns.js`, read-only, never seeded
+into localStorage, "Save a copy" to bring one into the real library — and
+folders shipped alongside so the Built-in group had somewhere real to sit:
+a `folder` string field per saved item, the Load list grouped with the app's
+existing engraved-section-header idiom, a per-item `dropdown.js`-enhanced
+`<select>` to assign/move/create one, rename/delete on the group header
+(delete un-files, never deletes a pattern). See "Saved library" above for the
+detail. Session 37 regenerated `CHORD_REFERENCE.md`'s tables
 straight from `js/data.js` instead of hand-typing them (a doc-only pass, no
 version bump); session 38 shipped JSON export/import of the Saved library
 (item 4), built ahead of pre-loaded patterns (item 2) so patterns can travel to
-me as a file instead of a screenshot. **Session 39 was his phone review of
-that** — export/import confirmed working, plus two follow-ups (Export/Import
+me as a file instead of a screenshot. Session 39 was his phone review of
+that — export/import confirmed working, plus two follow-ups (Export/Import
 moved onto the Load sheet's title line; a hand-edited pattern shows "Custom"
-instead of a stale preset name) — and folders sized for a future session
-(item 4b in `OPEN_ITEMS.md`), likely paired with pre-loaded patterns. Session
+instead of a stale preset name). Session
 36 removed Pattern length (the generator now
 always makes one distinct bar, per his real-guitar testing) and replaced it with
 ×2 mode — a progression chord can ring for two bars, the grid still shows 4, two
@@ -1141,6 +1252,13 @@ and Unruly, and the app as a whole on the guitar as of v2.13.3. The build order 
 ever goes dead again, and (session 38) whether a real download lands somewhere
 usable in installed-PWA iOS Safari and whether the iOS file picker can select a
 `.json` from Files/iCloud for import — the dev box can't answer either.
+**And (session 40):** the Built-in group and folder rows at real thumb size —
+the dev box confirmed no wrapping/overflow at 375×667 in the Browser pane
+preview, but that's a synthetic viewport, not his hand; whether "Save a
+copy"/folder-assign/the New Folder prompt feel right as taps, not clicks; and
+whether his five Built-in patterns read the way he expects on the grid
+(`Beginner 1`/`2`, `Fine Enough`, `Clawin'`, `Stumped` — bpm-ascending order,
+his own titles verbatim from the export).
 **And on his guitar (session 35):** `F♯6` and `E♭add9` both
 dropped the moving-finger technique for static barres, and `E♭sus4` moved back up
 to frets 6–9 — each replaces a voicing reasoned out only a session or two before.

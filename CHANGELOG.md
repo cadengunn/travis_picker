@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [41](#where-things-stand-session-41--v380-2026-08-04) | **v3.8.0** | items 2 and 4b together: five of his own patterns (exported via item 4) shipped as a read-only "Built-in" group in the Load sheet (`builtin-patterns.js`, never seeded into localStorage); Saved-library folders alongside, built to the shape agreed in session 39 — a `folder` field, grouped Load list, per-item assign dropdown, rename/delete on the group header |
 | [40](#where-things-stand-session-40--v370-2026-08-04) | **v3.7.0** | two of his notes ahead of finalizing the pre-loaded-patterns export: BPM now saves with the pattern (same dual-layer tier as swing, so his beginner built-ins can sit at a slower tempo than the intermediate ones); the manual Save flow offers Overwrite on a name collision instead of always spawning a Finder-style "(2)" — import's merge-only behaviour is untouched |
 | [39](#where-things-stand-session-39--v361-2026-08-04) | **v3.6.1** | his phone review of v3.6.0's export/import — confirmed working; two follow-ups actioned (Export/Import moved onto the Load sheet's title line, a hand-edited pattern's Load-list line shows "Custom" instead of its stale preset names) and folders sized for a future session |
 | [38](#where-things-stand-session-38--v360-2026-08-04) | **v3.6.0** | JSON export/import of the Saved library (item 4) — library-wide export, merge-only import, built first so patterns for item 2 (pre-loaded patterns) can travel as a file instead of a screenshot |
@@ -63,6 +64,85 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 41 — v3.8.0, 2026-08-04)
+
+Items 2 and 4b, shipped together as planned. He sent his exported library
+(`travispickerlibrary20260805.json`, five items) with "All of these are to be
+included" — no picking needed, the whole file became the Built-in set.
+
+**Pre-loaded patterns** (`js/builtin-patterns.js`, item 2): his five patterns
+— Beginner 1, Beginner 2, Fine Enough, Clawin', Stumped, his real titles —
+copied verbatim from the export (pattern + context dropped `v`/`savedAt`,
+storage.js's own bookkeeping for a real save that this array never goes
+through) and given namespaced ids (`builtin:beginner-1`, etc.) so they can
+never collide with a real saved item's UUID. **Ordered by bpm** (90, 90, 170,
+200, 220) rather than export order — a defensible easy-to-hard spread across
+the tiers, since "Beginner"/"Beginner 2" are his own names, not something the
+data encodes. They render as their own read-only "Built-in" group at the top
+of the Load sheet; the only action is "Save a copy," which calls the ordinary
+`savedStore.save()` — same de-duping as a hand save, so pressing it twice
+yields `Name (2)` rather than colliding with itself. **Never seeded into
+localStorage** — the array IS the data, so it survives a reinstall, never
+pollutes the real library, and a future release can add more without
+touching anyone's saved items. Two knock-on fixes this needed: `sw.js`'s
+`PRECACHE` had to gain the new module (caught by the existing "every runtime
+module cached" test — exactly the failure mode that test exists for); and the
+Load pill's disabled condition changed from `count() === 0` to `count() ===
+0 && BUILTIN_PATTERNS.length === 0`, since a fresh install with zero personal
+saves still has a Built-in group worth discovering, and hiding the pill would
+hide the one thing meant to be found on first launch. Export stays tied to
+the real library only, unchanged — Built-ins were never in the store, so an
+empty personal library still has nothing of its own to export.
+
+**Saved-library folders** (item 4b), built to the shape agreed in session 39,
+no changes needed to the design: a `folder` string field per saved item
+(absent = unfiled, Finder-tag style — no separate folder table, matching how
+`context` already avoids schema). `storage.js` gained `setFolder(id,
+folder)`, `folders()` (the distinct names in use, alphabetical),
+`renameFolder(oldName, newName)` and `clearFolder(name)` — rename/clear are
+bulk field-updates across whichever items currently carry that name, since
+there's nothing else to keep in sync. **Deleting a folder un-files every item
+in it and never deletes a pattern** — the one open design question from
+session 39, resolved to *no `confirmModal`*, same reasoning as import needing
+none: it can only reorganize, never lose data. `parseImport` now carries a
+source item's `folder` through too, so folders travel across export/import
+the same Finder-tag way — an imported "Practice" item just joins the existing
+"Practice" group on the new device, or starts one.
+
+`app.js`'s `renderSavedList()` now groups: Built-in first, then one header
+per real folder in use (alphabetical), then a trailing "Unfiled" group for
+real items with no folder — **but only once at least one real folder
+actually exists.** No dead chrome: a user who's never touched folders sees
+the exact flat list this replaced, not an "Unfiled" label sitting over every
+single item. Headers reuse **`.dd-group`'s CSS directly** rather than a new
+class — the same engraved-legend voice a drum's `<optgroup>` already wears,
+so a folder and a progression style group read as the same kind of thing.
+Real folders get Rename/Delete, revealed on tap (`.folder-actions`, hidden by
+default); Built-in's and Unfiled's headers are plain, unbuttoned labels — a
+static data source and the absence of a folder have nothing to rename or
+delete. Per-item assignment is a plain `<select>` (`.folder-select`, its own
+row under Load/Rename/Delete so four controls never crowd a phone width),
+enhanced by `dropdown.js` — the same mechanism every other picker in the app
+already uses, not a new paradigm. Options are Unfiled, every folder in use,
+then "+ New Folder…", which prompts via `promptModal` (same as Rename).
+**No `retargetOpenPanel` needed**, unlike the chord wheel: the default list
+panel closes on every single pick, so there's never a stale-select-under-an-
+open-panel moment to guard against.
+
+124/124 (120 → 124: real unit tests for the four new `storage.js` folder
+methods, folder round-tripping through `save()`/`parseImport`, and
+`builtin-patterns.js`'s data integrity — every chord id real, every bar
+obeying the hard rule, checked the same way `js/data.js` itself is, since the
+file has no DOM dependency; plus one source-level test for the `app.js`
+wiring, since `renderSavedList()`/`appendSavedRow()` read live DOM the same
+way `saveCurrent()` does). Manually driven end-to-end in the Browser pane
+too: Built-in group renders and "Save a copy" works; assigning a new folder
+via "+ New Folder…" groups the list correctly; the folder header's Rename/
+Delete reveal on tap and Delete correctly un-files without touching the
+pattern; no wrapping or overflow at a synthetic 375×667. **Nothing on this is
+confirmed on his actual phone yet** — see `OPEN_ITEMS.md`'s "On the phone
+right now" section for exactly what's outstanding.
 
 ## Where things stand (session 40 — v3.7.0, 2026-08-04)
 

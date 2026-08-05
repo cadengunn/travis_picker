@@ -98,12 +98,14 @@ function position(pop, anchor) {
 }
 
 // A DISABLED control emits no click at all, so it would be a dead tap in a mode
-// whose promise is "tap anything". That is not a corner case here: the Load pill
-// is disabled whenever the library is empty — the first-run state, i.e. exactly
-// the person most likely to be reading help — and the capo's −/+ disable at
-// their end stops. Help mode already guarantees that nothing acts, so `disabled`
-// has no job while it's armed: lift it, remember what we lifted, put it back on
-// exit. `aria-disabled` keeps the state truthful to assistive tech meanwhile.
+// whose promise is "tap anything". That is not a corner case here: the Export
+// button is disabled whenever the real library is empty — the first-run state,
+// i.e. exactly the person most likely to be reading help (the Load pill used to
+// be this example too, until Built-in patterns, session 40, meant it's almost
+// never disabled now) — and the capo's −/+ disable at their end stops. Help mode
+// already guarantees that nothing acts, so `disabled` has no job while it's
+// armed: lift it, remember what we lifted, put it back on exit. `aria-disabled`
+// keeps the state truthful to assistive tech meanwhile.
 const LIFTED = "data-help-lifted";
 
 function liftDisabled(doc) {

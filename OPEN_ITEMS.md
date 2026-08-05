@@ -17,6 +17,44 @@ so it isn't re-litigated.
 
 ---
 
+## On the phone right now (v3.8.0) — pre-loaded patterns and folders
+
+**Session 40 closed out both item 2 and item 4b**, the two things this file
+had been carrying as "next" since session 39. Two of his notes shipped first
+as v3.7.0 (not carried here as their own item — small enough to fold into the
+same session write-up in `CHANGELOG.md`): BPM now saves with the pattern,
+same tier as swing; the manual Save flow offers Overwrite on a name
+collision instead of always spawning a `(2)`.
+
+Then, using that Overwrite fix and BPM-with-pattern, he built and exported
+five of his own patterns as the Built-in starter set: **Beginner 1, Beginner
+2, Fine Enough, Clawin', Stumped** — his real titles, ordered bpm-ascending
+(90/90/170/200/220) as a defensible easy-to-hard spread. They render as a
+read-only "Built-in" group at the top of the Load sheet with a "Save a copy"
+button each, exactly the design settled in session 39. Folders shipped
+alongside, not standalone, because the two designs were meant to integrate:
+a `folder` field per saved item, the Load list grouped with the app's
+existing engraved-section-header look, a per-item dropdown to
+assign/move/create a folder, rename/delete on the group header. Full detail
+in `CLAUDE.md`'s "Saved library" section.
+
+**What's waiting on his phone:** everything — this shipped and was pushed,
+but not yet confirmed working on a real device. Specifically: whether the
+Built-in group and the per-item folder rows are legible and tappable at real
+thumb size (the dev box confirmed no wrapping at a synthetic 375×667, which
+isn't the same as his hand); whether "Save a copy," the folder-assign
+dropdown and the "+ New Folder…" prompt all feel like the rest of the app's
+touch language; and whether his five patterns play back the way he expects.
+
+**One design detail resolved along the way, not left as a question:**
+whether deleting a folder needs a `confirmModal` — no, same reasoning as
+import needing none, since it can only un-file, never lose, a pattern.
+
+124/124 green (120 → 124: three new `storage.js`/`builtin-patterns.js`
+tests plus one source-level test for the `app.js` wiring).
+
+---
+
 ## Previously on the phone (v3.5.2) — signed off, ×2 confirmed
 
 **Resolved, session 39.** His words: "×2 mode musically works, pass lamps
@@ -1027,23 +1065,13 @@ to `Cmaj`, no pitch class ⇒ the numeral reads `?` and the capo tag blanks), an
 
 ## Medium
 
-### 2. Pre-loaded patterns — OPEN, design already settled
-Ship a set of good starting patterns as **read-only "Built-in" data** in the Load
-sheet, with "save a copy" — *not* seeded into localStorage. That way they survive
-reinstalls, never pollute your real library, and updates can add more. Fits the
-"favourites as a folder within Saved" idea, and it inherits the capo context
-field for free.
-
-**Probably the best-value item on the list**, and the only big-ish one with no
-decision blocking it. The one thing I'd want from you is the *patterns* — either
-a handful you've saved and like, or a nod to pick a spread across the tiers.
-**Item 4 (export) shipped specifically to make this reliable** — export your
-library and send the file rather than screenshots, no transcription risk.
-Naming: real names (his call, e.g. "The Claw," "Stumpwater") — feel/technique
-names were the lower-risk default, but the picking pattern itself can't
-reproduce a specific recording's melody (there's no field for one; only chord
-role strings and hand-domain events), and a title alone is a reference, not a
-reproduction, commercial use or not.
+### 2. Pre-loaded patterns — DONE (session 40, v3.8.0)
+Shipped as `builtin-patterns.js`: five of his own patterns (Beginner 1,
+Beginner 2, Fine Enough, Clawin', Stumped — his real titles), exported via
+item 4 and sent as a file, read-only "Built-in" data in the Load sheet,
+"Save a copy" the only action. Not seeded into localStorage. See
+`CLAUDE.md`'s "Saved library" section and the "On the phone right now"
+section above for what's still waiting on his device.
 
 ### 3. Swing — DONE (v2.13.2)
 One **SWING** slider on the Generation page, 50–75%, smooth like the Tempo one.
@@ -1070,39 +1098,17 @@ the sheet's own title line (matching the Options sheet's Setup/Preferences
 tabs, no jewel/latch); a hand-edited pattern's Load-list line now shows
 "Custom" instead of its stale original bass/fingers preset names.
 
-### 4b. Saved-library folders — OPEN, design sized and agreed (session 39)
-His ask, discussed and shaped but **not built** — deliberately deferred to its
-own session, likely paired with item 2 (pre-loaded patterns) so the Built-in
-folder has real content from the start rather than shipping empty.
-
-**The shape, agreed:**
-- A `folder` string field per saved item (`null`/absent = unfiled). **No
-  separate folder table** — folders are the distinct set of names in use,
-  Finder-tag style, matching how `storage.js` already avoids schema
-  ("`context` is a plain object... a data-shape convention enforced by
-  callers, not code").
-- **Load list**: grouped with a small header row per folder, reusing the
-  app's existing "engraved section header" idiom (the same mechanism the
-  progression/quality drum menus already use for their style groups) —
-  "Unfiled" trailing. Deliberately not a drill-down folder browser: one
-  screen, no back button, consistent with the rest of the app.
-- **Assigning/moving a pattern**: a per-item `<select>`, enhanced by the
-  existing `dropdown.js` (the same mechanism every other picker in the app
-  already uses) — Unfiled + existing folder names + "+ New Folder…"
-  (prompted via `promptModal`, same as Rename). No new UI paradigm.
-- **Built-in patterns stay separate** — a read-only, static data source (per
-  item 2's already-settled design), rendered as its own folder-like group at
-  the top of the same list, but never stored via the `folder` field. Keeps
-  "yours" and "built-in" data cleanly apart while looking unified.
-- **Folder rename/delete**: lives on the group header itself (tap → a small
-  Rename/Delete action set). **Delete un-files its items, never deletes the
-  patterns** — non-destructive, same principle as import being a merge rather
-  than a replace.
-
-Open detail not yet nailed down: whether deleting a folder needs a
-`confirmModal` (it can't lose data, only reorganizes — so probably not, same
-reasoning as import needing none — but worth a beat of thought when this is
-actually built, since it does touch many items at once).
+### 4b. Saved-library folders — DONE (session 40, v3.8.0)
+Shipped exactly to the shape agreed in session 39 — a `folder` string field
+per saved item, no separate folder table, the Load list grouped with the
+app's existing engraved-section-header idiom, a per-item `dropdown.js`-
+enhanced `<select>` to assign/move/create a folder, rename/delete on the
+group header. Paired with item 2 as planned, so the Built-in group renders as
+its own folder-like group at the top of the same list. The one open detail —
+whether deleting a folder needs a `confirmModal` — resolved to **no**, same
+reasoning as import needing none. See `CLAUDE.md`'s "Saved library" section
+for the built detail and the "On the phone right now" section above for
+what's still waiting on his device.
 
 ### 5. App icon: full bleed — OPEN, needs regenerated art
 The icon is done and signed off (v2.9.2, built from Jerry's own theme values).

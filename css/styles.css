@@ -1633,6 +1633,50 @@ main {
 }
 .saved-empty { color: var(--muted); font-family: var(--serif); font-size: 15px; padding: 10px 2px; }
 
+/* Load-sheet group headers (items 2 + 4b: the Built-in group, real folders,
+   trailing Unfiled). `.folder-name` reuses `.dd-group` directly rather than
+   re-declaring its type — the same engraved-legend voice a drum's <optgroup>
+   already wears, so a folder and a progression style group read as the same
+   kind of thing. Real folders get Rename/Delete; Built-in and Unfiled are
+   plain, unbuttoned labels (a static data source and the absence of a folder
+   have nothing to rename or delete). */
+.folder-header { padding: 0; }
+.folder-header .folder-name { display: block; padding: 10px 2px 4px; }
+.folder-header:first-child .folder-name { padding-top: 2px; }
+.folder-header-btn { display: block; width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left; }
+.folder-actions { display: flex; gap: 8px; padding: 0 2px 6px; }
+.folder-actions button {
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 245, 225, 0.10), rgba(0, 0, 0, 0.14)), var(--control);
+  box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.34);
+}
+.folder-actions button:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
+
+/* The per-item folder-assign select rides its own row under Load/Rename/
+   Delete (`grid-column: 1 / -1` — .saved-item's grid otherwise reads left to
+   right across that same row) so four controls never crowd a phone width.
+   Its trigger needs its own small "well" — bare .dd-trigger has no box at
+   all outside a .field, which sizes its wells for the Options sheet's
+   full-width controls, not a line tucked inside a saved-item card. */
+.saved-folder-row { grid-column: 1 / -1; }
+.saved-folder-row .dd-trigger {
+  width: auto;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 var(--bevel-hi);
+}
+
 /* ---- custom dropdowns (replace the native <select> open picker) ----
    The native <select> stays in the DOM (display:none) as the value/source of
    truth; a .dd-trigger button + a body-level .dd-panel listbox provide the UI in

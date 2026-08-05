@@ -64,8 +64,12 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
       return readAll().find((i) => i.id === id) || null;
     },
 
-    // { name, pattern, context, source } -> the stored item
-    save({ name, pattern, context, source = "generated" }) {
+    // { name, pattern, context, source, folder } -> the stored item. `folder`
+    // is OMITTED, not written as null, when absent — Finder-tag style, same
+    // "absent = unfiled" convention item.capo used before it was content: a
+    // fresh save never has one until you assign it, and the import path only
+    // sets it when the source item actually carried one (see parseImport).
+    save({ name, pattern, context, source = "generated", folder = null }) {
       const items = readAll();
       const base = (name || "").trim() || "Untitled";
       const item = {
@@ -77,6 +81,7 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
         pattern,
         context,
       };
+      if (folder) item.folder = folder;
       items.push(item);
       return writeAll(items) ? item : null;
     },
@@ -121,6 +126,60 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
       item.source = source;
       item.savedAt = new Date().toISOString();
       return writeAll(items) ? item : null;
+    },
+
+    // ----- folders (item 4b) -----
+    // No separate folder table, Finder-tag style: a folder is just the
+    // distinct set of `folder` strings actually in use on items right now.
+    // Renaming or deleting one is therefore a bulk field-update across
+    // whichever items currently carry that name, not an edit to a record of
+    // its own — there's nothing else to keep in sync.
+
+    // Assign/move/unfile one item. `folder` null or blank means Unfiled —
+    // stored as an ABSENT field (not `null`), so an item's shape stays
+    // exactly what save() already produces for one that's never been filed.
+    setFolder(id, folder) {
+      const items = readAll();
+      const item = items.find((i) => i.id === id);
+      if (!item) return false;
+      const clean = (folder || "").trim();
+      if (clean) item.folder = clean; else delete item.folder;
+      return writeAll(items);
+    },
+
+    // Distinct folder names in use, alphabetical — the Load list's group
+    // order and the per-item assign-select's option list both read this.
+    folders() {
+      const set = new Set();
+      for (const i of readAll()) if (i.folder) set.add(i.folder);
+      return [...set].sort((a, b) => a.localeCompare(b));
+    },
+
+    // Every item in `oldName` moves to `newName` (or merges into it, if that
+    // name's already in use — Finder-tag style, there's no id to collide on).
+    // A blank new name, or an old name nothing currently carries, is a no-op.
+    renameFolder(oldName, newName) {
+      const clean = (newName || "").trim();
+      if (!clean) return false;
+      const items = readAll();
+      let touched = false;
+      for (const i of items) {
+        if (i.folder === oldName) { i.folder = clean; touched = true; }
+      }
+      if (!touched) return false;
+      return writeAll(items);
+    },
+
+    // Un-files every item in `name` — deleting a folder can only reorganize,
+    // never lose a pattern, same principle as import's merge-only behaviour.
+    clearFolder(name) {
+      const items = readAll();
+      let touched = false;
+      for (const i of items) {
+        if (i.folder === name) { delete i.folder; touched = true; }
+      }
+      if (!touched) return false;
+      return writeAll(items);
     },
   };
 }
@@ -185,6 +244,10 @@ export function parseImport(raw) {
         pattern: entry.pattern,
         context: entry.context && typeof entry.context === "object" ? entry.context : {},
         source: entry.source === "drawn" ? "drawn" : "generated",
+        // Folders (item 4b) travel across export/import too — Finder-tag
+        // style, so an imported item with `folder: "Practice"` just joins
+        // that folder on the new device, creating the group if it's new.
+        folder: typeof entry.folder === "string" ? entry.folder : null,
       });
     } else {
       skipped++;

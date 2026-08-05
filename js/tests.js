@@ -54,6 +54,7 @@ import {
 import * as GeneratorExports from "./generator.js";
 import * as DataExports from "./data.js";
 import { createStore, buildExport, parseImport } from "./storage.js";
+import { BUILTIN_PATTERNS } from "./builtin-patterns.js";
 import { toggleNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
 import { renderGrid, passLampSelector } from "./grid.js";
 import {
@@ -1244,6 +1245,103 @@ check("import merges into an existing library with Finder-style de-dupe", () => 
   const names = dest.list().map((i) => i.name).sort();
   assert(JSON.stringify(names) === JSON.stringify(["Lick", "Lick (2)"]),
     `duplicate name on import should get the (2) suffix, got ${JSON.stringify(names)}`);
+});
+
+// 10c) Folders (item 4b): no separate table — a folder is just the distinct
+// set of `folder` strings in use, so rename/delete are bulk field-updates.
+check("saved: folders — setFolder, folders(), renameFolder, clearFolder", () => {
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("C", { rng: seeded(30) });
+  const ctx = { chordMode: "single", chord: "C", key: "C", progression: [] };
+  const a = store.save({ name: "a", pattern, context: ctx });
+  const b = store.save({ name: "b", pattern, context: ctx });
+  const c = store.save({ name: "c", pattern, context: ctx });
+
+  assert(store.folders().length === 0, "a fresh library has no folders");
+  assert(store.get(a.id).folder === undefined, "a fresh item has no folder field at all");
+
+  assert(store.setFolder(a.id, "Practice") === true, "setFolder should report success");
+  assert(store.setFolder(b.id, "  Practice  ") === true, "setFolder should trim");
+  assert(store.get(b.id).folder === "Practice", "setFolder should trim before storing");
+  assert(JSON.stringify(store.folders()) === JSON.stringify(["Practice"]),
+    "folders() should list each distinct name once");
+  assert(store.setFolder("nope", "Practice") === false, "setFolder on an unknown id should report false");
+
+  store.setFolder(c.id, "Warmups");
+  assert(JSON.stringify(store.folders()) === JSON.stringify(["Practice", "Warmups"]),
+    "folders() should be alphabetical");
+
+  // un-filing: blank/null clears the field back to absent, not to null
+  assert(store.setFolder(a.id, "") === true);
+  assert(store.get(a.id).folder === undefined, "clearing a folder should delete the field, not null it");
+  assert(JSON.stringify(store.folders()) === JSON.stringify(["Practice", "Warmups"]),
+    "Warmups (c) and Practice (b) still in use — a's clear shouldn't affect them");
+
+  assert(store.renameFolder("Practice", "Session") === true, "renameFolder should report success");
+  assert(store.get(b.id).folder === "Session", "renameFolder should move every item in the old name");
+  assert(store.renameFolder("Nothing Here", "X") === false,
+    "renameFolder on a name nothing carries should be a no-op");
+  assert(store.renameFolder("Warmups", "  ") === false, "renameFolder to a blank name should be a no-op");
+
+  assert(store.clearFolder("Session") === true, "clearFolder should report success");
+  assert(store.get(b.id).folder === undefined, "clearFolder should un-file every item in it");
+  assert(store.count() === 3, "clearFolder must never delete a pattern, only un-file it");
+  assert(store.clearFolder("Session") === false, "clearing an already-empty folder should report false");
+});
+
+check("saved: save() only sets folder when given one; parseImport carries folder through", () => {
+  const store = createStore("test", memoryStorage());
+  const pattern = generatePattern("C", { rng: seeded(31) });
+  const ctx = { chordMode: "single", chord: "C", key: "C", progression: [] };
+
+  const plain = store.save({ name: "plain", pattern, context: ctx });
+  assert(!("folder" in plain), "save() without a folder must not write the field at all");
+  const filed = store.save({ name: "filed", pattern, context: ctx, folder: "Practice" });
+  assert(filed.folder === "Practice", "save() should set folder when one is given");
+
+  const exported = JSON.stringify(buildExport([filed]));
+  const result = parseImport(exported);
+  assert(result.ok && result.items.length === 1, "a real export should parse as ok");
+  assert(result.items[0].folder === "Practice", "parseImport should carry folder through");
+
+  const noFolder = parseImport(JSON.stringify(buildExport([plain])));
+  assert(noFolder.items[0].folder === null, "parseImport should read a missing folder as null, not undefined");
+});
+
+// 10d) Pre-loaded patterns (item 2): read-only starter data, never written to
+// localStorage. Real data-integrity checks, not source-level ones — this file
+// has no DOM/app.js dependency, so it's tested the same way js/data.js is.
+check("builtin patterns: well-shaped, valid chords, and obey the hard rule", () => {
+  assert(BUILTIN_PATTERNS.length > 0, "there should be at least one built-in pattern");
+  const ids = new Set();
+  for (const item of BUILTIN_PATTERNS) {
+    assert(typeof item.id === "string" && item.id.startsWith("builtin:"),
+      `builtin id should be namespaced, got "${item.id}"`);
+    assert(!ids.has(item.id), `duplicate builtin id "${item.id}"`);
+    ids.add(item.id);
+    assert(typeof item.name === "string" && item.name.trim(), `builtin "${item.id}" needs a name`);
+    assert(item.source === "drawn" || item.source === "generated",
+      `builtin "${item.id}" has an invalid source`);
+    assert(!("v" in item) && !("savedAt" in item) && !("folder" in item),
+      `builtin "${item.id}" must not carry storage.js's own bookkeeping fields`);
+
+    const ctx = item.context;
+    assert(CHORDS[ctx.chord], `builtin "${item.id}" context chord "${ctx.chord}" is not a real chord`);
+    for (const c of ctx.progression || []) {
+      assert(CHORDS[c], `builtin "${item.id}" progression chord "${c}" is not a real chord`);
+    }
+    assert(typeof ctx.bpm === "number" && ctx.bpm >= 40 && ctx.bpm <= 240,
+      `builtin "${item.id}" bpm out of range`);
+
+    // Same hard rule every generated pattern is held to (check 1): no two
+    // events share (slot, string) in the merged bar these actually render.
+    const seen = new Set();
+    for (const ev of item.pattern.bars[0]) {
+      const key = `${ev.slot}:${ev.string}`;
+      assert(!seen.has(key), `builtin "${item.id}" collides at ${key}`);
+      seen.add(key);
+    }
+  }
 });
 
 // 11) Manual editor: tap inference, add/remove, shared-cell editing, and the
@@ -3561,6 +3659,39 @@ acheck("app: bpm saves with the pattern, and overwrite is offered on a name coll
     "declining the overwrite must abort the save, not fall through to a duplicate");
   assert(/savedStore\.update\(existing\.id/.test(save),
     "confirming the overwrite must update the existing item in place, not create a new one");
+});
+
+acheck("app: Built-in patterns and folders render as grouped, and folder edits go through storage.js", async () => {
+  // Same reasoning again: renderSavedList()/appendSavedRow()/refreshSavedCount()
+  // read live DOM and drive dropdown.js/modal.js, so this is app.js glue,
+  // asserted against the source. builtin-patterns.js itself has no such
+  // excuse and is checked for real above ("builtin patterns: well-shaped…").
+  const appjs = await (await fetch("js/app.js")).text();
+
+  assert(/import \{ BUILTIN_PATTERNS \} from ".\/builtin-patterns\.js";/.test(appjs),
+    "app.js must import the built-in patterns, not just builtin-patterns.js knowing about itself");
+
+  const render = appjs.match(/function renderSavedList\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/BUILTIN_PATTERNS\.length/.test(render) && /appendBuiltinRow/.test(render),
+    "renderSavedList() must render the Built-in group when there's data to show");
+  assert(/savedStore\.folders\(\)/.test(render) && /appendGroupHeader/.test(render),
+    "renderSavedList() must group real items by folder, not just list them flat");
+  assert(/enhanceAll\(list\)/.test(render),
+    "the per-item folder <select>s are rebuilt every call and must be re-enhanced, same as the per-bar chord selects");
+
+  const row = appjs.match(/function appendSavedRow\(list, item, folders\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/savedStore\.setFolder\(/.test(row),
+    "the per-item folder select must commit through storage.js's setFolder, not just move DOM around");
+
+  const header = appjs.match(/function appendGroupHeader\(list, name, \{ folder = false \} = \{\}\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/savedStore\.renameFolder\(/.test(header) && /savedStore\.clearFolder\(/.test(header),
+    "a folder's header must rename/delete through storage.js, not hand-roll its own bulk edit");
+  assert(!/confirmModal/.test(header.match(/del\.addEventListener[\s\S]*?\}\);/)?.[0] || ""),
+    "deleting a folder only un-files its items, never loses one, so it needs no confirmModal (same as import)");
+
+  const count = appjs.match(/function refreshSavedCount\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/BUILTIN_PATTERNS\.length/.test(count),
+    "the Load pill must stay enabled when Built-ins exist, even with an empty personal library");
 });
 
 // ---- render report ----

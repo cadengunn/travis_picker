@@ -36,6 +36,7 @@ import {
 import { renderGrid, passLampSelector } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
 import { savedStore, buildExport, parseImport } from "./storage.js";
+import { BUILTIN_PATTERNS } from "./builtin-patterns.js";
 import { toggleNote } from "./editor.js";
 import {
   createMetronome,
@@ -64,7 +65,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.7.0";
+const APP_VERSION = "v3.8.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -996,16 +997,234 @@ function refreshSavedCount() {
   const label = n ? `Load pattern (${n} saved)` : "Load pattern";
   el("open-load").setAttribute("aria-label", label);
   el("open-load").title = n ? `Load (${n} saved)` : "Load";
-  el("open-load").disabled = n === 0;
+  // The Load pill's disabled state used to just be n === 0 — "nothing to
+  // load" was exactly "your library is empty". Item 2 (Built-in patterns)
+  // means that's no longer true even on a fresh install with zero personal
+  // saves: there's a Built-in group to browse regardless, and disabling the
+  // pill would hide the one thing meant to be discoverable from first launch.
+  el("open-load").disabled = n === 0 && BUILTIN_PATTERNS.length === 0;
+  // Export stays tied to the real library only — Built-ins aren't stored, so
+  // there's nothing of theirs an empty personal library could export.
   el("export-btn").disabled = n === 0;
+}
+
+// Sentinel option value for the per-item folder <select>'s trailing "+ New
+// Folder…" entry — UI-local, never written to storage.js (setFolder always
+// gets called with a real typed name or not at all), so it only has to avoid
+// colliding with a real folder name, not with anything storage.js knows about.
+const NEW_FOLDER_OPTION = "__new_folder__";
+
+// A group header row: real folders get Rename/Delete (revealed on tap, per
+// his settled design — the actions stay out of the way until you ask), "Built-
+// in" and "Unfiled" are plain labels (there's nothing to rename/delete about
+// either: Built-in is static data, Unfiled is the absence of a folder). Wears
+// the app's existing engraved-section-header idiom (`.dd-group`, the same
+// class an <optgroup> becomes in a drum's list panel) rather than a new one.
+function appendGroupHeader(list, name, { folder = false } = {}) {
+  const li = document.createElement("li");
+  li.className = "folder-header";
+
+  if (!folder) {
+    const label = document.createElement("span");
+    label.className = "folder-name dd-group";
+    label.textContent = name;
+    li.appendChild(label);
+    list.appendChild(li);
+    return;
+  }
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "folder-header-btn";
+  const label = document.createElement("span");
+  label.className = "folder-name dd-group";
+  label.textContent = name;
+  btn.appendChild(label);
+  li.appendChild(btn);
+
+  const actions = document.createElement("div");
+  actions.className = "folder-actions";
+  actions.hidden = true;
+
+  const rename = document.createElement("button");
+  rename.type = "button";
+  rename.textContent = "Rename";
+  rename.addEventListener("click", async () => {
+    const next = await promptModal({
+      title: "Rename folder",
+      message: `New name for "${name}"`,
+      value: name,
+      confirmText: "Rename",
+    });
+    if (next == null) return;
+    if (!savedStore.renameFolder(name, next)) return;
+    renderSavedList();
+  });
+
+  // Deleting a folder can only reorganize, never lose a pattern (it un-files
+  // every item in it), same principle as import's merge-only behaviour — so,
+  // like import, it needs no confirmModal.
+  const del = document.createElement("button");
+  del.type = "button";
+  del.textContent = "Delete";
+  del.addEventListener("click", () => {
+    savedStore.clearFolder(name);
+    renderSavedList();
+  });
+
+  actions.append(rename, del);
+  li.appendChild(actions);
+  btn.addEventListener("click", () => { actions.hidden = !actions.hidden; });
+
+  list.appendChild(li);
+}
+
+// A real, personal saved item's row — unchanged from before folders existed,
+// plus its own folder-assignment row underneath (a second grid row, so it
+// never crowds Load/Rename/Delete on a phone width).
+function appendSavedRow(list, item, folders) {
+  const li = document.createElement("li");
+  li.className = "saved-item";
+
+  const meta = document.createElement("div");
+  meta.className = "saved-meta";
+  const name = document.createElement("div");
+  name.className = "saved-name";
+  name.textContent = item.name;
+  const sub = document.createElement("div");
+  sub.className = "saved-sub";
+  sub.textContent = summarize(item);
+  meta.append(name, sub);
+
+  const load = document.createElement("button");
+  load.className = "load";
+  load.type = "button";
+  load.textContent = "Load";
+  load.addEventListener("click", () => loadSaved(item.id));
+
+  const rename = document.createElement("button");
+  rename.type = "button";
+  rename.textContent = "Rename";
+  rename.addEventListener("click", async () => {
+    const next = await promptModal({
+      title: "Rename pattern",
+      message: `New name for "${item.name}"`,
+      value: item.name,
+      confirmText: "Rename",
+    });
+    if (next == null) return; // cancelled
+    if (!savedStore.rename(item.id, next)) return; // blank or write failed
+    // keep the on-screen name in sync if this is the loaded pattern
+    if (state.loaded && state.loaded.id === item.id) {
+      state.loaded.name = next.trim();
+      renderLoadedName();
+    }
+    renderSavedList();
+  });
+
+  const del = document.createElement("button");
+  del.type = "button";
+  del.textContent = "Delete";
+  del.addEventListener("click", async () => {
+    const ok = await confirmModal({
+      title: "Delete pattern",
+      message: `Delete "${item.name}"? This can't be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
+    savedStore.remove(item.id);
+    renderSavedList();
+    refreshSavedCount();
+  });
+
+  li.append(meta, load, rename, del);
+
+  // Folder assignment: a plain <select>, enhanced the same way every other
+  // picker in the app is (dropdown.js) rather than a new control paradigm —
+  // Unfiled, every folder currently in use, then a prompt to create one.
+  const folderRow = document.createElement("div");
+  folderRow.className = "saved-folder-row";
+  const sel = document.createElement("select");
+  sel.className = "folder-select";
+  sel.setAttribute("aria-label", `Folder for "${item.name}"`);
+  sel.add(new Option("Unfiled", ""));
+  for (const f of folders) sel.add(new Option(f, f));
+  sel.add(new Option("+ New Folder…", NEW_FOLDER_OPTION));
+  sel.value = item.folder && folders.includes(item.folder) ? item.folder : "";
+  sel.addEventListener("change", async () => {
+    if (sel.value === NEW_FOLDER_OPTION) {
+      const created = await promptModal({
+        title: "New folder",
+        message: `Move "${item.name}" into a new folder`,
+        confirmText: "Create",
+      });
+      const clean = (created || "").trim();
+      // Cancelled or blank: fall through to a re-render, which resets the
+      // trigger to the item's actual (unchanged) folder rather than leaving
+      // it showing "+ New Folder…", a value nothing was ever committed to.
+      if (clean) savedStore.setFolder(item.id, clean);
+    } else {
+      savedStore.setFolder(item.id, sel.value || null);
+    }
+    renderSavedList();
+  });
+  folderRow.appendChild(sel);
+  li.appendChild(folderRow);
+
+  list.appendChild(li);
+}
+
+// A Built-in row (item 2): read-only starter data, never written to
+// localStorage. Its only action copies it into the real library through the
+// ordinary save() — same de-duping, same everything a hand save gets — so a
+// second copy becomes "Name (2)" rather than colliding with itself.
+function appendBuiltinRow(list, item) {
+  const li = document.createElement("li");
+  li.className = "saved-item";
+
+  const meta = document.createElement("div");
+  meta.className = "saved-meta";
+  const name = document.createElement("div");
+  name.className = "saved-name";
+  name.textContent = item.name;
+  const sub = document.createElement("div");
+  sub.className = "saved-sub";
+  sub.textContent = summarize(item);
+  meta.append(name, sub);
+
+  const copy = document.createElement("button");
+  copy.className = "load";
+  copy.type = "button";
+  copy.textContent = "Save a copy";
+  copy.addEventListener("click", () => {
+    const saved = savedStore.save({
+      name: item.name,
+      pattern: item.pattern,
+      context: item.context,
+      source: item.source,
+    });
+    // The Load sheet's own status line, shared with import (both are
+    // library-wide actions that need one place to report what happened).
+    el("import-hint").textContent = saved
+      ? `Saved a copy of "${saved.name}".`
+      : "Couldn't save — browser storage is unavailable or full.";
+    renderSavedList();
+    refreshSavedCount();
+  });
+
+  li.append(meta, copy);
+  list.appendChild(li);
 }
 
 function renderSavedList() {
   const list = el("saved-list");
   list.innerHTML = "";
   const items = savedStore.list();
+  const folders = savedStore.folders();
 
-  if (!items.length) {
+  if (!items.length && !BUILTIN_PATTERNS.length) {
     const li = document.createElement("li");
     li.className = "saved-empty";
     li.textContent = "Saved patterns will appear here.";
@@ -1013,66 +1232,36 @@ function renderSavedList() {
     return;
   }
 
-  for (const item of items) {
-    const li = document.createElement("li");
-    li.className = "saved-item";
-
-    const meta = document.createElement("div");
-    meta.className = "saved-meta";
-    const name = document.createElement("div");
-    name.className = "saved-name";
-    name.textContent = item.name;
-    const sub = document.createElement("div");
-    sub.className = "saved-sub";
-    sub.textContent = summarize(item);
-    meta.append(name, sub);
-
-    const load = document.createElement("button");
-    load.className = "load";
-    load.type = "button";
-    load.textContent = "Load";
-    load.addEventListener("click", () => loadSaved(item.id));
-
-    const rename = document.createElement("button");
-    rename.type = "button";
-    rename.textContent = "Rename";
-    rename.addEventListener("click", async () => {
-      const next = await promptModal({
-        title: "Rename pattern",
-        message: `New name for "${item.name}"`,
-        value: item.name,
-        confirmText: "Rename",
-      });
-      if (next == null) return; // cancelled
-      if (!savedStore.rename(item.id, next)) return; // blank or write failed
-      // keep the on-screen name in sync if this is the loaded pattern
-      if (state.loaded && state.loaded.id === item.id) {
-        state.loaded.name = next.trim();
-        renderLoadedName();
-      }
-      renderSavedList();
-    });
-
-    const del = document.createElement("button");
-    del.type = "button";
-    del.textContent = "Delete";
-    del.addEventListener("click", async () => {
-      const ok = await confirmModal({
-        title: "Delete pattern",
-        message: `Delete "${item.name}"? This can't be undone.`,
-        confirmText: "Delete",
-        cancelText: "Cancel",
-        danger: true,
-      });
-      if (!ok) return;
-      savedStore.remove(item.id);
-      renderSavedList();
-      refreshSavedCount();
-    });
-
-    li.append(meta, load, rename, del);
-    list.appendChild(li);
+  if (BUILTIN_PATTERNS.length) {
+    appendGroupHeader(list, "Built-in");
+    for (const b of BUILTIN_PATTERNS) appendBuiltinRow(list, b);
   }
+
+  // No dead chrome: group headers (including "Unfiled") only earn their keep
+  // once at least one real folder is in use. Nobody who's never touched
+  // folders should see an "Unfiled" label over every single item.
+  if (folders.length) {
+    for (const name of folders) {
+      const inFolder = items.filter((i) => i.folder === name);
+      if (!inFolder.length) continue; // folders() only lists names in use; defensive
+      appendGroupHeader(list, name, { folder: true });
+      for (const item of inFolder) appendSavedRow(list, item, folders);
+    }
+    const unfiled = items.filter((i) => !i.folder);
+    if (unfiled.length) {
+      appendGroupHeader(list, "Unfiled");
+      for (const item of unfiled) appendSavedRow(list, item, folders);
+    }
+  } else {
+    for (const item of items) appendSavedRow(list, item, folders);
+  }
+
+  // The per-item folder selects are rebuilt every call, same as the per-bar
+  // chord selects on every render() — idempotent per element via data-dd, and
+  // the default list panel closes on its own commit (see dropdown.js), so
+  // unlike the wheel this needs no retargetOpenPanel: nothing here stays open
+  // across more than one pick.
+  enhanceAll(list);
 }
 
 // Whole-library backup, and how patterns move between devices or to someone
