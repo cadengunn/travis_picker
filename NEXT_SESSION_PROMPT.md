@@ -1,51 +1,47 @@
-# Next session — pre-loaded patterns, and maybe folders
+# Next session — Load screen UI improvements
 
 Copy everything below the line into a new session.
 
 ---
 
-Travis Picker — new session. **v3.6.1 is live and pushed, 118/118 green.** Read
-`CLAUDE.md` first; it's a hub, so follow its pointers rather than reading
-everything.
+Travis Picker — new session. **v3.9.0 is live and pushed, 126/126 green.**
+Read `CLAUDE.md` first; it's a hub, so follow its pointers rather than
+reading everything.
 
-**Nothing is half-built, and nothing is waiting on a phone verdict.**
-Sessions 37–39 all shipped and were confirmed the same day they went out:
-`CHORD_REFERENCE.md`'s tables are generated now, not hand-typed; JSON
-export/import of the Saved library works end to end on his phone; Export/
-Import moved onto the Load sheet's title line and a hand-edited pattern shows
-"Custom" instead of a stale preset name. **This session has two concrete
-pieces of work queued** rather than a blank slate — see below.
+**Nothing is half-built, and everything from the last three sessions is
+confirmed working on his phone** — including the folder system, the
+Built-in patterns, and the Restore button, all tested together in one pass.
+This session has no queued work of its own: **he has a handful of UI
+comments about the Load screen ready to give you** — ask for them directly
+rather than guessing, and don't propose fixes before you've heard the actual
+list. Given the file, don't re-derive its layout from scratch first — the
+summary below is what's there right now.
 
-## What's queued this session
+## What the Load screen looks like right now
 
-**1. Pre-loaded patterns** (`OPEN_ITEMS.md` item 2) — design already settled:
-read-only "Built-in" data in the Load sheet, "save a copy," never seeded into
-localStorage. **He's bringing the patterns himself** — an exported JSON file
-(via the export button, item 4) plus which named items in it to use as the
-starter set. Read the file he attaches, don't ask him to re-describe the
-patterns.
+Shipped across sessions 40–42, all in `js/app.js` unless noted:
 
-**2. Folders** (`OPEN_ITEMS.md` item 4b) — "maybe," his word, so **confirm he
-still wants it this session before starting**, and confirm scope: alone, or
-paired with item 1. The design is already sized and agreed, not up for
-re-litigation unless something about it doesn't survive contact with real
-code:
-- A `folder` string field per saved item (`null`/absent = unfiled) — no
-  separate folder table, Finder-tag style.
-- Load list grouped with a header row per folder, reusing the app's existing
-  engraved-section-header idiom (the same mechanism the progression/quality
-  drum menus already use).
-- A per-item `<select>`, enhanced by the existing `dropdown.js`, to
-  assign/move/create a folder.
-- Folder rename/delete lives on the group header (delete un-files, never
-  deletes a pattern).
+- **Title line** (`#saved-sheet`'s `.sheet-head`): "Load", then three
+  one-shot text buttons — **Export**, **Import**, **Restore** — then the ✕
+  close. Restore disables itself once nothing built-in is missing.
+- **The list** (`renderSavedList()`) groups by folder: one header per real
+  folder in use (alphabetical), a trailing "Unfiled" group for anything
+  without one. Headers wear `.dd-group`'s engraved-legend look (same as a
+  drum's `<optgroup>`); a real folder's header has Rename/Delete, revealed on
+  tap, not always visible.
+- **Every item** (`appendSavedRow()`) is Load / Rename / Delete on its main
+  row, then its own row underneath for a folder-assign `<select>`
+  (`.folder-select`, `dropdown.js`-enhanced) — Unfiled, every folder in use,
+  then "+ New Folder…".
+- **Built-in patterns** (`builtin-patterns.js`, his five: Beginner 1,
+  Beginner 2, Fine Enough, Clawin', Stumped) seed once into the real library
+  on boot, filed into a folder literally named "Built-in" — from then on
+  they're ordinary items, no special-case rendering left at all. An invisible
+  `builtinId` tag survives rename/move and is what Restore uses to tell
+  "edited" from "actually deleted."
 
-**If both ship together, they integrate directly**: Built-in patterns (item 1)
-render as their own read-only, folder-shaped group at the top of the same
-grouped Load list folders (item 4b) introduces — not stored via the `folder`
-field, since they're not really "his," but visually unified with real folders
-rather than a separate UI. This was the whole reason folders was deferred to
-pair with this item instead of shipping standalone.
+Full detail, including the seed-vs-restore split and why it's two separate
+questions, is in `CLAUDE.md`'s "Saved library" section.
 
 ## Still unverified on the guitar, from session 35
 
@@ -61,32 +57,41 @@ Carried forward again — nothing since has touched left-hand voicings:
 ## Ground rules
 
 - **Agree the design before coding**, surface genuine forks, don't guess.
-  Session 39 caught a real one this way: whether "similar to the options
-  toggle" meant promoting Export/Import to the always-visible header (real
-  cost: the capo tag's ~5px margin, the 11px height budget) or restyling them
-  where they already lived (no cost) — asking rather than assuming avoided
-  building the expensive wrong guess.
-- **Tests stay green**; add one for any new invariant. Run `tests.html` in the
-  browser and say the count. It's **118/118** now.
+  Session 42 is the freshest example: the first pre-loaded-patterns design
+  (read-only + "save a copy") shipped, and only his actual use of it surfaced
+  that it cost two library entries for one thing — worth asking "how does
+  this feel once you're using it," not just "does this match the spec,"
+  before calling something done.
+- **Tests stay green**; add one for any new invariant. Run `tests.html` in
+  the browser and say the count. It's **126/126** now.
 - **Any chrome change to the MAIN app view needs the 375×553 re-measure** —
   55.09 / 384.84 / 11.06, clearance against `main.bottom`. The Load/Options
   sheets are body-level overlays and exempt from that specific budget, but
-  still deserve a screenshot sanity check for overflow/wrapping.
+  still deserve a screenshot sanity check for overflow/wrapping — the Load
+  sheet in particular now has real width pressure (Load/Rename/Delete plus a
+  folder-select row per item), worth checking again if this session touches
+  its layout.
 - **Deploy = bump `CACHE` in `sw.js` + `APP_VERSION` in `js/app.js`, push**,
   and he checks on the phone. GitHub noreply identity only.
-- Note the dev-box limits in `CLAUDE.md`. Three earned the hard way across
-  sessions 36–39, worth re-reading before trusting a green check:
-  - **`rAF` is frozen in the preview tab**, so the playhead, the beat lamp and
-    the ×2 pass lamps can only be confirmed on a real device. Say so plainly
-    rather than implying you saw them run.
+- Note the dev-box limits in `CLAUDE.md`. Worth re-reading before trusting a
+  green check or a screenshot:
+  - **`rAF` is frozen in the preview tab**, so the playhead, the beat lamp
+    and the ×2 pass lamps can only be confirmed on a real device. Say so
+    plainly rather than implying you saw them run.
   - **A test that asserts markup SHAPE is not a test of BEHAVIOUR.** The pass
     lamps shipped twice completely dead while a test counting elements and
     reading their attributes passed the whole time. If a feature works by
-    querying, selecting or matching something, the test has to run that query.
+    querying, selecting or matching something, the test has to run that
+    query.
   - **Synthetic `computer`-tool clicks didn't register on some header-style
     buttons in this preview tab** (session 39) — confirmed by checking
     `element.hidden`/state via JS after the click, not by trusting a
     screenshot. A JS-dispatched `.click()` on the same element worked
-    immediately and is what all of that session's verification was built on.
-    If a button seems dead in the preview, try that before assuming the code
-    is broken.
+    immediately. If a button seems dead in the preview, try that before
+    assuming the code is broken.
+  - **A `computer{coordinate}` click is in SCREENSHOT-pixel space, not
+    viewport pixel space, and it goes stale the moment the page changes**
+    (session 42) — a click landed nowhere because the coordinates were read
+    off a screenshot taken before a reload. Prefer `read_page` + a `ref`-
+    based click, or re-screenshot immediately before trusting raw
+    coordinates.
