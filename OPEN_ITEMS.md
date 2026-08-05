@@ -17,7 +17,25 @@ so it isn't re-litigated.
 
 ---
 
-## On the phone right now (v3.9.0) — pre-loaded patterns, redesigned
+## Signed off (v3.10.1, session 43) — the whole Load screen, and pre-loaded patterns
+
+**Nothing open here.** Session 43 was his first phone test of sessions
+40–42's work all together (folders, Built-in patterns, Restore) — confirmed
+working, no fixes needed — followed by a Load-screen redesign off six of his
+UI comments (the status line, the two "..." menus, `summarize()`, help
+mode, per-item export), then three more follow-up tweaks the same session
+after trying v3.10.0 (the library menu back inline, the folder select
+folded into the actions row with a fixed "Folder" label, the progression
+summary as one clause — "I–V–vi7–II7 in E"). His words: "All working well,"
+then "This is looking fantastic." Full detail is in `CHANGELOG.md`'s
+session 43 write-up and `CLAUDE.md`'s "Saved library" section. 133/133
+green.
+
+---
+
+## Previously on the phone (v3.9.0) — pre-loaded patterns, redesigned
+**Confirmed working, session 43 — see above.** Kept for the record of what
+the second design was and why it changed from the first.
 
 **His verdict on v3.8.0, before it ever reached his phone:** read-only
 Built-ins + "save a copy" cost two library entries for what's really one
@@ -29,21 +47,14 @@ back if he deleted it and changed his mind.
 **Session 42 shipped that redesign.** A built-in now seeds once into the
 REAL library on boot (`seedNewBuiltins()`), filed into a folder literally
 named "Built-in" — after that it's an ordinary saved item with full
-Load/Rename/Delete/folder-move, no "Built-in" special case left in the UI at
-all. An invisible `builtinId` tag (never shown, never touched by rename or
-move) is what a new **Restore** button — third on the Load sheet's title
-line, beside Export/Import — uses to tell "still here, maybe renamed" from
+rename/delete/folder-move (Load was a dedicated button at the time; session
+43 replaced it with tap-the-row), no "Built-in" special case left in the UI
+at all. An invisible `builtinId` tag (never shown, never touched by rename or
+move) is what a new **Restore** button — on the Load sheet's title line,
+beside Export/Import — uses to tell "still here, maybe renamed" from
 "actually deleted," so it only ever re-adds what's truly missing. It disables
 itself once nothing is missing, same convention as Export disabling on an
 empty library.
-
-**What's waiting on his phone:** the whole thing is unverified on a real
-device still — this is the second design in a row that hasn't reached that
-point yet. Specifically worth his eye this time: deleting a Built-in item and
-confirming Restore brings back only that one; renaming or moving a Built-in
-and confirming Restore leaves it alone (doesn't duplicate it); and whether
-the "Built-in" folder header's Rename/Delete (now identical to any other
-folder's) reads as expected when it's the one holding his starter patterns.
 
 126/126 green (124 → 126: two new `storage.js` builtinId tests, one
 source-level test for the seed/restore split in `app.js`, one old test

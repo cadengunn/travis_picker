@@ -471,8 +471,9 @@ private mode) returns `null` so the UI can report it instead of throwing. `list(
 sorts newest-first with an insertion-order tie-break, so same-millisecond saves
 are still deterministic. Loading restores the pattern **and** its chord context,
 then re-renders — it never re-rolls. `rename(id, name)` (v2.4.5) updates the name
-in place (trims, ignores blanks, keeps pattern/id/savedAt); each Load-menu item is
-Load / Rename / Delete. `save()` de-dupes names Finder-style via `uniqueName()`:
+in place (trims, ignores blanks, keeps pattern/id/savedAt) — Rename is one of
+the actions behind a Load-list item's "..." menu (session 43, see "Saved
+library" below). `save()` de-dupes names Finder-style via `uniqueName()`:
 the original keeps its plain name, later saves become `Name (2)`, `Name (3)`.
 **`update(id, …)` (session 39) overwrites an item's content in place** — same
 id, `savedAt` bumped to now. The manual Save flow (`saveCurrent()` in
@@ -489,30 +490,42 @@ since a batch import has no one to ask (see "Export/import" below).
 evicting localStorage, and how a library moves between devices or people.
 `buildExport(items)`/`parseImport(raw)` are pure functions beside the store
 (no DOM, no browser APIs), so they're unit-tested the same way as everything
-else here. **Export is library-wide only, never per-pattern** — one file
-covers both the backup case and "hand someone a pattern," without a fourth
-button crowding the saved-item row. A single item and a full library share
-one wrapper shape (`{ app: "travis-picker", exportKind, schema, exportedAt,
-items }`), so import only ever needs one code path. **Import is a MERGE, never
-a replace** — it writes each parsed item through the same `save()` every other
-save path uses, so name collisions get the ordinary Finder-style `(2)` suffix
-and nothing existing is ever overwritten or deleted. That's also why it needs
-no confirmation dialog — `confirmModal` is reserved for actions that can lose
+else here. **Export was library-wide only through session 42** — one file
+covered both the backup case and "hand someone a pattern," without a fourth
+button crowding the saved-item row. **Session 43 added per-item export**
+(his ask, once the redesigned row had a "..." menu to put it in): `exportItem(item)`
+in `app.js` calls the same `buildExport()` with a one-item array, since **a
+single item and a full library have always shared one wrapper shape**
+(`{ app: "travis-picker", exportKind, schema, exportedAt, items }`) — this is
+exactly why that shape was chosen in session 38, so per-item export needed no
+new format, just a new call site. **Import is a MERGE, never a replace** — it
+writes each parsed item through the same `save()` every other save path uses,
+so name collisions get the ordinary Finder-style `(2)` suffix and nothing
+existing is ever overwritten or deleted. That's also why it needs no
+confirmation dialog — `confirmModal` is reserved for actions that can lose
 data, and merging can't. The wrapped shape self-identifies via `app` and is
 trusted even if every entry inside is unreadable (reported as `skipped`, not
 rejected); a **bare array** is accepted too, leniently, but only if at least
 one entry actually looks like a stored pattern — otherwise an unrelated JSON
 array would silently "import" as zero patterns instead of being reported as
-the wrong file. **The two buttons ride the Load sheet's title line**
-(`#library-actions` in `index.html`, session 39) — the same trick the Options
-sheet's Setup/Preferences tabs use to cost no extra height, styled with that
-same narrow-key material but **deliberately without its jewel or
-`.active`/latching state**, since these are one-shot actions, not a page
-switch (his call — "no toggle or lamp needed"). Considered and rejected:
-promoting them into the always-visible header's four-pill row — that count is
-documented as deliberate, the capo tag beside it already has only ~5px of
-margin, and Export/Import aren't guitar-in-hand controls by the app's own
-placement rule. **Export is disabled whenever the real library is empty**
+the wrong file. **Export/Import/Restore ride the Load sheet's title line**
+(`#library-menu` in `index.html`), a flex item of `.sheet-head` alongside the
+title and the ✕ — the same trick the Options sheet's Setup/Preferences tabs
+use to cost no extra height, styled with that same narrow-key material but
+**deliberately without its jewel or `.active`/latching state**, since these
+are one-shot actions, not a page switch (his call — "no toggle or lamp
+needed"). **Session 43 gated the three behind a single "..." toggle**
+(`#library-menu-btn`, `.sheet-menu-btn`) — his review of the always-visible
+row was that they're rarely used and crowded the title line — and his
+immediate follow-up asked for the revealed row to stay INLINE on that same
+title line rather than drop to a row of its own below, which is where the
+first cut of the toggle put it; `.library-menu` is a flex item, not a block
+row, so `.sheet-close`'s own `margin-left: auto` still pushes the ✕ to the
+far edge either way. Considered and rejected: promoting them into the
+always-visible header's four-pill row — that count is documented as
+deliberate, the capo tag beside it already has only ~5px of margin, and
+Export/Import aren't guitar-in-hand controls by the app's own placement rule.
+**Export is disabled whenever the real library is empty**
 (`savedStore.count() === 0`) — the only state Built-in patterns (below)
 being real saved items now doesn't change.
 
@@ -546,16 +559,41 @@ source item's `folder` through so it travels across export/import too
   Only "Unfiled" is a plain, unbuttoned label, since it's the absence of a
   folder rather than something you could rename or delete — **every real
   folder gets the same treatment, "Built-in" included** (see below).
-- **Per-item assignment**: a plain `<select>` per item (`.folder-select`,
-  under its own `.saved-folder-row` so it never crowds Load/Rename/Delete on a
-  phone width), enhanced by `dropdown.js` — **the same mechanism every other
-  picker in the app already uses**, not a new control paradigm. Options are
-  Unfiled, every folder currently in use, then `"+ New Folder…"`, which
-  prompts via `promptModal` (same as Rename) and commits through `setFolder`.
-  **No `retargetOpenPanel` needed here** — unlike the chord wheel, the
-  default list panel (`renderList` in `dropdown.js`) closes on every single
-  pick, so there's never a stale-select-under-an-open-panel scenario the way
-  there is for a picker that stays open across multiple commits.
+- **A saved item's row (session 43 redesign — `appendSavedRow()`) is
+  name+info, tap to load.** `.saved-main` is a plain `<button>` wrapping the
+  name and `summarize()` line; its click handler is `loadSaved(item.id)`
+  directly, same as the old dedicated Load button, which is gone. His
+  reported friction with the first design (session 40–42): Load/Rename/
+  Delete plus a folder-select row per item was crowded, and tapping the card
+  itself to load it is the obvious gesture anyway.
+- **Rename/Export/Delete and the folder-assign select live behind a
+  per-item "..." toggle** (`.saved-options-btn`, a *vertical*-dot kebab,
+  deliberately distinct from the header menu's *horizontal*-dot meatball —
+  the two are different kinds of menu, page-level vs. per-item, and
+  shouldn't read as the same control). `actions.hidden = !actions.hidden` on
+  tap, same reveal-in-place idiom `.folder-actions` already used for the
+  folder headers, not a new floating-menu mechanism. All four ride
+  `.saved-actions-row`, **one row** — the folder select used to sit on a row
+  of its own beneath Rename/Delete; his follow-up asked for it to join them,
+  which needed `.saved-actions-row .dd { width: auto }` since
+  `dropdown.js`'s wrapper span is `width: 100%` by default (right for a
+  field filling its own row, wrong for one joining three buttons).
+- **The folder select's trigger always reads "Folder"**, never the current
+  folder's name (his follow-up — the group header above the item already
+  shows which folder it's in, so echoing the name on the trigger too was
+  redundant, and a fixed short label is what lets it fit the row at all).
+  `renderSavedList()`'s `enhanceAll(list, pick)` call hands `.folder-select`
+  elements a custom `label` function (`dropdown.js`'s pluggable-trigger-face
+  option) that always sets `"Folder"` rather than the default "current
+  option's text" behaviour every other enhanced `<select>` in the app uses.
+  Otherwise it's the same picker as before: `dropdown.js`-enhanced, options
+  are Unfiled, every folder currently in use, then `"+ New Folder…"`, which
+  prompts via `promptModal` (same as Rename) and commits through
+  `setFolder`. **No `retargetOpenPanel` needed here** — unlike the chord
+  wheel, the default list panel (`renderList` in `dropdown.js`) closes on
+  every single pick, so there's never a stale-select-under-an-open-panel
+  scenario the way there is for a picker that stays open across multiple
+  commits.
 
 **Pre-loaded patterns** (`builtin-patterns.js`, item 2). **Shipped twice** —
 the first design (session 40, v3.8.0) kept them read-only and unseeded, with
@@ -604,17 +642,28 @@ recording's melody anyway).
   disabled whenever the library is empty" is mostly historical now — true
   only in that genuinely-everything-deleted state.)
 
-**A hand-edited pattern shows "Custom," not a stale preset name** (session
-39). `summarize()` (the Load-list sub-line, "E · Travis · Tame") reads
-`item.pattern.bass`/`.chaos` for display — but `regenerateBass`/
-`regenerateTreble` never read those fields back to decide what to re-roll
-(the target is always whichever Thumb/Fingers dropdown is live), so once a
-pattern's been hand-edited they're pure display metadata that can go stale.
-When `item.source === "drawn"`, `summarize()` shows `"Custom"` in place of
-both preset names — the same fallback principle `detectProgression()` already
-uses for a hand-edited chord progression. The fields themselves stay stored
-untouched (still needed to restore the Thumb/Fingers dropdowns on load); this
-is display-only.
+**The Load-list sub-line says what you're playing OVER, not a Thumb/Fingers
+preset name** (`summarize()`, rewritten session 43). It originally read
+`item.pattern.bass`/`.chaos` for display ("E · Travis · Tame"), falling back
+to `"Custom"` when `item.source === "drawn"` (session 39) since
+`regenerateBass`/`regenerateTreble` never read those fields back to decide
+what to re-roll (the target is always whichever Thumb/Fingers dropdown is
+live), so once a pattern's been hand-edited the stored bass/chaos ids are
+pure display metadata that can go stale. **His session-43 report: almost
+every real item is hand-edited, built-ins included, so that fallback meant
+almost the whole library read as bare "Custom."** The fix drops preset names
+from the summary entirely and shows what's actually useful at a glance: in
+Single mode, the chord's real display name (`CHORDS[ctx.chord]?.name`); in
+Progression mode, the numerals and the key **as one clause, the way you'd say
+it out loud** — `` `${numerals} in ${key}` `` (e.g. "I–V–vi7–II7 in E"), not
+a separate "Progression" label and a "Key E" segment, which is what the
+first cut of this rewrite shipped before his immediate follow-up asked for
+them merged. Capo and ×2 still ride along after (real hardware/timing facts,
+not generation metadata). The custom NAME field is still where anything else
+worth remembering goes — this line was never meant to carry more than what
+you're playing over. `item.pattern.bass`/`.chaos` stay stored untouched
+(still needed to restore the Thumb/Fingers dropdowns on load); this remains
+display-only.
 
 **Session preferences** (`tp-prefs`, in `app.js`, session 32): the controls you
 **set once and keep**, restored on the next launch — chord mode, chord, key,
@@ -854,12 +903,22 @@ deliberately cryptic hardware indicators**, which is exactly what a manual
 explains worst — a list of glyphs on another screen is the one place you can't
 compare the glyph to the thing.
 - **NAVIGATION SURVIVES, and the allowlist IS the spec** (`NAV_SELECTOR`): the
-  gear, the two page tabs, the sheet's `[data-close]`, the `?` itself, and the
-  card. Nothing else. Half the controls worth explaining live in the Options
-  sheet and would otherwise be unreachable. Save and Load **explain rather than
-  open**, because everything inside those sheets is a state-changing action;
-  dropdowns explain rather than opening inert. The `?` needs no exit
-  special-case — its tap reaches its own handler, which disarms.
+  gear, `#open-save`/`#open-load`, the two Options page tabs, the sheet's
+  `[data-close]`, the `?` itself, and the card. Nothing else. Half the
+  controls worth explaining live inside a sheet and would otherwise be
+  unreachable. **Save and Load used to explain rather than open** (through
+  session 42 — everything inside those sheets was, at the time, a
+  state-changing action with nothing else worth a card). **Session 43
+  reversed that**, once folders, Built-in patterns and export/import/restore
+  gave the Load sheet real content worth explaining individually: the two
+  pills are nav now, exactly like the gear, so arming help and tapping
+  either opens the sheet as normal, and the cards live on what's inside
+  (the name field, Save button, the library menu and its three actions, the
+  saved list itself — which, being built entirely in `app.js`, carries no
+  `data-help` of its own and falls through to `#saved-list`'s single card,
+  same precedent as the grid's per-bar chord picker). Dropdowns explain
+  rather than opening inert. The `?` needs no exit special-case — its tap
+  reaches its own handler, which disarms.
 - **The card is an OVERLAY and costs zero layout.** Measured at 375×553 with 4
   bars, identical before arming, while armed and with a card up. That's what
   makes the design affordable; anything reserving a strip was unshippable against
@@ -896,9 +955,11 @@ compare the glyph to the thing.
   correct *only because the grid's copy covers chords*, hence the test asserting
   `HELP.grid.body` mentions them. Note the picker is an overlay button that is a
   **sibling** of the hidden `<select>`, so annotating the select does nothing.
-- **The `?` stays above the Options sheet's scrim** (`body.options-open`), since
-  arming help from inside the sheet is the common case. z-index **30**: clears
-  `.sheet` (20), under `.dd-panel` (40), the modals (60) and the card (70).
+- **The `?` stays above the Options sheet's scrim** (`body.options-open`), **and
+  the Save/Load sheet's too** (`body.saved-open`, session 43 — same reasoning,
+  now that sheet is a nav target too), since arming help from inside either is
+  the common case. z-index **30**: clears `.sheet` (20), under `.dd-panel` (40),
+  the modals (60) and the card (70).
   **A plain z-index only works because nothing between the pill and the root
   creates a stacking context** — the whole chain was checked. Add a `transform`
   to any of them and this dies silently, so **the test hit-tests with
@@ -1210,19 +1271,47 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.9.0, 126/126 green.** Session 42 redesigned pre-loaded patterns after his
-verdict on the first cut, landed the same day (v3.8.0, session 41): read-only
-+ "save a copy" cost two library entries for what's really one thing. Now a
-built-in seeds once into the REAL library (`seedNewBuiltins()`, boot-time),
-filed into a folder literally named "Built-in," and from then on it's an
-ordinary saved item — rename, move, delete, whatever. An invisible
-`builtinId` tag (`storage.js`) is what lets a "Restore" button
-(`restoreMissingBuiltins()`, on the Load sheet's title line beside
-Export/Import) tell "actually deleted" from "renamed or moved," and the
-split between boot-time seeding (once, ever, per id) and Restore (on-demand,
-whatever's actually missing right now) is what makes a delete stick across
-relaunches while still being reversible. See "Saved library" above for the
-full detail. **Session 41 (v3.8.0)** shipped items 2 and 4b together —
+**v3.10.1, 133/133 green — the whole Load screen confirmed working on his
+phone, nothing queued.** Session 43 was his phone review of everything
+sessions 40–42 had shipped (folders, Built-in patterns, Restore) tested
+together in one pass for the first time — all confirmed — followed by a
+redesign of the Load screen's chrome, itself reviewed and refined once more
+in the same session:
+- **The Load screen redesign (v3.10.0):** the "restored N patterns" status
+  line used to linger until the app was force-quit and leaked onto the Save
+  card — now it clears on every sheet open *and* close, and only shows in
+  Load mode. Export/Import/Restore moved off the always-visible title row
+  behind a "..." toggle. A saved item's row is now name+info, tap to load —
+  the standalone Load button is gone, and Rename/Delete/folder-move moved
+  behind a per-item "..." that also gained an Export action (his ask —
+  `buildExport()` already shared its wrapper shape between a single item and
+  the whole library, so this needed no new format). `summarize()` stopped
+  reading Thumb/Fingers preset names (which read as "Custom" for nearly
+  every real item once hand-edited) and started saying what you're playing
+  over instead. Save/Load became nav targets in help mode, matching the
+  gear, so arming help inside either sheet now explains what's inside.
+- **His three follow-ups (v3.10.1), same session:** the Export/Import/Restore
+  reveal moved back INLINE on the title row (his first cut put it on a row of
+  its own below, which wasn't what he'd pictured); the folder select joined
+  Rename/Export/Delete in one row instead of a row of its own, and its
+  trigger was fixed to always read "Folder" rather than the current folder's
+  name, since the group header above the item already shows that; and the
+  progression summary line was rewritten to read as one clause the way you'd
+  say it — "I–V–vi7–II7 in E" — instead of separate "Progression"/"Key E"
+  segments.
+
+Full technical detail for all of it is in "Saved library" above. **Session
+42 (v3.9.0)** redesigned pre-loaded patterns after his verdict on the first
+cut, landed the same day (v3.8.0, session 41): read-only + "save a copy"
+cost two library entries for what's really one thing. A built-in seeds once
+into the REAL library (`seedNewBuiltins()`, boot-time), filed into a folder
+literally named "Built-in," and from then on it's an ordinary saved item —
+rename, move, delete, whatever. An invisible `builtinId` tag (`storage.js`)
+is what lets a "Restore" button (`restoreMissingBuiltins()`) tell "actually
+deleted" from "renamed or moved," and the split between boot-time seeding
+(once, ever, per id) and Restore (on-demand, whatever's actually missing
+right now) is what makes a delete stick across relaunches while still being
+reversible. **Session 41 (v3.8.0)** shipped items 2 and 4b together —
 pre-loaded patterns and Saved-library folders, the first design — closing
 out the two pieces of work `OPEN_ITEMS.md` had been carrying as "next."
 **Session 40 (v3.7.0)**, the same day, shipped two smaller notes ahead of
@@ -1264,23 +1353,21 @@ those left open is in `OPEN_ITEMS.md`.
 
 **Signed off, don't revisit unless he raises it:** the wheel (v2.14.0–.2 — the
 detent, the spin, the curve, the die's pool, the F7/F♯7/G♯7 ♭7 bass), Wild Card
-and Unruly, and the app as a whole on the guitar as of v2.13.3. The build order in
+and Unruly, and the app as a whole on the guitar as of v2.13.3. **And (session
+43):** the whole Load screen, tested on his phone in one pass — folders, the
+five Built-in patterns (their titles, their bpm-ascending order, folder-assign,
+the New Folder prompt, Restore correctly bringing back only what's actually
+missing without duplicating a renamed/moved item) and, as of v3.10.1, its
+redesigned chrome (tap-to-load, both "..." menus, the rewritten summary line).
+"Working well" / "looking fantastic," his words. The build order in
 `travis-picker-workflow.md` is complete.
 
 **Waiting on his phone:** whether the chord diagram is legible at arm's length
 (`.chordbox { width }` is the dial), the real landscape rotate, whether Play
 ever goes dead again, and (session 38) whether a real download lands somewhere
 usable in installed-PWA iOS Safari and whether the iOS file picker can select a
-`.json` from Files/iCloud for import — the dev box can't answer either.
-**And (session 41–42):** the Built-in group and folder rows at real thumb
-size — the dev box confirmed no wrapping/overflow at 375×667 in the Browser
-pane preview, but that's a synthetic viewport, not his hand; whether
-folder-assign/the New Folder prompt/Restore feel right as taps, not clicks;
-whether his five Built-in patterns read the way he expects on the grid
-(`Beginner 1`/`2`, `Fine Enough`, `Clawin'`, `Stumped` — bpm-ascending order,
-his own titles verbatim from the export); and specifically the session 42
-redesign — deleting a Built-in item and confirming Restore brings back only
-that one, renaming a Built-in and confirming Restore leaves it alone.
+`.json` from Files/iCloud for import — the dev box can't answer either, and
+session 43's per-item export makes this marginally more likely to come up.
 **And on his guitar (session 35):** `F♯6` and `E♭add9` both
 dropped the moving-finger technique for static barres, and `E♭sus4` moved back up
 to frets 6–9 — each replaces a voicing reasoned out only a session or two before.

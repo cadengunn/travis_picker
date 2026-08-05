@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [43](#where-things-stand-session-43--v3101-2026-08-05) | **v3.10.0 → v3.10.1** | his phone review of sessions 40–42 together (folders, Built-ins, Restore — all confirmed), then a Load-screen redesign off his UI notes: tap-to-load rows, Export/Import/Restore and Rename/Export/Delete/folder tucked behind "..." menus, `summarize()` rewritten to say what you're playing over instead of a stale preset name, Save/Load made nav in help mode; three same-session follow-ups moved the library menu back inline, merged the folder select into the actions row with a fixed "Folder" label, and rewrote the progression summary as one clause ("I–V–vi7–II7 in E") |
 | [42](#where-things-stand-session-42--v390-2026-08-04) | **v3.9.0** | pre-loaded patterns redesigned on his verdict, same day as v3.8.0 shipped: a built-in now seeds once into the real library (`seedNewBuiltins()`), filed into a real "Built-in" folder, and behaves exactly like any saved item from then on — an invisible `builtinId` tag is what lets a new Restore button (Load sheet title line) tell "renamed/moved" from "actually deleted" and only re-add what's truly missing |
 | [41](#where-things-stand-session-41--v380-2026-08-04) | **v3.8.0** | items 2 and 4b together: five of his own patterns (exported via item 4) shipped as a read-only "Built-in" group in the Load sheet (`builtin-patterns.js`, never seeded into localStorage); Saved-library folders alongside, built to the shape agreed in session 39 — a `folder` field, grouped Load list, per-item assign dropdown, rename/delete on the group header |
 | [40](#where-things-stand-session-40--v370-2026-08-04) | **v3.7.0** | two of his notes ahead of finalizing the pre-loaded-patterns export: BPM now saves with the pattern (same dual-layer tier as swing, so his beginner built-ins can sit at a slower tempo than the intermediate ones); the manual Save flow offers Overwrite on a name collision instead of always spawning a Finder-style "(2)" — import's merge-only behaviour is untouched |
@@ -63,6 +64,84 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 43 — v3.10.1, 2026-08-05)
+
+**First: his phone review of sessions 40–42, tested together for the first
+time.** Folders, the five Built-in patterns, and Restore all confirmed
+working — deleting a Built-in and Restoring brought back only that one,
+renaming/moving one and Restoring left it alone, and the patterns read as
+expected on the grid. Nothing here needed a fix; it's the first time this
+run of work reached his hand at all, three sessions after it started.
+
+**Then he gave a list of UI comments on the Load screen, un-guessed-at —
+per this file's own rule, they were asked for directly rather than
+proposed.** Six items, all shipped same session as **v3.10.0**:
+
+1. The "N patterns restored" status line used to persist until the app was
+   force-quit, and showed on the Save card too, because nothing ever cleared
+   it or scoped it to Load mode. `openSheet()`/`closeSheet()` now clear it on
+   every open **and** close.
+2. Export/Import/Restore — three always-visible buttons on the title line
+   since session 39 — moved behind a single "..." reveal
+   (`#library-menu-btn`), his call that they're rarely used and were
+   crowding the row.
+3. A saved item's row dropped its dedicated Load button (tap the row itself
+   to load) and moved Rename/Delete plus the folder-assign select behind a
+   per-item "..." (`.saved-options-btn`, a vertical kebab, deliberately
+   distinct from the header's horizontal meatball).
+4. `summarize()` — the Load-list sub-line — stopped reading Thumb/Fingers
+   preset names, which fell back to a bare `"Custom"` for any hand-edited
+   item (almost the whole library, built-ins included, per his report) and
+   started showing the format, the chord or key+numerals, capo and ×2
+   instead.
+5. Help mode gained the ability to explain the Load sheet's contents:
+   `#open-save`/`#open-load` joined `NAV_SELECTOR` (nav now, like the gear,
+   rather than terminal cards), and new cards cover the name field, Save
+   button, the library menu and its three actions, and the saved list
+   itself (via fall-through to `#saved-list`, same precedent as the grid's
+   per-bar chord picker — its rows are built in `app.js`, so they carry no
+   `data-help` of their own).
+6. Per-item Export joined the per-item "..." menu — `exportItem(item)` calls
+   the same `buildExport()` the whole-library export uses, with a one-item
+   array, since a single item and a full library have shared one wrapper
+   shape since session 38.
+
+**His follow-up, same session, shipped as v3.10.1 — three more tweaks
+after trying v3.10.0:**
+
+- The library menu (item 2 above) went back to being **inline** on the title
+  row, to the right of "Load" — his first cut of the toggle had put the
+  revealed row underneath the header instead, which wasn't what he'd
+  pictured. `.library-menu` became a flex item of `.sheet-head`, not a block
+  row below it.
+- The folder select (item 3) joined Rename/Export/Delete in the same row —
+  it had landed on a row of its own underneath — and its trigger was fixed
+  to always read "Folder" rather than the current folder's name, since the
+  group header above the item already shows which folder it's in. Getting
+  it to actually sit in the row (not wrap onto its own line despite the
+  width fitting) needed one more fix: `dropdown.js`'s trigger wrapper is
+  `width: 100%` by default, right for a field filling its own row, wrong for
+  one joining three buttons.
+- The progression summary (item 4) was rewritten again, from "Progression ·
+  Key E · I–V–vi7–II7" (three segments) to "I–V–vi7–II7 in E" (one clause,
+  the way you'd say it out loud) — his exact phrasing. Single mode's
+  "Single" label came out too, for the same reason: it already read fine as
+  just the chord's name.
+
+Both rounds together: 126 → 133 green (5 new tests for the redesign, 3 more
+for the follow-up round, 1 existing test's regex widened for the new
+`enhanceAll()` call signature). Verified in the browser with real driven
+clicks, not just the source-level tests — tap-to-load, both "..." reveals,
+help mode armed from inside the Load sheet, the folder picker still
+committing correctly with its fixed label. **His words: "All working well,"
+then "This is looking fantastic."**
+
+Full technical detail — the exact selectors, the CSS specificity fix, the
+`data-help` fall-through precedent — is in `CLAUDE.md`'s "Saved library" and
+"Help mode" sections, not repeated here.
 
 ---
 
