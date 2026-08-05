@@ -1578,13 +1578,17 @@ main {
 
 /* Export/Import/Restore: revealed by the header's "..." (session 43 — they
    used to ride the title line as three always-visible buttons, his call to
-   tuck them away since they're rarely used). Own row below the header rather
-   than a floating panel, same reveal-in-place idiom `.folder-actions` already
-   uses. Button material is unchanged from the old always-visible row: modeled
-   on `.segmented.seg-tabs button`'s narrow-key look but DELIBERATELY without
-   its jewel dot or .active/latching state — his note was explicit, these are
-   one-shot actions, not a page switch, "no toggle or lamp needed." */
-.library-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 4px; }
+   tuck them away since they're rarely used). His follow-up: keep the toggle,
+   but put the revealed buttons back INLINE on the title row, to the right of
+   "Load" — not a row of their own below, which is where session 43 first put
+   them. `.library-menu` is a flex ITEM of `.sheet-head` now, not a block row;
+   `.sheet-close`'s own `margin-left: auto` still pushes the ✕ to the far edge
+   whether the menu is showing or not. Button material is unchanged from the
+   original always-visible row: modeled on `.segmented.seg-tabs button`'s
+   narrow-key look but DELIBERATELY without its jewel dot or .active/latching
+   state — his note was explicit, these are one-shot actions, not a page
+   switch, "no toggle or lamp needed." */
+.library-menu { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
 .library-menu button {
   flex: 0 0 auto;
   padding: 7px 8px;
@@ -1608,8 +1612,11 @@ main {
 }
 .library-menu button:disabled { opacity: 0.45; cursor: default; }
 .library-menu button:disabled:active { box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.16), 0 2px 3px rgba(0, 0, 0, 0.34); }
-.library-menu #import-hint { flex: 1 1 100%; margin-top: 2px; }
+/* The status line moved back out of .library-menu (it's inline now, no room
+   for a wrapped line) to its own row under the whole header, same spot it
+   held before session 43 — cleared on every sheet open/close either way. */
 #import-hint:empty { display: none; }
+#import-hint:not(:empty) { margin: 2px 0 4px; }
 
 .saved-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 /* One row: name+info (tap to load) and the "..." options toggle. The revealed
@@ -1659,8 +1666,19 @@ main {
 .saved-options-btn svg { width: 15px; height: 15px; fill: currentColor; }
 .saved-options-btn:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 .saved-actions { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
+/* Rename/Export/Delete plus the folder-assign trigger, all in one row now
+   (his follow-up — the folder select used to sit on a row of its own below
+   this one). The folder trigger's face is fixed at "Folder" (see
+   renderSavedList()'s enhanceAll() picker), which is what makes it narrow
+   enough to sit here instead of needing its own line. */
 .saved-actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.saved-actions-row button {
+/* The folder select's dropdown.js wrapper (`.dd`) is `width: 100%` by default
+   — right for a field filling its own row, wrong here, where it forced the
+   trigger onto a line by itself even though it fit the row on width alone. */
+.saved-actions-row .dd { display: inline-flex; width: auto; flex: 0 0 auto; }
+.saved-actions-row button,
+.saved-actions-row .dd-trigger {
+  width: auto;
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1674,7 +1692,8 @@ main {
   /* carved-key chamfer to match the pills (session 27), not just a cap highlight */
   box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.34);
 }
-.saved-actions-row button:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
+.saved-actions-row button:active,
+.saved-actions-row .dd-trigger:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
 .saved-empty { color: var(--muted); font-family: var(--serif); font-size: 15px; padding: 10px 2px; }
 
 /* Load-sheet group headers (items 2 + 4b: the Built-in group, real folders,
@@ -1702,25 +1721,6 @@ main {
   box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 4px rgba(0, 0, 0, 0.20), 0 1px 2px rgba(0, 0, 0, 0.34);
 }
 .folder-actions button:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45); }
-
-/* The per-item folder-assign select rides its own row under Rename/Export/
-   Delete, inside the revealed `.saved-actions` (a flex column, so this just
-   stacks — no grid-column needed now that Load is gone and the row lives
-   behind the "..." toggle rather than beside it). Its trigger needs its own
-   small "well" — bare .dd-trigger has no box at all outside a .field, which
-   sizes its wells for the Options sheet's full-width controls, not a line
-   tucked inside a saved-item card. */
-.saved-folder-row { width: 100%; }
-.saved-folder-row .dd-trigger {
-  width: auto;
-  border: 1px solid rgba(0, 0, 0, 0.4);
-  border-radius: 8px;
-  padding: 6px 9px;
-  font-size: 12px;
-  font-weight: 600;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 0 var(--bevel-hi);
-}
 
 /* ---- custom dropdowns (replace the native <select> open picker) ----
    The native <select> stays in the DOM (display:none) as the value/source of

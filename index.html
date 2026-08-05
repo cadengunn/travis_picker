@@ -356,25 +356,24 @@
       <header class="sheet-head">
         <h2 id="saved-title">Save</h2>
         <!-- Export/Import/Restore used to ride this row as three always-visible
-             text buttons (session 39). His review (session 43): they're rarely
-             used and crowded the row. One "..." button now reveals them in a
-             row of their own — the same tap-to-reveal idiom the folder headers
-             below already use (`.folder-actions`), not a new floating-menu
-             mechanism. -->
+             text buttons (session 39); session 43 tucked them behind a "..."
+             toggle. His follow-up: keep the toggle, but the revealed buttons
+             belong back on THIS row, to the right of the title, same as
+             before — not pushed onto a row of their own below. -->
         <button id="library-menu-btn" class="sheet-menu-btn" type="button" data-help="library-menu"
                 aria-label="Library options" title="Library options" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
         </button>
+        <div id="library-menu" class="library-menu" hidden>
+          <button id="export-btn" type="button" data-help="export-btn">Export</button>
+          <button id="import-btn" type="button" data-help="import-btn">Import</button>
+          <button id="restore-builtins-btn" type="button" data-help="restore-builtins-btn">Restore</button>
+          <input id="import-file" type="file" accept="application/json" hidden />
+        </div>
         <button class="sheet-close" type="button" data-close aria-label="Close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 1l10 10M11 1L1 11"/></svg></button>
       </header>
 
-      <div id="library-menu" class="library-menu" hidden>
-        <button id="export-btn" type="button" data-help="export-btn">Export</button>
-        <button id="import-btn" type="button" data-help="import-btn">Import</button>
-        <button id="restore-builtins-btn" type="button" data-help="restore-builtins-btn">Restore</button>
-        <input id="import-file" type="file" accept="application/json" hidden />
-        <p id="import-hint" class="save-hint"></p>
-      </div>
+      <p id="import-hint" class="save-hint"></p>
 
       <div id="save-section">
         <div class="save-row">

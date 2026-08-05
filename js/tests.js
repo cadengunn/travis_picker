@@ -3731,7 +3731,7 @@ acheck("app: folders render as grouped, and folder edits go through storage.js",
   const render = appjs.match(/function renderSavedList\(\)[\s\S]*?\n\}\n/)?.[0] || "";
   assert(/savedStore\.folders\(\)/.test(render) && /appendGroupHeader/.test(render),
     "renderSavedList() must group real items by folder, not just list them flat");
-  assert(/enhanceAll\(list\)/.test(render),
+  assert(/enhanceAll\(list,/.test(render),
     "the per-item folder <select>s are rebuilt every call and must be re-enhanced, same as the per-bar chord selects");
 
   const row = appjs.match(/function appendSavedRow\(list, item, folders\)[\s\S]*?\n\}\n/)?.[0] || "";
@@ -3816,6 +3816,32 @@ acheck("app: help mode can reach the Save/Load sheet's own scrim (session 43)", 
     "closing the sheet must clear the lift, or the \"?\" would float above the main screen's scrim-less content");
 });
 
+acheck("app: the library menu reveals INLINE on the title row, not a row below (his follow-up)", async () => {
+  // First cut of session 43 put Export/Import/Restore on a row of their own
+  // under the header; his review asked for them back on the title row, to the
+  // right of "Load", same spot they held before the "..." toggle existed.
+  const html = await (await fetch("index.html")).text();
+  const head = html.match(/<header class="sheet-head">[\s\S]*?<\/header>/g)?.find((h) => h.includes("saved-title"));
+  assert(head, "the Save/Load sheet's header must exist");
+  assert(/id="library-menu-btn"[\s\S]*?id="library-menu"[\s\S]*?class="sheet-close"/.test(head),
+    "the library menu must sit INSIDE the header, between the \"...\" toggle and the close button, not below it");
+});
+
+acheck("app: a saved item's folder trigger always reads \"Folder\", never the current folder name", async () => {
+  // His follow-up: the group header above an item already shows which folder
+  // it's in, so echoing the folder name on the trigger too was redundant —
+  // and a fixed short label is what lets it fit in the Rename/Export/Delete
+  // row instead of needing a row of its own.
+  const appjs = await (await fetch("js/app.js")).text();
+  const render = appjs.match(/function renderSavedList\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/folder-select/.test(render) && /labelEl\.textContent = "Folder"/.test(render),
+    "the folder-select's enhanceAll() picker must fix its trigger's label at \"Folder\"");
+
+  const row = appjs.match(/function appendSavedRow\(list, item, folders\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/actionsRow\.append\(rename, exportOne, del, sel\)/.test(row),
+    "the folder select must join Rename/Export/Delete in the same row, not sit in a row of its own");
+});
+
 acheck("app: a saved item's row loads on tap; Rename/Export/Delete/folder live behind \"...\"", async () => {
   // Session 43, his call: Load as a separate button is gone (the row loads),
   // and the rest moved off the row entirely rather than just narrowing.
@@ -3854,8 +3880,8 @@ acheck("app: summarize() leads with what you're playing over, not a Thumb/Finger
   assert(!/BASS_PRESETS\.find/.test(fn) && !/CHAOS_PRESETS\[/.test(fn),
     "summarize() must not read the Thumb/Fingers preset names — that's what read as \"Custom\" for almost every real item");
   assert(/CHORDS\[ctx\.chord\]\?\.name/.test(fn), "Single mode must show the chord's real display name");
-  assert(/"Progression"/.test(fn) && /`Key \$\{ctx\.key\}`/.test(fn) && /degreeLabel\(/.test(fn),
-    "Progression mode must show the format, the key, and the numerals");
+  assert(/`\$\{.*degreeLabel\(c, ctx\.key\)\)\.join\(.–.\)\} in \$\{ctx\.key\}`/.test(fn),
+    "Progression mode must read as one clause, numerals then key (\"I-V-vi-IV in E\"), not separate \"Progression\"/\"Key\" segments");
 });
 
 // ---- render report ----

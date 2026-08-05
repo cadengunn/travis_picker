@@ -65,7 +65,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.10.0";
+const APP_VERSION = "v3.10.1";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1243,13 +1243,15 @@ function appendSavedRow(list, item, folders) {
     refreshSavedCount();
   });
 
-  actionsRow.append(rename, exportOne, del);
-
   // Folder assignment: a plain <select>, enhanced the same way every other
   // picker in the app is (dropdown.js) rather than a new control paradigm —
-  // Unfiled, every folder currently in use, then a prompt to create one.
-  const folderRow = document.createElement("div");
-  folderRow.className = "saved-folder-row";
+  // Unfiled, every folder currently in use, then a prompt to create one. His
+  // follow-up: it rides the SAME row as Rename/Export/Delete now (there used
+  // to be a row of its own underneath), and its trigger always reads "Folder"
+  // rather than the current folder name — the group header above already
+  // shows which folder an item is in, so the current name on the trigger was
+  // redundant, and a fixed short label is what lets it fit the row at all
+  // (`renderSavedList()`'s enhanceAll() picker gives it that fixed label).
   const sel = document.createElement("select");
   sel.className = "folder-select";
   sel.setAttribute("aria-label", `Folder for "${item.name}"`);
@@ -1274,9 +1276,10 @@ function appendSavedRow(list, item, folders) {
     }
     renderSavedList();
   });
-  folderRow.appendChild(sel);
 
-  actions.append(actionsRow, folderRow);
+  actionsRow.append(rename, exportOne, del, sel);
+
+  actions.append(actionsRow);
   li.append(main, optionsBtn, actions);
   list.appendChild(li);
 }
@@ -1320,8 +1323,15 @@ function renderSavedList() {
   // chord selects on every render() — idempotent per element via data-dd, and
   // the default list panel closes on its own commit (see dropdown.js), so
   // unlike the wheel this needs no retargetOpenPanel: nothing here stays open
-  // across more than one pick.
-  enhanceAll(list);
+  // across more than one pick. The folder-select's `label` picker fixes its
+  // trigger's face at "Folder" always — the group header above already shows
+  // which folder it's in, and a static short label is what lets it sit in the
+  // Rename/Export/Delete row at all.
+  enhanceAll(list, (s) =>
+    s.classList.contains("folder-select")
+      ? { label: (_sel, labelEl) => { labelEl.textContent = "Folder"; } }
+      : {}
+  );
 }
 
 // Whole-library backup, and how patterns move between devices or to someone
@@ -1396,22 +1406,20 @@ function importLibrary(file) {
 // Rewritten session 43 (his call): the old line led with Thumb/Fingers preset
 // names, falling back to "Custom" for any hand-edited item — and since the
 // built-ins and most real use are hand-edited, that's almost every item in the
-// library. What's actually useful at a glance is what you're playing OVER:
-// format, then the chord (Single) or the key and its numerals (Progression).
-// The custom NAME is already the place for anything else worth remembering.
+// library. What's actually useful at a glance is what you're playing OVER.
+// His follow-up: say it the way you'd say it out loud — "I-V-vi-IV in E," not
+// a separate "Progression" label and a "Key E" segment — so the numerals and
+// the key are ONE clause, not two. Single mode already reads fine as just the
+// chord's name, no "Single" label needed either. The custom NAME is still the
+// place for anything else worth remembering.
 function summarize(item) {
   const ctx = item.context || {};
-  const progression = ctx.chordMode === "progression";
-  const parts = progression
-    ? [
-        "Progression",
-        `Key ${ctx.key}`,
-        (ctx.progression || []).map((c) => degreeLabel(c, ctx.key)).join("–"),
-      ]
-    : ["Single", CHORDS[ctx.chord]?.name ?? ctx.chord];
+  const headline = ctx.chordMode === "progression"
+    ? `${(ctx.progression || []).map((c) => degreeLabel(c, ctx.key)).join("–")} in ${ctx.key}`
+    : (CHORDS[ctx.chord]?.name ?? ctx.chord);
   // Capo and ×2 are still worth a glance — real hardware/timing facts, not
   // generation metadata — so they ride along after the format/chord info.
-  return [...parts, capoLabel(ctx.capo), ctx.x2 ? "×2" : ""]
+  return [headline, capoLabel(ctx.capo), ctx.x2 ? "×2" : ""]
     .filter(Boolean).join(" · ");
 }
 
