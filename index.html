@@ -330,22 +330,27 @@
         </label>
       </div>
 
-      <!-- Tone rides UNDER the Sound lamps, not in the appearance row below:
-           it's what the guitar sounds like, not how the app looks. A field (the
-           dropdown/well family) rather than a segmented key, because carved keys
-           in a well are the SETUP page's material and the lamp bank is this
-           page's — a two-key segment here would import Setup's language. -->
+      <!-- ONE ROW OF THREE (his call, session 44c). Tone shipped on a row of its
+           own under the Sound lamps, on the argument that it's a sound setting
+           rather than an appearance one — but `.control-row` is a 3-slot grid and
+           these two were already sitting at a third each, so the third slot was
+           standing empty directly below. Filling it costs a whole row's height
+           and reads tidier than the semantic split did.
+
+           No "Appearance" caption: the fields name themselves, the page is
+           already called Preferences, and a caption that looks exactly like a
+           field label stacked on top of field labels says nothing. That's also
+           why a mixed sound/appearance row is fine here — nothing claims
+           otherwise.
+
+           Tone is a field (the dropdown/well family) rather than a segmented
+           key: carved keys in a well are the SETUP page's material, and a
+           two-key segment here would import Setup's language. -->
       <div class="control-row">
         <label class="field" data-help="tone">
           <span>Tone</span>
           <select id="tone"></select>
         </label>
-      </div>
-
-      <!-- No "Appearance" caption: these two fields name themselves, the page is
-           already called Preferences, and a group caption that looks exactly like
-           a field label stacked on top of field labels says nothing. -->
-      <div class="control-row">
         <label class="field" data-help="label-mode">
           <span>Note labels</span>
           <select id="label-mode"></select>

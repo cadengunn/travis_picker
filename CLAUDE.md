@@ -254,7 +254,7 @@ the placement policy; **how these surfaces are drawn is `DESIGN.md`.**
   chord overflows it upward, exactly as it did when the box was zero-height.
 - **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Setup** (Format + capo, then
   the chord / key+progression row, then Thumb/Fingers/×2, then Swing)
-  and **Preferences** (the Sound lamp bank, the Tone field, note labels, theme). You set all of it
+  and **Preferences** (the Sound lamp bank, then Tone + note labels + theme in one row). You set all of it
   sitting down, between takes; the gear always opens on Setup. The split exists to
   buy height — one page had ~27px spare at 375×553. Ids are
   `tab-setup`/`page-setup`; "Generation" was page 1's name until v2.13.3 and
