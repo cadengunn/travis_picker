@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [44](#where-things-stand-session-44--v3102-2026-08-10) | **v3.10.2** | his guitar review of the session-35 voicings: F♯6, E♭sus4 and the m7 family confirmed fine, but the add9 family's Travis bass was wrong — the thumb reaching to the finger-domain G string on the C♯/D/E♭/F/F♯ shape, and Gadd9/G♯add9 "walking up and down" off a stale session-34 role assignment. Fixed, then a full-library audit found four more chords carrying the same "walk to a colour tone" swap (E♭m6, G♯6, Gsus2, G♯sus2) — all brought onto the ordinary A-shape/E-shape convention, his call ("picking pattern consistency takes precedence"). Also: `OPEN_ITEMS.md` cut 1,345 → 259 lines, and five new items logged (14–18) |
 | [43](#where-things-stand-session-43--v3101-2026-08-05) | **v3.10.0 → v3.10.1** | his phone review of sessions 40–42 together (folders, Built-ins, Restore — all confirmed), then a Load-screen redesign off his UI notes: tap-to-load rows, Export/Import/Restore and Rename/Export/Delete/folder tucked behind "..." menus, `summarize()` rewritten to say what you're playing over instead of a stale preset name, Save/Load made nav in help mode; three same-session follow-ups moved the library menu back inline, merged the folder select into the actions row with a fixed "Folder" label, and rewrote the progression summary as one clause ("I–V–vi7–II7 in E") |
 | [42](#where-things-stand-session-42--v390-2026-08-04) | **v3.9.0** | pre-loaded patterns redesigned on his verdict, same day as v3.8.0 shipped: a built-in now seeds once into the real library (`seedNewBuiltins()`), filed into a real "Built-in" folder, and behaves exactly like any saved item from then on — an invisible `builtinId` tag is what lets a new Restore button (Load sheet title line) tell "renamed/moved" from "actually deleted" and only re-add what's truly missing |
 | [41](#where-things-stand-session-41--v380-2026-08-04) | **v3.8.0** | items 2 and 4b together: five of his own patterns (exported via item 4) shipped as a read-only "Built-in" group in the Load sheet (`builtin-patterns.js`, never seeded into localStorage); Saved-library folders alongside, built to the shape agreed in session 39 — a `folder` field, grouped Load list, per-item assign dropdown, rename/delete on the group header |
@@ -64,6 +65,78 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 44 — v3.10.2, 2026-08-10)
+
+**His guitar verdicts on the session-35 voicings, finally collected.** Three
+of the four things `NEXT_SESSION_PROMPT.md` had been carrying forward came
+back clean: **F♯6 fine, E♭sus4 fine, the m7 family correct as-is** — so the
+revoicings that dropped the moving-finger technique for static barres are
+confirmed, and that whole thread is closed.
+
+**The add9 family was not fine, and both reports were real bugs.**
+
+1. **C♯add9 and its shared-shape family (C♯/D/E♭/F/F♯)** — his question was
+   "why do we have the thumb going all the way up to the g string? Since the
+   root is on the A string, it seems to me that the Travis thumb pattern
+   should match what we do on an A type chord." Exactly right. These five
+   carried `root:5, alt:6, fifth:3` — `fifth` on **string 3**, a
+   finger-domain string. It was deliberate at the time (the comment called it
+   "root-3rd-5th-3rd, a real three-note walk") but it's precisely the reach he
+   was hearing. Now `root:5, alt:4, fifth:6`, the ordinary A-shape
+   convention — Travis walks 5-4-6-4.
+2. **Gadd9 and G♯add9** — "walking up and down on Travis thumb rather than
+   alternating. Should be 6-4-5-4." Also right, and this one was **stale
+   rather than deliberate**: session 34 set `alt:5, fifth:4` under a "walk to
+   the 3rd" convention, session 35 then revoiced the shape so string 5 opens
+   and no longer carries the 3rd at all — but left the role assignment
+   behind. The chord's own comment admitted the mismatch ("that changes what
+   `alt` actually plays — it's now the 9th rather than the 3rd") without
+   anyone re-deriving the roles. Now `root:6, alt:4, fifth:5`.
+
+**Both are role-string moves only — no fret changed on any chord.** The
+five-root add9 shape is a full barre, so strings 6/4/3/1 already sit at the
+same fret; `generator.js` needed nothing, since `resolveThumbEntry` and
+`resolveBar` both just index `CHORDS[id].root/.alt/.fifth` generically.
+
+**Then his follow-up question — "do we have any other chords with odd bass
+patterns like that?" — turned out to be worth asking.** A full sweep
+comparing every chord's role strings against the other qualities on its own
+root found **four more** carrying the same "walk to a reachable colour tone"
+swap: **E♭m6, G♯6, Gsus2, G♯sus2**. Unlike Gadd9 these were all *internally
+correct* — each one's comment accurately described its own shape, nothing was
+stale — so this wasn't a bug report but a style question, and it went to him
+as one. **His call: "Match the Travis convention — the picking pattern
+consistency takes precedence."** All four now use the ordinary A-shape
+(5/4/6) or E-shape (6/4/5) assignment. G♯sus2 was included on the same
+principle without being in the original four, since it's Gsus2's direct pair;
+flagged rather than swept in silently.
+
+**What was deliberately NOT changed:** the separate "repeats a note" family —
+Cm6, C♯m6, B♭m6, Bm6, F6, F♯6, Fsus2, F♯sus2, E♭sus4 — where `alt` reuses the
+root or 5th because the colour tone isn't reachable on *any* bass string for
+that shape (F♯6 plays F♯, C♯, C♯, C♯). That's a different, already-accepted
+trade-off, and he'd just signed off two of them by ear.
+
+One test covers all eleven chords (`hand-voiced chords don't swap alt/fifth
+off the root's ordinary convention`), pinned the same way the F♯6
+`alt !== fifth` trap is, because this class of bug is **audible-only** — it
+has now been caught by his ear twice and by a test zero times. 133 → 134
+green.
+
+**Docs: `OPEN_ITEMS.md` went 1,345 → 259 lines** (12,778 → 2,715 words), his
+call — ~71% of it was spent "previously on the phone" sections whose
+questions had all been answered, duplicating `CHANGELOG.md`, which indexes
+every one of those versions already. Kept: the open items, the "Decided"
+anti-re-litigation list, and the ground rules. Also logged **five new items
+(14–18)** from his notes — the numeral/PIMA face, whether MIX is real
+(investigated: functional, but only hand-editing can produce it), the guitar
+sound being too twangy, saving custom progressions, and the App Store — and
+**closed five** (items 5, 11, 12, 13, and 10, the last resolved by session
+43's Load-screen redesign without ever being aimed at it). Agreed order for
+what's left: **16 → 14 → 17 → 18**.
 
 ---
 

@@ -1271,8 +1271,26 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.10.1, 133/133 green — the whole Load screen confirmed working on his
-phone, nothing queued.** Session 43 was his phone review of everything
+**v3.10.2, 134/134 green — the add9/m6/sus2 Travis-bass fixes are shipped
+and unheard; next up is the guitar sound (open item 16).** Session 44
+collected his guitar verdicts on the session-35 voicings (**F♯6, E♭sus4 and
+the m7 family all confirmed fine** — that thread is closed) and fixed the
+two he flagged: the C♯/D/E♭/F/F♯ add9 shape had `fifth` on the
+finger-domain string 3 ("the thumb going all the way up to the g string"),
+and Gadd9/G♯add9 carried a stale session-34 role assignment that made the
+thumb walk instead of alternate. His follow-up — "any other chords like
+that?" — found four more on the same "walk to a colour tone" idea (E♭m6,
+G♯6, Gsus2, G♯sus2), all internally correct but inconsistent; **his call
+was consistency** ("the picking pattern consistency takes precedence"), so
+all eleven now use the ordinary A-shape (5/4/6) or E-shape (6/4/5)
+convention. Role strings only — no fret moved, no generator change. The
+separate "repeats a note" family (F♯6, F6, the m6 barres, F/F♯sus2) is
+deliberately untouched: that's an unreachable colour tone, not an
+inconsistency. **`OPEN_ITEMS.md` was also cut 1,345 → 259 lines** and now
+carries only what's open — four items (16 → 14 → 17 → 18, his order), with
+the history left to `CHANGELOG.md` where it already was.
+
+**Session 43** was his phone review of everything
 sessions 40–42 had shipped (folders, Built-in patterns, Restore) tested
 together in one pass for the first time — all confirmed — followed by a
 redesign of the Load screen's chrome, itself reviewed and refined once more
@@ -1368,9 +1386,12 @@ ever goes dead again, and (session 38) whether a real download lands somewhere
 usable in installed-PWA iOS Safari and whether the iOS file picker can select a
 `.json` from Files/iCloud for import — the dev box can't answer either, and
 session 43's per-item export makes this marginally more likely to come up.
-**And on his guitar (session 35):** `F♯6` and `E♭add9` both
-dropped the moving-finger technique for static barres, and `E♭sus4` moved back up
-to frets 6–9 — each replaces a voicing reasoned out only a session or two before.
+**And on his guitar (session 44):** the eleven rewritten Travis bass
+patterns — the add9 family, E♭m6, G♯6, Gsus2, G♯sus2. Bass roles are
+audible-only, which is how the last two bugs in this class were found (F♯6
+by ear in session 33g, these in session 44), so a test can pin the values
+but only his ear confirms they're the right ones. **The session-35 guitar
+thread is CLOSED** — `F♯6`, `E♭sus4` and the m7 family all came back fine.
 
 - **What changed and why, session by session** → `CHANGELOG.md` (newest first).
 - **What's open, what's decided, what needs his call** → `OPEN_ITEMS.md`.

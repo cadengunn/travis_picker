@@ -278,19 +278,17 @@ const OPEN_CHORDS = {
   // fret 1, ring on string 5, pinky on string 6. It spells G♯, C, D♯, G♯, C, F =
   // root, 3rd, 5th, root, 3rd, 6th.
   //
-  // THE ROLES CHANGE WITH THE SHAPE, and that's the part worth reading. In the old
-  // E-shape barre the alt bass was string 4 and the fifth string 5; here string 4
-  // carries the true 5th (D♯) and string 5 carries the 3rd (C), so the two swap:
-  // `fifth: 4`, `alt: 5`. Two things fall out — Root–Fifth alternates G♯ ↔ D♯
-  // properly, and Travis plays G♯, C, D♯, C, which is three distinct notes rather
-  // than the root-and-octave the E-shape gives. "Walk to the 3rd" for the alt is
-  // the same convention Gadd9 used at the time (session 34) — Gadd9 and F♯6 were
-  // both later revoiced (session 35) onto shapes where the 3rd isn't reachable
-  // in the role-string domain, so neither still does this.
+  // Role fix (session 44, his call — "picking pattern consistency takes
+  // precedence"): `alt`/`fifth` used to swap to walk the alt beat to the 3rd
+  // (C) on string 5, the same "walk to a reachable color tone" idea Gadd9 used
+  // to have (see its comment above) before he asked for that removed there
+  // too. Now the ordinary E-shape convention: `alt: 4` (the true 5th, D♯),
+  // `fifth: 5` (the 3rd, C) — same string assignment as every other G♯-root
+  // quality. Travis plays G♯, D♯, C, D♯ (root, 5th, 3rd, 5th).
   //
   // No `moving` entry: the index barre and two fingers hold every note at once,
   // with the middle finger spare, so nothing has to travel.
-  "G#6": { root: 6, alt: 5, fifth: 4, fifthFret: 1, shape: { 6: 4, 5: 3, 4: 1, 3: 1, 2: 1, 1: 1 } },
+  "G#6": { root: 6, alt: 4, fifth: 5, fifthFret: 3, shape: { 6: 4, 5: 3, 4: 1, 3: 1, 2: 1, 1: 1 } },
   // --- m6 ---
   Dm6:   { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 0, 1: 1 } }, // xx0201
   // Cm6 and C♯m6 are a DELIBERATE override of "whichever barres lower" (his call,
@@ -314,10 +312,12 @@ const OPEN_CHORDS = {
   Bm6:  { root: 6, alt: 4, fifth: 5, fifthFret: 9, shape: { 6: 7, 5: 9, 4: 9, 3: 7, 2: 9, 1: 7 } },
   // E♭m6 — his session 35 tabs `11 9 8 8 11 8`, a different shape from the
   // Cm6/C♯m6/B♭m6/Bm6 family: the m3 (F♯) lands on string 5, a genuine
-  // bass-domain string, so `alt` walks to it directly instead of reusing the
-  // root. `root` string 6, `fifth` string 4. Travis plays E♭, F♯, B♭, F♯ — a
-  // real three-note walk, unlike its family neighbours above.
-  Ebm6: { root: 6, alt: 5, fifth: 4, fifthFret: 8, shape: { 6: 11, 5: 9, 4: 8, 3: 8, 2: 11, 1: 8 } },
+  // bass-domain string. Role fix (session 44, his call — "picking pattern
+  // consistency takes precedence"): `alt` used to walk to that m3 directly
+  // instead of reusing the root, the family's neighbours' trade-off; now it's
+  // the ordinary E-shape convention instead — `alt: 4` (the true 5th, B♭),
+  // `fifth: 5` (the m3, F♯). Travis plays E♭, B♭, F♯, B♭ (root, 5th, m3, 5th).
+  Ebm6: { root: 6, alt: 4, fifth: 5, fifthFret: 9, shape: { 6: 11, 5: 9, 4: 8, 3: 8, 2: 11, 1: 8 } },
   // --- sus4 ---
   // Csus4 was the one hand-declared "open C + colour tone" that broke the pattern
   // (his note, session 33). Every other chord in this family — Cmaj7, C6, C7 —
@@ -350,7 +350,12 @@ const OPEN_CHORDS = {
   // and the rest come from the templates (all ≤ fret 8). ---
   Csus2: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 0, 3: 0, 2: 3, 1: 3 } }, // G C D G D G
   Dsus2: { root: 4, alt: 3, fifth: 5, fifthFret: 0, shape: { 6: null, 5: 0, 4: 0, 3: 2, 2: 3, 1: 0 } }, // A D A D E
-  Gsus2: { root: 6, alt: 5, fifth: 4, fifthFret: 0, shape: { 6: 3,    5: 0, 4: 0, 3: 0, 2: 3, 1: 3 } }, // G A D G D G
+  // Gsus2 — role fix (session 44, his call — "picking pattern consistency
+  // takes precedence"): `alt`/`fifth` used to swap so `alt` walked to the 2nd
+  // (A) on string 5 instead of the ordinary string-4 convention. Now `alt: 4`
+  // (the true 5th, D), `fifth: 5` (the 2nd, A) — matching every other G-root
+  // quality's string assignment. Travis plays G, D, A, D (root, 5th, 2nd, 5th).
+  Gsus2: { root: 6, alt: 4, fifth: 5, fifthFret: 0, shape: { 6: 3,    5: 0, 4: 0, 3: 0, 2: 3, 1: 3 } }, // G A D G D G
   // F/F♯sus2 — his session 35 tabs: a full barre at the base fret (strings
   // 6/5/2/1), with two fingers raising strings 4/3 by 2. The 2nd (the sus2
   // colour tone) only reaches string 2, outside the role-string domain, so
@@ -361,26 +366,32 @@ const OPEN_CHORDS = {
   Fsus2:    { root: 5, alt: 4, fifth: 6, fifthFret: 8, shape: { 6: 8, 5: 8, 4: 10, 3: 10, 2: 8, 1: 8 } },
   "F#sus2": { root: 5, alt: 4, fifth: 6, fifthFret: 9, shape: { 6: 9, 5: 9, 4: 11, 3: 11, 2: 9, 1: 9 } },
   // G♯sus2 — his session 35 tabs, same shape family as G♯6/G♯add9
-  // (`4 1 1 1 4 4`). Unlike F/F♯sus2, the 2nd (B♭) DOES reach a bass-domain
-  // string (5) here, so `alt` takes it directly, same convention as Gsus2.
-  // `root` string 6, `fifth` string 4. Travis plays G♯, B♭, D♯, B♭ — a real
-  // three-note walk.
-  "G#sus2": { root: 6, alt: 5, fifth: 4, fifthFret: 1, shape: { 6: 4, 5: 1, 4: 1, 3: 1, 2: 4, 1: 4 } },
+  // (`4 1 1 1 4 4`). Role fix (session 44, same reasoning as Gsus2 above):
+  // `alt`/`fifth` swapped to the ordinary E-shape convention — `alt: 4` (the
+  // true 5th, D♯), `fifth: 5` (the 2nd, B♭). Travis plays G♯, D♯, B♭, D♯
+  // (root, 5th, 2nd, 5th) — matching Gsus2's pattern one root over.
+  "G#sus2": { root: 6, alt: 4, fifth: 5, fifthFret: 1, shape: { 6: 4, 5: 1, 4: 1, 3: 1, 2: 4, 1: 4 } },
   // --- add9 ---
   Cadd9: { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3,    5: 3, 4: 2, 3: 0, 2: 3, 1: 0 } }, // x32030, 9 (D) on 2
-  // Gadd9 — his session 35 revoicing: string 5 opens (was fretted 2, the 3rd),
-  // so the bass rocks on an open A instead. That changes what `alt` actually
-  // plays — it's now the 9th (A) rather than the 3rd, since the 3rd (B) is no
-  // longer reachable on any bass-domain string. Travis now plays G, A, D, A
-  // (root, 9th, 5th, 9th).
-  Gadd9: { root: 6, alt: 5, fifth: 4, fifthFret: 0, shape: { 6: 3, 5: 0, 4: 0, 3: 2, 2: 0, 1: 3 } }, // G A D A B G
+  // Gadd9 — his session 35 revoicing changed the shape (string 5 opens, was
+  // fretted 2/the 3rd) but kept session-34's role assignment, which left
+  // Travis walking 6→5→4→5 instead of alternating (caught by ear, session
+  // 44). Fixed: alt/fifth now match the ordinary E-shape convention
+  // (root:6, alt:4, fifth:5), so Travis plays G, D, A, D — root, true 5th,
+  // 9th, 5th — alternating cleanly between two fixed strings. Shape
+  // unchanged.
+  Gadd9: { root: 6, alt: 4, fifth: 5, fifthFret: 0, shape: { 6: 3, 5: 0, 4: 0, 3: 2, 2: 0, 1: 3 } }, // G A D A B G
   //
   // THE add9 FAMILY — ONE SHAPE, FIVE ROOTS (C♯, D, E♭, F, F♯), kept together
   // here so the roles are stated once and can't drift apart. A full index barre
-  // with strings 5 and 2 lifted +3; `root` string 5, `fifth` the finger string 3
-  // (which is what this shape gives — Ebsus4 has the same trade), `alt` walking
-  // to the 3rd on string 6. So all five play Travis as root-3rd-5th-3rd, a real
-  // three-note walk, and Root–Fifth alternates properly.
+  // with strings 5 and 2 lifted +3. Role fix (session 44, caught by ear — "why
+  // do we have the thumb going all the way up to the g string?"): `root`
+  // string 5, `alt` string 4, `fifth` string 6 — the ordinary A-shape
+  // convention, matching every other A-shape quality on these roots, instead
+  // of reaching to the finger-domain string 3. Travis now plays root, 9th,
+  // 3rd, 9th (e.g. C♯add9: C♯, D♯, F, D♯) — a real three-note walk that stays
+  // on strings 4/5/6. Because it's a full barre, strings 6/4/3/1 all sit at
+  // the same fret, so this is a role-string move only — no fret changed.
   //
   // It arrived in three passes, and what each REPLACED is the part worth keeping:
   //   • D / E♭ / F♯ — his session 35 spec. E♭add9 dropped the session-33 shape
@@ -394,18 +405,19 @@ const OPEN_CHORDS = {
   // NONE of them has a moving finger: the barre plus two fingers holds every
   // note at once. E♭add9 and F♯6 are the two where that's a change of technique,
   // so both are still waiting on his guitar.
-  "C#add9": { root: 5, alt: 6, fifth: 3, fifthFret: 1, shape: { 6: 1, 5: 4, 4: 1, 3: 1, 2: 4, 1: 1 } },
-  Dadd9:    { root: 5, alt: 6, fifth: 3, fifthFret: 2, shape: { 6: 2, 5: 5, 4: 2, 3: 2, 2: 5, 1: 2 } },
-  Ebadd9:   { root: 5, alt: 6, fifth: 3, fifthFret: 3, shape: { 6: 3, 5: 6, 4: 3, 3: 3, 2: 6, 1: 3 } },
-  Fadd9:    { root: 5, alt: 6, fifth: 3, fifthFret: 5, shape: { 6: 5, 5: 8, 4: 5, 3: 5, 2: 8, 1: 5 } },
-  "F#add9": { root: 5, alt: 6, fifth: 3, fifthFret: 6, shape: { 6: 6, 5: 9, 4: 6, 3: 6, 2: 9, 1: 6 } },
+  "C#add9": { root: 5, alt: 4, fifth: 6, fifthFret: 1, shape: { 6: 1, 5: 4, 4: 1, 3: 1, 2: 4, 1: 1 } },
+  Dadd9:    { root: 5, alt: 4, fifth: 6, fifthFret: 2, shape: { 6: 2, 5: 5, 4: 2, 3: 2, 2: 5, 1: 2 } },
+  Ebadd9:   { root: 5, alt: 4, fifth: 6, fifthFret: 3, shape: { 6: 3, 5: 6, 4: 3, 3: 3, 2: 6, 1: 3 } },
+  Fadd9:    { root: 5, alt: 4, fifth: 6, fifthFret: 5, shape: { 6: 5, 5: 8, 4: 5, 3: 5, 2: 8, 1: 5 } },
+  "F#add9": { root: 5, alt: 4, fifth: 6, fifthFret: 6, shape: { 6: 6, 5: 9, 4: 6, 3: 6, 2: 9, 1: 6 } },
   // G♯add9 — his session 35 tabs: a different shape from the five-root family
-  // above (`4 1 1 3 1 4`). `root` string 6, `fifth` string 4 (the
-  // true 5th). The 3rd (C) only reaches string 2, outside the strings-3–6
-  // domain every role string in this library stays within, so `alt` takes the
-  // 9th (B♭) on string 5 instead — reachable and still a genuine walking bass.
-  // Travis plays G♯, B♭, D♯, B♭ (root, 9th, 5th, 9th).
-  "G#add9": { root: 6, alt: 5, fifth: 4, fifthFret: 1, shape: { 6: 4, 5: 1, 4: 1, 3: 3, 2: 1, 1: 4 } },
+  // above (`4 1 1 3 1 4`). Role fix (session 44, same reasoning as Gadd9
+  // above): alt/fifth swapped to the ordinary E-shape convention (root:6,
+  // alt:4, fifth:5) — string 4 carries the true 5th, string 5 the 9th (B♭),
+  // since the 3rd (C) only reaches string 2, outside the strings-3–6 domain
+  // every role string in this library stays within. Travis plays G♯, D♯, B♭,
+  // D♯ — root, true 5th, 9th, 5th.
+  "G#add9": { root: 6, alt: 4, fifth: 5, fifthFret: 1, shape: { 6: 4, 5: 1, 4: 1, 3: 3, 2: 1, 1: 4 } },
 };
 
 // ----- Movable barre templates: one shape slid up the neck -----

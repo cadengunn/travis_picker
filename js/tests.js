@@ -497,6 +497,42 @@ check("chord library: alt never equals fifth — the Travis-pattern trap", () =>
   }
 });
 
+check("chord library: hand-voiced chords don't swap alt/fifth off the root's ordinary convention", () => {
+  // Audible-only bugs, caught by ear (session 44), in two rounds. Round one:
+  // the five-root add9 family (C♯/D/E♭/F/F♯) had `fifth` on the finger-domain
+  // string 3 ("the thumb going all the way up to the g string"), and
+  // Gadd9/G♯add9 had alt/fifth swapped from a stale session-34 "walk to a
+  // color tone" convention that no longer matched their shape ("walks up and
+  // down" instead of alternating). Round two, once he set the rule ("picking
+  // pattern consistency takes precedence"): the same swap existed on E♭m6,
+  // G♯6, Gsus2 and G♯sus2 — each internally correct (not stale, verified
+  // against their own shape) but still the "walk to a color tone" style he'd
+  // just asked removed elsewhere, so all four were brought in line too. All
+  // eleven now match the ordinary A-shape (root:5,alt:4,fifth:6) or E-shape
+  // (root:6,alt:4,fifth:5) role convention every other quality on their root
+  // uses — pinned the same way the F♯6 trap above is, so a future shape edit
+  // can't silently drift back.
+  const expected = {
+    "C#add9": { root: 5, alt: 4, fifth: 6 },
+    Dadd9:    { root: 5, alt: 4, fifth: 6 },
+    Ebadd9:   { root: 5, alt: 4, fifth: 6 },
+    Fadd9:    { root: 5, alt: 4, fifth: 6 },
+    "F#add9": { root: 5, alt: 4, fifth: 6 },
+    Gadd9:    { root: 6, alt: 4, fifth: 5 },
+    "G#add9": { root: 6, alt: 4, fifth: 5 },
+    Ebm6:     { root: 6, alt: 4, fifth: 5 },
+    "G#6":    { root: 6, alt: 4, fifth: 5 },
+    Gsus2:    { root: 6, alt: 4, fifth: 5 },
+    "G#sus2": { root: 6, alt: 4, fifth: 5 },
+  };
+  for (const [id, want] of Object.entries(expected)) {
+    const got = CHORDS[id];
+    for (const role of ["root", "alt", "fifth"]) {
+      assert(got[role] === want[role], `${id}.${role}: expected ${want[role]}, got ${got[role]}`);
+    }
+  }
+});
+
 // 6d) ONE spelling per pitch, everywhere. The wheel's root reel, the chord's
 //     display name and the capo tag all read from PC_NAME, so a pitch can't be
 //     "C♯" on the wheel and "D♭" in the header — which it was before the wheel.
