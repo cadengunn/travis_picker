@@ -43,7 +43,7 @@ import {
   HELP,
   HELP_KEYS,
 } from "./data.js";
-import { midiToFreq, createStringSynth, DEFAULT_TONE } from "./synth.js";
+import { midiToFreq, createStringSynth, DEFAULT_TONE, VOICES } from "./synth.js";
 import {
   generatePattern,
   resolvePattern,
@@ -1831,6 +1831,63 @@ check("audio: nylon and steel render different buffers, and nylon is darker", ()
   synth.pluck(220, 0);
   assert(rendered.length === 3 && rendered[2].buffer, "an unknown tone still plays, falling back rather than failing");
   assert(DEFAULT_TONE === "steel", "steel stays the default, so an upgrade doesn't change the sound underneath him");
+});
+
+check("audio: a high note still sustains on the darker tone", () => {
+  // HIS EAR CAUGHT THIS AND NO TEST DID (session 44b: "maybe it lacks sustain
+  // on the high notes"). It's structural, not a typo: the in-loop low-pass has
+  // a FIXED cutoff, so a high note's own fundamental sits in its path and is
+  // attenuated every round trip while a low note's passes underneath. The
+  // darker the voice, the worse the tilt — which is why it showed up on nylon
+  // and not steel. The first nylon shipped with a high A4 at 26% of steel's
+  // level half a second in, and an E5 at 11%.
+  //
+  // Measured as AUDIBLE level (buffer RMS x the voice's own output gain), since
+  // comparing bare buffers would flatter whichever voice is quieter. Averaged
+  // over several renders because the pluck excitation is random per render.
+  const SR = 44100, REPS = 12, AT = 0.5;
+  const rmsAt = (data, t) => {
+    const win = Math.round(SR * 0.02);
+    const start = Math.round(t * SR);
+    if (start + win > data.length) return 0;
+    let s = 0;
+    for (let j = 0; j < win; j++) s += data[start + j] * data[start + j];
+    return Math.sqrt(s / win);
+  };
+  const level = (tone, freq) => {
+    let sum = 0;
+    for (let i = 0; i < REPS; i++) {
+      const ctx = new OfflineAudioContext(1, 128, SR);
+      let got = null;
+      const make = ctx.createBufferSource.bind(ctx);
+      ctx.createBufferSource = () => { const s = make(); got = s; return s; };
+      const synth = createStringSynth(ctx);
+      synth.setTone(tone);
+      synth.pluck(freq, 0);
+      sum += rmsAt(got.buffer.getChannelData(0), AT);
+    }
+    return (sum / REPS) * VOICES[tone].treble.gain;
+  };
+
+  // A4 and E5 — the top two strings, where he noticed it. The bar is 0.5x
+  // steel: comfortably clear of where the tuned voice sits (~1.0–1.25x) and far
+  // above where the broken one did (0.26x / 0.11x), so it fails on a real
+  // regression without flagging ordinary tuning.
+  for (const [name, freq] of [["A4", 440], ["E5", 659.26]]) {
+    const ratio = level("nylon", freq) / level("steel", freq);
+    assert(ratio > 0.5,
+      `nylon ${name} holds only ${(ratio * 100).toFixed(0)}% of steel's level at ${AT}s — the darker voice is bleeding high notes`);
+  }
+  // And the mechanism itself: turning the tilt off must measurably shorten a
+  // high note, or the knob isn't doing the job it was added for.
+  const tuned = VOICES.nylon.treble.sustainTilt;
+  assert(tuned > 0, "nylon's treble carries a sustain tilt");
+  const withTilt = level("nylon", 659.26);
+  VOICES.nylon.treble.sustainTilt = 0;
+  const without = level("nylon", 659.26);
+  VOICES.nylon.treble.sustainTilt = tuned;
+  assert(without < withTilt,
+    `sustainTilt should lengthen a high note (with ${withTilt.toFixed(5)}, without ${without.toFixed(5)})`);
 });
 
 // ---- custom dropdown (DOM; runs at import time in the test page) ----

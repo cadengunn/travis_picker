@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [44c](#where-things-stand-session-44c--v3111-2026-08-11) | **v3.11.1** | his A/B verdict: nylon is "definitely less clangy" but "maybe it lacks sustain on the high notes" — measured, and he was right in a way no test was watching for. The in-loop low-pass has a fixed cutoff, so a high note's own fundamental is attenuated every round trip while a low note's passes underneath: nylon's E5 held **11%** of steel's level at 0.5s. New `sustainTilt` knob lifts `decay` toward 1 as pitch rises, separating tone (`brightness`) from length (`decay`) — high notes now sit at 0.96–1.56x steel. Toggle stays, his call |
 | [44b](#where-things-stand-session-44b--v3110-2026-08-11) | **v3.11.0** | open item 16, first half: a **Nylon / Steel tone toggle** on the Preferences page, because his report ("a bit twangy, almost harpsichord like") was an accurate description of canonical Karplus-Strong — the treble voice had no `brightness` key at all. Two voices over one engine, the tone in the buffer cache key (the one thing that could silently break it), held in `metronome.js` too so an interrupted iOS session can't reset it. **Steel stays the default and it ships as an A/B**: if nylon wins outright we drop to one sound |
 | [44](#where-things-stand-session-44--v3102-2026-08-10) | **v3.10.2** | his guitar review of the session-35 voicings: F♯6, E♭sus4 and the m7 family confirmed fine, but the add9 family's Travis bass was wrong — the thumb reaching to the finger-domain G string on the C♯/D/E♭/F/F♯ shape, and Gadd9/G♯add9 "walking up and down" off a stale session-34 role assignment. Fixed, then a full-library audit found four more chords carrying the same "walk to a colour tone" swap (E♭m6, G♯6, Gsus2, G♯sus2) — all brought onto the ordinary A-shape/E-shape convention, his call ("picking pattern consistency takes precedence"). Also: `OPEN_ITEMS.md` cut 1,345 → 259 lines, and five new items logged (14–18) |
 | [43](#where-things-stand-session-43--v3101-2026-08-05) | **v3.10.0 → v3.10.1** | his phone review of sessions 40–42 together (folders, Built-ins, Restore — all confirmed), then a Load-screen redesign off his UI notes: tap-to-load rows, Export/Import/Restore and Rename/Export/Delete/folder tucked behind "..." menus, `summarize()` rewritten to say what you're playing over instead of a stale preset name, Save/Load made nav in help mode; three same-session follow-ups moved the library menu back inline, merged the folder select into the actions row with a fixed "Folder" label, and rewrote the progression summary as one clause ("I–V–vi7–II7 in E") |
@@ -66,6 +67,67 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 44c — v3.11.1, 2026-08-11)
+
+**His A/B verdict on v3.11.0: "The nylon is definitely less clangy, but maybe
+it lacks sustain on the high notes. I like the idea of keeping the toggle."**
+Both halves actioned — the toggle stays, and the sustain complaint turned out
+to be a real structural flaw that measurement confirmed precisely.
+
+**He was right, and specifically right about HIGH notes.** Measured mean
+audible level (buffer RMS × the voice's own output gain) at 0.5s, as a
+fraction of steel at the same pitch, 24 renders per point because the pluck
+excitation is random:
+
+```
+         G3    B3    E4    A4    C5    E5
+before  0.44  0.40  0.30  0.26  0.18  0.11
+after   0.72  0.79  0.96  0.98  1.26  1.56
+```
+
+The deficit **grew with pitch** — nylon was fine at the bottom (a low E
+actually held slightly *better* than steel) and collapsed at the top. That's
+not a tuning slip, it's structural: **the in-loop low-pass has a fixed
+cutoff**, so a low note's fundamental passes underneath it untouched while a
+high note's sits in its path and is attenuated on every round trip. The
+darker the voice, the worse the tilt — which is exactly why it showed on
+nylon and never on steel (whose treble has no filter at all).
+
+**My original error was conflating "less bright" with "less sustain."** The
+first nylon cut `decay` 0.996 → 0.991 and `seconds` 0.80 → 0.70 on the theory
+that nylon rings less, which was wrong twice over: it shortened the whole
+voice, on top of a filter that was already bleeding the top of the range.
+A real nylon treble sustains perfectly well; what it lacks is high harmonics.
+
+**The fix separates tone from length.** New `sustainTilt` knob in `ksBuffer`:
+it lifts the per-sample `decay` toward 1 as pitch rises, above a
+`TILT_REF_HZ` of 200Hz (~G3, the bottom of the treble voice — at or below it
+the tilt is a no-op by construction). So `brightness` still owns timbre and
+`decay` still owns length, and they stop fighting each other. Nylon's treble
+is now `decay 0.996, seconds 0.85, sustainTilt 0.5`; `brightness` stays at
+0.60, untouched, because that's the knob that killed the clang and he kept it.
+
+- **The bass needs no tilt and got none.** The thumb's strings all sit at or
+  below `TILT_REF_HZ`, where the tilt does nothing anyway — so the palm-muted
+  bass he already signed off is byte-identical.
+- **Steel is completely untouched** (`sustainTilt` defaults to 0, and steel's
+  treble has no filter to compensate for). The A/B baseline is still exactly
+  what shipped in session 7.
+- **`VOICES` is exported now**, so the tuning sweep ran against real renders
+  from the actual engine rather than a reimplementation that could drift.
+
+Two tests, both verified to fail without their fix rather than pass
+vacuously: the tone/cache-key one from v3.11.0, and a new sustain check that
+would have caught this — it asserts nylon holds >50% of steel's level at A4
+and E5, and reported **"nylon A4 holds only 28% of steel's level"** when run
+against the old values. It also asserts that zeroing the tilt measurably
+shortens a high note, so the knob can't quietly stop working. 135 → 136 green.
+
+**Still his ear, not mine.** The measurement says the high notes now hold up;
+whether nylon is now *right* is the next A/B.
 
 ---
 

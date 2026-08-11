@@ -446,11 +446,24 @@ the synth skips it.
   harmonics, and the excitation is pre-smoothed in proportion to `1 - brightness`
   for a duller attack. Tune by ear on a phone: `brightness` for tone,
   `decay`/`seconds` for length, `gain` for level.
-- **Nylon vs steel is three coordinated moves** (session 44, his report that the
-  shipped sound was "a bit twangy, almost harpsichord like" — an accurate
-  description of canonical KS, which is what the **treble** voice was: it had no
-  `brightness` key at all, so it ran at 1). Nylon lowers `brightness`, shortens
-  `decay`/`seconds`, and raises `gain` to pay for the lost highs.
+- **Nylon vs steel is `brightness` + `gain` + `sustainTilt`** (session 44, his
+  report that the shipped sound was "a bit twangy, almost harpsichord like" — an
+  accurate description of canonical KS, which is what the **treble** voice was:
+  it had no `brightness` key at all, so it ran at 1). Nylon lowers `brightness`
+  and raises `gain` to pay for the lost highs.
+- **`sustainTilt` EXISTS BECAUSE A DARK VOICE BLEEDS HIGH NOTES** (session 44c,
+  his A/B: "maybe it lacks sustain on the high notes" — right, and measurable).
+  The in-loop low-pass has a **fixed** cutoff, so a low note's fundamental
+  passes underneath it untouched while a high note's sits in its path and is
+  attenuated on every round trip. Nylon's first cut held **11%** of steel's
+  level at E5 half a second in, against 44% at G3 — a deficit that grows with
+  pitch. The knob lifts per-sample `decay` toward 1 as pitch rises above
+  `TILT_REF_HZ` (200Hz), so **`brightness` owns timbre and `decay` owns length
+  and they stop fighting**. Below the reference it's a no-op by construction,
+  which is why the **bass needs none** — the thumb's strings are all down there.
+  **Do not "fix" a dull-sounding voice by shortening `decay`**: that was my
+  original error (conflating less bright with less sustain), and it shortened
+  the whole range on top of a filter already eating the top of it.
 - **THE TONE IS PART OF THE BUFFER CACHE KEY** (`${freq}:${bass}:${tone}`), and
   that is the one thing this feature can't get wrong: the cache is what makes
   the synth cheap, so a key without the tone hands back the steel buffer forever
@@ -1294,16 +1307,21 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.11.0, 135/135 green — two audible-only changes are on his phone and
-neither has been heard yet: the Nylon / Steel tone toggle (open item 16)
-and v3.10.2's eleven rewritten Travis bass patterns.** Item 16 was his
-report that the sound is "a bit twangy, almost harpsichord like," which
-turned out to be one missing number — the treble voice had no `brightness`
-key, so it ran canonical Karplus-Strong, the metallic end of the algorithm.
-Shipped as an A/B rather than a retune, his call: **steel is the default and
-is unchanged**, nylon is the alternative, and if nylon wins outright we
-collapse to one sound and drop the toggle. Full detail in "Pattern
-playback" above. Next after that is item 14 (the fret-numeral / PIMA face).
+**v3.11.1, 136/136 green — the Nylon / Steel toggle plus a measured
+high-note sustain fix (open item 16), and v3.10.2's eleven rewritten Travis
+bass patterns, all still audible-only and waiting on his ear.** His A/B on
+v3.11.0: nylon is "definitely less clangy" but "maybe it lacks sustain on
+the high notes" — measured and confirmed (nylon's E5 held **11%** of steel's
+level at 0.5s), fixed via a new `sustainTilt` knob, and the toggle stays by
+his call.
+
+Item 16 began as his report that the sound is "a bit twangy, almost
+harpsichord like," which turned out to be one missing number — the treble
+voice had no `brightness` key, so it ran canonical Karplus-Strong, the
+metallic end of the algorithm. Shipped as an A/B rather than a retune:
+**steel is the default and is byte-identical to what shipped in session 7**,
+nylon is the alternative. Full detail in "Pattern playback" above. Next is
+item 14 (the fret-numeral / PIMA face).
 
 Session 44
 collected his guitar verdicts on the session-35 voicings (**F♯6, E♭sus4 and

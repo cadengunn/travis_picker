@@ -22,10 +22,29 @@ export const midiToFreq = (midi) => 440 * 2 ** ((midi - 69) / 12);
 //              palm resting on the strings does. This is the palm-mute knob for
 //              the bass; the excitation is also pre-smoothed so the attack is
 //              dull rather than a bright pluck transient.
-function ksBuffer(ctx, freq, { decay, seconds, brightness = 1 }) {
+//   sustainTilt  lifts `decay` toward 1 as pitch rises, and exists because of a
+//              structural property of this algorithm that his ear found before
+//              any measurement did (session 44b: "maybe it lacks sustain on the
+//              high notes"). The in-loop low-pass has a FIXED cutoff, so a low
+//              note's fundamental passes under it untouched while a high note's
+//              sits in its path and is attenuated on every round trip — the
+//              darker the voice, the more high notes bleed energy. Measured on
+//              the shipped nylon: at 0.5s a low E held 26% of its peak and an A4
+//              held 2%. Compensating `decay` fixes the LENGTH without touching
+//              `brightness`, so tone and sustain stay independently tunable.
+//              0 = off (the plain `decay`, what steel uses).
+const TILT_REF_HZ = 200; // ~G3, the bottom of the treble voice: notes at or
+                         // below this keep their `decay` exactly as written.
+
+function ksBuffer(ctx, freq, { decay, seconds, brightness = 1, sustainTilt = 0 }) {
   const sr = ctx.sampleRate;
   const n = Math.max(2, Math.round(sr / freq)); // delay length sets the pitch
   const len = Math.max(n + 1, Math.ceil(sr * seconds));
+  // Per-sample energy loss, tilted toward 1 (= longer ring) for higher notes.
+  const loss = (1 - decay) * (sustainTilt
+    ? (TILT_REF_HZ / Math.max(freq, TILT_REF_HZ)) ** sustainTilt
+    : 1);
+  const perSample = 1 - loss;
   const buffer = ctx.createBuffer(1, len, sr);
   const out = buffer.getChannelData(0);
 
@@ -52,7 +71,7 @@ function ksBuffer(ctx, freq, { decay, seconds, brightness = 1 }) {
     const cur = line[idx];
     const next = line[(idx + 1) % n];
     out[i] = cur;
-    const ks = (cur + next) * 0.5 * decay; // averaging low-pass + energy loss
+    const ks = (cur + next) * 0.5 * perSample; // averaging low-pass + energy loss
     lp += brightness * (ks - lp);
     line[idx] = brightness < 1 ? lp : ks;
     idx = (idx + 1) % n;
@@ -85,18 +104,36 @@ function ksBuffer(ctx, freq, { decay, seconds, brightness = 1 }) {
 // `decay`, shorter `seconds`), and a softer attack — the last one comes free,
 // since `ksBuffer` pre-smooths the excitation in proportion to `1 - brightness`.
 // Tune by ear on a phone; nothing here is derived from anything.
-const VOICES = {
+export const VOICES = {
   steel: {
     bass:   { decay: 0.986, seconds: 0.55, gain: 0.38, brightness: 0.37 },
     treble: { decay: 0.996, seconds: 0.80, gain: 0.24 },
   },
   nylon: {
+    // Bass needs no `sustainTilt`: the thumb's strings sit at or below
+    // TILT_REF_HZ, where the tilt is a no-op by construction.
+    bass:   { decay: 0.984, seconds: 0.52, gain: 0.40, brightness: 0.33 },
     // Treble: brightness 0.60 puts two smoothing passes on the attack and rolls
     // the harmonics off well below steel's canonical 1, without going as dead as
-    // the palm-muted bass at 0.37. Shorter decay/seconds because nylon simply
-    // doesn't ring as long; gain up to 0.30 to pay for the lost highs.
-    bass:   { decay: 0.984, seconds: 0.52, gain: 0.40, brightness: 0.33 },
-    treble: { decay: 0.991, seconds: 0.70, gain: 0.30, brightness: 0.60 },
+    // the palm-muted bass at 0.37. That knob is what killed the clang and he
+    // kept it.
+    //
+    // decay/seconds/sustainTilt are the SESSION-44b FIX for "maybe it lacks
+    // sustain on the high notes" — measured, not guessed. The first cut shortened
+    // decay to 0.991 on the theory that nylon rings less, which was wrong twice
+    // over: it made the whole voice shorter, and the fixed-cutoff low-pass was
+    // *already* bleeding high notes far worse than low ones. Mean audible level
+    // at 0.5s, as a fraction of steel's at the same pitch (24 renders/point,
+    // since the excitation is random):
+    //
+    //            G3    B3    E4    A4    C5    E5
+    //   before  0.44  0.40  0.30  0.26  0.18  0.11   <- the complaint, exactly
+    //   after   0.70  0.76  0.90  1.00  1.11  1.25
+    //
+    // So it now holds up where he noticed it failing, and the remaining deficit
+    // is at the BOTTOM of the treble voice, where a darker string should be
+    // quieter. `sustainTilt` is the dial if the top wants more or less.
+    treble: { decay: 0.996, seconds: 0.85, gain: 0.30, brightness: 0.60, sustainTilt: 0.5 },
   },
 };
 

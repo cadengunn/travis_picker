@@ -23,7 +23,7 @@ Status legend: **OPEN** = not started · **NEEDS A CALL** = blocked on a
 decision · **ON THE PHONE** = built, waiting on his test · **ANSWERED** =
 investigated, no work needed unless he wants a change.
 
-**On the phone now (v3.11.0):** the Nylon / Steel tone toggle (item 16), and
+**On the phone now (v3.11.1):** the Nylon / Steel tone toggle and its high-note sustain fix (item 16), and
 the eleven rewritten Travis bass patterns from v3.10.2 — both audible-only,
 both waiting on his ear.
 
@@ -39,29 +39,44 @@ that option open.
 
 ---
 
-## Item 16 — the guitar sound is too twangy **ON THE PHONE (v3.11.0)**
+## Item 16 — the guitar sound is too twangy **ON THE PHONE (v3.11.1)**
 
-**Shipped as a Nylon / Steel toggle** on the Preferences page, under the
-Sound lamps. **Steel is the default and is exactly what you have today**, so
-nothing changed until you switch — pick Nylon to hear the alternative, and
-you can flip it mid-loop without stopping.
+**Round 2.** The toggle stays, per your call. Your sustain note was right,
+and it was worse than it sounded: nylon's high notes were bleeding badly.
 
-**Your diagnosis was right, and it was one missing number.** The treble
-voice had no `brightness` setting at all, so it ran at the brightest,
-most metallic end of the algorithm — which is what "almost harpsichord
-like" actually is. The bass was already palm-muted and was never the
-problem.
+**Measured** — mean audible level half a second in, as a fraction of steel
+at the same pitch (24 renders per point, since the pluck is random):
 
-**What to judge on the phone, since the dev box has no ear:**
-- **Is nylon actually better, or just different?** If it wins outright, say
-  so and we drop steel and the toggle with it — one sound, no UI. That's the
-  cheaper end state and it's yours to call.
-- **Is nylon too dull?** It's three numbers (brightness, decay, gain) and
-  easy to walk back toward bright if it's gone too far.
-- **Does it hold up at tempo and under a full three-finger rake**, not just
-  on single notes — that's where the old brightness was doing some work.
-- **The bass barely changed** between tones (it was already muted). If the
-  nylon *treble* now sits oddly against it, that's the next knob.
+```
+         G3    B3    E4    A4    C5    E5
+before  0.44  0.40  0.30  0.26  0.18  0.11
+after   0.72  0.79  0.96  0.98  1.26  1.56
+```
+
+**The deficit grew with pitch**, which is the tell. It's structural, not a
+tuning slip: the filter that darkens the tone has a fixed cutoff, so a low
+note passes under it while a high note's own fundamental sits in its path
+and gets eaten on every pass. The darker the voice, the worse it gets —
+which is why steel never showed it.
+
+**My original error was treating "less bright" and "less sustain" as the
+same thing.** I'd shortened nylon's decay on the theory that nylon rings
+less. A real nylon treble sustains fine; what it lacks is high harmonics.
+There's a new knob (`sustainTilt`) that keeps those two independent, so the
+brightness setting you liked is untouched.
+
+**What to judge, since the dev box has no ear:**
+- **Do the high notes hold up now?** They measure at 0.96–1.56x steel where
+  they were 0.11–0.30x. If it's still short up top, the tilt goes higher.
+- **Is it now too much?** C5/E5 ring slightly *longer* than steel. If that
+  reads unnatural, the same dial comes back down.
+- **Is nylon actually better, or just different?** Still the real question.
+  If it wins outright we can drop steel and the toggle — but you've said
+  keep the toggle, so that's parked unless you change your mind.
+- **Does it hold up under a full three-finger rake at tempo**, not just on
+  single notes — that's where the brightness was doing some work.
+- **The bass is untouched** in both tones (the tilt is a no-op down there by
+  design). If the nylon *treble* now sits oddly against it, that's next.
 
 <details>
 <summary>The original item 16 write-up, kept for the record</summary>
