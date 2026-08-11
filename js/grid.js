@@ -146,7 +146,15 @@ export function renderGrid(container, phrase, opts = {}) {
           const dot = document.createElement("span");
           dot.className = "note";
           dot.classList.add(ev.finger === "p" ? "note-thumb" : "note-finger");
-          dot.textContent = labelFor(ev, labelMode);
+          const label = labelFor(ev, labelMode);
+          dot.textContent = label;
+          // OPTICAL CENTRING, keyed off the GLYPH rather than the finger — the
+          // nudge is a property of the letterform, and in Fret mode this same
+          // thumb event prints a digit that must not be moved. A dome centres
+          // the LINE BOX, so a descender drags `p` low and the dot lifts `i`:
+          // measured at 0.23em of drift across p/i/m/a against 0.01em across
+          // the digits. CSS does the moving; see `.note[data-glyph]`.
+          if (/^[pima]$/.test(label)) dot.dataset.glyph = label;
           cell.appendChild(dot);
           cell.classList.add("filled");
         }

@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [44d](#where-things-stand-session-44d--v3120-2026-08-11) | **v3.11.2 → v3.12.0** | Tone/Note labels/Theme merged into one row; then item 14 — and his question ("have we considered the two fonts we already are using?") killed a 39KB third font before it shipped. `--numeral` was a SYSTEM rounded stack justified by a claim that was never measured and is wrong; Fraunces at `opsz` 9 / `SOFT` 100 holds up fine in the dome, so the app is down to **two type voices, zero new bytes**, and every voice now leads with a bundled face. Plus the PIMA optical fix: a dome centres the line box, not the ink, so p/i/m/a drifted 0.23em against 0.01em across the digits |
 | [44c](#where-things-stand-session-44c--v3111-2026-08-11) | **v3.11.1** | his A/B verdict: nylon is "definitely less clangy" but "maybe it lacks sustain on the high notes" — measured, and he was right in a way no test was watching for. The in-loop low-pass has a fixed cutoff, so a high note's own fundamental is attenuated every round trip while a low note's passes underneath: nylon's E5 held **11%** of steel's level at 0.5s. New `sustainTilt` knob lifts `decay` toward 1 as pitch rises, separating tone (`brightness`) from length (`decay`) — high notes now sit at 0.96–1.56x steel. Toggle stays, his call |
 | [44b](#where-things-stand-session-44b--v3110-2026-08-11) | **v3.11.0** | open item 16, first half: a **Nylon / Steel tone toggle** on the Preferences page, because his report ("a bit twangy, almost harpsichord like") was an accurate description of canonical Karplus-Strong — the treble voice had no `brightness` key at all. Two voices over one engine, the tone in the buffer cache key (the one thing that could silently break it), held in `metronome.js` too so an interrupted iOS session can't reset it. **Steel stays the default and it ships as an A/B**: if nylon wins outright we drop to one sound |
 | [44](#where-things-stand-session-44--v3102-2026-08-10) | **v3.10.2** | his guitar review of the session-35 voicings: F♯6, E♭sus4 and the m7 family confirmed fine, but the add9 family's Travis bass was wrong — the thumb reaching to the finger-domain G string on the C♯/D/E♭/F/F♯ shape, and Gadd9/G♯add9 "walking up and down" off a stale session-34 role assignment. Fixed, then a full-library audit found four more chords carrying the same "walk to a colour tone" swap (E♭m6, G♯6, Gsus2, G♯sus2) — all brought onto the ordinary A-shape/E-shape convention, his call ("picking pattern consistency takes precedence"). Also: `OPEN_ITEMS.md` cut 1,345 → 259 lines, and five new items logged (14–18) |
@@ -67,6 +68,85 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 44d — v3.12.0, 2026-08-11)
+
+**v3.11.2 first, a one-liner:** Tone, Note labels and Theme merged into a
+single row on the Preferences page, his call. Tone had shipped on a row of
+its own under the Sound lamps on the argument that it's a sound setting, not
+an appearance one — but `.control-row` is a 3-slot grid and the other two
+were already sitting at a third each, so the third slot stood empty directly
+below. Verified each field at its LONGEST option (107px client, 107px
+scroll, no overflow) and that the trigger stays 40.8px tall with "Elizabeth"
+exactly as with "Steel", since a wrapped box still "fits" by scrollWidth.
+
+**Then item 14 — and he closed it better than my plan did.** I had approval
+to bundle Nunito as a proper rounded face (39KB, a third font, a third
+license) and had already downloaded three candidates and rendered them in
+the real dome. His question: *"Of these, Nunito — but have we considered the
+two fonts we already are using?"* We had not. One of them does the job.
+
+**The reason a third voice existed turned out to be false.** `DESIGN.md`
+justified `--numeral` as "a legibility exception, not a third opinion: serif
+hairlines and tracked caps both go mushy at 11px in a 30px circle." That was
+reasoned, never measured. Rendered side by side in the actual 30px dome at
+the actual 10px, **Fraunces at bold holds up completely**. Two things had
+been missed:
+
+- Fraunces is **variable**, so `opsz` 9 is a genuine small-size cut —
+  thicker hairlines, opener counters — not just the text face shrunk.
+- Its **`SOFT` axis rounds the terminals**, which is precisely the rounded
+  quality the third voice was reaching for.
+
+So `--numeral` is Fraunces now, cut by `--numeral-var` (`opsz` 9, `SOFT`
+100, `WONK` 0) across all four sites that want it: the note domes, the beat
+ruler, the BPM readout and the chord box's fret digit. **Zero new bytes, no
+third license, two type voices instead of three.**
+
+**It also closed a real gap rather than only saving a font.** The old value
+was a SYSTEM stack (`ui-rounded, "SF Pro Rounded", -apple-system,
+system-ui`), which is free only while every user is on Apple hardware — off
+it, `system-ui` is not rounded at all and the design intent silently
+vanished. That is exactly the trap that made the legend face bundled Jost
+rather than system Futura (session 17); the numeral voice had simply never
+been held to the same standard. The type test now asserts **every** voice
+leads with a bundled face and names no system fallback, so a future token
+can't quietly reintroduce it.
+
+**Two measurements decided the details, neither of them guesses:**
+
+- Comparing candidates, **Jost caps at weight 600** in our subset (its width
+  is identical at 600/700/900, so the domes asking for 700 silently get
+  600), while Fraunces varies properly across 400→900. That, plus SOFT,
+  is why Fraunces won over the other already-bundled face.
+- **PIMA needed an optical fix and the digits did not.** A dome centres the
+  LINE BOX, not the ink, so a descender drags `p` low and the dot lifts `i`:
+  measured on the shipping face at **0.23em of drift across p/i/m/a against
+  0.01em across the digits**. `grid.js` tags the dome with `data-glyph` from
+  the **rendered label, not the event's finger** — in Fret mode the same
+  thumb event prints a digit that must not move — and CSS nudges p/m/a with
+  `padding-bottom`. Padding rather than transform because the label is a
+  bare text node inside the flex circle; **the value is double the
+  correction**, since shrinking the content box re-centres the text within
+  what's left. In `em`, so it tracks `--note-font`.
+
+`--numeral-var` deliberately omits `wght` so `font-weight` still controls
+weight per site; a test pins that too, because naming the axis there would
+silently freeze every numeral at one weight.
+
+One new test (PIMA glyph tagging, verified to fail without the fix —
+*"a PIMA note prints \"a\" but is tagged \"undefined\""*) and the type test
+rewritten. 136 → 137 green. Budget re-measured at the worst case and
+**untouched: 55.09 / 384.84 / 11.06, no overflow** — worth checking rather
+than assuming, since `.tick` lives inside the grid track and a font swap can
+move it.
+
+**Not verified, and can't be here: whether Fraunces reads as well at arm's
+length.** It has more stroke contrast than the rounded face it replaces. If
+it costs legibility on the grid, Jost is the fallback — monoline, already
+bundled, also zero bytes.
 
 ---
 

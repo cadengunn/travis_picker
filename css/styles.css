@@ -12,7 +12,8 @@
    vignette overlays are fixed rgba (texture, not hue) so they ride every theme;
    the color pass tunes the roles, not this file's structure. */
 
-/* THE PANEL SPEAKS IN THREE VOICES, and each one has a job (session 17):
+/* THE PANEL SPEAKS IN TWO VOICES, and each one has a job (session 17;
+   cut from three to two in session 44d):
 
    --serif   Fraunces. What a control SAYS: values, names, prose — and any word
              INSIDE a control (a dropdown's value, a lamp's name, a button's
@@ -20,9 +21,36 @@
    --legend  Jost. What the machine CALLS a thing: the small tracked caps ABOVE
              a control, silkscreened onto the faceplate. Never changes, and
              should recede — Fraunces is characterful enough for both of them.
-   --numeral A rounded geometric, for fret numerals inside note circles ONLY.
-             A legibility exception, not a third opinion: serif hairlines and
-             tracked caps both go mushy at 11px in a 30px circle.
+
+   --numeral WAS A THIRD VOICE AND ISN'T ANY MORE. It used to be a rounded
+             geometric from the SYSTEM stack (ui-rounded / SF Pro Rounded),
+             justified as "a legibility exception, not a third opinion: serif
+             hairlines and tracked caps both go mushy at 11px in a 30px circle."
+
+             THAT CLAIM WAS REASONED, NOT MEASURED, AND IT IS WRONG — rendered
+             side by side in the real dome at the real size (session 44d, his
+             question: "have we considered the two fonts we already are
+             using?"), Fraunces at bold holds up completely. Two things had been
+             missed: Fraunces is VARIABLE, so `opsz` 9 is a genuine small-size
+             cut with thicker hairlines and opener counters, and its `SOFT` axis
+             rounds the terminals — which is the rounded quality the third voice
+             was reaching for in the first place.
+
+             It also fixes a real gap rather than only saving a font: a system
+             stack is free only while every user is on Apple hardware, and off
+             it `system-ui` is NOT rounded, so the design intent silently
+             vanished. That is the same trap that made the legend face bundled
+             Jost instead of system Futura — the numeral voice had simply never
+             been held to it.
+
+             So it's Fraunces now, and it stays a named variable because four
+             places want this exact treatment: the note domes, the beat ruler,
+             the BPM readout and the chord box's fret digit.
+
+   --numeral-var  the axis settings that make Fraunces a small-size numeral.
+             `wght` is deliberately ABSENT so `font-weight` still controls it
+             per site; naming an axis here would override that. WONK 0 keeps
+             the quirky alternates out of a 30px circle. */
 
    Both bundled + precached — no font CDN, because the app runs offline. Adding
    a font means adding it to sw.js PRECACHE and bumping CACHE; there's a test.
@@ -89,7 +117,10 @@
   /* The legend falls back to a GROTESQUE, never to the rounded numeral face —
      if Jost is slow or missing, a panel legend should still read as engraved. */
   --legend: "Jost", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --numeral: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+  /* Same stack as --serif on purpose: if Fraunces is missing, a fret digit
+     should still land on a real serif rather than on whatever `system-ui` is. */
+  --numeral: "Fraunces", "Iowan Old Style", "Charter", Georgia, serif;
+  --numeral-var: "opsz" 9, "SOFT" 100, "WONK" 0;
 
   /* ONE legend tier, deliberately (session 17). The sheet used to have two —
      a 9px/0.22em section caption above 10px/0.14em field labels — which put the
@@ -689,6 +720,7 @@ main {
   align-items: center;
   justify-content: center;
   font-family: var(--numeral);
+  font-variation-settings: var(--numeral-var);
   font-size: var(--note-font);
   line-height: 1;
   font-weight: 700;
@@ -706,9 +738,35 @@ main {
   color: var(--bg);
 }
 
+/* PIMA OPTICAL CENTRING (session 44d). A dome centres the LINE BOX, not the
+   ink, so a lowercase letter with a descender hangs low while a dotted one
+   rides high: measured against the shipping face (Fraunces at opsz 9 / SOFT
+   100), p/i/m/a drift 0.23em against 0.01em across the digits — visible as the
+   letters hopping when you scan a column. Digits need nothing and get nothing;
+   `i` is already centred to within 0.001em.
+
+   PADDING, NOT TRANSFORM, because the label is a bare text node inside the
+   flex circle — there's no element to move, and transforming `.note` would
+   move the circle itself. **The value is DOUBLE the correction**: shrinking the
+   content box by `padding-bottom` re-centres the text within what's left, so
+   it rises by half the padding. em, so it tracks `--note-font` on any screen.
+
+   Keyed off `data-glyph`, set in grid.js from the rendered LABEL rather than
+   the event's finger — in Fret mode the very same thumb event prints a digit,
+   which must not move. */
+.note[data-glyph="p"] { padding-bottom: 0.462em; } /* -0.231em of lift */
+.note[data-glyph="a"] { padding-bottom: 0.243em; } /* -0.121em */
+.note[data-glyph="m"] { padding-bottom: 0.228em; } /* -0.114em */
+
 /* beat-number ruler under each bar */
 .ruler { display: grid; grid-template-columns: repeat(8, 1fr); margin-top: 3px; }
-.tick { text-align: center; font-family: var(--numeral); font-size: 11px; color: var(--muted); }
+.tick {
+  text-align: center;
+  font-family: var(--numeral);
+  font-variation-settings: var(--numeral-var);
+  font-size: 11px;
+  color: var(--muted);
+}
 .tick.beat { color: var(--text); font-weight: 700; }
 
 /* playhead: the column currently sounding. Banding now lives on the ROW, so a
@@ -891,6 +949,7 @@ main {
 .bpm-readout {
   text-align: center;
   font-family: var(--numeral);
+  font-variation-settings: var(--numeral-var);
   font-size: 11px;
   letter-spacing: 0.10em;
   color: var(--muted);
@@ -2103,6 +2162,7 @@ main {
 .cb-pos {
   /* the fret-digit exception: rounded numerals, exactly as in the note domes */
   font-family: var(--numeral);
+  font-variation-settings: var(--numeral-var);
   font-size: 10px;
   font-weight: 700;
   fill: var(--muted);

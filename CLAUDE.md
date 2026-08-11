@@ -1307,9 +1307,19 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.11.1, 136/136 green — the Nylon / Steel toggle plus a measured
-high-note sustain fix (open item 16), and v3.10.2's eleven rewritten Travis
-bass patterns, all still audible-only and waiting on his ear.** His A/B on
+**v3.12.0, 137/137 green — three things on his phone, unjudged: the numeral
+voice moved to Fraunces + the PIMA optical fix (item 14, DONE), the Nylon /
+Steel toggle with its high-note sustain fix (item 16), and v3.10.2's eleven
+rewritten Travis bass patterns.** Item 14 is the one to look at rather than
+listen to. **His question closed it better than the plan did** — approval was
+in hand to bundle a 39KB third rounded face when he asked whether we'd
+considered the two already bundled. We hadn't. `--numeral`'s justification
+("serif hairlines go mushy at 11px in a 30px circle") was reasoned, never
+measured, and is wrong: Fraunces at `opsz` 9 / `SOFT` 100 holds up in the
+dome, so the app is down to **two type voices and zero new bytes**, and the
+old SYSTEM stack — not rounded at all off Apple hardware — is gone. Details
+in `DESIGN.md`; **next is item 17 (save custom progressions), which needs a
+design call before any code.** His A/B on
 v3.11.0: nylon is "definitely less clangy" but "maybe it lacks sustain on
 the high notes" — measured and confirmed (nylon's E5 held **11%** of steel's
 level at 0.5s), fixed via a new `sustainTilt` knob, and the toggle stays by

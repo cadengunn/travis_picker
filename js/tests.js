@@ -1556,6 +1556,42 @@ check("splitAudioBar: audio-bar position -> screen bar + pass", () => {
 // doubled audio content lives only in app.js's playback-time transform, never
 // in what's drawn. The pass lamps only exist when ×2 is on, and are omitted
 // entirely (not hidden) otherwise.
+check("grid: PIMA labels carry the glyph tag that optically centres them", () => {
+  // The note dome centres the LINE BOX, so a descender drags `p` low and the
+  // dot lifts `i` — 0.23em of drift across p/i/m/a, measured against the
+  // shipping face, versus 0.01em across the digits. CSS corrects it per glyph
+  // via `[data-glyph]`, so what has to hold here is that grid.js tags the
+  // letters AND, just as importantly, leaves the digits alone: in Fret mode the
+  // very same thumb event prints a number that must not be nudged. Keying off
+  // the finger instead of the rendered label is the way to get that wrong,
+  // which is why this drives both modes over one identical phrase.
+  const host = document.createElement("div");
+  const p = generatePattern("C", { rng: seeded(7) });
+  const phrase = resolvePhrase(p, ["C", "F", "G", "C"]);
+
+  renderGrid(host, phrase, { labelMode: "pima" });
+  const pima = [...host.querySelectorAll(".note")];
+  assert(pima.length > 0, "the phrase should render some notes");
+  for (const n of pima) {
+    assert(/^[pima]$/.test(n.textContent), `PIMA mode printed "${n.textContent}"`);
+    assert(n.dataset.glyph === n.textContent,
+      `a PIMA note prints "${n.textContent}" but is tagged "${n.dataset.glyph}"`);
+  }
+
+  renderGrid(host, phrase, { labelMode: "fret" });
+  for (const n of host.querySelectorAll(".note")) {
+    assert(/^\d+$/.test(n.textContent), `Fret mode printed "${n.textContent}"`);
+    assert(n.dataset.glyph === undefined,
+      `a fret digit "${n.textContent}" is tagged data-glyph="${n.dataset.glyph}" and would be nudged`);
+  }
+
+  renderGrid(host, phrase, { labelMode: "none" });
+  for (const n of host.querySelectorAll(".note")) {
+    assert(n.textContent === "", "No-labels mode should print nothing");
+    assert(n.dataset.glyph === undefined, "an empty note must not be tagged");
+  }
+});
+
 check("grid: ×2 renders exactly 4 bars with two pass lamps each; omitted when off", () => {
   const host = document.createElement("div");
   const p = generatePattern("C", { rng: seeded(50) });
@@ -3373,7 +3409,7 @@ acheck("layout: a locked segmented key still presses in (it is not `disabled`)",
     "a locked key must NOT be `disabled` — a disabled button can never match :active, so it cannot press in and pop back out");
 });
 
-acheck("type: every bundled face is declared, and the three voices stay separate", async () => {
+acheck("type: every bundled face is declared, and no voice falls back to a system font", async () => {
   const css = await (await fetch("css/styles.css")).text();
 
   // A @font-face for each bundled file — the pairing that actually breaks is
@@ -3385,12 +3421,41 @@ acheck("type: every bundled face is declared, and the three voices stay separate
     assert(css.includes(f), `css/styles.css declares no @font-face for fonts/${f}`);
   }
 
-  // The legend must never fall back to the ROUNDED numeral face: --numeral is a
-  // legibility exception for fret digits, not a second opinion about labels.
+  // The legend must never fall back to the numeral stack: they are different
+  // jobs, and a legend that lands on a fret digit's face stops reading as
+  // engraved.
   const legend = css.match(/--legend:\s*([^;]+);/);
   assert(legend, "--legend token is missing");
-  assert(!/rounded/i.test(legend[1]), "--legend must fall back to a grotesque, not the rounded numeral stack");
   assert(/Jost/.test(legend[1]), "--legend should lead with the bundled Jost");
+
+  // EVERY VOICE LEADS WITH A BUNDLED FACE (session 44d). --numeral used to be a
+  // system stack (`ui-rounded, "SF Pro Rounded", …`), which is free only while
+  // every user is on Apple hardware — off it, `system-ui` is not rounded at all
+  // and the design intent silently vanished. That is exactly the trap that made
+  // the legend bundled Jost rather than system Futura; the numeral voice had
+  // just never been held to it. This is the guard, and it fails on any future
+  // token that reaches for a system face first.
+  for (const token of ["--serif", "--legend", "--numeral"]) {
+    const m = css.match(new RegExp(`${token}:\\s*([^;]+);`));
+    assert(m, `${token} token is missing`);
+    const first = m[1].split(",")[0].trim().replace(/["']/g, "");
+    assert(/^(Fraunces|Jost)$/.test(first),
+      `${token} leads with "${first}" — every voice must lead with a bundled face, not a system one`);
+    assert(!/ui-rounded|SF Pro|-apple-system|system-ui|BlinkMacSystemFont/i.test(m[1]),
+      `${token} still names a system face in its fallback chain`);
+  }
+
+  // The numeral voice is Fraunces cut for small sizes: opsz opens the counters
+  // and thickens the hairlines, SOFT rounds the terminals (the quality the old
+  // rounded face was reaching for). wght must stay OUT so font-weight still
+  // controls it per site — naming it here would silently pin every numeral to
+  // one weight.
+  const varToken = css.match(/--numeral-var:\s*([^;]+);/);
+  assert(varToken, "--numeral-var token is missing");
+  assert(/opsz/.test(varToken[1]) && /SOFT/.test(varToken[1]),
+    "--numeral-var should set both opsz and SOFT");
+  assert(!/wght/.test(varToken[1]),
+    "--numeral-var must not pin wght — font-weight controls it per site");
 });
 
 acheck("pwa: the precache bypasses the HTTP cache (or a deploy can install stale)", async () => {

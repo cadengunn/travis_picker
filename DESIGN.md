@@ -90,10 +90,10 @@ so it rides every theme.
   sheet's translucent backdrop then doesn't repaint on iOS — that was a real
   lingering-label bug.
 
-## Type — the panel speaks in THREE voices
+## Type — the panel speaks in TWO voices
 
-Session 17, and the rule that decides which is *where the words sit*, not what
-they mean:
+Session 17, cut from three to two in session 44d. The rule that decides which is
+*where the words sit*, not what they mean:
 
 - **`--serif` (Fraunces)** — what a control **says**: values, names, prose, and
   any word or typed glyph **inside** a control (a dropdown's value, a lamp's
@@ -102,16 +102,47 @@ they mean:
   caps **above** a control, silkscreened on the faceplate. One tier only —
   10px / 0.16em / 500 (`--legend-size`/`-track`/`-weight`). A group caption
   (`.sheet-sec`) is the *same object* as a field label, same left edge.
-- **`--numeral` (rounded geometric)** — fret digits in note circles, ruler
-  ticks, BPM. A **legibility exception**, not a third opinion.
+- **`--numeral`** — fret digits in note circles, ruler ticks, BPM, the chord
+  box's fret digit. **Not a third face any more: it is Fraunces**, cut for small
+  sizes by `--numeral-var` (`opsz` 9, `SOFT` 100, `WONK` 0).
+
+**`--numeral` WAS a rounded geometric from the SYSTEM stack, and killing that is
+worth understanding.** It was justified as "a legibility exception, not a third
+opinion: serif hairlines and tracked caps both go mushy at 11px in a 30px
+circle." **That was reasoned, never measured, and it is wrong** — rendered side
+by side in the real dome at the real size (session 44d, his question: "have we
+considered the two fonts we already are using?"), Fraunces at bold holds up
+completely. Two things had been missed: Fraunces is **variable**, so `opsz` 9 is
+a real small-size cut with thicker hairlines and opener counters, and its
+**`SOFT` axis rounds the terminals** — which is the rounded quality the third
+voice existed for.
+
+It also closed a gap rather than only saving a face: a system stack is free only
+while every user is on Apple hardware, and off it `system-ui` is **not rounded**,
+so the design intent silently vanished. That is the same trap that made the
+legend bundled Jost rather than system Futura — the numeral voice had just never
+been held to it. **Every voice now leads with a bundled face, and a test asserts
+it** (plus that `--numeral-var` never pins `wght`, so `font-weight` still
+controls weight per site).
 
 **Jost is bundled (OFL 1.1), not the system Futura it resembles** — referencing a
 commercial system face is free only while every user is on Apple hardware, and an
 OFL face is ours to embed, renders identically everywhere, and stays free if this
 is ever sold. Same footing as Fraunces. **Adding any font means adding it to
 `sw.js` PRECACHE and bumping `CACHE`**; two tests guard it (every `fonts/*.woff2`
-is precached; every bundled file has an `@font-face`, and `--legend` never falls
-back to the rounded stack).
+is precached; every bundled file has an `@font-face`, and no voice falls back to
+a system face).
+
+**A dome centres the LINE BOX, not the ink, so lowercase PIMA needs correcting.**
+Measured on the shipping face: `p`/`i`/`m`/`a` drift **0.23em** against **0.01em**
+across the digits — the descender drags `p` low, the dot lifts `i` — which reads
+as the letters hopping when you scan a column. `grid.js` tags the dome with
+`data-glyph` **from the rendered label, not the event's finger** (in Fret mode
+that same thumb event prints a digit, which must not move), and CSS nudges p/m/a
+with `padding-bottom`. Padding rather than a transform because the label is a
+bare text node inside the flex circle, and **the value is double the correction**
+— shrinking the content box re-centres the text within what's left, so it rises
+by half the padding. In `em`, so it tracks `--note-font`.
 
 **Accidentals need a FIXED `line-height` wherever they appear** — this one is in
 `CLAUDE.md` too, because it bites anyone adding text anywhere. `♭`/`♯`

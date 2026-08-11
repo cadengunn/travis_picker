@@ -23,19 +23,21 @@ Status legend: **OPEN** = not started · **NEEDS A CALL** = blocked on a
 decision · **ON THE PHONE** = built, waiting on his test · **ANSWERED** =
 investigated, no work needed unless he wants a change.
 
-**On the phone now (v3.11.1):** the Nylon / Steel tone toggle and its high-note sustain fix (item 16), and
-the eleven rewritten Travis bass patterns from v3.10.2 — both audible-only,
-both waiting on his ear.
+**On the phone now (v3.12.0):** the numeral voice moved to Fraunces and the
+PIMA optical fix (item 14), the Nylon / Steel tone toggle and its high-note
+sustain fix (item 16), and v3.10.2's eleven rewritten Travis bass patterns.
+The bass and tone work is audible-only; the type change is the one thing to
+judge with your eyes, at arm's length.
 
 ---
 
 ## The order (his call, session 44)
 
-**16 → 14 → 17 → 18.** The sound first — a real daily annoyance, cheap to
-try, and decided by playing rather than discussing. Then the numeral/PIMA
-face, then custom progressions. The App Store becomes a checklist doc
-whenever he wants it; nothing about the current app has to change to keep
-that option open.
+**16 → 14 → 17 → 18.** Items 16 and 14 are both shipped and on his phone;
+**17 (save custom progressions) is next**, and it needs a design call from
+him before any code — see the two shapes below. The App Store becomes a
+checklist doc whenever he wants it; nothing about the current app has to
+change to keep that option open.
 
 ---
 
@@ -106,28 +108,45 @@ treatment (`brightness: 0.37`) and isn't what he's hearing.
 
 </details>
 
-## Item 14 — the fret-numeral / PIMA face **OPEN, small** ← next
+## Item 14 — the fret-numeral / PIMA face **DONE (v3.12.0), on the phone**
 
-The last surface untouched by the v2.14.x materials pass, his read, and it's
-correct: `--numeral` is the one type voice never revisited. Two findings:
+**Your question closed this better than my plan did.** I was about to spend
+39KB bundling Nunito as a third face; you asked whether we'd considered the
+two we already ship. We had not, and one of them does the job.
 
-- **It's the only voice that isn't bundled.** `--serif` (Fraunces) and
-  `--legend` (Jost) are bundled + precached with a test guarding it;
-  `--numeral` is a system stack (`ui-rounded, "SF Pro Rounded",
-  -apple-system, system-ui`). On his iPhone that's SF Pro Rounded; off Apple
-  hardware it degrades to whatever `system-ui` is. Same class of trap as the
-  Futura→Jost swap in session 17, though this degrades rather than failing.
-- **It was justified for DIGITS and is also carrying LETTERS.** `DESIGN.md`
-  calls it "a rounded geometric, for fret numerals inside note circles ONLY
-  — a legibility exception, not a third opinion." But PIMA mode puts
-  `p`/`i`/`m`/`a` in the same dome (`labelFor()` in `grid.js`), so lowercase
-  letterforms ride a face chosen for numerals. **This is the part to look at
-  first** — it may be exactly what's bugging him without being obvious why.
-- Used in four places, not one: the note domes, the beat ruler (`.tick`),
-  the BPM readout, and the chord box's fret-position digit.
+**The stated reason a third voice existed turned out to be wrong.**
+`DESIGN.md` justified it as "serif hairlines and tracked caps both go mushy
+at 11px in a 30px circle" — reasoned, never measured. Rendered side by side
+in the real dome at the real size, Fraunces holds up completely. Two things
+had been missed: it's a *variable* font, so `opsz` 9 is a genuine small-size
+cut with thicker hairlines and opener counters, and its **`SOFT` axis rounds
+the terminals** — which is the rounded quality the third voice existed for
+in the first place.
 
-**Needs his call:** leave as-is, bundle a rounded face to match the other two
-voices, or reconsider what PIMA specifically should be set in.
+**So the fret digits, ruler, BPM and chord-box digit are Fraunces now.**
+Zero new bytes, no third license, and the app is down to two type voices.
+It also closed the real gap: the old stack was a *system* one, free only
+while every user is on Apple hardware — off it, `system-ui` isn't rounded at
+all and the design intent silently vanished. That's the same trap that made
+the legend bundled Jost instead of system Futura; the numeral voice had just
+never been held to it. A test now asserts every voice leads with a bundled
+face.
+
+**PIMA got its optical fix too.** A dome centres the line box, not the ink,
+so `p`'s descender dragged it low and `i`'s dot rode high — measured at
+0.23em of drift across p/i/m/a versus 0.01em across the digits, which reads
+as the letters hopping when you scan a column. p/m/a are nudged; digits and
+`i` needed nothing.
+
+**What to check on the phone:**
+- **Do the digits read as well as before at arm's length?** This is the
+  one thing the dev box can't settle. Fraunces has more stroke contrast than
+  the old rounded face — if it costs you legibility on the grid, Jost is the
+  fallback (monoline, also already bundled, also zero bytes).
+- **Do the PIMA letters sit level now** when you scan down a column?
+- **The ruler and BPM readout changed face too** — they're the same voice.
+
+Budget re-measured and untouched: 55.09 / 384.84 / 11.06, no overflow.
 
 ## Item 17 — save custom progressions **OPEN, medium; needs a design call**
 
@@ -288,9 +307,11 @@ re-opened. Detail for every one of these is in `CHANGELOG.md`.
   v2.11.0, and the clearance under the grid at 4 bars is down to 11px.
 - **Keys / chords / progressions are data in `data.js`** — the generator stays
   untouched.
-- **Three type voices, and the rule is *where the words sit***: serif inside a
-  control, Jost above it, rounded only for fret digits. Adding a font means
-  precaching it and bumping `CACHE`; two tests guard that.
+- **TWO type voices, and the rule is *where the words sit***: serif inside a
+  control, Jost above it. Fret digits are the serif too since session 44d
+  (Fraunces cut small via `opsz`/`SOFT`), so there is no third face. Adding a
+  font means precaching it and bumping `CACHE`; two tests guard that, and one
+  now also asserts no voice falls back to a system face.
 - **Any new text that can contain ♭ or ♯ needs a pinned `line-height`** (those
   glyphs fall back off Fraunces to a taller font and grow the line box).
 - **Tests stay green and grow with anything new** (`tests.html`). Layout
