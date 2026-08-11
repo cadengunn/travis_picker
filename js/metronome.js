@@ -14,7 +14,7 @@
 // from the scheduler callback — the scheduler runs ~120ms ahead of what you
 // hear, so highlighting there would run visibly early.
 
-import { createStringSynth, midiToFreq } from "./synth.js";
+import { createStringSynth, midiToFreq, DEFAULT_TONE } from "./synth.js";
 
 const LOOKAHEAD_MS = 25;      // how often the scheduler wakes
 // Seconds of audio queued in advance. Must stay comfortably longer than one
@@ -129,6 +129,10 @@ export function createMetronome({
   let patternOn = true;    // emit the plucked pattern notes
   let countInOn = true;    // one bar of count-in before the loop starts
   let swing = DEFAULT_SWING;
+  // Held HERE as well as in the synth, because the synth is lazy and is thrown
+  // away with a dead context (`dropContext`) — without this, recovering from an
+  // interrupted audio session would silently reset the tone to the default.
+  let tone = DEFAULT_TONE;
 
   const slotsTotal = () => bars * SLOTS_PER_BAR;
 
@@ -270,6 +274,13 @@ export function createMetronome({
       return swing;
     },
 
+    // Same "takes effect on the next scheduled slot" contract as setSwing, so
+    // you can A/B nylon against steel mid-loop and hear it move.
+    setTone(id) {
+      tone = id;
+      synth?.setTone(id);
+    },
+
     // What the audio hardware thinks it's doing: "running", "suspended",
     // "interrupted" (iOS), or "none" before the first play. Diagnostic only —
     // nothing in the app branches on it.
@@ -300,7 +311,10 @@ export function createMetronome({
         ctx = newContext();
         if (!(await resumeContext())) return false;
       }
-      synth = synth || createStringSynth(ctx); // lazy: needs the unlocked ctx
+      if (!synth) {                            // lazy: needs the unlocked ctx
+        synth = createStringSynth(ctx);
+        synth.setTone(tone);                   // re-apply across a context rebuild
+      }
 
       bars = Math.max(1, barCount);
       step = 0;

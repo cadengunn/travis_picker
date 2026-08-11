@@ -43,7 +43,7 @@ import {
   HELP,
   HELP_KEYS,
 } from "./data.js";
-import { midiToFreq } from "./synth.js";
+import { midiToFreq, createStringSynth, DEFAULT_TONE } from "./synth.js";
 import {
   generatePattern,
   resolvePattern,
@@ -1775,6 +1775,62 @@ check("audio: pitch derives from string+fret in standard tuning", () => {
   assert(Math.abs(midiToFreq(69) - 440) < 1e-6, "MIDI 69 -> 440Hz");
   assert(Math.abs(midiToFreq(81) - 880) < 1e-6, "an octave up doubles to 880Hz");
   assert(midiToFreq(64) > 0, "a real note has a positive frequency");
+});
+
+check("audio: nylon and steel render different buffers, and nylon is darker", () => {
+  // The tone toggle is audible-only, so this asserts the two things that could
+  // silently break it. **The cache is the trap**: buffers are keyed and reused
+  // per pitch, so a key that forgot the tone would hand the steel buffer back
+  // forever after a switch and the toggle would do nothing for every pitch
+  // already played. That's the regression this drives directly — same pitch,
+  // both tones, in that order.
+  const ctx = new OfflineAudioContext(1, 4410, 44100);
+  const rendered = [];
+  const makeSource = ctx.createBufferSource.bind(ctx);
+  ctx.createBufferSource = () => {
+    const src = makeSource();
+    rendered.push(src);
+    return src;
+  };
+
+  const synth = createStringSynth(ctx);
+  synth.setTone("steel");
+  synth.pluck(220, 0);
+  synth.setTone("nylon");
+  synth.pluck(220, 0); // SAME pitch: only the cache key's tone can separate these
+
+  assert(rendered.length === 2, `expected 2 plucks, got ${rendered.length}`);
+  const [steel, nylon] = rendered.map((s) => s.buffer.getChannelData(0));
+  assert(steel.length && nylon.length, "both tones render a non-empty buffer");
+
+  let identical = steel.length === nylon.length;
+  if (identical) {
+    for (let i = 0; i < steel.length; i++) {
+      if (steel[i] !== nylon[i]) { identical = false; break; }
+    }
+  }
+  assert(!identical, "nylon returned the cached steel buffer — the tone is missing from the cache key");
+
+  // "Darker" is measurable, not a matter of opinion: mean absolute change
+  // between adjacent samples is a crude high-frequency energy meter, and
+  // nylon's whole point is fewer highs. Compared per-sample against each
+  // voice's own peak, so the gain difference between them can't decide it.
+  const brightness = (buf) => {
+    let peak = 0;
+    for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i]));
+    if (!peak) return 0;
+    let delta = 0;
+    for (let i = 1; i < buf.length; i++) delta += Math.abs(buf[i] - buf[i - 1]);
+    return delta / (buf.length - 1) / peak;
+  };
+  assert(brightness(nylon) < brightness(steel),
+    `nylon should carry less high-frequency energy (nylon ${brightness(nylon).toFixed(4)} vs steel ${brightness(steel).toFixed(4)})`);
+
+  // An unknown id must not silently mute the app or throw mid-scheduler.
+  synth.setTone("bouzouki");
+  synth.pluck(220, 0);
+  assert(rendered.length === 3 && rendered[2].buffer, "an unknown tone still plays, falling back rather than failing");
+  assert(DEFAULT_TONE === "steel", "steel stays the default, so an upgrade doesn't change the sound underneath him");
 });
 
 // ---- custom dropdown (DOM; runs at import time in the test page) ----

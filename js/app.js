@@ -10,6 +10,7 @@ import {
   CHAOS_GROUPS,
   CHAOS_PRESETS,
   LABEL_MODES,
+  TONES,
   KEY_GROUPS,
   KEYS,
   DEFAULT_KEY,
@@ -46,6 +47,9 @@ import {
   clampSwing,
   splitAudioBar,
 } from "./metronome.js";
+// Straight from synth.js, which owns the voice table — `TONES` in data.js is
+// only the menu, and synth.js stays dependency-free so it can't own both.
+import { DEFAULT_TONE } from "./synth.js";
 import { setUiSoundEnabled, playPress, playRelease, playTick, playPlace } from "./ui-sound.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { createHelp } from "./help.js";
@@ -65,7 +69,7 @@ const GLYPH_STOP = "■︎";
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.10.2";
+const APP_VERSION = "v3.11.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -176,6 +180,7 @@ function initControls() {
   fillSelect(el("bass"), BASS_PRESETS, (p) => p.id, (p) => p.name);
   fillSelectGrouped(el("chaos"), chaosOptionGroups());
   fillSelect(el("label-mode"), LABEL_MODES, (m) => m.id, (m) => m.name);
+  fillSelect(el("tone"), TONES, (t) => t.id, (t) => t.name);
 
   // Progression list is filtered to the current key's mode and grouped by style,
   // plus the "Custom" entry shown once bars stop matching a preset.
@@ -673,6 +678,12 @@ const AUDIO_KEY = "tp-audio";
 // this store.
 const audioPrefs = {
   click: true, pattern: true, ui: true, countIn: true, swing: DEFAULT_SWING,
+  // Timbre lives here with the other sound settings, NOT in a pattern's saved
+  // context: it's what the app sounds like, in the same class as the four
+  // toggles, not musical content the way swing/bpm/capo are. (Swing moved into
+  // pattern context because a feel belongs to a piece; "nylon or steel" is a
+  // property of the instrument you're practising on.)
+  tone: DEFAULT_TONE,
 };
 // Returns what was actually IN storage, which is not the same question as what
 // audioPrefs now holds: the defaults above are always present, so a caller that
@@ -1874,6 +1885,13 @@ function attach() {
     metronome.setCountInEnabled(audioPrefs.countIn);
     saveAudioPrefs();
   });
+  // Nylon vs steel. Lands on the next scheduled slot like swing, so it can be
+  // A/B'd mid-loop without stopping.
+  el("tone").addEventListener("change", (e) => {
+    audioPrefs.tone = e.target.value;
+    metronome.setTone(audioPrefs.tone);
+    saveAudioPrefs();
+  });
 
   // Manual editing — off by default so taps can't nudge a pattern mid-practice.
   el("edit-toggle").addEventListener("click", () => {
@@ -2039,9 +2057,15 @@ async function boot() {
   delete audioPrefs.swingEighths;
   delete audioPrefs.swingQuarters;
   delete audioPrefs.swingUnit;
+  // Validated against the live list, same as every restored select (tones are
+  // data and could change between releases); anything unrecognised falls back
+  // to the default rather than reaching the synth.
+  if (!TONES.some((t) => t.id === audioPrefs.tone)) audioPrefs.tone = DEFAULT_TONE;
+  el("tone").value = audioPrefs.tone;
   metronome.setClickEnabled(audioPrefs.click);
   metronome.setPatternEnabled(audioPrefs.pattern);
   metronome.setCountInEnabled(audioPrefs.countIn);
+  metronome.setTone(audioPrefs.tone);
   applySwing();
   setUiSoundEnabled(audioPrefs.ui);
   attach();

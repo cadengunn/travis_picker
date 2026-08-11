@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [44b](#where-things-stand-session-44b--v3110-2026-08-11) | **v3.11.0** | open item 16, first half: a **Nylon / Steel tone toggle** on the Preferences page, because his report ("a bit twangy, almost harpsichord like") was an accurate description of canonical Karplus-Strong — the treble voice had no `brightness` key at all. Two voices over one engine, the tone in the buffer cache key (the one thing that could silently break it), held in `metronome.js` too so an interrupted iOS session can't reset it. **Steel stays the default and it ships as an A/B**: if nylon wins outright we drop to one sound |
 | [44](#where-things-stand-session-44--v3102-2026-08-10) | **v3.10.2** | his guitar review of the session-35 voicings: F♯6, E♭sus4 and the m7 family confirmed fine, but the add9 family's Travis bass was wrong — the thumb reaching to the finger-domain G string on the C♯/D/E♭/F/F♯ shape, and Gadd9/G♯add9 "walking up and down" off a stale session-34 role assignment. Fixed, then a full-library audit found four more chords carrying the same "walk to a colour tone" swap (E♭m6, G♯6, Gsus2, G♯sus2) — all brought onto the ordinary A-shape/E-shape convention, his call ("picking pattern consistency takes precedence"). Also: `OPEN_ITEMS.md` cut 1,345 → 259 lines, and five new items logged (14–18) |
 | [43](#where-things-stand-session-43--v3101-2026-08-05) | **v3.10.0 → v3.10.1** | his phone review of sessions 40–42 together (folders, Built-ins, Restore — all confirmed), then a Load-screen redesign off his UI notes: tap-to-load rows, Export/Import/Restore and Rename/Export/Delete/folder tucked behind "..." menus, `summarize()` rewritten to say what you're playing over instead of a stale preset name, Save/Load made nav in help mode; three same-session follow-ups moved the library menu back inline, merged the folder select into the actions row with a fixed "Folder" label, and rewrote the progression summary as one clause ("I–V–vi7–II7 in E") |
 | [42](#where-things-stand-session-42--v390-2026-08-04) | **v3.9.0** | pre-loaded patterns redesigned on his verdict, same day as v3.8.0 shipped: a built-in now seeds once into the real library (`seedNewBuiltins()`), filed into a real "Built-in" folder, and behaves exactly like any saved item from then on — an invisible `builtinId` tag is what lets a new Restore button (Load sheet title line) tell "renamed/moved" from "actually deleted" and only re-add what's truly missing |
@@ -65,6 +66,65 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 44b — v3.11.0, 2026-08-11)
+
+**Open item 16, and his diagnosis was right.** "Twangy, almost harpsichord
+like in some cases" is an accurate description of canonical Karplus-Strong,
+and that is exactly what the treble voice was: `TREBLE_VOICE` had **no
+`brightness` key at all**, so it ran at 1 — the open, metallic end of the
+algorithm. The bass had been palm-muted since session 7 and was never the
+problem.
+
+**Shipped as a toggle, his call, so he can A/B rather than take my word for
+it.** A `Tone` field (Nylon / Steel) on the Preferences page. If nylon wins
+outright we collapse to one sound and the toggle goes; that decision is his
+and it's cheap either way.
+
+- **Two tones over ONE engine.** `VOICES` in `synth.js` replaces the two
+  loose `BASS_VOICE`/`TREBLE_VOICE` consts — `{ steel: {bass, treble},
+  nylon: {bass, treble} }`. `TONES` in `data.js` is only the menu, because
+  `synth.js` is documented dependency-free and can't import from `data.js`;
+  `DEFAULT_TONE` therefore lives with the voice table that needs a fallback.
+- **Nylon is three coordinated moves, not one knob**: lower `brightness`
+  (0.60 treble vs steel's implicit 1.0), shorter `decay`/`seconds` because
+  nylon doesn't ring as long, and higher `gain` to pay for the lost highs.
+  The softer attack comes free — `ksBuffer` already pre-smooths the
+  excitation in proportion to `1 - brightness`.
+- **The tone had to join the buffer cache key** (`${freq}:${bass}:${tone}`).
+  This is the one thing the feature could get silently wrong: the cache is
+  what makes the synth cheap, so a key without the tone hands back the steel
+  buffer forever after a switch, and the toggle would appear dead for every
+  pitch already played. **The test drives that exact sequence — same pitch,
+  steel then nylon — and was verified to fail without the fix** (it reported
+  "nylon returned the cached steel buffer"), rather than passing vacuously.
+- **`setTone` is held in `metronome.js` as well as the synth.** The synth is
+  lazy and gets thrown away with a dead context (`dropContext`), so without
+  the second copy, recovering from an interrupted iOS audio session would
+  silently reset the tone to steel mid-practice. It applies on the next
+  scheduled slot, same contract as `setSwing`, so it can be switched
+  mid-loop.
+- **Timbre lives in `tp-audio`, not in a saved pattern's context** — same
+  class as the four sound toggles, rather than musical content the way
+  swing/bpm/capo are. Swing joined pattern context because a feel belongs to
+  a piece; "nylon or steel" is a property of the instrument you practise on.
+- **Steel is the default**, so nobody's sound changes under them on upgrade.
+- **UI placement:** a field under the Sound lamps, not in the appearance row
+  with Note Labels/Theme — it's what the guitar sounds like, not how the app
+  looks. A dropdown rather than a segmented key, because carved-keys-in-a-well
+  is the *Setup* page's material and the lamp bank is Preferences' — a
+  two-key segment here would import Setup's language for no reason.
+
+Verified in the browser: the pick commits through `dropdown.js` and persists
+to `tp-audio`, the Preferences page doesn't overflow (258px content, row
+58px), and the main view's budget is **untouched at 55.09 / 384.84 / 11.06,
+no overflow** in the documented worst case (4 bars, progression, capo 4).
+134 → 135 green.
+
+**Not verified, and can't be here: whether nylon actually sounds better.**
+The dev box has no ear. That's the whole point of shipping it as an A/B.
 
 ---
 

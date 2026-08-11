@@ -254,7 +254,7 @@ the placement policy; **how these surfaces are drawn is `DESIGN.md`.**
   chord overflows it upward, exactly as it did when the box was zero-height.
 - **⚙ Options sheet: TWO PAGES** since v2.10.0 — **Setup** (Format + capo, then
   the chord / key+progression row, then Thumb/Fingers/×2, then Swing)
-  and **Preferences** (the Sound lamp bank, note labels, theme). You set all of it
+  and **Preferences** (the Sound lamp bank, the Tone field, note labels, theme). You set all of it
   sitting down, between takes; the gear always opens on Setup. The split exists to
   buy height — one page had ~27px spare at 375×553. Ids are
   `tab-setup`/`page-setup`; "Generation" was page 1's name until v2.13.3 and
@@ -437,13 +437,36 @@ the synth skips it.
   per (pitch, voice)**; all voices share one `DynamicsCompressor` bus so a triple
   stop + thumb can't clip. A ~50ms tail fade prevents truncation clicks (a fixed
   `seconds` cuts a low note mid-ring — KS rings ~4× longer on a low string).
-- **Two voices, all knobs in `synth.js` (`BASS_VOICE`/`TREBLE_VOICE`).** Bass is
-  **palm-muted** — the classic Travis thumb sound, a short dark thump. The
-  `brightness` knob (1 = canonical KS, lower = darker) is the mute: an in-loop
-  one-pole low-pass leaves the fundamental but eats the harmonics, and below
-  ~0.375 the excitation is pre-smoothed for a duller attack. Guitar-tuned to
-  `0.37`; treble stays bright. Tune by ear on a phone: `brightness` for mute
-  amount, `decay`/`seconds` for length, `gain` for level.
+- **TWO TONES × two voices, all knobs in `synth.js`'s `VOICES` table**
+  (`steel`/`nylon`, each with a `bass` and `treble` entry; `TONES` in `data.js`
+  is only the menu, because `synth.js` is dependency-free and can't import it).
+  In both tones the bass is **palm-muted** — the classic Travis thumb sound, a
+  short dark thump. The `brightness` knob (1 = canonical KS, lower = darker) is
+  the mute: an in-loop one-pole low-pass leaves the fundamental but eats the
+  harmonics, and the excitation is pre-smoothed in proportion to `1 - brightness`
+  for a duller attack. Tune by ear on a phone: `brightness` for tone,
+  `decay`/`seconds` for length, `gain` for level.
+- **Nylon vs steel is three coordinated moves** (session 44, his report that the
+  shipped sound was "a bit twangy, almost harpsichord like" — an accurate
+  description of canonical KS, which is what the **treble** voice was: it had no
+  `brightness` key at all, so it ran at 1). Nylon lowers `brightness`, shortens
+  `decay`/`seconds`, and raises `gain` to pay for the lost highs.
+- **THE TONE IS PART OF THE BUFFER CACHE KEY** (`${freq}:${bass}:${tone}`), and
+  that is the one thing this feature can't get wrong: the cache is what makes
+  the synth cheap, so a key without the tone hands back the steel buffer forever
+  after a switch and the toggle appears dead for every pitch already played. A
+  test drives that exact sequence and was verified to fail without it.
+- **`setTone` is held in `metronome.js` as well as the synth**, because the synth
+  is lazy and is thrown away with a dead context (`dropContext`) — without the
+  second copy, recovering from an interrupted iOS audio session would silently
+  reset the tone. It lands on the next scheduled slot, same contract as
+  `setSwing`, so it can be A/B'd mid-loop.
+- **Timbre lives in `tp-audio`, NOT in a pattern's saved context** — it's what
+  the app sounds like, the same class as the four toggles, rather than musical
+  content the way swing/bpm/capo are. (Swing joined pattern context because a
+  feel belongs to a piece; "nylon or steel" is a property of the instrument
+  you're practising on.) **Steel is the default**, so an upgrade doesn't change
+  the sound underneath him.
 
 **Saved library** (`storage.js`): a saved item is **musical content only** —
 `{ pattern, context: { chordMode, chord, key, capo, progression, x2, swing,
@@ -669,7 +692,7 @@ display-only.
 **set once and keep**, restored on the next launch — chord mode, chord, key,
 capo, progression, thumb, fingers, ×2, note labels and **BPM**.
 - **It's a THIRD store, not an extension of `tp-audio`**, which stays what it is
-  (the four sound toggles + swing). Swing was **not** moved — migrating it would
+  (the four sound toggles + swing + tone). Swing was **not** moved — migrating it would
   strand real settings for no gain. **BPM persisting REVERSES a documented
   decision** (his call, asked; the old rule was that tempo is too volatile to
   remember).
@@ -1271,8 +1294,18 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.10.2, 134/134 green — the add9/m6/sus2 Travis-bass fixes are shipped
-and unheard; next up is the guitar sound (open item 16).** Session 44
+**v3.11.0, 135/135 green — two audible-only changes are on his phone and
+neither has been heard yet: the Nylon / Steel tone toggle (open item 16)
+and v3.10.2's eleven rewritten Travis bass patterns.** Item 16 was his
+report that the sound is "a bit twangy, almost harpsichord like," which
+turned out to be one missing number — the treble voice had no `brightness`
+key, so it ran canonical Karplus-Strong, the metallic end of the algorithm.
+Shipped as an A/B rather than a retune, his call: **steel is the default and
+is unchanged**, nylon is the alternative, and if nylon wins outright we
+collapse to one sound and drop the toggle. Full detail in "Pattern
+playback" above. Next after that is item 14 (the fret-numeral / PIMA face).
+
+Session 44
 collected his guitar verdicts on the session-35 voicings (**F♯6, E♭sus4 and
 the m7 family all confirmed fine** — that thread is closed) and fixed the
 two he flagged: the C♯/D/E♭/F/F♯ add9 shape had `fifth` on the

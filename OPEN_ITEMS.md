@@ -23,8 +23,9 @@ Status legend: **OPEN** = not started · **NEEDS A CALL** = blocked on a
 decision · **ON THE PHONE** = built, waiting on his test · **ANSWERED** =
 investigated, no work needed unless he wants a change.
 
-**Nothing is currently on the phone.** v3.10.1 is live and signed off;
-session 44's chord-bass fixes are the only unshipped work.
+**On the phone now (v3.11.0):** the Nylon / Steel tone toggle (item 16), and
+the eleven rewritten Travis bass patterns from v3.10.2 — both audible-only,
+both waiting on his ear.
 
 ---
 
@@ -38,7 +39,33 @@ that option open.
 
 ---
 
-## Item 16 — the guitar sound is too twangy **OPEN, small-to-medium** ← next
+## Item 16 — the guitar sound is too twangy **ON THE PHONE (v3.11.0)**
+
+**Shipped as a Nylon / Steel toggle** on the Preferences page, under the
+Sound lamps. **Steel is the default and is exactly what you have today**, so
+nothing changed until you switch — pick Nylon to hear the alternative, and
+you can flip it mid-loop without stopping.
+
+**Your diagnosis was right, and it was one missing number.** The treble
+voice had no `brightness` setting at all, so it ran at the brightest,
+most metallic end of the algorithm — which is what "almost harpsichord
+like" actually is. The bass was already palm-muted and was never the
+problem.
+
+**What to judge on the phone, since the dev box has no ear:**
+- **Is nylon actually better, or just different?** If it wins outright, say
+  so and we drop steel and the toggle with it — one sound, no UI. That's the
+  cheaper end state and it's yours to call.
+- **Is nylon too dull?** It's three numbers (brightness, decay, gain) and
+  easy to walk back toward bright if it's gone too far.
+- **Does it hold up at tempo and under a full three-finger rake**, not just
+  on single notes — that's where the old brightness was doing some work.
+- **The bass barely changed** between tones (it was already muted). If the
+  nylon *treble* now sits oddly against it, that's the next knob.
+
+<details>
+<summary>The original item 16 write-up, kept for the record</summary>
+
 
 His words: twangy, "almost harpsichord like in some cases." That points at
 something specific and fixable. Karplus-Strong with a high `decay` and
@@ -62,7 +89,9 @@ treatment (`brightness: 0.37`) and isn't what he's hearing.
   where a guitar trial settles in one pass what a conversation won't.
 - **The dev box cannot judge this at all.** Tone is his ear, on a phone.
 
-## Item 14 — the fret-numeral / PIMA face **OPEN, small**
+</details>
+
+## Item 14 — the fret-numeral / PIMA face **OPEN, small** ← next
 
 The last surface untouched by the v2.14.x materials pass, his read, and it's
 correct: `--numeral` is the one type voice never revisited. Two findings:

@@ -678,6 +678,17 @@ export const LABEL_MODES = [
   { id: "none", name: "No labels" },
 ];
 
+// The plucked-string timbre (session 44, his ask: the shipped sound is "a bit
+// twangy, almost harpsichord like in some cases"). Two voices over the SAME
+// Karplus-Strong engine — the knobs are in `synth.js`, this is only the menu.
+// **Steel is first and is the default**, so an existing user's sound doesn't
+// change under them on upgrade; he A/Bs from the known baseline and we make
+// nylon the default only if it wins outright.
+export const TONES = [
+  { id: "steel", name: "Steel" },
+  { id: "nylon", name: "Nylon" },
+];
+
 // ----- Nashville number system -----
 // Progressions are stored as HARMONIC TOKENS (Roman numerals), and the selected
 // KEY resolves each token to an actual chord. Tokens — not bare 1–6 scale numbers
@@ -1102,6 +1113,7 @@ export const HELP = {
   "pattern-toggle": { title: "Melody", body: "Hear the pattern played back." },
   "count-in-toggle": { title: "Count-in", body: "One bar of counting before the loop starts." },
   "ui-sound-toggle": { title: "Buttons", body: "The mechanical click when you press a control. It stays quiet while the transport runs." },
+  tone: { title: "Tone", body: "The string sound: steel is bright, nylon is softer and darker. Change it while the loop runs to compare." },
   "label-mode": { title: "Note Labels", body: "What's written inside each note: fret number, picking finger, or nothing." },
   theme: { title: "Theme", body: "The instrument's colours." },
 };

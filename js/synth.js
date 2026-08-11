@@ -68,12 +68,39 @@ function ksBuffer(ctx, freq, { decay, seconds, brightness = 1 }) {
   return buffer;
 }
 
-// Palm-muted bass — the classic Travis thumb sound: a short, dark thump, not a
-// ringing note. `brightness` is the mute knob (lower = more muted/darker; raise
-// toward 1 for an open, ringing bass); `decay`/`seconds` set how short the thump
-// is. Gain nudged up because darker + shorter reads quieter.
-const BASS_VOICE = { decay: 0.986, seconds: 0.55, gain: 0.38, brightness: 0.37 };
-const TREBLE_VOICE = { decay: 0.996, seconds: 0.8, gain: 0.24 };
+// TWO TONES OVER ONE ENGINE (session 44). His report: the shipped sound is "a
+// bit twangy, almost harpsichord like in some cases" — which is an accurate
+// description of canonical Karplus-Strong, and the treble voice was exactly
+// that: no `brightness` key at all, so it ran at 1 (the open, metallic end).
+// `TONES` in data.js is the menu; these are the knobs.
+//
+// In both tones the BASS is palm-muted — the classic Travis thumb sound, a
+// short dark thump rather than a ringing note. `brightness` is the mute knob
+// (lower = darker; 1 = canonical KS), `decay`/`seconds` set how short the
+// thump is, and `gain` is nudged up as a voice darkens because darker and
+// shorter both read quieter.
+//
+// NYLON vs STEEL is three coordinated moves, not one: a nylon string has far
+// less high-harmonic content (lower `brightness`), less sustain (lower
+// `decay`, shorter `seconds`), and a softer attack — the last one comes free,
+// since `ksBuffer` pre-smooths the excitation in proportion to `1 - brightness`.
+// Tune by ear on a phone; nothing here is derived from anything.
+const VOICES = {
+  steel: {
+    bass:   { decay: 0.986, seconds: 0.55, gain: 0.38, brightness: 0.37 },
+    treble: { decay: 0.996, seconds: 0.80, gain: 0.24 },
+  },
+  nylon: {
+    // Treble: brightness 0.60 puts two smoothing passes on the attack and rolls
+    // the harmonics off well below steel's canonical 1, without going as dead as
+    // the palm-muted bass at 0.37. Shorter decay/seconds because nylon simply
+    // doesn't ring as long; gain up to 0.30 to pay for the lost highs.
+    bass:   { decay: 0.984, seconds: 0.52, gain: 0.40, brightness: 0.33 },
+    treble: { decay: 0.991, seconds: 0.70, gain: 0.30, brightness: 0.60 },
+  },
+};
+
+export const DEFAULT_TONE = "steel";
 
 // Build a synth bound to one AudioContext. Created lazily by the metronome right
 // after the context (inside the Play gesture, so iOS unlocks audio).
@@ -86,19 +113,34 @@ export function createStringSynth(ctx) {
   bus.release.value = 0.25;
   bus.connect(ctx.destination);
 
-  const cache = new Map(); // `${round(freq)}:${bass}` -> AudioBuffer
+  // THE TONE IS PART OF THE CACHE KEY, and that is not optional: the cache is
+  // what makes this cheap (a few dozen distinct pitches, each rendered once),
+  // so keying only on pitch would hand back the steel buffer forever after a
+  // switch to nylon and the toggle would look broken for every note already
+  // played. A test drives exactly this.
+  const cache = new Map(); // `${round(freq)}:${bass}:${tone}` -> AudioBuffer
+  let tone = DEFAULT_TONE;
+
+  const voiceFor = (bass) => (VOICES[tone] || VOICES[DEFAULT_TONE])[bass ? "bass" : "treble"];
 
   function bufferFor(freq, bass) {
-    const key = `${Math.round(freq)}:${bass ? 1 : 0}`;
+    const key = `${Math.round(freq)}:${bass ? 1 : 0}:${tone}`;
     let buf = cache.get(key);
     if (!buf) {
-      buf = ksBuffer(ctx, freq, bass ? BASS_VOICE : TREBLE_VOICE);
+      buf = ksBuffer(ctx, freq, voiceFor(bass));
       cache.set(key, buf);
     }
     return buf;
   }
 
   return {
+    // Swap timbre. Cheap and safe mid-take: buffers already rendered stay in the
+    // cache under their own key, and notes already SCHEDULED keep the sound they
+    // were scheduled with — the change lands on the next slot the lookahead
+    // scheduler fills, exactly like `setSwing`.
+    setTone(next) {
+      if (VOICES[next]) tone = next;
+    },
     // Schedule one pluck at an exact audio-clock `time`. Called from the
     // metronome's lookahead scheduler alongside the clicks.
     pluck(freq, time, { bass = false } = {}) {
@@ -106,7 +148,7 @@ export function createStringSynth(ctx) {
       const src = ctx.createBufferSource();
       src.buffer = bufferFor(freq, bass);
       const g = ctx.createGain();
-      g.gain.value = bass ? BASS_VOICE.gain : TREBLE_VOICE.gain;
+      g.gain.value = voiceFor(bass).gain;
       src.connect(g);
       g.connect(bus);
       src.start(time);
