@@ -23,11 +23,13 @@ Status legend: **OPEN** = not started · **NEEDS A CALL** = blocked on a
 decision · **ON THE PHONE** = built, waiting on his test · **ANSWERED** =
 investigated, no work needed unless he wants a change.
 
-**On the phone now (v3.12.0):** the numeral voice moved to Fraunces and the
+**On the phone now (v3.12.1):** the numeral voice moved to Fraunces and the
 PIMA optical fix (item 14), the Nylon / Steel tone toggle and its high-note
-sustain fix (item 16), and v3.10.2's eleven rewritten Travis bass patterns.
-The bass and tone work is audible-only; the type change is the one thing to
-judge with your eyes, at arm's length.
+sustain fix (item 16), v3.10.2's eleven rewritten Travis bass patterns, and
+the transport's play/stop icons redrawn as SVG at the gear's 22px (his
+observation that the stop square looked small — it was, by half, and had
+been for months). The bass and tone work is audible-only; the type and the
+transport icons are the ones to judge with your eyes, at arm's length.
 
 ---
 

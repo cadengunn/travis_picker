@@ -1307,7 +1307,7 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.12.0, 137/137 green — three things on his phone, unjudged: the numeral
+**v3.12.1, 139/139 green — four things on his phone, unjudged: the numeral
 voice moved to Fraunces + the PIMA optical fix (item 14, DONE), the Nylon /
 Steel toggle with its high-note sustain fix (item 16), and v3.10.2's eleven
 rewritten Travis bass patterns.** Item 14 is the one to look at rather than
@@ -1319,7 +1319,15 @@ measured, and is wrong: Fraunces at `opsz` 9 / `SOFT` 100 holds up in the
 dome, so the app is down to **two type voices and zero new bytes**, and the
 old SYSTEM stack — not rounded at all off Apple hardware — is gone. Details
 in `DESIGN.md`; **next is item 17 (save custom progressions), which needs a
-design call before any code.** His A/B on
+design call before any code.**
+
+**v3.12.1 rode along:** he noticed the stop square looked small and asked
+whether the font work had caused it. It hadn't (the diff touches nothing near
+the transport), **but he was right that it's small** — play/stop were the last
+TEXT glyphs in a row of SVG icons, so their size was whatever the font drew
+for U+25A0: 5.74px of ink in a 46px button beside two 22px SVGs. Both are SVG
+now at the gear's 22px, swapped by CSS off `aria-pressed`, which also retired
+the U+FE0E colour-emoji hack and deleted both glyph constants from `app.js`. His A/B on
 v3.11.0: nylon is "definitely less clangy" but "maybe it lacks sustain on
 the high notes" — measured and confirmed (nylon's E5 held **11%** of steel's
 level at 0.5s), fixed via a new `sustainTilt` knob, and the toggle stays by

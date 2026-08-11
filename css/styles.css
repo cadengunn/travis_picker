@@ -824,6 +824,12 @@ main {
   filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.55)) drop-shadow(0 1px 0 rgba(255, 245, 225, 0.18));
 }
 .btn-play { color: var(--glyph); }
+/* One icon at a time, driven by `aria-pressed` — the same attribute that gives
+   the button its pressed-in look below, so the glyph and the housing can never
+   disagree about whether the transport is running. */
+.btn-play .icon-stop,
+.btn-play[aria-pressed="true"] .icon-play { display: none; }
+.btn-play[aria-pressed="true"] .icon-stop { display: block; }
 /* Playing = a latched button held IN (like armed Edit): pressed down + lit. It
    reads "in" the same way the stepper key does on press — ONE clean top-weighted
    inset for the near wall in shadow, plus a hairline of bounce along the BOTTOM

@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [44e](#where-things-stand-session-44e--v3121-2026-08-11) | **v3.12.1** | he noticed the stop square looked small and asked whether we'd caused it. We hadn't — but he was right that it *is* small: play/stop were the last TEXT glyphs in a row of SVG icons, so their size was whatever the font drew for U+25A0, measured at **5.74px of ink in a 46px button** beside two 22px SVGs. Both are SVG now at the gear's 22px, swapped by CSS off `aria-pressed`, which also retires the U+FE0E colour-emoji hack |
 | [44d](#where-things-stand-session-44d--v3120-2026-08-11) | **v3.11.2 → v3.12.0** | Tone/Note labels/Theme merged into one row; then item 14 — and his question ("have we considered the two fonts we already are using?") killed a 39KB third font before it shipped. `--numeral` was a SYSTEM rounded stack justified by a claim that was never measured and is wrong; Fraunces at `opsz` 9 / `SOFT` 100 holds up fine in the dome, so the app is down to **two type voices, zero new bytes**, and every voice now leads with a bundled face. Plus the PIMA optical fix: a dome centres the line box, not the ink, so p/i/m/a drifted 0.23em against 0.01em across the digits |
 | [44c](#where-things-stand-session-44c--v3111-2026-08-11) | **v3.11.1** | his A/B verdict: nylon is "definitely less clangy" but "maybe it lacks sustain on the high notes" — measured, and he was right in a way no test was watching for. The in-loop low-pass has a fixed cutoff, so a high note's own fundamental is attenuated every round trip while a low note's passes underneath: nylon's E5 held **11%** of steel's level at 0.5s. New `sustainTilt` knob lifts `decay` toward 1 as pitch rises, separating tone (`brightness`) from length (`decay`) — high notes now sit at 0.96–1.56x steel. Toggle stays, his call |
 | [44b](#where-things-stand-session-44b--v3110-2026-08-11) | **v3.11.0** | open item 16, first half: a **Nylon / Steel tone toggle** on the Preferences page, because his report ("a bit twangy, almost harpsichord like") was an accurate description of canonical Karplus-Strong — the treble voice had no `brightness` key at all. Two voices over one engine, the tone in the buffer cache key (the one thing that could silently break it), held in `metronome.js` too so an interrupted iOS session can't reset it. **Steel stays the default and it ships as an A/B**: if nylon wins outright we drop to one sound |
@@ -68,6 +69,52 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 44e — v3.12.1, 2026-08-11)
+
+**His question: "did the stop square when the play button is activated
+change? It feels smaller maybe."** Worth recording how that resolved,
+because the answer was "no, and also yes."
+
+**Not us, and provably so.** Today's CSS diff touches no hunk near
+`.btn-icon`, `.btn-play` or `--serif`, and the transport glyph constants
+last changed on 2026-07-23 — dozens of sessions ago. The font work in
+v3.12.0 only moved `--numeral`, which the transport never used.
+
+**But his eye was right about the square itself.** Measured at the button's
+17px: the play triangle inks **12.37 × 14.28px**, the stop square inks
+**5.74 × 5.74** — under half the size, about a third of the area. The cause
+is structural: **play/stop were the only transport controls still drawn as
+text characters.** The die and gear are SVG at a controlled 22px, so
+play/stop were at the mercy of whatever the font happened to draw for
+U+25B6/U+25A0, in a 46px button next to two 22px icons.
+
+They were also carrying a hack for the same reason — `app.js` appended
+U+FE0E to both so iOS wouldn't render them as colour emoji that ignore the
+button's styling.
+
+**Both are SVG now, at the gear's 22px**, and the fix removed code rather
+than adding it:
+- Both icons live in the button; **CSS shows one, keyed off `aria-pressed`**
+  — the attribute that already drives the pressed-in housing, so the glyph
+  and the housing cannot disagree about whether the transport is running.
+  Verified first that `aria-pressed` tracks exactly "running or counting
+  in" on every path, including the failed-start one.
+- `app.js` lost both glyph constants and both `textContent` assignments; it
+  now owns only `aria-pressed` and the aria-label. The U+FE0E hack is gone
+  with them — an SVG cannot be rendered as an emoji.
+- Checked before committing that SVG children don't break event handling:
+  `pressStrength` and `help.js` both resolve via `.closest()`, and the die
+  and gear already prove the pattern.
+
+Two tests, both verified to fail without the fix. The layout one renders the
+real stylesheet in an iframe and asserts exactly one icon shows per state
+(sabotaging the reveal rule produced *"running should show only stop (play
+false, stop false)"* — the empty-button case) and that both match the gear's
+22px. The source one pins the cause rather than the symptom: no text glyph
+in the button, no `GLYPH_` constants in `app.js`. 137 → 139 green.
 
 ---
 

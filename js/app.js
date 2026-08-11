@@ -59,17 +59,18 @@ import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGua
 
 const el = (id) => document.getElementById(id);
 
-// Force TEXT (not emoji) presentation of the transport glyphs. iOS renders a
-// bare ▶ / ■ as a colour emoji — which ignores our font and colour and looked
-// wrong on the phone. U+FE0E (text variation selector) pins the monochrome
-// glyph so the button styling applies. The count-in digits need no selector.
-const GLYPH_PLAY = "▶︎";
-const GLYPH_STOP = "■︎";
+// The transport glyphs are SVG in index.html now, swapped by CSS off
+// `aria-pressed` (session 44e). They used to be the text characters ▶ / ■ plus
+// U+FE0E to stop iOS drawing them as colour emoji — a hack that only existed
+// because they were text at all, and one that still left their SIZE up to the
+// font: U+25A0 rendered as a 5.74px square in a 46px button, beside two 22px
+// SVG icons. Nothing here sets the button's contents any more; the only thing
+// JS still owns is `aria-pressed` and the aria-label.
 
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.12.0";
+const APP_VERSION = "v3.12.1";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -851,7 +852,6 @@ function showCountIn(n) {
   // hardware feel. The dimmed grid + the blinking beat lamp carry the count now,
   // so Play just holds the running (stop) glyph through the count-in.
   const play = el("play");
-  play.textContent = counting || metronome.running ? GLYPH_STOP : GLYPH_PLAY;
   play.setAttribute(
     "aria-label",
     counting ? "Counting in" : metronome.running ? "Stop metronome" : "Start metronome"
@@ -936,7 +936,6 @@ async function togglePlay() {
   // always paid back: if the start fails the button springs back, so it can
   // never sit there showing STOP over a silent app (session 32).
   el("play").setAttribute("aria-pressed", "true");
-  el("play").textContent = GLYPH_STOP;
   // Claim the playback audio category BEFORE the AudioContext is created, so the
   // transport sounds through a silenced ring switch (see platform.js).
   audioSession.setPlayback(true);

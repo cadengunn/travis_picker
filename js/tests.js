@@ -3105,6 +3105,78 @@ acheck("layout: a Sound toggle is a latching key that seats when on", async () =
   assert(offJewel !== onJewel, "the off toggle's jewel is dark");
 });
 
+acheck("layout: the transport shows exactly one icon, sized like its neighbours", async () => {
+  // He spotted the stop square looked small (session 44e). It was: play/stop
+  // were the last TEXT glyphs in a row of SVG icons, so their size was whatever
+  // the font drew for U+25B6/U+25A0 — measured at 5.74px of ink for the square,
+  // inside a 46px button, beside two 22px SVGs. They're SVG now, swapped by CSS
+  // off `aria-pressed`.
+  //
+  // Two things have to hold and neither is visible from the markup alone, so
+  // this renders the REAL stylesheet: exactly one icon shows per state (a CSS
+  // typo could show both, or none, and the button would look empty), and they
+  // are the same 22px as the gear rather than whatever a glyph happened to be.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:200px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="transport">' +
+    '<button id="idle" class="btn-icon btn-play" aria-pressed="false">' +
+      '<svg class="icon-play" viewBox="0 0 24 24"><path d="M9 5.6 18.6 12 9 18.4Z"/></svg>' +
+      '<svg class="icon-stop" viewBox="0 0 24 24"><rect x="7.2" y="7.2" width="9.6" height="9.6" rx="2"/></svg>' +
+    '</button>' +
+    '<button id="run" class="btn-icon btn-play" aria-pressed="true">' +
+      '<svg class="icon-play" viewBox="0 0 24 24"><path d="M9 5.6 18.6 12 9 18.4Z"/></svg>' +
+      '<svg class="icon-stop" viewBox="0 0 24 24"><rect x="7.2" y="7.2" width="9.6" height="9.6" rx="2"/></svg>' +
+    '</button>' +
+    '<button id="gear" class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg></button>' +
+    '</div>';
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const win = frame.contentWindow;
+  const doc = frame.contentDocument;
+  // Read everything into plain values BEFORE detaching: a removed element
+  // reports "" for every computed property, which would pass vacuously.
+  const shown = (btnId, cls) =>
+    win.getComputedStyle(doc.querySelector(`#${btnId} .${cls}`)).display !== "none";
+  const box = (sel) => {
+    const r = doc.querySelector(sel).getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height) };
+  };
+  const idlePlay = shown("idle", "icon-play"), idleStop = shown("idle", "icon-stop");
+  const runPlay = shown("run", "icon-play"), runStop = shown("run", "icon-stop");
+  const playBox = box("#idle .icon-play"), stopBox = box("#run .icon-stop"), gearBox = box("#gear svg");
+  frame.remove();
+
+  assert(idlePlay && !idleStop, `idle should show only play (play ${idlePlay}, stop ${idleStop})`);
+  assert(runStop && !runPlay, `running should show only stop (play ${runPlay}, stop ${runStop})`);
+  assert(playBox.w === gearBox.w && playBox.h === gearBox.h,
+    `play icon ${playBox.w}x${playBox.h} should match the gear's ${gearBox.w}x${gearBox.h}`);
+  assert(stopBox.w === gearBox.w && stopBox.h === gearBox.h,
+    `stop icon ${stopBox.w}x${stopBox.h} should match the gear's ${gearBox.w}x${gearBox.h}`);
+});
+
+acheck("source: the transport glyphs are SVG, not font characters", async () => {
+  // The size problem was a SYMPTOM of them being text at all — a font decides
+  // how big U+25A0 is, and it drew a 5.74px square. This pins the cause rather
+  // than the symptom, and also guards the U+FE0E hack staying retired: that
+  // selector only ever existed to stop iOS drawing the text glyphs as colour
+  // emoji, which an SVG cannot be.
+  const html = await (await fetch("index.html")).text();
+  const btn = html.match(/<button id="play"[\s\S]*?<\/button>/);
+  assert(btn, "the play button is missing from index.html");
+  assert(/class="icon-play"/.test(btn[0]) && /class="icon-stop"/.test(btn[0]),
+    "the play button should carry both SVG icons");
+  assert(!/[▶■︎]/.test(btn[0]),
+    "the play button still contains a text transport glyph or a U+FE0E selector");
+
+  const appJs = await (await fetch("js/app.js")).text();
+  assert(!/GLYPH_(PLAY|STOP)/.test(appJs),
+    "app.js still carries the text-glyph constants — CSS owns the swap now");
+});
+
 acheck("layout: a list panel is a housing, and the selected row is its aperture", async () => {
   // His call (v2.14.6): bring the five remaining list menus (Thumb, Fingers,
   // Pattern, Note Labels, Theme) into the drum's design language. They stay lists —

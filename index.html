@@ -99,8 +99,20 @@
       <span id="type-indicator" class="type-indicator" data-help="type-indicator"></span>
     </div>
     <div class="transport">
+      <!-- BOTH transport icons live here and CSS shows one, keyed off
+           `aria-pressed` — which already tracks exactly "running or counting
+           in", so there is no second source of truth to drift. They're SVG for
+           the same reason the die and gear are (session 44e): as text glyphs
+           they were at the mercy of whatever the font drew for U+25A0, which
+           was a 5.74px square in a 46px button sitting beside two 22px icons.
+           It also retires the U+FE0E hack that stopped iOS rendering them as
+           colour emoji. The `aria-label` still carries the state for a screen
+           reader; the SVGs are decorative. -->
       <button id="play" class="btn-icon btn-play" type="button" aria-pressed="false" data-help="play"
-              aria-label="Start metronome">&#x25B6;&#xFE0E;</button>
+              aria-label="Start metronome">
+        <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5.6 18.6 12 9 18.4Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>
+        <svg class="icon-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="7.2" y="7.2" width="9.6" height="9.6" rx="2"/></svg>
+      </button>
       <div class="slider-wrap" data-help="bpm">
         <input id="bpm" class="bpm-slider" type="range" min="40" max="240" step="1" value="90"
                aria-label="Tempo in beats per minute" />
