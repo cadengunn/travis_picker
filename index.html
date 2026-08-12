@@ -250,6 +250,37 @@
           </button>
           </div>
         </div>
+
+        <!-- Save / delete a custom progression (item 17, session 45). ONE key,
+             three states, driven by syncProgressionSaveKey(): disabled on a
+             preset or in single mode, a floppy on a hand-edit you haven't
+             stored, a bin on one you have — so you delete a progression from
+             the same place you saved it.
+
+             It rides THIS row rather than the header (his placement call): a
+             row below the header pills would cost >=32px against the 11.06px
+             of clearance the grid has at 375x553. Measured here at 375: the
+             page track is 343px and the group is 237 + 46 + this 44px well
+             over 6px gaps = 339, so 4px of slack — the same margin the
+             `.layers` row lives with. It stays in the DOM in SINGLE mode too,
+             merely disabled, which is what keeps the group's total width
+             identical in both chord modes so the die can't move when you
+             switch. Both facts are re-measured by the "save-progression key
+             fits the die's row" layout test. -->
+        <div class="field field-die">
+          <div class="die-well well-save-prog">
+            <button id="save-progression" class="die-btn" type="button" data-action="off" disabled
+                    data-help="save-progression"
+                    aria-label="Save this progression" title="Save progression">
+              <!-- Two glyphs, one shown at a time by CSS off `data-action` — the
+                   same trick the transport's play/stop pair uses (v3.12.1), and
+                   for the same reason: one button whose FACE reports the state
+                   beats two buttons where one is always dead. -->
+              <svg class="glyph-save" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 3.6h11.2l3.6 3.6v12.6a.6.6 0 0 1-.6.6H4.6a.6.6 0 0 1-.6-.6V4.2a.6.6 0 0 1 .6-.6z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M7.8 3.6h7.2v5.2H7.8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7.4 13.2h9.2v7.2H7.4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+              <svg class="glyph-delete" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.4 6.6h15.2M9.6 6.6V4.4a.8.8 0 0 1 .8-.8h3.2a.8.8 0 0 1 .8.8v2.2M6.4 6.6l.9 13a.8.8 0 0 0 .8.8h7.8a.8.8 0 0 0 .8-.8l.9-13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.4 10.4v6.4M13.6 10.4v6.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Thumb and Fingers sit side by side because that IS the model: two

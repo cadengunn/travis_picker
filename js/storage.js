@@ -190,6 +190,105 @@ export function createStore(key = SAVED_KEY, storage = globalThis.localStorage) 
   };
 }
 
+// ----- Saved custom progressions (item 17, session 45) -----
+//
+// A SECOND, much smaller library, of a different kind of object. It lives here
+// rather than in its own module on purpose: a new runtime module means a
+// PRECACHE entry in sw.js plus the two tests that enforce one, which is a lot of
+// ceremony for forty lines. It can't reuse createStore either — that store's
+// save() hardcodes `pattern`/`context`, and parseImport's looksLikePattern
+// demands thumbBars/trebleBars, so a progression would be rejected by its own
+// library's importer.
+//
+// A stored entry is { id, mode, tokens, savedAt } and NOTHING ELSE. There is no
+// name field by design (his call): the drum labels each one with its own numerals
+// — "I–IV–♭VII–IV" — which is self-describing, impossible to duplicate, and needs
+// no typing on a phone. The `label` and `style` a progression needs downstream are
+// derived in app.js when it registers them, not stored.
+//
+// Same degrade-quietly contract as the pattern store: corrupt JSON reads as an
+// empty library, a refused write (quota / private mode) returns null so the UI can
+// report it rather than throw.
+export const PROGRESSIONS_KEY = "travis-picker:progressions";
+
+// The identity of a progression IS its tokens in its mode — two entries with the
+// same numerals in the same mode are the same progression, whatever key you
+// happened to be in when you saved them. So this doubles as the de-dupe key, and
+// saving one you already have is a no-op that hands back the existing entry
+// rather than minting a twin you'd have to delete by hand.
+function progressionKey(mode, tokens) {
+  return `${mode}|${tokens.join("|")}`;
+}
+
+// ALWAYS PREFIXED, unlike newId() — a bare crypto.randomUUID() would do here
+// except that app.js decides which face the Save/Delete key wears by asking
+// whether the selected progression id starts with `cp_`, and the prefix is also
+// what guarantees a saved id can never collide with a preset's or with
+// CUSTOM_PROGRESSION_ID.
+export const CUSTOM_PROGRESSION_PREFIX = "cp_";
+function newProgressionId() {
+  const tail = globalThis.crypto?.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  return CUSTOM_PROGRESSION_PREFIX + tail;
+}
+
+export function createProgressionStore(key = PROGRESSIONS_KEY, storage = globalThis.localStorage) {
+  function readAll() {
+    try {
+      const raw = storage.getItem(key);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeAll(items) {
+    try {
+      storage.setItem(key, JSON.stringify(items));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return {
+    // Oldest first, so the drum's Custom section keeps a stable order that
+    // doesn't reshuffle under you every time you save another one.
+    list() {
+      return readAll();
+    },
+
+    count() {
+      return readAll().length;
+    },
+
+    // { mode, tokens } -> the stored entry, or null if the write was refused.
+    // Returns the EXISTING entry untouched when the same progression is already
+    // stored (see progressionKey).
+    save({ mode, tokens }) {
+      if (!mode || !Array.isArray(tokens) || !tokens.length) return null;
+      const items = readAll();
+      const existing = items.find((i) => progressionKey(i.mode, i.tokens) === progressionKey(mode, tokens));
+      if (existing) return existing;
+      const item = { id: newProgressionId(), mode, tokens: [...tokens], savedAt: new Date().toISOString() };
+      items.push(item);
+      return writeAll(items) ? item : null;
+    },
+
+    remove(id) {
+      const items = readAll();
+      const next = items.filter((i) => i.id !== id);
+      if (next.length === items.length) return false;
+      return writeAll(next);
+    },
+  };
+}
+
+export const progressionStore = createProgressionStore();
+
 // ----- Export/import (item 4): belt-and-braces insurance against iOS
 // evicting localStorage, and the way patterns move between devices/people. -----
 

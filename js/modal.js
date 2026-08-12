@@ -49,15 +49,21 @@ function build({ title, message, value, confirmText, cancelText, danger, prompt 
 
   const actions = document.createElement("div");
   actions.className = "tp-modal-actions";
-  const cancel = document.createElement("button");
-  cancel.type = "button";
-  cancel.className = "pill tp-modal-cancel";
-  cancel.textContent = cancelText || "Cancel";
+  // cancelText === null asks for NO cancel button — an acknowledge-only card
+  // (see infoModal). `present` already guards `if (parts.cancel)`, so the rest of
+  // the machinery needed nothing; the backdrop and Escape still dismiss.
+  const cancel = cancelText === null ? null : document.createElement("button");
+  if (cancel) {
+    cancel.type = "button";
+    cancel.className = "pill tp-modal-cancel";
+    cancel.textContent = cancelText || "Cancel";
+  }
   const ok = document.createElement("button");
   ok.type = "button";
   ok.className = "btn-primary tp-modal-ok" + (danger ? " tp-modal-danger" : "");
   ok.textContent = confirmText || "OK";
-  actions.append(cancel, ok);
+  if (cancel) actions.append(cancel, ok);
+  else actions.append(ok);
   card.appendChild(actions);
 
   root.append(backdrop, card);
@@ -102,6 +108,18 @@ export function confirmModal(opts = {}) {
   return new Promise((resolve) => {
     const parts = build({ ...opts, prompt: false });
     present(parts, (r) => resolve(r === "ok"));
+  });
+}
+
+// Acknowledge-only. An infoModal lived here until v2.13.4 and went with the Guide,
+// its only caller; session 45 brought it back for a real one — saving a custom
+// progression can be refused by full/unavailable storage, and the house answer to
+// that elsewhere (the Save sheet's hint line) has no equivalent surface on the
+// Options sheet's die row, where this control lives.
+export function infoModal(opts = {}) {
+  return new Promise((resolve) => {
+    const parts = build({ ...opts, cancelText: null, prompt: false });
+    present(parts, () => resolve());
   });
 }
 

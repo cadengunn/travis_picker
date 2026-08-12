@@ -23,7 +23,9 @@ Status legend: **OPEN** = not started · **NEEDS A CALL** = blocked on a
 decision · **ON THE PHONE** = built, waiting on his test · **ANSWERED** =
 investigated, no work needed unless he wants a change.
 
-**On the phone now (v3.12.1):** the numeral voice moved to Fraunces and the
+**On the phone now (v3.13.0):** **saved custom progressions (item 17)** — the
+headline, and the one to try first; see its section below for what to look at.
+Still unjudged from before: the numeral voice moved to Fraunces and the
 PIMA optical fix (item 14), the Nylon / Steel tone toggle and its high-note
 sustain fix (item 16), v3.10.2's eleven rewritten Travis bass patterns, and
 the transport's play/stop icons redrawn as SVG at the gear's 22px (his
@@ -35,11 +37,10 @@ transport icons are the ones to judge with your eyes, at arm's length.
 
 ## The order (his call, session 44)
 
-**16 → 14 → 17 → 18.** Items 16 and 14 are both shipped and on his phone;
-**17 (save custom progressions) is next**, and it needs a design call from
-him before any code — see the two shapes below. The App Store becomes a
-checklist doc whenever he wants it; nothing about the current app has to
-change to keep that option open.
+**16 → 14 → 17 → 18.** Items 16, 14 and now **17 are all shipped and on his
+phone** — nothing is waiting on code. **18 (App Store) is what's left**, and
+it becomes a checklist doc whenever he wants it; nothing about the current
+app has to change to keep that option open.
 
 ---
 
@@ -150,27 +151,37 @@ as the letters hopping when you scan a column. p/m/a are nudged; digits and
 
 Budget re-measured and untouched: 55.09 / 384.84 / 11.06, no overflow.
 
-## Item 17 — save custom progressions **OPEN, medium; needs a design call**
+## Item 17 — save custom progressions **ON THE PHONE (v3.13.0)**
 
-Already half-built by accident: progression mode can hand-edit any bar's
-chord, `detectProgression()` reads the result back and falls to Custom, and
-a saved pattern already stores a full `context` (key, progression, capo, ×2,
-swing, bpm). So a custom progression is *already* durable — but welded to
-one pattern, not reusable across patterns, which is the ask.
+Shipped session 45, to the cheap shape — a user entry in the existing
+progression list, **no new surface in the Load sheet at all**, which is what
+your bloat worry asked for.
 
-- **His bloat worry is the right one**, and it's specifically a Load-sheet
-  worry: a second library of a different kind of object needs somewhere to
-  live, and that sheet was redesigned twice in session 43.
-- **The cheap shape to consider first:** `PROGRESSIONS` is plain data read
-  through `progressionGroups()`, and the wheel's progression reel is built
-  from it with `Custom` riding the end. A saved custom progression could be a
-  user entry in that same list (its own `style` group, so the drum's existing
-  engraved section headers do the work) — a `storage.js` store plus a data
-  merge, **with no new surface in the Load sheet at all**.
-- **The expensive version** is the one with its own manage/rename/delete UI.
-  That's the one that risks the bloat he's flagging.
+**What to try:**
+- Hand-edit a bar in progression mode. The drum's trailing entry now reads
+  **`Unsaved`** instead of `Custom`, and a **save key** lights up beside the
+  die. Tap it; your progression joins the drum under a **`Custom`** header,
+  labelled with its own numerals (`I–vi7–V–V`).
+- **Then change key.** That's the whole point — it's stored as numerals, so it
+  transposes like a shipped preset. Crossing the major/minor line correctly
+  drops it from the reel.
+- Select it again and the same key becomes a **delete** key (it confirms
+  first, and deleting never touches the bars on screen or any saved pattern).
+- The 🎲 rolls your saved progressions too, per your call.
 
-**Needs his call before any code:** which of those two shapes.
+**Worth judging on the phone, since the dev box can't:**
+- **Is the save key legible as a floppy/bin at 44px?** It sits beside the die
+  at 2px narrower, which was the width the row had spare.
+- **Does `Unsaved` read right** where `Custom` used to?
+- **Is the die rolling your own progressions actually what you want?** The
+  minor set ships only 3 presets, so a few saved minor ones will dominate a
+  minor roll. One word reverts it.
+
+**One thing changed that you didn't ask for**, because the feature made it
+unsurvivable: transposing used to leave any chord outside the key's curated
+map exactly where it was — a bar edited to Am7 in C stayed **Am7** in G rather
+than becoming Em7. It now transposes properly. Worth a sanity check on a
+hand-edited progression you care about.
 
 ## Item 18 — App Store **OPEN, large; its own project**
 

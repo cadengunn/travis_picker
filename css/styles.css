@@ -1137,6 +1137,33 @@ main {
 /* the die's slot has no caption, so pin it to the row's baseline */
 .field-die { justify-content: flex-end; }
 
+/* THE SAVE / DELETE PROGRESSION KEY (item 17, session 45). Same carved key in a
+   recessed well as the die beside it — this row speaks one hardware language —
+   just 2px narrower, which is what buys the row its 4px of slack (see
+   .control-row.with-die). At 44 against the die's 46 the difference is invisible
+   in place; at 40 it started reading as a different class of object. */
+.well-save-prog { width: 44px; }
+/* ONE key, two faces, swapped off `data-action` — the same mechanism the
+   transport's play/stop pair uses (v3.12.1). Not tilted: the dice share a glyph
+   and so share the -13deg, but a floppy and a bin are upright objects. */
+.well-save-prog .die-btn svg { transform: none; }
+#save-progression .glyph-save,
+#save-progression .glyph-delete { display: none; }
+#save-progression[data-action="save"] .glyph-save,
+#save-progression[data-action="delete"] .glyph-delete { display: block; }
+/* Disabled means "there's nothing here to save or delete" — on a preset, or in
+   single mode, where a progression isn't a thing you have. The key still holds
+   its place so the group's width, and with it the die's position, is identical in
+   both chord modes. `.die-btn:active` can't fire on a disabled button, so it also
+   sits dead under the finger, which is correct here (unlike ×2, where the press
+   had to visibly refuse) — nothing is being denied, there's simply nothing yet. */
+#save-progression:disabled {
+  cursor: default;
+  color: var(--muted);
+  opacity: 0.45;
+}
+#save-progression[data-action="off"] .glyph-save { display: block; }
+
 /* The tabs ride the sheet's title line — the split costs no height that way.
    Compact type: they share the row with the title and the ✕. */
 .seg-tabs { margin-left: auto; flex: 0 0 auto; }
@@ -1265,6 +1292,13 @@ main {
   display: flex;
   justify-content: center;
   align-items: end;
+  /* 6px, not the default 8, since session 45 added the save-progression key to
+     this row. MEASURED at 375: the page track is 343px (the 327 above predates a
+     sheet-padding change and is stale), and 237 + 46 + 44 over two 6px gaps is
+     339 — 4px of slack, the same margin `.layers` lives with. At an 8px gap the
+     same three land on 345 and overflow by 2. The "save-progression key fits the
+     die's row" test re-measures both numbers. */
+  gap: 6px;
 }
 /* `flex: none` on every member: the group fits its track with 36px to spare, so
    nothing should shrink — and a shrunk well is how a progression label starts

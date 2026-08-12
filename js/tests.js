@@ -24,12 +24,15 @@ import {
   PROGRESSIONS,
   CUSTOM_PROGRESSION_ID,
   CHORD_SHAPES,
+  allProgressions,
+  setCustomProgressions,
   progressionGroups,
   progressionChords,
   detectProgression,
   degreeOf,
   degreeLabel,
   romanInKey,
+  chordForRoman,
   randomKeyProgression,
   randomChord,
   fitProgression,
@@ -53,7 +56,10 @@ import {
 } from "./generator.js";
 import * as GeneratorExports from "./generator.js";
 import * as DataExports from "./data.js";
-import { createStore, buildExport, parseImport } from "./storage.js";
+import {
+  createStore, buildExport, parseImport,
+  createProgressionStore, CUSTOM_PROGRESSION_PREFIX,
+} from "./storage.js";
 import { BUILTIN_PATTERNS } from "./builtin-patterns.js";
 import { toggleNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
 import { renderGrid, passLampSelector } from "./grid.js";
@@ -683,9 +689,12 @@ check("tokens: I7 is a dom7 tonic; II7/III7/VI7/V7 are secondary dominants", () 
   assert(progressionChords("min_1_7_6_57", "Em").join("-") === "Em-D-C-B7", "i–VII–VI–V7 in Em should be Em-D-C-B7");
 });
 
-// Every shipped progression is a 4-bar phrase (padded from shorter ideas).
+// Every progression is a 4-bar phrase (padded from shorter ideas). Widened in
+// session 45 from PROGRESSIONS to allProgressions(): a SAVED custom goes through
+// the same resolve/cycle machinery, so a 3-token entry would silently cycle into
+// the wrong bars. This is the assertion the save path's length guard protects.
 check("every progression is exactly four bars", () => {
-  for (const p of PROGRESSIONS) {
+  for (const p of allProgressions()) {
     assert(p.tokens.length === 4, `${p.id} has ${p.tokens.length} bars, want 4`);
   }
 });
@@ -694,10 +703,13 @@ check("every progression is exactly four bars", () => {
 check("minor keys: progressions resolve; major presets don't leak in", () => {
   assert(progressionChords("min_1_7_6_5", "Am").join("-") === "Am-G-F-E", "i–VII–VI–V in Am should be Am-G-F-E");
   assert(progressionChords("min_1_7_6_5", "Em").join("-") === "Em-D-C-B", "i–VII–VI–V in Em should be Em-D-C-B");
-  // A major preset whose tokens (I, I7, IV) are none of the minor set won't
-  // resolve at all in a minor key — proving the modes don't cross-populate.
+  // A major preset must not resolve in a minor key. This USED TO HOLD BY
+  // ACCIDENT — its tokens (I, I7, IV) simply weren't in the minor key's map — but
+  // session 45 gave progressionChords a computed fallback, and I/I7/IV all spell
+  // fine against MINOR_ROMAN. So the mode contract is now an explicit guard, and
+  // this line is what pins it.
   assert(progressionChords("maj_1_7_4_1", "Am").length === 0,
-    "a major preset should not resolve in a minor key (tokens absent)");
+    "a major preset should not resolve in a minor key (mode guard)");
 });
 
 // 7b-iii) The progression menu groups exactly the presets of the requested mode,
@@ -750,7 +762,9 @@ check("randomisers: valid, mode-matched, and never a no-op roll", () => {
     const rng = seeded(seed * 13 + 5);
     const roll = randomKeyProgression("C", "maj_1_5", rng);
     assert(roll && KEYS[roll.key], `roll ${seed} produced an unknown key`);
-    const p = PROGRESSIONS.find((x) => x.id === roll.progression);
+    // allProgressions, not PROGRESSIONS: the die rolls saved customs too (his
+    // call, session 45), matching the chord die's whole-library pool.
+    const p = allProgressions().find((x) => x.id === roll.progression);
     assert(p, `roll ${seed} produced an unknown progression`);
     assert(p.mode === KEYS[roll.key].mode,
       `roll ${seed}: ${p.id} (${p.mode}) doesn't match key ${roll.key} (${KEYS[roll.key].mode})`);
@@ -812,6 +826,193 @@ check("detectProgression: matches presets in-mode, falls back to Custom", () => 
   edited[1] = "F#m"; // not in key C at that position
   assert(detectProgression(edited, "C") === CUSTOM_PROGRESSION_ID,
     "edited progression should read as Custom");
+});
+
+// ----- 7d) Saved custom progressions (item 17, session 45) -----
+//
+// EVERY CHECK THAT REGISTERS CUSTOMS RESETS IN A `finally`. setCustomProgressions
+// writes module-level state in data.js, and this suite is one file sharing one
+// module instance — a leak here would show up as an order-dependent failure in
+// the progressionGroups / detectProgression checks above, and on this dev box a
+// flaky wheel test already has a known non-code cause, so a real flake would get
+// misattributed.
+const withCustoms = (list, fn) => {
+  try { setCustomProgressions(list); return fn(); } finally { setCustomProgressions([]); }
+};
+const customProg = (id, mode, tokens) =>
+  ({ id, mode, style: "Custom", label: tokens.join("–"), tokens });
+
+// The storage format's central claim: a numeral round-trips back to the chord it
+// came from, for EVERY chord in the library in EVERY key. If this ever fails,
+// tokens are the wrong way to store a progression.
+check("chordForRoman: inverts romanInKey for every chord in every key", () => {
+  let pairs = 0;
+  for (const k of KEY_IDS) {
+    for (const c of CHORD_IDS) {
+      const token = romanInKey(c, k);
+      const back = chordForRoman(token, k);
+      assert(back === c, `${c} in ${k} spelled "${token}" and came back as "${back}"`);
+      pairs++;
+    }
+  }
+  assert(pairs === CHORD_IDS.length * KEY_IDS.length, `only checked ${pairs} pairs`);
+});
+
+// It must REFUSE rather than guess: the save path uses a failed round trip as its
+// signal that a progression can't be stored, so a permissive parse would let an
+// unresolvable token into someone's library.
+check("chordForRoman: returns null on anything it can't spell", () => {
+  for (const junk of ["H", "Ixyz", "♭", "", "VIIdim", "i9", "II7x", "♮IV", null, undefined, 7]) {
+    assert(chordForRoman(junk, "C") === null, `"${junk}" should not resolve`);
+  }
+  assert(chordForRoman("I", "NotAKey") === null, "an unknown key should not resolve");
+});
+
+// The storage format depends on romanInKey and degreeLabel agreeing — a saved
+// progression is written with the computed numeral and READ BACK through the same
+// table the readout uses. They agree today by construction; this states it as a
+// contract so a future KEYS token that disagreed can't rot stored data silently.
+check("romanInKey agrees with degreeLabel wherever the key map has a token", () => {
+  for (const k of KEY_IDS) {
+    for (const c of CHORD_IDS) {
+      const mapped = degreeOf(c, k);
+      if (!mapped) continue;
+      assert(romanInKey(c, k) === mapped,
+        `${c} in ${k}: map says "${mapped}", computed says "${romanInKey(c, k)}"`);
+    }
+  }
+});
+
+// THE ONE THAT MATTERS. A saved custom's tokens routinely sit OUTSIDE the curated
+// KEYS map (vi7, ♯iv, Imaj7). Resolved through the map alone they'd hit undefined,
+// be dropped by the filter, and hand back a SHORT array that fitProgression cycles
+// into the wrong bars — a saved progression that plays something else, with
+// nothing visibly broken. Revert progressionChords to `key.chords[t]` and this
+// returns 2 of 4.
+check("progressionChords: resolves tokens the key map doesn't carry", () => {
+  const tokens = ["I", "vi7", "♯iv", "V7"];
+  withCustoms([customProg("cp_x", "major", tokens)], () => {
+    assert(progressionChords("cp_x", "C").join("-") === "C-Am7-F#m-G7",
+      `in C, got ${progressionChords("cp_x", "C").join("-")}`);
+    assert(progressionChords("cp_x", "G").join("-") === "G-Em7-C#m-D7",
+      `in G, got ${progressionChords("cp_x", "G").join("-")}`);
+    assert(progressionChords("cp_x", "C").length === 4, "all four bars must resolve");
+  });
+});
+
+// The mode guard, from both sides. Without it a major custom resolves cheerfully
+// against MINOR_ROMAN and hands back four real, wrong chords.
+check("progressionChords: refuses a mode mismatch, preset or custom", () => {
+  withCustoms([customProg("cp_maj", "major", ["I", "IV", "V", "I"])], () => {
+    assert(progressionChords("cp_maj", "Am").length === 0,
+      "a major custom must not resolve in a minor key");
+    assert(progressionChords("cp_maj", "C").length === 4, "but it must resolve in its own mode");
+  });
+  withCustoms([customProg("cp_min", "minor", ["i", "VII", "VI", "V"])], () => {
+    assert(progressionChords("cp_min", "C").length === 0,
+      "a minor custom must not resolve in a major key");
+    assert(progressionChords("cp_min", "Am").join("-") === "Am-G-F-E", "and must resolve in Am");
+  });
+});
+
+// Saved customs arrive as ONE trailing group, leaving the presets untouched and in
+// order — which is what puts them under their own engraved header on the drum
+// (wheel.js renders a named optgroup as a .reel-head) while the "Unsaved" readout
+// keeps its plain groove at the end.
+check("progressionGroups: saved customs form one trailing Custom group", () => {
+  const before = progressionGroups("major");
+  withCustoms([
+    customProg("cp_a", "major", ["I", "IV", "V", "I"]),
+    customProg("cp_b", "major", ["I", "vi", "IV", "V"]),
+    customProg("cp_c", "minor", ["i", "VII", "VI", "V"]),
+  ], () => {
+    const groups = progressionGroups("major");
+    assert(groups.length === before.length + 1, `expected one extra group, got ${groups.length}`);
+    assert(JSON.stringify(groups.slice(0, -1)) === JSON.stringify(before),
+      "the preset groups must be untouched and in order");
+    const last = groups[groups.length - 1];
+    assert(last.label === "Custom", `trailing group is "${last.label}", want "Custom"`);
+    assert(last.items.map((i) => i.value).join(",") === "cp_a,cp_b",
+      "only the major customs belong in a major menu");
+    assert(last.items[0].label === "I–IV–V–I", `label is "${last.items[0].label}"`);
+    // the minor one is in ITS mode's menu, and nowhere else
+    const minorLast = progressionGroups("minor").slice(-1)[0];
+    assert(minorLast.items.map((i) => i.value).join(",") === "cp_c", "minor menu gets only cp_c");
+  });
+});
+
+// Presets are walked first, so the same four bars can't report two identities
+// depending on what you happen to have saved.
+check("detectProgression: a preset wins over a custom that duplicates it", () => {
+  const bars = progressionChords("maj_1_5_6_4", "C"); // C G Am F
+  withCustoms([customProg("cp_dupe", "major", ["I", "V", "vi", "IV"])], () => {
+    assert(detectProgression(bars, "C") === "maj_1_5_6_4",
+      `expected the preset, got ${detectProgression(bars, "C")}`);
+  });
+});
+
+// A saved custom is re-identified in every key of its mode — this is what keeps
+// the drum showing YOUR progression after a transpose instead of falling to
+// "Unsaved".
+check("detectProgression: round-trips a saved custom in every key of its mode", () => {
+  const tokens = ["I", "vi7", "♯iv", "V7"];
+  withCustoms([customProg("cp_r", "major", tokens)], () => {
+    for (const k of KEY_IDS.filter((x) => KEYS[x].mode === "major")) {
+      const bars = progressionChords("cp_r", k);
+      assert(bars.length === 4, `${k} resolved ${bars.length} bars`);
+      assert(detectProgression(bars, k) === "cp_r",
+        `in ${k} got ${detectProgression(bars, k)}`);
+    }
+  });
+});
+
+// The store. In-memory stub throughout — never the real library.
+check("progression store: saves, de-dupes on (mode, tokens), removes, degrades", () => {
+  const store = createProgressionStore("p", memoryStorage());
+  const a = store.save({ mode: "major", tokens: ["I", "IV", "V", "I"] });
+  assert(a && a.id.startsWith(CUSTOM_PROGRESSION_PREFIX), `id "${a && a.id}" needs the cp_ prefix`);
+  assert(store.count() === 1, "one entry after one save");
+
+  // The identity of a progression IS its tokens in its mode, so re-saving the
+  // same one hands back what's already there rather than minting a twin.
+  const again = store.save({ mode: "major", tokens: ["I", "IV", "V", "I"] });
+  assert(again.id === a.id, "the same progression must not be stored twice");
+  assert(store.count() === 1, `de-dupe failed: ${store.count()} entries`);
+  // same tokens, other mode = a different progression
+  store.save({ mode: "minor", tokens: ["I", "IV", "V", "I"] });
+  assert(store.count() === 2, "mode is part of the identity");
+
+  assert(store.remove(a.id) === true, "remove should report success");
+  assert(store.count() === 1, "removed entry should be gone");
+  assert(store.remove("nope") === false, "removing an unknown id reports false");
+  assert(store.save({ mode: "major", tokens: [] }) === null, "empty tokens are refused");
+
+  // corrupt JSON reads as an empty library rather than throwing
+  const bad = memoryStorage();
+  bad.setItem("p", "{not json");
+  assert(createProgressionStore("p", bad).list().length === 0, "corrupt storage should read empty");
+
+  // a refused write (quota / private mode) returns null so the UI can report it
+  const refuses = { getItem: () => null, setItem() { throw new Error("quota"); } };
+  assert(createProgressionStore("p", refuses).save({ mode: "major", tokens: ["I"] }) === null,
+    "a refused write must return null, not throw");
+});
+
+// Deleting a progression can never orphan a saved PATTERN, because a pattern's
+// context stores chord ids, not a progression id. That is the whole reason delete
+// needs no cascade and no extra confirmation beyond its own.
+check("a saved pattern's context holds chord ids, so deleting a progression can't orphan it", () => {
+  const store = createStore("t", memoryStorage());
+  const bars = progressionChords("maj_1_5_6_4", "C");
+  const item = store.save({
+    name: "P", pattern: { thumbBars: [[]], trebleBars: [[]], bars: [[]] },
+    context: { chordMode: "progression", key: "C", progression: [...bars] },
+  });
+  const stored = JSON.stringify(store.get(item.id));
+  assert(!stored.includes(CUSTOM_PROGRESSION_PREFIX) && !stored.includes('"custom"'),
+    "a saved pattern must not reference a progression id");
+  assert(store.get(item.id).context.progression.join("-") === bars.join("-"),
+    "the chords themselves are what's stored");
 });
 
 // 8) generatePattern always makes exactly one distinct bar (session 36 — real-
@@ -3271,6 +3472,11 @@ acheck("layout: the die's row is the same geometry in both chord modes", async (
 
   const single = { die: box(".die-well"), groupL: box("#field-chord").l, groupR: box(".die-well").r };
   const row = box(".control-row");
+  // READ the row gap rather than hardcoding it: session 45 took it 8px → 6px to
+  // make room for the save-progression key, and a literal here failed for that
+  // change alone even though the invariant below — the two fields span the same
+  // width — never moved.
+  const rowGap = parseFloat(frame.contentWindow.getComputedStyle(doc.querySelector(".control-row")).columnGap) || 0;
   chord.hidden = true; keyprog.hidden = false;
   const progression = { die: box(".die-well"), groupL: box("#field-keyprog").l, groupR: box(".die-well").r };
   const pair = box("#field-keyprog").r - box("#field-keyprog").l;
@@ -3286,8 +3492,8 @@ acheck("layout: the die's row is the same geometry in both chord modes", async (
     `the group moves between modes: single ${single.groupL}→${single.groupR}, progression ${progression.groupL}→${progression.groupR}`);
   assert(Math.abs(single.die.l - progression.die.l) < 0.5,
     `the die moves between modes (${single.die.l} vs ${progression.die.l})`);
-  assert(Math.abs(pair - (chordW - single.die.w - 8)) < 0.5,
-    `the Key/Progression field (${pair}px) must span exactly what the chord field does`);
+  assert(Math.abs(pair - (chordW - single.die.w - rowGap)) < 0.5,
+    `the Key/Progression field (${pair}px) must span exactly what the chord field does (gap ${rowGap}px)`);
 
   // Centred, not left- or right-aligned: equal air either side.
   const left = single.groupL - row.l;
@@ -3399,6 +3605,58 @@ acheck('layout: the Format control spells "Progression" on one line', async () =
   // Not just "fits": it has to look like a label, not a wall-to-wall word.
   assert(boxW - textW >= 8,
     `only ${(boxW - textW).toFixed(1)}px of air around "Progression" (${textW.toFixed(1)}px in ${boxW}px)`);
+});
+
+acheck("layout: the save-progression key fits the die's row", async () => {
+  // Session 45. His placement call: the Save/Delete progression key rides the
+  // die's row, because a row below the header pills would cost >=32px against the
+  // 11.06px of clearance the grid has at 375x553.
+  //
+  // Two things are measured, and neither was obvious from the stylesheet — the
+  // `327px of track` in the .with-die comment predates a sheet-padding change and
+  // is stale. MEASURED at 375: the page track is 343, and 237 + 46 + 44 over two
+  // 6px gaps is 339. At the OLD 8px gap the same three land on 345 and overflow
+  // by 2, which is why this test asserts the slack rather than the widths.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:300px;border:0";
+  const dieField = (extra) =>
+    `<div class="field field-die"><div class="die-well ${extra}">` +
+    '<button class="die-btn" type="button"><svg viewBox="0 0 24 24"></svg></button></div></div>';
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="sheet-panel"><div class="sheet-page">' +
+    '<div class="control-row with-die" id="row">' +
+    '<label class="field field-split" id="keyprog"><span class="split-legends"><span>Key</span>' +
+    "<span>Progression</span></span><select></select></label>" +
+    dieField("") + dieField("well-save-prog") +
+    "</div></div></div>";
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const doc = frame.contentDocument;
+  const row = doc.getElementById("row");
+  const track = row.parentElement.clientWidth;
+  const kids = [...row.children].map((k) => k.getBoundingClientRect().width);
+  const gap = parseFloat(frame.contentWindow.getComputedStyle(row).columnGap) || 0;
+  const used = kids.reduce((a, b) => a + b, 0) + gap * (kids.length - 1);
+  const rowW = row.getBoundingClientRect().width;
+  frame.remove();
+
+  assert(kids.length === 3, `expected three members on the die's row, got ${kids.length}`);
+  // The row is `flex: none` throughout precisely so nothing shrinks — a squeezed
+  // well is how a progression label starts ellipsizing with nothing else looking
+  // wrong — so overflow shows up as the row growing past its own track.
+  assert(rowW <= track + 0.01,
+    `the die's row is ${rowW.toFixed(1)}px in a ${track}px track — it overflows`);
+  assert(used <= track,
+    `its members need ${used.toFixed(1)}px of ${track}px (gap ${gap}px)`);
+  assert(track - used >= 3,
+    `only ${(track - used).toFixed(1)}px of slack on the die's row — one longer well and it clips`);
+  // The save key is deliberately a HAIR narrower than the die, and that 2px is
+  // what buys the slack above. At 40 it started reading as a different object.
+  assert(kids[2] >= 42 && kids[2] < kids[1],
+    `the save key is ${kids[2]}px against the die's ${kids[1]}px`);
 });
 
 acheck("layout: the ×2 segmented control fits its slot without wrapping or growing the row", async () => {
@@ -4090,6 +4348,42 @@ acheck("app: the library menu and its status line don't outlive the sheet (sessi
   const close = appjs.match(/function closeSheet\(\)[\s\S]*?\n\}\n/)?.[0] || "";
   assert(/library-menu"\)\.hidden = true/.test(close) && /import-hint"\)\.textContent = ""/.test(close),
     "closing the sheet must also clear the library menu and its status line, or reopening on Save briefly shows it");
+});
+
+acheck("app: saving/deleting a custom progression keeps the menu and the trigger honest (session 45)", async () => {
+  // app.js glue, so asserted against the source like the rest of this file's
+  // app.js checks. Three orderings that are invisible from outside and each
+  // produce a control that lies rather than an error:
+  const appjs = await (await fetch("js/app.js")).text();
+
+  const boot = appjs.match(/async function boot\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  const regAt = boot.indexOf("registerCustomProgressions()");
+  const initAt = boot.indexOf("initControls()");
+  assert(regAt >= 0 && initAt >= 0 && regAt < initAt,
+    "customs must be registered BEFORE initControls — it calls syncProgressionOptions() on its own last line, so anything later misses the first paint");
+
+  const del = appjs.match(/async function deleteCurrentProgression\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  const optsAt = del.indexOf("syncProgressionOptions()");
+  const selAt = del.indexOf("syncProgressionSelect()");
+  assert(optsAt >= 0 && selAt > optsAt,
+    "delete must re-sync the SELECTED value after rebuilding the options: the rebuild drops the deleted <option> and the browser falls back to the first one, so the trigger would read a preset while the bars are untouched");
+  assert(/confirmModal\(/.test(del) && /danger:\s*true/.test(del),
+    "deleting a saved progression is destructive, so it confirms first and wears the app's danger treatment");
+
+  const save = appjs.match(/async function saveCurrentProgression\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/canSaveProgression\(\)/.test(save),
+    "the save path and the key's enabled state must ask the same question, or a disabled-looking key could still save");
+  const can = appjs.match(/function canSaveProgression\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/length !== 4/.test(can),
+    "a progression that isn't four bars must not be storable — it would cycle into the wrong bars everywhere downstream");
+  assert(/chordForRoman\(/.test(can) && /progressionTokens\(/.test(can),
+    "savability must include a verified round trip, since the numeral is what gets stored");
+  // …and the tokens it verifies must be the ones romanInKey computes, NOT
+  // degreeLabel's map-first ones: the two agree today, but only because a test
+  // says so, and this value goes into storage where a future divergence would rot
+  // silently rather than fail loudly.
+  assert(/const progressionTokens = [^\n]*romanInKey\(/.test(appjs),
+    "progressionTokens must spell with romanInKey, so chordForRoman is exactly its inverse");
 });
 
 acheck("app: help mode can reach the Save/Load sheet's own scrim (session 43)", async () => {

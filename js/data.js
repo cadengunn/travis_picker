@@ -782,11 +782,34 @@ export const PROGRESSIONS = [
 
 export const CUSTOM_PROGRESSION_ID = "custom";
 
+// SAVED CUSTOM PROGRESSIONS (item 17, session 45) live here at runtime, seeded by
+// app.js from its own store — data.js still touches no browser API, and tests set
+// this directly. An entry is STRUCTURALLY IDENTICAL to a preset
+// ({ id, mode, style, label, tokens }), so everything downstream — the grouped
+// menu, the drum's engraved headers, resolve, detect, the die — treats it as one
+// more progression and needs no branch of its own. `style: "Custom"` is what puts
+// them under their own header; ids are namespaced `cp_` so they can never collide
+// with a preset id or with CUSTOM_PROGRESSION_ID.
+//
+// PRESETS COME FIRST in allProgressions(), which is load-bearing in
+// detectProgression: a saved custom that happens to duplicate a shipped preset
+// must still read as the preset, or the same four bars would report two different
+// identities depending on what you'd saved.
+let CUSTOM_PROGRESSIONS = [];
+
+export function setCustomProgressions(list) {
+  CUSTOM_PROGRESSIONS = Array.isArray(list) ? [...list] : [];
+}
+
+export function allProgressions() {
+  return [...PROGRESSIONS, ...CUSTOM_PROGRESSIONS];
+}
+
 // Progression options for a mode, grouped by style — [{ label, items:[{value,label}] }].
 // The label is the token sequence itself (I–IV–V, I–♭VII–IV, i–VII–VI–V …).
 export function progressionGroups(mode) {
   const groups = [];
-  for (const p of PROGRESSIONS) {
+  for (const p of allProgressions()) {
     if (p.mode !== mode) continue;
     let g = groups[groups.length - 1];
     if (!g || g.label !== p.style) { g = { label: p.style, items: [] }; groups.push(g); }
@@ -801,14 +824,27 @@ export function fitProgression(chords, n, fallback = CHORD_IDS[0]) {
   return Array.from({ length: n }, (_, i) => src[i % src.length]);
 }
 
-// Resolve a progression's tokens to chord ids in the given key. Returns [] if the
-// key's mode doesn't match the progression (its tokens won't be in the key map) —
-// callers only ever resolve progressions of the key's own mode.
+// Resolve a progression's tokens to chord ids in the given key.
+//
+// THE MODE GUARD IS EXPLICIT, and it has to be. Returning [] for a mode mismatch
+// used to fall out for free — a major preset's tokens simply weren't in a minor
+// key's map — but that was the map lookup MISSING, not a rule. A saved custom
+// resolves through chordForRoman, which computes a numeral against whichever
+// table the key's mode selects, so `I`/`IV`/`V7` would cheerfully resolve in Am
+// and hand back real, wrong chords. The contract is now stated instead of emergent.
+//
+// The KEY MAP IS TRIED FIRST so every shipped preset resolves exactly as it always
+// did; the computed fallback exists for saved customs, whose tokens routinely sit
+// outside the curated map (vi7, ♯iv, Imaj7, IVsus4). Without it those tokens hit
+// `undefined`, get dropped by the filter, and the caller sets a SHORT progression
+// that fitProgression silently cycles into the wrong bars — i.e. your saved
+// progression plays something else, with nothing visibly broken.
 export function progressionChords(progressionId, keyId) {
-  const p = PROGRESSIONS.find((x) => x.id === progressionId);
+  const p = allProgressions().find((x) => x.id === progressionId);
   const key = KEYS[keyId] || KEYS[DEFAULT_KEY];
   if (!p) return [];
-  return p.tokens.map((t) => key.chords[t]).filter(Boolean);
+  if (key.mode !== p.mode) return [];
+  return p.tokens.map((t) => key.chords[t] ?? chordForRoman(t, keyId)).filter(Boolean);
 }
 
 // Which token (if any) a chord occupies in a key — used to transpose custom
@@ -851,6 +887,47 @@ export function romanInKey(chordId, keyId) {
   return num + roman.tag;
 }
 
+// THE INVERSE of romanInKey: a numeral + a key back to a chord id. This is what
+// makes a SAVED CUSTOM PROGRESSION transposable — it's stored as tokens, so it
+// plays in any key of its mode, exactly like a shipped preset.
+//
+// The round trip is LOSSLESS over the whole library, for four separate reasons,
+// each of which had to hold or tokens would be the wrong storage format:
+//   • NOTE_PC[ROOT_ID[i]] === i for all 12, and every chord id is BUILT from
+//     ROOT_ID (see the CHORDS matrix), so the Db/D#/Gb/Ab/A# aliases above are
+//     accepted on the way in but never emitted on the way out.
+//   • MAJOR_ROMAN and MINOR_ROMAN are each 12 DISTINCT strings, so indexOf is
+//     exact. (It compares whole strings, so "III" can't match inside "♯III".)
+//   • (roman.lower, roman.tag) is unique across all ten QUALITIES — ten pairs,
+//     ten distinct — so vi7 (m7) and VI7 (dom7) separate on case alone.
+//   • no tag ("", 7, maj7, 6, sus2, sus4, add9) starts with a character in
+//     [IVXivx], so the numeral capture can never eat into one.
+// A test drives all 120 chords × all 7 keys through both directions.
+//
+// MODE IS LOAD-BEARING, not decorative. ♭VII is spellable only in major and an
+// unflattened III/VII only in minor, so a token set resolved against the wrong
+// table yields real chords that are simply wrong — never an error you'd notice.
+// That is why a saved progression carries its mode and progressionChords refuses
+// a mismatch outright.
+//
+// Returns null — never a guess — on anything it can't spell, so the save path can
+// verify a progression round-trips before storing it.
+export function chordForRoman(token, keyId) {
+  const key = KEYS[keyId];
+  if (!key || typeof token !== "string") return null;
+  const m = /^([♭♯]?)([IVXivx]+)(.*)$/.exec(token);
+  if (!m) return null;
+  const [, accidental, numeral, tag] = m;
+  const table = key.mode === "minor" ? MINOR_ROMAN : MAJOR_ROMAN;
+  const interval = table.indexOf(accidental + numeral.toUpperCase());
+  if (interval < 0) return null;
+  const lower = numeral === numeral.toLowerCase();
+  const quality = QUALITIES.find((q) => q.roman.lower === lower && q.roman.tag === tag);
+  const tonicPc = NOTE_PC[key.name.replace(/m$/, "")];
+  if (!quality || tonicPc == null) return null;
+  return chordIdFor(ROOT_ID[(tonicPc + interval) % 12], quality.id);
+}
+
 // Display numeral for a bar: the curated key token if the chord is in the key's
 // map, otherwise the computed numeral (never "?" for a library chord).
 export function degreeLabel(chordId, keyId) {
@@ -870,13 +947,19 @@ function pickDifferent(options, isSame, rng, tries = 24) {
   return options.find((o) => !isSame(o)) ?? options[0];
 }
 
-// A random key + a preset progression valid in that key's mode.
+// A random key + a progression valid in that key's mode.
 // Sampled in TWO STAGES — key uniformly, then a progression within it — rather
 // than uniformly over all (key, progression) pairs. Flat pair-sampling would make
 // minor keys ~8% of rolls (2 keys × 3 progressions against 5 × 14), so you'd
 // almost never land in Am/Em; two-stage gives every key an equal 1-in-7 turn.
+//
+// SAVED CUSTOMS ARE IN THE POOL (his call, session 45), matching the chord die,
+// which deliberately rolls the whole 120-chord library rather than a curated
+// subset. The tradeoff was put to him and accepted: within one key the pool is
+// flat, and the minor set ships only 3 presets, so a handful of saved minor
+// progressions can dominate a minor roll. One word here reverts it.
 export function randomKeyProgression(currentKey, currentProgId, rng = Math.random) {
-  const progsFor = (key) => PROGRESSIONS.filter((p) => p.mode === KEYS[key].mode);
+  const progsFor = (key) => allProgressions().filter((p) => p.mode === KEYS[key].mode);
   const isCurrent = (x) => x.key === currentKey && x.progression === currentProgId;
   for (let i = 0; i < 24; i++) {
     const key = KEY_IDS[Math.floor(rng() * KEY_IDS.length)];
@@ -902,13 +985,16 @@ export function randomChord(currentChord, rng = Math.random, pool = CHORD_IDS) {
   return pickDifferent(pool, (c) => c === currentChord, rng);
 }
 
-// Identify the current per-bar chords: a preset id if they cycle-match one in
-// this key (its own mode only), otherwise "custom".
+// Identify the current per-bar chords: a preset OR a saved custom id if they
+// cycle-match one in this key (its own mode only), otherwise "custom" — which
+// now means specifically "hand-edited and not saved", and reads `Unsaved` on the
+// drum. Presets are walked first (see allProgressions), so a saved custom that
+// duplicates a shipped preset still reports as the preset.
 export function detectProgression(chords, keyId) {
   if (!chords || !chords.length) return CUSTOM_PROGRESSION_ID;
   const key = KEYS[keyId];
   let cycled = null; // a match that only fits by repeating (shorter than the input)
-  for (const p of PROGRESSIONS) {
+  for (const p of allProgressions()) {
     if (key && p.mode !== key.mode) continue;
     const resolved = progressionChords(p.id, keyId);
     if (!resolved.length) continue;
@@ -1081,6 +1167,10 @@ export const HELP = {
   "field-keyprog": {
     title: "Key and Progression",
     body: "Two drums: the key on the left, the progression on the right. Every progression is four bars, so a two-chord idea repeats and a three-chord idea holds its last chord.\n\nChanging key within major or within minor transposes what you have, edited bars included. Crossing between major and minor resets to that mode's first progression.",
+  },
+  "save-progression": {
+    title: "Save progression",
+    body: "Stores the bars you have edited as numerals, so it plays in any key of the same mode. It joins the progression drum under Custom.\n\nWith one of your own selected this becomes a delete key. Greyed out on a preset.",
   },
   "randomize-chords": {
     title: "Randomize",

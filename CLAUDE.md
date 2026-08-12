@@ -213,6 +213,67 @@ mode line resets to that mode's first preset, because the token sets differ.
 preferring an exact-length match so `I–IV–V–I` isn't read as the shorter
 `I–IV–V`) and falls back to **Custom**. Degree 7 (diminished) is still absent.
 
+**Saved custom progressions** (item 17, session 45): a hand-edited progression can
+be stored and reused across patterns. **Stored as TOKENS, not chords** (his call),
+so one saved idea plays in any key of its mode exactly like a shipped preset.
+- **`chordForRoman(token, keyId)` is the pure inverse of `romanInKey`**, and the
+  round trip is **total over the library — 840 chord × key pairs, 0 mismatches,
+  measured**. Four properties make it so and all four are load-bearing (they're
+  listed at the function). It **returns `null`, never a guess**, so the save path
+  can verify before storing. **Accidentals needed no new convention** — the
+  existing `MAJOR_ROMAN`/`MINOR_ROMAN` tables already match both Nashville and
+  classical practice.
+- **`setCustomProgressions(list)` / `allProgressions()` is a registry in
+  `data.js`**, seeded by `app.js` from its own store — `data.js` still touches no
+  browser API. A saved entry is **structurally identical to a preset**
+  (`{id, mode, style: "Custom", label, tokens}`), so `progressionGroups`,
+  `detectProgression`, the drum and the die need no branch of their own; the
+  `label` is DERIVED from the tokens, never stored, so it can't go stale.
+  **Presets come first** in `allProgressions()` — a custom duplicating a preset
+  must still report as the preset.
+- **`progressionChords` has TWO changes that are not optional.** It resolves
+  `key.chords[t] ?? chordForRoman(t, keyId)`: map first so presets are untouched,
+  fallback because a custom's tokens routinely sit outside the curated map
+  (`vi7`, `♯iv`, `Imaj7`) — without it they're dropped by the `.filter(Boolean)`
+  and the caller gets a SHORT array that `fitProgression` cycles into the wrong
+  bars, i.e. your saved progression plays something else with nothing visibly
+  broken. And **the mode guard is now explicit**: `[]` for a mismatch used to
+  fall out because the map lookup missed, not because of a rule, and the computed
+  fallback spells `I`/`I7`/`IV` against `MINOR_ROMAN` quite happily.
+- **`setKey` transposes by NUMERAL, not through the key map** (changed here). It
+  used to go through `degreeOf` alone, leaving any chord the map doesn't name
+  where it was — a bar edited to Am7 in C stayed Am7 in G instead of becoming
+  Em7. Survivable while a custom progression was welded to one pattern; not once
+  the whole promise is that it transposes.
+- **Storage is `createProgressionStore` in `storage.js`** (key
+  `travis-picker:progressions`), not a new module — a new runtime module means a
+  `PRECACHE` entry plus the two tests that enforce one. It can't reuse
+  `createStore`: that `save()` hardcodes `pattern`/`context` and `parseImport`
+  requires `thumbBars`/`trebleBars`. An entry is `{id, mode, tokens, savedAt}` and
+  **has no name field by design** — the drum labels it with its own numerals,
+  which is self-describing and needs no typing on a phone. **Identity is
+  `(mode, tokens)`**, so re-saving one you already have is a no-op.
+- **One key, three states** (`#save-progression`, `syncProgressionSaveKey()` from
+  `render()`): disabled on a preset or in single mode, save icon on an unsaved
+  hand-edit, delete icon on a saved one — you delete from where you saved.
+  **Real `disabled`, NOT ×2's `data-locked`** (that treatment is scoped to
+  `.segmented`). Savability (4 bars + a verified round trip) lives in
+  `canSaveProgression()` so an unsavable progression is never a dead tap.
+  **It rides the die's row**, measured: the track is 343px (the `327` in the
+  `.with-die` comment is stale), and 237 + 46 + 44 over 6px gaps is 339. It stays
+  present-but-disabled in single mode, which is what keeps the group's width
+  identical in both modes so the die can't move.
+- **Delete must `syncProgressionOptions()` THEN `syncProgressionSelect()`** —
+  rebuilding the select drops the deleted `<option>` and the browser falls back
+  to the first one, so the trigger would read a preset while the bars are
+  untouched. And **`registerCustomProgressions()` runs before `initControls()`**,
+  which calls `syncProgressionOptions()` on its own last line.
+- **The trailing readout is `Unsaved`, not `Custom`** (the id is still `custom`),
+  since saved entries now wear a `Custom` section header — two things reading
+  "Custom" four rows apart was the collision worth a word.
+- **Deleting a progression can never orphan a saved pattern**: a pattern's
+  `context` stores chord ids, never a progression id. A test pins it.
+
 **Every progression is a 4-bar phrase** (`tokens.length === 4`): a 2-chord idea
 repeats, a 3-chord idea holds its last chord. A separate **`label`** field carries
 the concise idea (`I–V`, `I–♭VII–IV`) shown in the menu and the header readout;
@@ -1307,7 +1368,18 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.12.1, 139/139 green — four things on his phone, unjudged: the numeral
+**v3.13.0, 151/151 green.** Session 45 shipped **item 17 — save custom
+progressions** (see "Saved custom progressions" above): stored as Nashville
+tokens so one saved idea plays in any key of its mode, a three-state Save/
+Delete key on the die's row, entries labelled by their own numerals under a
+`Custom` header on the drum. Four design calls were his, made before any code.
+The enabling piece is `chordForRoman`, whose round trip was **measured at
+840/840 pairs** rather than argued. Two things the work exposed and fixed:
+`progressionChords` silently dropped any token outside the curated key map,
+and `setKey` left a hand-edited Am7 sitting in C's spelling after a transpose
+to G. **Not yet on his phone** — this is the next thing to try.
+
+**Still on his phone from before, unjudged: four things: the numeral
 voice moved to Fraunces + the PIMA optical fix (item 14, DONE), the Nylon /
 Steel toggle with its high-note sustain fix (item 16), and v3.10.2's eleven
 rewritten Travis bass patterns.** Item 14 is the one to look at rather than

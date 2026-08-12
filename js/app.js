@@ -16,13 +16,16 @@ import {
   DEFAULT_KEY,
   PROGRESSIONS,
   CUSTOM_PROGRESSION_ID,
+  allProgressions,
+  setCustomProgressions,
   progressionGroups,
   progressionChords,
   detectProgression,
   randomKeyProgression,
   randomChord,
-  degreeOf,
   degreeLabel,
+  romanInKey,
+  chordForRoman,
   midiOf,
   clampCapo,
   capoLabel,
@@ -36,7 +39,10 @@ import {
 } from "./generator.js";
 import { renderGrid, passLampSelector } from "./grid.js";
 import { initThemes, listThemes, applyTheme } from "./theme.js";
-import { savedStore, buildExport, parseImport } from "./storage.js";
+import {
+  savedStore, buildExport, parseImport,
+  progressionStore, CUSTOM_PROGRESSION_PREFIX,
+} from "./storage.js";
 import { BUILTIN_PATTERNS } from "./builtin-patterns.js";
 import { toggleNote } from "./editor.js";
 import {
@@ -51,7 +57,7 @@ import {
 // only the menu, and synth.js stays dependency-free so it can't own both.
 import { DEFAULT_TONE } from "./synth.js";
 import { setUiSoundEnabled, playPress, playRelease, playTick, playPlace } from "./ui-sound.js";
-import { confirmModal, promptModal } from "./modal.js";
+import { confirmModal, promptModal, infoModal } from "./modal.js";
 import { createHelp } from "./help.js";
 import { enhanceSelect, enhanceAll, retargetOpenPanel, commit, openDropdownTrigger } from "./dropdown.js";
 import { createChordWheel, createKeyProgWheel, chordSplitLabel, keyProgSplitLabel } from "./wheel.js";
@@ -70,7 +76,7 @@ const el = (id) => document.getElementById(id);
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.12.1";
+const APP_VERSION = "v3.13.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -173,7 +179,34 @@ const chaosOptionGroups = () =>
   CHAOS_GROUPS.map((g) => ({ label: g.label, items: g.ids.map((c) => ({ value: c, label: CHAOS_PRESETS[c].name })) }));
 
 const keyMode = () => KEYS[state.key]?.mode || "major";
-const CUSTOM_OPTION = { value: CUSTOM_PROGRESSION_ID, label: "Custom" };
+// "Unsaved", not "Custom", since session 45: saved custom progressions now ride
+// their own `Custom` section header on the drum, and two things reading "Custom"
+// a few rows apart — one of them a group, one of them a state — was the collision
+// worth spending a word on. The VALUE is untouched (`custom`), so every saved
+// pattern, describeCurrent() and the docs' vocabulary stay exactly as they were.
+const CUSTOM_OPTION = { value: CUSTOM_PROGRESSION_ID, label: "Unsaved" };
+
+// ----- saved custom progressions (item 17) -----
+//
+// A stored entry is { id, mode, tokens, savedAt }; data.js wants something
+// shaped like a preset. This is the one place the two meet, and it's why nothing
+// downstream of the registry has to know a custom exists: the LABEL is derived
+// from the tokens rather than stored, so an entry is self-describing and can
+// never carry a name that's drifted out of step with what it plays.
+const asProgression = (item) => ({
+  id: item.id,
+  mode: item.mode,
+  style: "Custom",
+  label: item.tokens.join("–"),
+  tokens: item.tokens,
+  savedAt: item.savedAt,
+});
+
+function registerCustomProgressions() {
+  setCustomProgressions(progressionStore.list().map(asProgression));
+}
+
+const isCustomProgressionId = (id) => typeof id === "string" && id.startsWith(CUSTOM_PROGRESSION_PREFIX);
 
 function initControls() {
   fillSelect(el("chord"), CHORD_IDS, (id) => id, (id) => CHORDS[id].name);
@@ -265,6 +298,27 @@ function audioBars() {
 function syncProgressionSelect() {
   if (state.chordMode !== "progression") return;
   el("progression").value = detectProgression(state.progression, state.key);
+}
+
+// ONE KEY, THREE STATES (his call): greyed on a preset or in single mode, a save
+// icon on a hand-edit you haven't stored, a delete icon on one you have. You
+// delete a progression from the same place you saved it.
+//
+// Real `disabled`, NOT the ×2 toggle's `data-locked`: that treatment is scoped to
+// `.segmented[data-locked]` in the stylesheet and the ui-sound silence rule keys
+// off `.segmented button`, so a plain key inherits neither the dimming nor the
+// silence. `disabled` gives both for free, and help mode's liftDisabled already
+// makes disabled controls explainable (the Load pill set that precedent).
+function syncProgressionSaveKey() {
+  const btn = el("save-progression");
+  if (!btn) return;
+  const mode = isCustomProgressionId(el("progression").value) ? "delete"
+    : canSaveProgression() ? "save"
+    : "off";
+  btn.dataset.action = mode;
+  btn.disabled = mode === "off";
+  btn.setAttribute("aria-label", mode === "delete" ? "Delete this saved progression" : "Save this progression");
+  btn.title = mode === "delete" ? "Delete progression" : "Save progression";
 }
 
 // The name of the saved pattern on screen. Anything that alters the pattern or
@@ -477,6 +531,7 @@ function render() {
     ? el("grid").querySelector(`select.bar-chord[data-bar="${old.dataset.bar}"]`)
     : old));
   syncProgressionSelect();
+  syncProgressionSaveKey();
   renderContext();
   renderX2();
   // Re-rendering drops the playhead's cells/lamps; keep the loop length in sync
@@ -621,18 +676,100 @@ function randomizeChords() {
 }
 
 function applyProgressionPreset(presetId) {
-  if (presetId === CUSTOM_PROGRESSION_ID) return; // "Custom" is a readout, not a choice
+  if (presetId === CUSTOM_PROGRESSION_ID) return; // "Unsaved" is a readout, not a choice
   // The progression's own length sets the bar count.
   state.progression = progressionChords(presetId, state.key);
   markDirty();
   render();
 }
 
-// Changing key within the SAME mode transposes by token: preset progressions
-// re-resolve, and custom bars follow their token where they have one (unknown
-// chords stay put). Crossing the major/minor line (e.g. E → Am) can't transpose —
-// the token sets differ — so the progression list is rebuilt for the new mode and
-// we land on that mode's first preset (the agreed default-on-mode-switch).
+// ----- saving and deleting a custom progression (item 17) -----
+
+// The bars, as key-relative numerals. romanInKey RATHER THAN degreeLabel, even
+// though a test pins the two as identical for every library chord in every key:
+// that agreement is a property maintained by a test, and this value goes into
+// STORAGE, where a future KEYS token that disagreed would rot silently. One
+// function in, one function out, and chordForRoman is literally its inverse.
+const progressionTokens = (chords, keyId) => chords.map((c) => romanInKey(c, keyId));
+
+// Whether the bars on screen COULD be saved as a progression. Four bars, because
+// every progression in the app is a four-bar phrase and a shorter one would cycle
+// into the wrong bars everywhere downstream (a restored pref or an old export is
+// the only way to get here with another length). And a verified round trip,
+// because the value goes into storage: this can't fail today — a test drives all
+// 120 chords × 7 keys through both directions — which is exactly what makes it
+// cheap to assert. What it guards is a future chord quality whose numeral doesn't
+// spell back, and the place you must not discover that is after it's in someone's
+// library. Both live HERE rather than inside the save handler so the key is simply
+// disabled when they don't hold: an unsavable progression is never a dead tap.
+function canSaveProgression() {
+  if (state.chordMode !== "progression") return false;
+  if (state.progression.length !== 4) return false;
+  if (detectProgression(state.progression, state.key) !== CUSTOM_PROGRESSION_ID) return false;
+  return progressionTokens(state.progression, state.key)
+    .every((t, i) => chordForRoman(t, state.key) === state.progression[i]);
+}
+
+async function saveCurrentProgression() {
+  if (!canSaveProgression()) return;
+  const tokens = progressionTokens(state.progression, state.key);
+  const saved = progressionStore.save({ mode: keyMode(), tokens });
+  if (!saved) {
+    await infoModal({
+      title: "Couldn't save",
+      message: "Browser storage is unavailable or full.",
+      confirmText: "OK",
+    });
+    return;
+  }
+  registerCustomProgressions();
+  syncProgressionOptions();
+  el("progression").value = saved.id;
+  syncProgressionSaveKey();
+}
+
+async function deleteCurrentProgression() {
+  const id = el("progression").value;
+  if (!isCustomProgressionId(id)) return;
+  const entry = allProgressions().find((p) => p.id === id);
+  const ok = await confirmModal({
+    title: "Delete progression",
+    message: `Delete the saved progression ${entry ? entry.label : ""}? The bars on screen won't change.`,
+    confirmText: "Delete",
+    cancelText: "Keep",
+    danger: true,
+  });
+  if (!ok) return;
+  progressionStore.remove(id);
+  registerCustomProgressions();
+  // syncProgressionOptions REBUILDS the select, which drops the deleted <option>
+  // and leaves the browser pointing at the first one — so the trigger would read
+  // a preset while the bars are untouched. syncProgressionSelect puts it back on
+  // whatever the bars actually are, which is now "Unsaved".
+  syncProgressionOptions();
+  syncProgressionSelect();
+  render();
+}
+
+// Changing key within the SAME mode transposes by numeral: every bar is read as
+// its degree in the old key and re-spelled in the new one. Crossing the major/
+// minor line (e.g. E → Am) can't transpose — the token sets differ — so the
+// progression list is rebuilt for the new mode and we land on that mode's first
+// preset (the agreed default-on-mode-switch).
+//
+// THIS USED TO GO THROUGH degreeOf ALONE, and therefore through the curated KEYS
+// map, which left any chord the map doesn't name exactly where it was: a bar
+// edited to Am7 in C stayed Am7 in G instead of becoming Em7. That was a
+// documented wart ("unknown chords stay put") for as long as a custom progression
+// was welded to one pattern. It stops being survivable in session 45, where the
+// whole promise of a saved progression is that it plays in any key of its mode —
+// a mis-transposed bar would be real, plausible, and silently wrong.
+//
+// romanInKey/chordForRoman are total over the library (a test drives all 120
+// chords × 7 keys both ways), so the numeral path subsumes the map path rather
+// than competing with it: for a chord the map does name, the two agree by
+// construction. The `?? c` is belt and braces for a chord id from outside the
+// library entirely.
 function setKey(newKey) {
   const oldKey = state.key;
   const modeChanged = KEYS[newKey].mode !== KEYS[oldKey].mode;
@@ -642,10 +779,8 @@ function setKey(newKey) {
     applyProgressionPreset(firstProgressionForKey());
     return;
   }
-  state.progression = state.progression.map((c) => {
-    const tok = degreeOf(c, oldKey);
-    return tok ? KEYS[newKey].chords[tok] || c : c;
-  });
+  state.progression = state.progression.map(
+    (c) => chordForRoman(romanInKey(c, oldKey), newKey) ?? c);
   markDirty();
   render();
 }
@@ -1675,6 +1810,14 @@ function attach() {
   el("randomize-chords").addEventListener("click", randomizeChords);
   el("key").addEventListener("change", (e) => setKey(e.target.value));
   el("progression").addEventListener("change", (e) => applyProgressionPreset(e.target.value));
+  // Picking "Unsaved" is a no-op in applyProgressionPreset, so the key's face has
+  // to be refreshed here as well as from render() — selecting a saved progression
+  // DOES re-render (it changes the bars), but landing back on Unsaved doesn't.
+  el("progression").addEventListener("change", syncProgressionSaveKey);
+  el("save-progression").addEventListener("click", () => {
+    if (el("save-progression").dataset.action === "delete") deleteCurrentProgression();
+    else saveCurrentProgression();
+  });
 
   // Format is a seated-key toggle now (session 27), so pressed == selected — the
   // same shape as the page tabs, and it acts on RELEASE for the same reason:
@@ -2035,6 +2178,10 @@ function registerServiceWorker() {
 
 // ----- boot -----
 async function boot() {
+  // FIRST, before initControls — which calls syncProgressionOptions() on its own
+  // last line, so anything later (restorePrefs included) is already too late and
+  // a saved progression would be missing from the menu on the first paint.
+  registerCustomProgressions();
   initControls();
   enhanceAll(document, chordPicker); // custom dropdowns / the chord wheel (theme fills later)
   // Before generate(), so the session's first roll uses the chord you left set.

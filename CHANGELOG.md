@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [45](#where-things-stand-session-45--v3130-2026-08-12) | **v3.13.0** | item 17 — **save custom progressions**, stored as Nashville TOKENS so one saved idea plays in any key of its mode. The enabling piece is `chordForRoman`, the pure inverse of `romanInKey`: **840/840 chord × key pairs round-trip**, measured, so tokens can't lose or coerce a chord. Save/Delete is one three-state key on the die's row (his placement call, after a row under the header pills was measured at ≥32px against 11.06px of clearance). Also caught by the feature: `setKey` transposed through the curated `KEYS` map alone, so an Am7 in C stayed Am7 in G — a documented wart that stops being survivable once a saved progression's whole promise is that it transposes |
 | [44e](#where-things-stand-session-44e--v3121-2026-08-11) | **v3.12.1** | he noticed the stop square looked small and asked whether we'd caused it. We hadn't — but he was right that it *is* small: play/stop were the last TEXT glyphs in a row of SVG icons, so their size was whatever the font drew for U+25A0, measured at **5.74px of ink in a 46px button** beside two 22px SVGs. Both are SVG now at the gear's 22px, swapped by CSS off `aria-pressed`, which also retires the U+FE0E colour-emoji hack |
 | [44d](#where-things-stand-session-44d--v3120-2026-08-11) | **v3.11.2 → v3.12.0** | Tone/Note labels/Theme merged into one row; then item 14 — and his question ("have we considered the two fonts we already are using?") killed a 39KB third font before it shipped. `--numeral` was a SYSTEM rounded stack justified by a claim that was never measured and is wrong; Fraunces at `opsz` 9 / `SOFT` 100 holds up fine in the dome, so the app is down to **two type voices, zero new bytes**, and every voice now leads with a bundled face. Plus the PIMA optical fix: a dome centres the line box, not the ink, so p/i/m/a drifted 0.23em against 0.01em across the digits |
 | [44c](#where-things-stand-session-44c--v3111-2026-08-11) | **v3.11.1** | his A/B verdict: nylon is "definitely less clangy" but "maybe it lacks sustain on the high notes" — measured, and he was right in a way no test was watching for. The in-loop low-pass has a fixed cutoff, so a high note's own fundamental is attenuated every round trip while a low note's passes underneath: nylon's E5 held **11%** of steel's level at 0.5s. New `sustainTilt` knob lifts `decay` toward 1 as pitch rises, separating tone (`brightness`) from length (`decay`) — high notes now sit at 0.96–1.56x steel. Toggle stays, his call |
@@ -69,6 +70,84 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 45 — v3.13.0, 2026-08-12)
+
+**Item 17: save custom progressions.** 151/151 green (139 before). Four
+design calls were his, made before any code, and the fifth question — where
+the control goes — took two rounds because my first answer was wrong.
+
+**Stored as tokens, which he decided and which turned out to be free.** His
+brief: "if I store a I-IV-V progression I want to be able to use my
+progression in any key. For borrowed chords outside the key we'll need to use
+flat or sharp accidentals." The accidental half needed no work — `romanInKey`
+already spells `♭II ♭III ♯IV ♭VI ♭VII` in major and `♯III ♯IV ♯VI ♯VII` in
+minor, which is what both the Nashville system (accidental to the LEFT of the
+number, `♭7` for the borrowed flat-seven) and classical roman-numeral analysis
+(flat for a lowered root, sharp for raised) do. So the work was the inverse
+function, `chordForRoman`.
+
+**The round trip is total, and that was MEASURED, not argued.** Four
+independent properties have to hold or tokens are the wrong storage format:
+`NOTE_PC[ROOT_ID[i]] === i` for all 12 and every chord id is built from
+`ROOT_ID` (so the Db/D#/Gb/Ab/A# aliases are accepted but never emitted); both
+numeral tables are 12 distinct strings (so `indexOf` is exact — and it compares
+whole strings, so `III` can't match inside `♯III`); `(roman.lower, roman.tag)`
+is unique across all ten QUALITIES (so `vi7`/`VI7` separate on case alone); and
+no quality tag starts with a character in `[IVXivx]` (so the numeral capture
+can't eat into one). Driven live: **840 pairs, 0 mismatches**, and every
+garbage token returns `null` rather than a guess.
+
+**The real bug the feature exposed was in `setKey`.** Transposing went through
+`degreeOf` — the curated `KEYS` map — so any chord the map doesn't name stayed
+exactly where it was: a bar hand-edited to Am7 in C stayed **Am7** in G instead
+of becoming Em7. That was a documented wart ("unknown chords stay put") for as
+long as a custom progression was welded to one pattern. It stops being
+survivable here, because a saved progression's entire promise is that it
+transposes, and a mis-transposed bar is real, plausible and silently wrong.
+`setKey` now goes `romanInKey` → `chordForRoman`, which subsumes the map path
+rather than competing with it. Caught by driving the app, not by a test.
+
+**`progressionChords` needed a real change, not a swap.** It resolved through
+the key map, and a custom's tokens routinely sit outside it (`vi7`, `♯iv`,
+`Imaj7`). Those hit `undefined`, were dropped by the filter, and handed back a
+SHORT array that `fitProgression` cycles into the wrong bars — the worst
+failure class for a save feature. Reverting the fallback makes the new test
+report `C-G7`: two bars of four. The **mode guard is now explicit** for the
+same reason: `progressionChords("maj_…", "Am").length === 0` used to hold
+because the map lookup MISSED, not because of a rule, and a computed fallback
+resolves `I`/`I7`/`IV` against `MINOR_ROMAN` quite happily. Removing the guard
+turns both that pre-existing test and the new one red.
+
+**Placement took two rounds.** He asked for a button below the header pill
+row; that costs ≥32px (`.ctx-row` is `min-height: 32px`) against the 11.06px
+of clearance the grid has at 375×553, and `main` has `overflow: auto` so it
+would have failed **silently**. I then proposed the "empty" middle slot of
+Options row 1 — also wrong: that slot is 28.3px of slack deliberately donated
+to Format so the second mode can spell "Progression" instead of "Prog." (his
+own note, v2.14.3), guarded by a comment and a layout test. His answer was the
+die's row, which fits: **the track is 343px** (the `327` in the `.with-die`
+comment predates a sheet-padding change and is stale), and 237 + 46 + a new
+44px well over 6px gaps is 339 — 4px of slack, the margin `.layers` already
+lives with. At the old 8px gap the same three land on 345 and overflow by 2.
+The key stays in the DOM in single mode, merely disabled, which is what keeps
+the group's width identical in both modes so the die can't move.
+
+**Smaller calls.** The drum's `Custom` header is his; the trailing readout
+became **`Unsaved`** (id unchanged) so a group and a state don't both read
+"Custom" four rows apart. Entries are labelled by their own numerals — no name
+prompt, no rename, nothing to type on a phone, and duplicates are impossible
+since identical tokens in the same mode ARE the same progression. The 🎲 rolls
+saved customs too (his call, matching the chord die's whole-library pool); the
+minor-set skew was put to him and accepted. `infoModal` came back to
+`modal.js` — it went with the Guide in v2.13.4 and now has a real caller.
+
+**Every new test was verified to fail without its fix**, in four break rounds.
+One incidental finding worth keeping: deliberately leaking a registered custom
+past its `finally` reset turned two *unrelated* tests red, which is exactly the
+cross-test hazard `withCustoms` exists to prevent.
 
 ---
 
