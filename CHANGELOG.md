@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [45b](#where-things-stand-session-45b--v3131-2026-08-12) | **v3.13.1** | his first phone report of item 17: a long saved progression let the drum "move sideways". TWO causes. Every `.reel` has had a phantom horizontal scroller since the wheel shipped — `overflow-x` defaults to `visible`, but CSS computes that to `auto` when the other axis isn't visible, so `overflow-y: scroll` quietly created one; invisible until a facet finally overflowed. And the width came from the KEY drum, not the panel: 72px to show "Am" (28.8px measured) while the progression reel beside it starved at 124px. Key → 48, progression → 148, `--drums-w` deliberately untouched so the panel doesn't split from the closed field it's cut from; `fitFace()` shrinks past that to a 10.5px floor |
 | [45](#where-things-stand-session-45--v3130-2026-08-12) | **v3.13.0** | item 17 — **save custom progressions**, stored as Nashville TOKENS so one saved idea plays in any key of its mode. The enabling piece is `chordForRoman`, the pure inverse of `romanInKey`: **840/840 chord × key pairs round-trip**, measured, so tokens can't lose or coerce a chord. Save/Delete is one three-state key on the die's row (his placement call, after a row under the header pills was measured at ≥32px against 11.06px of clearance). Also caught by the feature: `setKey` transposed through the curated `KEYS` map alone, so an Am7 in C stayed Am7 in G — a documented wart that stops being survivable once a saved progression's whole promise is that it transposes |
 | [44e](#where-things-stand-session-44e--v3121-2026-08-11) | **v3.12.1** | he noticed the stop square looked small and asked whether we'd caused it. We hadn't — but he was right that it *is* small: play/stop were the last TEXT glyphs in a row of SVG icons, so their size was whatever the font drew for U+25A0, measured at **5.74px of ink in a 46px button** beside two 22px SVGs. Both are SVG now at the gear's 22px, swapped by CSS off `aria-pressed`, which also retires the U+FE0E colour-emoji hack |
 | [44d](#where-things-stand-session-44d--v3120-2026-08-11) | **v3.11.2 → v3.12.0** | Tone/Note labels/Theme merged into one row; then item 14 — and his question ("have we considered the two fonts we already are using?") killed a 39KB third font before it shipped. `--numeral` was a SYSTEM rounded stack justified by a claim that was never measured and is wrong; Fraunces at `opsz` 9 / `SOFT` 100 holds up fine in the dome, so the app is down to **two type voices, zero new bytes**, and every voice now leads with a bundled face. Plus the PIMA optical fix: a dome centres the line box, not the ink, so p/i/m/a drifted 0.23em against 0.01em across the digits |
@@ -70,6 +71,59 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 45b — v3.13.1, 2026-08-12)
+
+**His report, first thing after trying item 17:** "if I save a long-named
+custom progression, it seems to cause the drum selector to break a bit and
+allow sideways movement." Two unrelated causes behind one symptom, which is
+why the fix is in two places.
+
+**The sideways movement is a latent bug the wheel has always had.** `.reel`
+sets `overflow-y: scroll` and says nothing about `overflow-x` — but
+`overflow-x`'s default of `visible` is **computed to `auto`** when the other
+axis isn't visible. So every reel in the app has carried a horizontal
+scroller since the wheel shipped in v2.14.0. Nothing ever overflowed, so
+nothing ever showed it. A saved progression labelled with its own numerals
+is the first content that can, and a barrel sliding on its axle is exactly
+what it looked like. Now stated explicitly.
+
+**The width problem was real, and the fix was not where he or I first
+looked.** He suggested taking the spare space either side of the panel. That
+space isn't free: the panel's width is `--drums-w`, which is *also* the
+closed Options field's, and the die's row — where his save key had just
+landed — has 4px spare. Widening the panel alone would have split it from
+the field it's cut from, which is a stated design rule.
+
+**The slack was inside the mechanism.** The key reel was **72px** to display
+"C" or "Am" — measured at **28.8px** for the widest, its captions at 29.3px —
+sitting beside a progression reel starved at 124px. Key → **48**, progression
+→ **148**, and `--drums-w` never moves, so the Options field, the die's row
+and the chord wheel are all untouched (re-measured: 237 / 46 / 44, and the
+chord wheel's reels still 88 / 108).
+
+**Then shrink-to-fit for the remainder** (his second suggestion), reusing the
+app's existing floor of 10.5px from `fitContext`, with `.reel-face`
+ellipsizing below it. Measured outcome:
+
+```
+I–VI7–II7–V7        108px   17px, untouched   (longest SHIPPED preset)
+Imaj7–vi7–ii7–V7    141px   17px, untouched
+I–vi7–♭VII–IVsus4   156px   ~16px, whole
+♭VIIsus4–♯ivm7–…    243px   ellipsized
+```
+
+Everything up to ~240px natural width renders whole; only four seventh/sus/
+add9 chords in a row get cut, and at that size it isn't readable at arm's
+length anyway.
+
+**One false alarm worth recording**, because it nearly became a fix for a
+non-problem: the section headers appeared to have been shrunk to 8.5px by
+the new code. They hadn't — 8.5px is `.reel-head-face`'s own stylesheet size
+(uppercase Jost with letter-spacing). My probe was comparing against the
+17px option face. Measured before patching.
 
 ---
 

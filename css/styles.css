@@ -153,7 +153,16 @@
      face gets 124 and the key face (widest "Am", ~29px) gets 72. */
   --drum-root: 88px;
   --drum-quality: calc(var(--drum-span) - var(--drum-root));
-  --drum-key: 72px;
+  /* 48, not the 72 it was until session 45b. A key reel shows "C" or "Am" —
+     MEASURED at 28.8px for the widest, and its two engraved captions (Major /
+     Minor) at 29.3px — so 72px was carrying 40px it had no use for while the
+     progression reel beside it starved. Saved custom progressions are labelled
+     with their own numerals and can spell far longer than any shipped preset
+     ("Imaj7–♯ivm7–♭VIIsus4–IVadd9" wants 266px), so that slack goes where the
+     content actually is. Nothing outside this drum moves: --drums-w is
+     unchanged, so --wheel-w, the Options field and the die's row are all
+     untouched. */
+  --drum-key: 48px;
   --drum-prog: calc(var(--drum-span) - var(--drum-key));
   --wheel-w: calc(var(--drums-w) + 20px);
 
@@ -2217,6 +2226,13 @@ main {
 .reel {
   height: calc(var(--reel-item) * var(--reel-visible));
   overflow-y: scroll;
+  /* EXPLICITLY HIDDEN, and it has to be stated. `overflow-x` defaults to
+     `visible`, but CSS computes `visible` to `auto` on one axis when the other
+     is not visible — so `overflow-y: scroll` silently gave this reel a
+     HORIZONTAL scroller too. Invisible until something overflowed: his report
+     was that a long saved progression let the drum "move sideways", which is a
+     barrel sliding on its axle. A mechanism turns one way. */
+  overflow-x: hidden;
   scrollbar-width: none;
   overscroll-behavior: contain;
   /* pan-y, not manipulation: this control's whole job is a vertical drag */
@@ -2270,6 +2286,12 @@ main {
   white-space: nowrap;
   text-align: center;
   transition: color 90ms linear;
+  /* The LAST resort, below fitFaces()' floor: a label too long even at the
+     smallest legible size is cut rather than allowed to widen the barrel. Safe
+     against the group groove above — it's inset 14% and 1px tall at the top
+     edge, so `hidden` never reaches it. */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* ENGRAVED GROUP DIVISIONS (v2.14.5, his call). A curated list keeps its sections
    on a drum as a machined groove rather than a caption — the housing carries

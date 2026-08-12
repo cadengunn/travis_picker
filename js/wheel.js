@@ -48,6 +48,35 @@ const SETTLE_MS = 110;
 // face by cos θ, which is what a barrel's surface actually does.
 const DEG_PER_STEP = 26;
 
+// SHRINK-TO-FIT for a facet's type (session 45b, his note). Every SHIPPED
+// progression fits the reel at full size — the longest, `I–VI7–II7–V7`, measures
+// 108px in 148 — but a saved custom is labelled with its own numerals, and four
+// seventh/sus chords spell far wider than any preset: `Imaj7–♯ivm7–♭VIIsus4–IVadd9`
+// wants 266px. Reducing the type is the only lever left once the reel has taken
+// the width the key drum wasn't using, because the drum can't grow (its width is
+// --drums-w, which is also the closed Options field's).
+//
+// FACE_PX must match `.reel-face`'s font-size; FACE_MIN_PX is the app's existing
+// shrink floor (see fitContext in app.js), below which `.reel-face` ellipsizes
+// instead. Text width scales near-linearly with font-size, so the first ratio is
+// almost always right; the loop is for the kerning remainder, not convergence.
+// Exported for the tests only: tests.html carries no stylesheet, so a real reel
+// there has no width to measure against. The logic is driven with a stub that
+// models the one property that matters — text width scales with font-size.
+export const FACE_PX = 17;
+export const FACE_MIN_PX = 10.5;
+export function fitFace(face) {
+  face.style.fontSize = "";
+  // A reel that isn't laid out yet reports 0 for both and would "fit" vacuously.
+  if (!face.clientWidth || face.scrollWidth <= face.clientWidth) return;
+  let px = FACE_PX;
+  for (let i = 0; i < 3 && face.scrollWidth > face.clientWidth; i++) {
+    px = Math.max(FACE_MIN_PX, px * face.clientWidth / face.scrollWidth);
+    face.style.fontSize = `${px.toFixed(2)}px`;
+    if (px === FACE_MIN_PX) return;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // The mechanism: N cylinders on one axle, in one housing.
 // ---------------------------------------------------------------------------
@@ -170,6 +199,10 @@ function buildDrum(parent, { cls, legend, items, value, onSettle }, { tick, sett
       faces.push({ cell, face, head: row.head });
     });
     el.appendChild(pad.cloneNode());
+    // Fit the type BEFORE positioning: measuring needs the reel laid out, which
+    // is exactly what `open()` guarantees by calling setItems only once the panel
+    // is in the document (same reason scrollToRow needs it below).
+    for (const f of faces) fitFace(f.face);
     rowIndex = rowOfValue(current);
     scrollToRow(rowIndex, false);
     paint();

@@ -80,7 +80,10 @@ import {
   DEFAULT_SWING,
 } from "./metronome.js";
 import { enhanceSelect, retargetOpenPanel } from "./dropdown.js";
-import { createChordWheel, createKeyProgWheel, keyProgSplitLabel } from "./wheel.js";
+import {
+  createChordWheel, createKeyProgWheel, keyProgSplitLabel,
+  fitFace, FACE_PX, FACE_MIN_PX,
+} from "./wheel.js";
 import { confirmModal, promptModal } from "./modal.js";
 import { isNav, helpTargetFor, createHelp, NAV_SELECTOR } from "./help.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
@@ -841,6 +844,54 @@ const withCustoms = (list, fn) => {
 };
 const customProg = (id, mode, tokens) =>
   ({ id, mode, style: "Custom", label: tokens.join("–"), tokens });
+
+// Session 45b, his report: a long saved progression let the drum "move
+// sideways". Two separate causes, so two separate checks — this one is the type,
+// the CSS one below is the phantom scroller.
+//
+// Driven with a STUB rather than a real reel because tests.html carries no
+// stylesheet, so a real .reel-face has neither width nor font-size here. The stub
+// models the single property the logic depends on: rendered text width scales
+// with font-size.
+const fakeFace = (naturalPx, boxPx) => {
+  const style = { fontSize: "" };
+  return {
+    style,
+    get clientWidth() { return boxPx; },
+    get scrollWidth() { return naturalPx * ((parseFloat(style.fontSize) || FACE_PX) / FACE_PX); },
+  };
+};
+
+check("wheel: a long facet shrinks to fit the reel, down to a floor", () => {
+  // Every SHIPPED progression already fits — the longest, I–VI7–II7–V7, measures
+  // 108px in the 148px reel — so the common case must not be touched at all.
+  const short = fakeFace(108, 148);
+  fitFace(short);
+  assert(short.style.fontSize === "", `a label that fits must keep its size, got "${short.style.fontSize}"`);
+
+  // A saved custom can spell wider than any preset. It should shrink just enough.
+  const long = fakeFace(200, 148);
+  fitFace(long);
+  const px = parseFloat(long.style.fontSize);
+  assert(px < FACE_PX, `a too-wide label should shrink, got ${long.style.fontSize}`);
+  assert(px >= FACE_MIN_PX, `shrank past the floor: ${px}`);
+  assert(long.scrollWidth <= long.clientWidth + 0.5,
+    `still overflows after fitting: ${long.scrollWidth} in ${long.clientWidth}`);
+
+  // Past what the floor can rescue it stops shrinking and lets CSS ellipsize,
+  // rather than going to a size nobody can read at arm's length.
+  const absurd = fakeFace(600, 148);
+  fitFace(absurd);
+  assert(parseFloat(absurd.style.fontSize) === FACE_MIN_PX,
+    `an extreme label must clamp at the floor, got ${absurd.style.fontSize}`);
+
+  // Idempotent: reels are rebuilt on every open and on a mode re-cut, so fitting
+  // an already-fitted face must not ratchet it smaller each time.
+  const again = fakeFace(200, 148);
+  fitFace(again); const first = again.style.fontSize;
+  fitFace(again); fitFace(again);
+  assert(again.style.fontSize === first, `fitFace is not idempotent: ${first} then ${again.style.fontSize}`);
+});
 
 // The storage format's central claim: a numeral round-trips back to the chord it
 // came from, for EVERY chord in the library in EVERY key. If this ever fails,
@@ -3605,6 +3656,61 @@ acheck('layout: the Format control spells "Progression" on one line', async () =
   // Not just "fits": it has to look like a label, not a wall-to-wall word.
   assert(boxW - textW >= 8,
     `only ${(boxW - textW).toFixed(1)}px of air around "Progression" (${textW.toFixed(1)}px in ${boxW}px)`);
+});
+
+acheck("layout: a reel can't be dragged sideways, and the key drum leaves room for a progression", async () => {
+  // His report (session 45b): a long saved progression let the drum "move
+  // sideways". `overflow-x` DEFAULTS to `visible`, but CSS computes `visible` to
+  // `auto` on one axis when the other isn't visible — so `.reel`'s
+  // `overflow-y: scroll` silently gave it a horizontal scroller as well. It was
+  // invisible until a facet finally overflowed. A barrel turns one way.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:400px;border:0";
+  frame.srcdoc =
+    '<link rel="stylesheet" href="css/styles.css">' +
+    '<div class="dd-panel dd-wheel wheel-keyprog" style="--reel-item:38px;--reel-visible:5">' +
+    '<div class="wheel-drums">' +
+    '<div class="drum"><div class="reel reel-key" id="rk">' +
+    '<button class="reel-item"><span class="reel-face">Am</span></button></div></div>' +
+    '<div class="wheel-split"></div>' +
+    '<div class="drum"><div class="reel reel-prog" id="rp">' +
+    // the worst case a saved custom can spell: four seventh/sus/add9 chords
+    '<button class="reel-item"><span class="reel-face" id="long">Imaj7–♯ivm7–♭VIIsus4–IVadd9</span></button>' +
+    '<button class="reel-item"><span class="reel-face" id="preset">I–VI7–II7–V7</span></button>' +
+    "</div></div></div></div>";
+  document.body.appendChild(frame);
+  await new Promise((resolve) => { frame.onload = resolve; });
+
+  const doc = frame.contentDocument;
+  const win = frame.contentWindow;
+  await Promise.race([doc.fonts.load("600 17px Fraunces"), new Promise((r) => setTimeout(r, 3000))]);
+  const prog = doc.getElementById("rp");
+  const keyReel = doc.getElementById("rk");
+  const long = doc.getElementById("long");
+  const preset = doc.getElementById("preset");
+  const naturalLong = long.scrollWidth;
+  const naturalPreset = preset.scrollWidth;
+  const progW = prog.clientWidth, keyW = keyReel.clientWidth;
+  const overflowX = win.getComputedStyle(prog).overflowX;
+  frame.remove();
+
+  assert(overflowX === "hidden",
+    `.reel computes overflow-x: ${overflowX} — a reel with a long facet can be dragged sideways off its axle`);
+  assert(prog.scrollWidth <= prog.clientWidth,
+    `the progression reel scrolls sideways (${prog.scrollWidth} in ${prog.clientWidth})`);
+
+  // The key drum shows "C" or "Am". It held 72px until session 45b while the
+  // progression reel beside it starved; the slack went where the content is.
+  assert(keyW < progW,
+    `the key reel (${keyW}px) should be the narrower of the two — it shows two characters`);
+  assert(naturalPreset <= progW,
+    `the longest SHIPPED progression needs ${naturalPreset}px and must fit ${progW}px at full size, untouched`);
+  // And the width the shrink has to work with is real: the floor rescues a label
+  // up to progW * FACE_PX / FACE_MIN_PX before CSS has to ellipsize it.
+  assert(progW >= 140,
+    `the progression reel is only ${progW}px — the shrink can't rescue a saved custom from this`);
+  assert(naturalLong > progW, "this fixture's long label must actually overflow, or the check proves nothing");
 });
 
 acheck("layout: the save-progression key fits the die's row", async () => {

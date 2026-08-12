@@ -23,6 +23,12 @@ Status legend: **OPEN** = not started · **NEEDS A CALL** = blocked on a
 decision · **ON THE PHONE** = built, waiting on his test · **ANSWERED** =
 investigated, no work needed unless he wants a change.
 
+**Fixed in v3.13.1, his first report back:** a long saved progression let the
+drum slide sideways. Two causes — a phantom horizontal scroller every reel
+has had since the wheel shipped, and a progression reel starved of width by
+a key drum holding 40px it never used. The key drum is narrower now and the
+type shrinks past that; nothing else moved.
+
 **On the phone now (v3.13.0):** **saved custom progressions (item 17)** — the
 headline, and the one to try first; see its section below for what to look at.
 Still unjudged from before: the numeral voice moved to Fraunces and the

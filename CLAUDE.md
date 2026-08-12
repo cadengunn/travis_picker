@@ -271,6 +271,22 @@ so one saved idea plays in any key of its mode exactly like a shipped preset.
 - **The trailing readout is `Unsaved`, not `Custom`** (the id is still `custom`),
   since saved entries now wear a `Custom` section header — two things reading
   "Custom" four rows apart was the collision worth a word.
+- **A saved label can be far wider than any preset, and the drum can't grow**
+  (session 45b, his report that a long one let the drum "move sideways"). Two
+  independent causes, two fixes. **`.reel` now says `overflow-x: hidden`
+  explicitly**: `overflow-x` defaults to `visible`, but CSS computes `visible` to
+  `auto` on one axis when the other isn't, so `overflow-y: scroll` had silently
+  given every reel a horizontal scroller — invisible until a facet overflowed.
+  And **the width came from the key drum, not from the panel**: `--drum-key` was
+  72px to show "Am" (28.8px measured), so it went to **48** and the progression
+  reel to **148**. That deliberately leaves `--drums-w` alone, so `--wheel-w`,
+  the Options field and the die's row are all untouched — widening the panel
+  would have split it from the closed field it's cut from. Past 148px,
+  `fitFace()` in `wheel.js` shrinks the type to a **10.5px floor** (the app's
+  existing `fitContext` floor), and `.reel-face` ellipsizes below that. Measured
+  result: every shipped preset renders untouched at 17px, anything up to ~240px
+  natural width renders whole after shrinking, and only a genuinely extreme label
+  (four seventh/sus/add9 chords) is cut.
 - **Deleting a progression can never orphan a saved pattern**: a pattern's
   `context` stores chord ids, never a progression id. A test pins it.
 
@@ -1367,6 +1383,12 @@ one distinct bar is ever generated there's nothing left to disambiguate
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.13.1, 153/153 green.** Session 45b answered his first phone report of
+item 17: a long saved progression let the drum slide sideways. Two causes,
+both fixed and both above — a phantom horizontal scroller every reel has had
+since the wheel shipped, and a progression reel starved of width by a key
+drum holding 40px it never used.
 
 **v3.13.0, 151/151 green.** Session 45 shipped **item 17 — save custom
 progressions** (see "Saved custom progressions" above): stored as Nashville
