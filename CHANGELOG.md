@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [45c](#where-things-stand-session-45c--v3132-2026-08-12) | **v3.13.2** | three of his notes off the phone. The `Custom` header is drawn even when `Unsaved` is its only member — ungrouped, it read as another Classic Standard, and on a barrel there's no "outside a section", only "in the last one". Both wheels split at the same place now (48/148, from 88/108 and 72/124), so the field's division line stops moving when you switch chord modes. And the die's row FILLS its track: it was a centred group of fixed widths, sitting inset 21.5px each side on a 414pt phone while every other row spanned the track. That last one inverted which of the field and the panel is cut to the other — the field leads now, the panel takes the trigger's width, and his v2.14.3 reason ("the chord/quality button should be the same size as the drum") is unchanged and still tested |
 | [45b](#where-things-stand-session-45b--v3131-2026-08-12) | **v3.13.1** | his first phone report of item 17: a long saved progression let the drum "move sideways". TWO causes. Every `.reel` has had a phantom horizontal scroller since the wheel shipped — `overflow-x` defaults to `visible`, but CSS computes that to `auto` when the other axis isn't visible, so `overflow-y: scroll` quietly created one; invisible until a facet finally overflowed. And the width came from the KEY drum, not the panel: 72px to show "Am" (28.8px measured) while the progression reel beside it starved at 124px. Key → 48, progression → 148, `--drums-w` deliberately untouched so the panel doesn't split from the closed field it's cut from; `fitFace()` shrinks past that to a 10.5px floor |
 | [45](#where-things-stand-session-45--v3130-2026-08-12) | **v3.13.0** | item 17 — **save custom progressions**, stored as Nashville TOKENS so one saved idea plays in any key of its mode. The enabling piece is `chordForRoman`, the pure inverse of `romanInKey`: **840/840 chord × key pairs round-trip**, measured, so tokens can't lose or coerce a chord. Save/Delete is one three-state key on the die's row (his placement call, after a row under the header pills was measured at ≥32px against 11.06px of clearance). Also caught by the feature: `setKey` transposed through the curated `KEYS` map alone, so an Am7 in C stayed Am7 in G — a documented wart that stops being survivable once a saved progression's whole promise is that it transposes |
 | [44e](#where-things-stand-session-44e--v3121-2026-08-11) | **v3.12.1** | he noticed the stop square looked small and asked whether we'd caused it. We hadn't — but he was right that it *is* small: play/stop were the last TEXT glyphs in a row of SVG icons, so their size was whatever the font drew for U+25A0, measured at **5.74px of ink in a 46px button** beside two 22px SVGs. Both are SVG now at the gear's 22px, swapped by CSS off `aria-pressed`, which also retires the U+FE0E colour-emoji hack |
@@ -71,6 +72,54 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 45c — v3.13.2, 2026-08-12)
+
+Three notes off the phone, all small, one of them not small underneath.
+
+**1. The `Custom` header is drawn even when `Unsaved` is its only member.**
+His words: "otherwise it makes it look like 'unsaved' is in the 'classic
+standards' group." Exactly right, and the reason is structural rather than
+cosmetic: `Unsaved` rode the end of the drum as an *ungrouped* option, which
+is fine in a `<select>` popup but meaningless on a barrel. An engraved caption
+names everything below it until the next one — there is no "outside a
+section" on a drum, only "in the last one". `fillSelectGrouped` lost its
+trailing-`extra` parameter with it; every option belongs to a group now.
+
+**2. Both wheels split at the same place, 48/148.** They were 88/108 (chord ×
+quality) and 72/124 (key × progression), so the field's division line jumped
+sideways when you switched chord modes — the exact thing v2.14.4 set out to
+stop, and the reason both pickers open the identical housing in the first
+place. 48 is measured, not chosen to match: the widest left-hand face anywhere
+is "G♯" at 30.5px against "Am" at 28.8px, while the widest thing on either
+right-hand reel is a progression label. Both left drums were carrying ~50px
+they had no use for.
+
+**3. The die's row fills its track — and this one inverted a documented
+decision.** He sent a screenshot with the row's inset marked in red. It was a
+centred group of *fixed* widths, so it sat 21.5px in from each side on a 414pt
+phone while Format/Capo and Thumb/Fingers/×2 both spanned the track.
+
+The catch is that the field's fixed width was not arbitrary. Since v2.14.3 the
+field was cut to a panel that hugged its drums, on his note "the chord/quality
+button should be the same size as the drum" — back then the field was 289px
+against a 237px panel, a wide control opening a narrow mechanism. A fixed
+width is what made that pairing hold, and a fixed width is exactly what can't
+fill a row.
+
+So the coupling is **inverted, not dropped**: the field leads, and the panel
+takes the trigger's width like a list does (`buildHousing` no longer sets
+`data-hug`). Both still split a fixed left drum plus a `1fr` right one, so the
+two are still the same width to the pixel and each barrel still opens directly
+under its own half — his original reason, intact and still tested. The bonus
+is that a wider phone now widens the **progression reel** rather than the
+margins: 124px before this session, 152 at 375, **191 at 414**.
+
+Three tests pinned the old contract and were rewritten to the new one rather
+than deleted — including one asserting, in his own words from v2.14.3, that
+"the field should no longer fill its row".
 
 ---
 

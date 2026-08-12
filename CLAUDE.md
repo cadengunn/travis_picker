@@ -270,7 +270,13 @@ so one saved idea plays in any key of its mode exactly like a shipped preset.
   which calls `syncProgressionOptions()` on its own last line.
 - **The trailing readout is `Unsaved`, not `Custom`** (the id is still `custom`),
   since saved entries now wear a `Custom` section header — two things reading
-  "Custom" four rows apart was the collision worth a word.
+  "Custom" four rows apart was the collision worth a word. **It lives INSIDE that
+  header, which is drawn even when it's the only member** (session 45c, his
+  report): it used to ride the end of the drum ungrouped, so with nothing saved
+  yet it sat straight under `Classic Standards` and read as one of them. On a
+  barrel an engraved caption names everything below it until the next one — there
+  is no "outside a section", only "in the last one". `fillSelectGrouped` lost its
+  trailing-`extra` parameter for the same reason; every option is in a group now.
 - **A saved label can be far wider than any preset, and the drum can't grow**
   (session 45b, his report that a long one let the drum "move sideways"). Two
   independent causes, two fixes. **`.reel` now says `overflow-x: hidden`
@@ -897,8 +903,17 @@ Four dependency-free modules, all precached:
     open-string markers are filled discs, are in `DESIGN.md`.
   - **The mechanism's look and geometry are `DESIGN.md`** — the two housings, the
     engraved grooves, and the fact that **the panel and the Options field are one
-    object cut from `:root`** (which is why the field can't change width between
-    chord modes, and why widening the panel breaks a test). Facts that only matter
+    object**: exactly the same width, each barrel opening under its own half.
+    **Session 45c inverted which one leads.** The field used to be cut to a panel
+    that hugged its drums (v2.14.3, so a 289px control couldn't open a 237px
+    mechanism); but a fixed-width field can't fill a row, and on a 414pt phone the
+    die's row sat inset 21.5px each side while every other row spanned the track.
+    So **the field fills its row and the panel takes the trigger's width**
+    (`buildHousing` no longer sets `data-hug`). His original reason is untouched
+    and still tested. **Both pickers also split at the same place now, 48/148** —
+    they were 88/108 and 72/124, so the division line moved when you switched
+    chord modes — and each split is a fixed left drum plus a `1fr` right one, so a
+    wider phone widens the progression reel instead of the margins. Facts that only matter
     at the line that implements them — the reel's step/facet split, the mask ramp,
     `.dd-wheel`'s `position` — are commented in `wheel.js` and `styles.css`.
   - **It commits on SETTLE and the panel stays open** (his call): every root ×
@@ -1383,6 +1398,15 @@ one distinct bar is ever generated there's nothing left to disambiguate
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.13.2, 153/153 green.** Session 45c, three of his notes: the drum's
+`Custom` header is drawn even when `Unsaved` is its only member (ungrouped, it
+read as another Classic Standard — on a barrel there is no "outside a
+section", only "in the last one"); both wheels now split at the same place,
+48/148, so the field's division line stops jumping between chord modes; and
+**the die's row fills its track** like every other row, which inverted which
+of the field and the panel is cut to the other. See "Saved custom
+progressions" and the `.control-row.with-die` comment.
 
 **v3.13.1, 153/153 green.** Session 45b answered his first phone report of
 item 17: a long saved progression let the drum slide sideways. Two causes,

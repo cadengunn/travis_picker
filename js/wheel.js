@@ -247,13 +247,22 @@ function buildHousing(panel, variant, specs, opts) {
   panel.style.setProperty("--reel-item", `${ITEM_H}px`);
   panel.style.setProperty("--reel-visible", String(VISIBLE));
 
-  // The panel HUGS the drums: dropdown.js's position() otherwise gives a panel
-  // the trigger's width as a min-width, which is right for a list (it lines up
-  // under the field) and wrong for a mechanism — the Options field was 289px and
-  // left the two drums swimming in housing. The hug is still what decides the
-  // width; since v2.14.3 the FIELD follows it (--wheel-w in styles.css), so the
-  // two open as one object with each barrel under its own half.
-  panel.dataset.hug = "1";
+  // NO `data-hug` since session 45c: the panel takes the trigger's width from
+  // dropdown.js's position(), like a list does.
+  //
+  // It hugged its drums from v2.14.3 until now, and the reason was sound — the
+  // Options field was 289px and left the two barrels swimming in housing (his
+  // note: "the chord/quality button should be the same size as the drum"). The
+  // fix then was to cut the FIELD down to the panel. But that made the field a
+  // fixed width, and a fixed width can't fill a row: on a 414pt phone the die's
+  // row sat inset 21.5px each side while every other row spanned the track, which
+  // is what he sent a screenshot of.
+  //
+  // So the coupling is inverted, not dropped. Field and panel are still exactly
+  // the same width and each barrel still opens under its own half — the field
+  // just leads now instead of following. Both split the same way (a fixed left
+  // drum, a `1fr` right one), so the division line lands in the same place in
+  // both, and a wider phone widens the progression reel rather than the margins.
 
   const drums = document.createElement("div");
   drums.className = "wheel-drums";

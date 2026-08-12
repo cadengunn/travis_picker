@@ -76,7 +76,7 @@ const el = (id) => document.getElementById(id);
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.13.1";
+const APP_VERSION = "v3.13.2";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -117,9 +117,11 @@ function fillSelect(select, items, getVal, getLabel) {
 }
 
 // Fill a <select> with <optgroup> section headers. `groups` is
-// [{ label, items:[{ value, label }] }]; a trailing `extra` option (e.g. Custom)
-// is appended outside any group.
-function fillSelectGrouped(select, groups, extra) {
+// [{ label, items:[{ value, label }] }]. Every option belongs to a group — the
+// trailing ungrouped `extra` this used to take (the progression menu's "Custom")
+// went in session 45c, because on a drum an ungrouped option reads as a member of
+// whatever section is above it.
+function fillSelectGrouped(select, groups) {
   select.innerHTML = "";
   for (const g of groups) {
     const og = document.createElement("optgroup");
@@ -131,12 +133,6 @@ function fillSelectGrouped(select, groups, extra) {
       og.appendChild(opt);
     }
     select.appendChild(og);
-  }
-  if (extra) {
-    const opt = document.createElement("option");
-    opt.value = extra.value;
-    opt.textContent = extra.label;
-    select.appendChild(opt);
   }
 }
 
@@ -251,8 +247,24 @@ function paintSlider(elm) {
 // key's mode (major keys → the major styles; minor keys → the minor set),
 // grouped by style. There is no separate Major/Minor toggle: the key's mode is
 // the filter. Called on boot and whenever the key changes mode.
+// The `Custom` section is ALWAYS drawn, even when "Unsaved" is its only member
+// (his call, session 45c). It used to ride the end of the drum ungrouped, so with
+// nothing saved yet it sat directly under the last style's header and read as
+// another Classic Standard. A barrel's engraved captions name everything below
+// them until the next one — there is no such thing as "outside a section" on a
+// drum, only "in the last one".
+function progressionOptionGroups() {
+  const groups = progressionGroups(keyMode());
+  const last = groups[groups.length - 1];
+  // progressionGroups already appends a Custom group when saved customs exist in
+  // this mode; Unsaved joins the end of it rather than starting a second one.
+  if (last && last.label === "Custom") last.items.push(CUSTOM_OPTION);
+  else groups.push({ label: "Custom", items: [CUSTOM_OPTION] });
+  return groups;
+}
+
 function syncProgressionOptions() {
-  fillSelectGrouped(el("progression"), progressionGroups(keyMode()), CUSTOM_OPTION);
+  fillSelectGrouped(el("progression"), progressionOptionGroups());
 }
 
 // The first preset progression of the current key's mode — the landing choice

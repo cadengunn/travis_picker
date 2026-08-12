@@ -2308,7 +2308,14 @@ acheck("wheel: two reels write one chord id, and the panel stays open", async ()
   assert(!panel.textContent.includes("Quality"), "no captions inside the panel");
   assert(panel.querySelector(".reel-quality").getAttribute("aria-label") === "Quality",
     "…but the reel is still named for assistive tech");
-  assert(panel.dataset.hug === "1", "the panel sizes to its drums, not to the trigger it came from");
+  // The panel hugged its drums from v2.14.3 until session 45c, when the coupling
+  // was INVERTED: the field now fills its row (so the row is flush with the ones
+  // around it) and the panel takes the trigger's width, rather than the field
+  // being cut down to a panel that hugs. The two are still exactly the same
+  // width — that half of the contract is pinned by the layout check that measures
+  // both against the real stylesheet.
+  assert(!panel.dataset.hug,
+    "the panel must take the trigger's width, or the field can't fill its row without the two coming apart");
 
   // A reel commits by settling, which a tap sets in motion; the test drives the
   // settle directly because a smooth scroll never completes in a hidden tab.
@@ -3162,14 +3169,19 @@ acheck("layout: the help ? stays above the Options scrim, and only then", async 
   frame.remove();
 });
 
-acheck("layout: the chord field is cut to the wheel it opens", async () => {
+acheck("layout: the chord field and the wheel it opens are one object", async () => {
   // His note (v2.14.3): "the chord/quality button should be the same size as the
   // drum". The field used to fill both flexible slots of its row — 289px against
-  // a panel that hugs its two barrels at 237px — so a wide control opened a
-  // narrow mechanism. Both are cut from the same :root geometry now, and since
-  // dropdown.js anchors a panel to the trigger's LEFT edge, each barrel lands
-  // directly under its own half of the field. That pairing is what this pins:
-  // change --drum-root without changing the split, and it fails.
+  // a panel that hugged its two barrels at 237px — so a wide control opened a
+  // narrow mechanism. The fix then was to cut the FIELD down to the panel.
+  //
+  // Session 45c INVERTED that, on his screenshot: a fixed-width field can't fill
+  // a row, so the die's row sat inset 21.5px each side on a 414pt phone while
+  // every other row spanned the track. The field leads now and the panel takes
+  // the trigger's width. HIS ORIGINAL REASON IS UNCHANGED and is what this still
+  // pins — the two are exactly the same width, and since dropdown.js anchors a
+  // panel to the trigger's LEFT edge, each barrel lands directly under its own
+  // half of the field. Change one side's split without the other and it fails.
   //
   // Measured in an iframe with the real stylesheet, for the same reason the
   // name-row check is: tests.html carries no stylesheet, and booting the app here
@@ -3185,7 +3197,10 @@ acheck("layout: the chord field is cut to the wheel it opens", async () => {
     '<button class="dd-trigger" type="button"><span class="dd-label">' +
     '<span class="tl-half tl-root">C♯</span><span class="tl-half tl-quality">Major</span>' +
     '</span></button></label>' +
-    '<div class="field field-die"></div></div></div>' +
+    // two real wells, so the row's fixed hardware takes its true width
+    '<div class="field field-die"><div class="die-well"></div></div>' +
+    '<div class="field field-die"><div class="die-well well-save-prog"></div></div>' +
+    "</div></div>" +
     // the panel as dropdown.js builds it, minus the reels (JS owns their height,
     // and it's the WIDTH that has to agree with the field)
     '<div class="dd-panel dd-wheel"><div class="wheel-drums">' +
@@ -3198,13 +3213,22 @@ acheck("layout: the chord field is cut to the wheel it opens", async () => {
   const field = doc.getElementById("field-chord");
   const panel = doc.querySelector(".dd-panel");
   const row = doc.querySelector(".control-row");
+  const wells = [...doc.querySelectorAll(".die-well")];
   const w = (el) => el.getBoundingClientRect().width;
 
-  assert(w(panel) > 0 && w(field) > 0, "both the field and the panel must lay out, or this proves nothing");
-  // The field is deliberately NARROWER than the span it sits in — if the row
-  // itself had shrunk to 237px the widths would match for the wrong reason.
-  assert(w(row) > w(field) + 40,
-    `the field should no longer fill its row (row ${w(row)}px, field ${w(field)}px)`);
+  assert(w(field) > 0 && wells.every((x) => w(x) > 0),
+    "the field and both wells must lay out, or this proves nothing");
+  // THE FIELD FILLS ITS ROW. It was deliberately narrower until session 45c,
+  // which is what left this row inset while every other row spanned the track.
+  const hardware = wells.reduce((a, x) => a + w(x), 0);
+  const gaps = parseFloat(frame.contentWindow.getComputedStyle(row).columnGap) * 2;
+  assert(Math.abs(w(field) - (w(row) - hardware - gaps)) < 0.5,
+    `the field should take the whole row bar its hardware: ${w(field)}px of ${w(row)}px, hardware ${hardware}px + ${gaps}px of gaps`);
+
+  // …and the panel is cut to it, which is dropdown.js's job (no data-hug means
+  // position() hands the panel the trigger's width). Applied here by hand, since
+  // this fixture is CSS-only.
+  panel.style.width = `${w(doc.querySelector(".dd-trigger"))}px`;
   assert(Math.abs(w(field) - w(panel)) < 0.5,
     `the chord field (${w(field)}px) must be the width of the wheel it opens (${w(panel)}px)`);
 
@@ -3669,7 +3693,10 @@ acheck("layout: a reel can't be dragged sideways, and the key drum leaves room f
   frame.style.cssText = "position:absolute;left:-9999px;top:0;width:375px;height:400px;border:0";
   frame.srcdoc =
     '<link rel="stylesheet" href="css/styles.css">' +
-    '<div class="dd-panel dd-wheel wheel-keyprog" style="--reel-item:38px;--reel-visible:5">' +
+    // 241px is what dropdown.js hands the panel at 375 — the trigger's width, now
+    // that the field fills its row (343 track less a 46px die, a 44px save key and
+    // two 6px gaps). CSS-only fixture, so it's applied here rather than measured.
+    '<div class="dd-panel dd-wheel wheel-keyprog" style="width:241px;--reel-item:38px;--reel-visible:5">' +
     '<div class="wheel-drums">' +
     '<div class="drum"><div class="reel reel-key" id="rk">' +
     '<button class="reel-item"><span class="reel-face">Am</span></button></div></div>' +
@@ -3750,19 +3777,20 @@ acheck("layout: the save-progression key fits the die's row", async () => {
   frame.remove();
 
   assert(kids.length === 3, `expected three members on the die's row, got ${kids.length}`);
-  // The row is `flex: none` throughout precisely so nothing shrinks — a squeezed
-  // well is how a progression label starts ellipsizing with nothing else looking
-  // wrong — so overflow shows up as the row growing past its own track.
+  // FLUSH, not centred (his screenshot, session 45c). The wells stay `flex: none`
+  // — a squeezed well is how a glyph starts clipping with nothing else looking
+  // wrong — and the field takes the remainder, so the row exactly fills its track
+  // at any width instead of sitting inset with fixed margins.
   assert(rowW <= track + 0.01,
     `the die's row is ${rowW.toFixed(1)}px in a ${track}px track — it overflows`);
-  assert(used <= track,
-    `its members need ${used.toFixed(1)}px of ${track}px (gap ${gap}px)`);
-  assert(track - used >= 3,
-    `only ${(track - used).toFixed(1)}px of slack on the die's row — one longer well and it clips`);
-  // The save key is deliberately a HAIR narrower than the die, and that 2px is
-  // what buys the slack above. At 40 it started reading as a different object.
+  assert(Math.abs(used - track) < 0.5,
+    `the die's row should fill its track exactly: ${used.toFixed(1)}px of ${track}px (gap ${gap}px)`);
+  // The save key is deliberately a hair narrower than the die; at 40 it started
+  // reading as a different class of object beside it.
   assert(kids[2] >= 42 && kids[2] < kids[1],
     `the save key is ${kids[2]}px against the die's ${kids[1]}px`);
+  assert(kids[0] > kids[1] + kids[2],
+    `the field (${kids[0]}px) should be the part that grows, not the hardware`);
 });
 
 acheck("layout: the ×2 segmented control fits its slot without wrapping or growing the row", async () => {

@@ -148,21 +148,25 @@
   --drum-axle: 1px;
   --drum-span: calc(var(--drums-w) - var(--drum-gap) * 2 - var(--drum-axle));
   /* Each pair names its FIRST face and derives the second, so a pair can never
-     stop summing to the housing. Measured at the reel's 17px serif: "I–♭VII–IV"
-     is the widest label anywhere on a drum at ~87px, which is why the progression
-     face gets 124 and the key face (widest "Am", ~29px) gets 72. */
-  --drum-root: 88px;
+     stop summing to the housing.
+
+     BOTH PICKERS NOW SPLIT AT THE SAME PLACE, 48/148 (his call, session 45c).
+     They were 88/108 and 72/124, so the field's division line jumped sideways
+     when you switched chord modes — the one thing v2.14.4 set out to stop, and
+     the reason both wheels open the identical housing in the first place. One
+     split, and the closed field looks the same in both modes.
+
+     48 is measured, not chosen to match: the widest left-hand face anywhere is
+     "G♯" at 30.5px (roots) against "Am" at 28.8px (keys), and the widest thing
+     on either right-hand reel is the progression numerals — a saved custom can
+     spell "Imaj7–♯ivm7–♭VIIsus4–IVadd9" at 266px, while the quality reel's
+     widest is its own "SUSPENDED" caption at 59px. So the left drums were
+     carrying ~50px they had no use for while the progression reel starved at
+     124. --drums-w is untouched, so --wheel-w, the Options field, the die's row
+     and the panel's outer size are all exactly as they were. */
+  --drum-root: 48px;
   --drum-quality: calc(var(--drum-span) - var(--drum-root));
-  /* 48, not the 72 it was until session 45b. A key reel shows "C" or "Am" —
-     MEASURED at 28.8px for the widest, and its two engraved captions (Major /
-     Minor) at 29.3px — so 72px was carrying 40px it had no use for while the
-     progression reel beside it starved. Saved custom progressions are labelled
-     with their own numerals and can spell far longer than any shipped preset
-     ("Imaj7–♯ivm7–♭VIIsus4–IVadd9" wants 266px), so that slack goes where the
-     content actually is. Nothing outside this drum moves: --drums-w is
-     unchanged, so --wheel-w, the Options field and the die's row are all
-     untouched. */
-  --drum-key: 48px;
+  --drum-key: var(--drum-root);
   --drum-prog: calc(var(--drum-span) - var(--drum-key));
   --wheel-w: calc(var(--drums-w) + 20px);
 
@@ -1309,10 +1313,23 @@ main {
      die's row" test re-measures both numbers. */
   gap: 6px;
 }
-/* `flex: none` on every member: the group fits its track with 36px to spare, so
-   nothing should shrink — and a shrunk well is how a progression label starts
-   ellipsizing without anything else looking wrong. */
+/* `flex: none` on the WELLS: a die or a save key is a fixed piece of hardware and
+   a shrunk well is how a glyph starts clipping with nothing else looking wrong. */
 .control-row.with-die > * { flex: none; }
+/* THE FIELD TAKES THE REST, so this row is flush with the ones above and below
+   (his call, session 45c, with a screenshot: the row was a centred group of fixed
+   widths, so it sat inset — 21.5px each side on a 414pt phone — while Format /
+   Capo and Thumb / Fingers / ×2 both spanned the full track).
+   This INVERTS which of the field and the panel is cut to the other. It used to be
+   the field cut to the panel (v2.14.3, his note "the chord/quality button should
+   be the same size as the drum" — back then the field was 289px against a 237px
+   panel, a wide control opening a narrow mechanism). That reason is unchanged and
+   still holds: the two are still exactly the same width, and each barrel still
+   opens directly under its own half of the field. Only the direction changed —
+   the panel now takes the trigger's width (see buildHousing, which no longer sets
+   data-hug), and both split their columns the same way, a fixed left drum and a
+   `1fr` right one. So a bigger phone widens the progression reel for free. */
+.control-row.with-die > .field-split { flex: 1 1 auto; width: auto; min-width: 0; }
 /* Progression mode used to be two separate fields here, sized to sum to the chord
    field's width. Since v2.14.5 it's a single `.field-split` (#field-keyprog) over
    two selects, so it takes that width from `.field-split` like the chord field
@@ -1893,8 +1910,13 @@ main {
    each exactly as wide. The row keeps its 3-slot geometry; the field just no
    longer fills its span, which is why the die stays put. */
 .field-split {
-  width: var(--wheel-w);
-  --split-cols: var(--drum-root) var(--drum-quality);
+  /* A FLOOR now, not the width: the die's row lets this field take the slack so
+     the row is flush (see .control-row.with-die). --wheel-w is what it collapses
+     to if it ever has nothing spare. */
+  min-width: var(--wheel-w);
+  /* `1fr`, not a second fixed track, so the right-hand half absorbs whatever the
+     row hands over — matching how the drums split inside the panel. */
+  --split-cols: var(--drum-root) 1fr;
   /* the gap is the axle plus its clear space, so the division line below lands
      where the axle line does */
   --split-gap: calc(var(--drum-gap) * 2 + var(--drum-axle));
@@ -1955,7 +1977,7 @@ main {
 /* Key × Progression wears the same split field, cut to ITS pair of drums so each
    half again sits over the barrel it opens (v2.14.5). Same total, so the field is
    the same width in both chord modes — which is what v2.14.4 established. */
-#field-keyprog { --split-cols: var(--drum-key) var(--drum-prog); }
+#field-keyprog { --split-cols: var(--drum-key) 1fr; }
 
 /* grid context: the per-bar chord picker */
 .dd-trigger.bar-chord {
@@ -2106,9 +2128,11 @@ main {
      --drum-* / --drums-w are in :root, because the Options field is cut to the
      same geometry (v2.14.3) — see the note there. */
   display: grid;
-  justify-content: center;
-  /* min-width: 128px on .dd-panel would pad this out; the wheel sizes to its
-     drums (see data-hug in dropdown.js) */
+  /* STRETCH, not centre. The housing used to hug its drums and sit centred; since
+     session 45c it takes the trigger's width, so its contents fill it instead —
+     otherwise the drums stay content-sized and the extra width lands as margins
+     inside the panel, which is the same complaint one level down. */
+  justify-content: stretch;
   min-width: 0;
   /* .dd-panel caps every panel at 52vh and scrolls the overflow. A MECHANISM
      must not scroll (below), so for the wheel the cap has to clear its contents
@@ -2126,12 +2150,12 @@ main {
 }
 .wheel-drums {
   display: grid;
-  grid-template-columns: var(--drum-root) var(--drum-axle) var(--drum-quality);
+  grid-template-columns: var(--drum-root) var(--drum-axle) 1fr;
   gap: 0 var(--drum-gap);
 }
 /* Key × Progression: the same housing, a different split (see :root). */
 .dd-wheel.wheel-keyprog .wheel-drums {
-  grid-template-columns: var(--drum-key) var(--drum-axle) var(--drum-prog);
+  grid-template-columns: var(--drum-key) var(--drum-axle) 1fr;
 }
 /* The housing around one cylinder: rounded ends, a lit centre and shadowed
    shoulders, so the drum reads as ROUND rather than as a column that fades. */
@@ -2158,11 +2182,12 @@ main {
     inset 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 /* THE LEFT-HAND SHAPE, under the drums (chordbox.js, session 33).
-   Width is pinned to --drums-w so the diagram can NEVER drive the panel wider:
-   .dd-wheel is data-hug (it sizes to its contents), and the Options field is cut
-   to that same width, so a wider panel would break the two apart. */
+   `100%`, not a width of its own, so the diagram can NEVER drive the panel wider.
+   It was pinned to --drums-w for that same reason until session 45c; the panel
+   now takes the trigger's width instead of hugging its contents, so following the
+   housing IS following that width, and the plate can't reach past it either way. */
 .wheel-shape {
-  width: var(--drums-w);
+  width: 100%;
   margin-top: 9px;
   padding: 7px 0 5px;
   display: flex;
