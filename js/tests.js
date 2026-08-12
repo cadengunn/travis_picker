@@ -35,6 +35,7 @@ import {
   chordForRoman,
   randomKeyProgression,
   randomChord,
+  chordWeight,
   fitProgression,
   midiOf,
   OPEN_STRING_MIDI,
@@ -794,11 +795,11 @@ check("randomisers: valid, mode-matched, and never a no-op roll", () => {
   assert(share > 0.18 && share < 0.42,
     `minor keys should be ~2/7 of rolls, got ${(share * 100).toFixed(1)}%`);
 
-  // single-chord roll: the WHOLE library now (his call, with the wheel — it used
-  // to be the open "campfire" chords only), and never the current chord. The
-  // sample count scales with the pool: covering all N-1 others is a coupon-collect
-  // (~N·lnN draws expected), so with the library now 96 chords, 600 draws left ~one
-  // uncovered by chance. 2500 covers it with margin.
+  // Single-chord roll: the whole library, never the current chord, and WEIGHTED
+  // by commonness since session 45d. Reachability is asserted BY CONSTRUCTION
+  // below rather than by coupon-collecting — with a 20:1 spread the rarest chord
+  // is ~1/620 a draw, so sampling until all 119 turn up is both slow and flaky,
+  // and a flaky test here would be indistinguishable from a real regression.
   const rolled = new Set();
   for (let seed = 1; seed <= 2500; seed++) {
     const c = randomChord("E", seeded(seed * 29 + 7));
@@ -806,8 +807,51 @@ check("randomisers: valid, mode-matched, and never a no-op roll", () => {
     assert(c !== "E", "single roll handed back the current chord");
     rolled.add(c);
   }
-  assert(rolled.size === CHORD_IDS.length - 1,
-    `single roll reached ${rolled.size}/${CHORD_IDS.length - 1} of the other chords`);
+  // It must still range widely — a weighting bug that collapsed onto the common
+  // chords would sail past a "produces a valid chord" check.
+  assert(rolled.size > CHORD_IDS.length * 0.75,
+    `single roll only reached ${rolled.size}/${CHORD_IDS.length - 1} chords in 2500 draws`);
+});
+
+// 7b-vi) The die's weighting (session 45d, his call). Two properties, and the
+//        first is the one that keeps "it should still be possible to hit
+//        anything" true no matter how the numbers are later tuned.
+check("die weighting: every chord stays reachable, and the common ones lead", () => {
+  for (const id of CHORD_IDS) {
+    assert(chordWeight(id) > 0, `${id} has weight ${chordWeight(id)} — the die could never hand it to you`);
+  }
+  // Weights are DATA (QUALITIES[].weight × ROOTS[].weight), so this pins the
+  // shape of the distribution, not the exact numbers: tune them by ear freely,
+  // just don't let a colour chord outrank a triad.
+  const q = (id) => QUALITIES.find((x) => x.id === id).weight;
+  assert(q("major") > q("minor"), "major should lead minor");
+  assert(q("minor") > q("dom7"), "minor should lead the dominant 7th");
+  for (const colour of ["maj6", "min6", "add9", "sus2", "maj7"]) {
+    assert(q("major") >= q(colour) * 4,
+      `${colour} at ${q(colour)} is too close to major at ${q("major")} — "significantly more likely" is the ask`);
+  }
+  // The root bias is deliberately GENTLE (his call): it decides which KEYS you get
+  // drilled in, and leaning hard on that would be backwards for a practice tool.
+  const roots = ROOTS.map((r) => r.weight);
+  assert(Math.max(...roots) / Math.min(...roots) <= 3,
+    `the root bias is ${Math.max(...roots) / Math.min(...roots)}:1 — it should stay gentle beside the type weighting`);
+  assert(chordWeight("C") > chordWeight("Ebm6") * 8,
+    `a C should be far likelier than an E♭m6 (${chordWeight("C")} vs ${chordWeight("Ebm6")})`);
+
+  // And the weighting must actually reach the roll: sample and check the ordering
+  // holds in practice, not just in the table.
+  const seen = {};
+  for (let seed = 1; seed <= 6000; seed++) {
+    const c = randomChord("E", seeded(seed * 37 + 3));
+    const quality = splitChordId(c).quality;
+    seen[quality] = (seen[quality] || 0) + 1;
+  }
+  assert(seen.major > seen.minor && seen.minor > seen.dom7,
+    `sampled order should be major > minor > 7, got ${JSON.stringify(seen)}`);
+  assert(seen.major > (seen.add9 || 0) * 4,
+    `major (${seen.major}) should dominate add9 (${seen.add9}) in practice, not just in the table`);
+  assert(Object.keys(seen).length === QUALITIES.length,
+    `every quality should still turn up over 6000 draws, saw ${Object.keys(seen).length}/${QUALITIES.length}`);
 });
 
 // 7c) detectProgression round-trips presets IN THEIR MODE and reports custom edits.

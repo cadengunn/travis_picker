@@ -107,7 +107,18 @@ export function getBassPreset(id) {
 // saved pattern stores; `name` is what's PRINTED, spelled from PC_NAME so the
 // wheel, the chord readout and the capo tag never disagree about a pitch.
 const ROOT_ID = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "G#", "A", "Bb", "B"];
-export const ROOTS = ROOT_ID.map((id, pc) => ({ id, pc, name: PC_NAME[pc] }));
+// Die weights again, by root this time, and DELIBERATELY GENTLE — 2:1 end to end
+// against the qualities' 10:1 (his call, session 45d: "type strongly, root
+// gently"). The reasoning is that the two axes do different jobs. Weighting the
+// TYPE stops the die handing you an E♭m6 as readily as a C, which is just what a
+// fingerstyle player plays. Weighting the ROOT decides which keys you get drilled
+// in — and leaning hard on that would be backwards for a practice tool, because
+// the awkward keys are the ones worth the practice. So this only takes the edge
+// off: C/D/E/G/A are the open-position roots, F/B♭/B the everyday barres, and the
+// four sharp/flat roots stay perfectly reachable at 1.
+const ROOT_WEIGHT = { C: 2, D: 2, E: 2, G: 2, A: 2, F: 1.5, Bb: 1.5, B: 1.5 };
+export const ROOTS = ROOT_ID.map((id, pc) =>
+  ({ id, pc, name: PC_NAME[pc], weight: ROOT_WEIGHT[id] ?? 1 }));
 
 // The quality reel. Ordered as it reads on the wheel, and GROUPED (session 30):
 // `group` prints an engraved section header on the quality barrel, the same
@@ -121,17 +132,21 @@ export const ROOTS = ROOT_ID.map((id, pc) => ({ id, pc, name: PC_NAME[pc] }));
 // fret shape and its role strings, never its quality. `dim7` was left OUT (his
 // call): no perfect fifth means no natural alternating-bass target, and it's the
 // least idiomatic for this style. `sus2`/`add9` are the next batch.
+// `weight` is HOW OFTEN THE DIE HANDS YOU ONE (session 45d, his call). It is not
+// a ranking and nothing else reads it: the picker still offers all ten qualities
+// with equal ceremony, and every weight is > 0, so nothing is unreachable.
+// Tuning is an ear judgement — edit these numbers, not the roll.
 export const QUALITIES = [
-  { id: "major", suffix: "",     name: "Major", group: "Triads",    roman: { lower: false, tag: "" } },
-  { id: "minor", suffix: "m",    name: "Minor", group: "Triads",    roman: { lower: true,  tag: "" } },
-  { id: "dom7",  suffix: "7",    name: "7",     group: "Sevenths",  roman: { lower: false, tag: "7" } },
-  { id: "maj7",  suffix: "maj7", name: "maj7",  group: "Sevenths",  roman: { lower: false, tag: "maj7" } },
-  { id: "min7",  suffix: "m7",   name: "m7",    group: "Sevenths",  roman: { lower: true,  tag: "7" } },
-  { id: "maj6",  suffix: "6",    name: "6",     group: "Sixths",    roman: { lower: false, tag: "6" } },
-  { id: "min6",  suffix: "m6",   name: "m6",    group: "Sixths",    roman: { lower: true,  tag: "6" } },
-  { id: "sus2",  suffix: "sus2", name: "sus2",  group: "Suspended", roman: { lower: false, tag: "sus2" } },
-  { id: "sus4",  suffix: "sus4", name: "sus4",  group: "Suspended", roman: { lower: false, tag: "sus4" } },
-  { id: "add9",  suffix: "add9", name: "add9",  group: "Added",     roman: { lower: false, tag: "add9" } },
+  { id: "major", suffix: "",     name: "Major", group: "Triads",    weight: 10,  roman: { lower: false, tag: "" } },
+  { id: "minor", suffix: "m",    name: "Minor", group: "Triads",    weight: 8,   roman: { lower: true,  tag: "" } },
+  { id: "dom7",  suffix: "7",    name: "7",     group: "Sevenths",  weight: 4,   roman: { lower: false, tag: "7" } },
+  { id: "maj7",  suffix: "maj7", name: "maj7",  group: "Sevenths",  weight: 2,   roman: { lower: false, tag: "maj7" } },
+  { id: "min7",  suffix: "m7",   name: "m7",    group: "Sevenths",  weight: 3,   roman: { lower: true,  tag: "7" } },
+  { id: "maj6",  suffix: "6",    name: "6",     group: "Sixths",    weight: 1,   roman: { lower: false, tag: "6" } },
+  { id: "min6",  suffix: "m6",   name: "m6",    group: "Sixths",    weight: 1,   roman: { lower: true,  tag: "6" } },
+  { id: "sus2",  suffix: "sus2", name: "sus2",  group: "Suspended", weight: 1.5, roman: { lower: false, tag: "sus2" } },
+  { id: "sus4",  suffix: "sus4", name: "sus4",  group: "Suspended", weight: 2,   roman: { lower: false, tag: "sus4" } },
+  { id: "add9",  suffix: "add9", name: "add9",  group: "Added",     weight: 1,   roman: { lower: false, tag: "add9" } },
 ];
 
 export const chordIdFor = (rootId, qualityId) =>
@@ -978,11 +993,47 @@ export function randomKeyProgression(currentKey, currentProgId, rng = Math.rando
   return null;
 }
 
-// A random single chord, from the WHOLE library (his call, with the wheel): the
-// die used to roll only the open "campfire" chords, but a picker that offers all
-// 36 with equal ceremony should have a die that does the same.
+// How likely the die is to hand you a given chord: its quality's weight times its
+// root's. Always > 0 for a library chord, which is the property that keeps the
+// whole library reachable — a test asserts it directly rather than by sampling.
+export function chordWeight(chordId) {
+  const parts = splitChordId(chordId);
+  if (!parts) return 0;
+  const q = QUALITIES.find((x) => x.id === parts.quality)?.weight ?? 1;
+  const r = ROOTS.find((x) => x.id === parts.root)?.weight ?? 1;
+  return q * r;
+}
+
+// A random single chord from the WHOLE library, WEIGHTED BY COMMONNESS
+// (session 45d, his call: "I still want it to be possible to hit anything. But it
+// should be weighted sort of in order of commonness of the chords. So like major
+// and minor significantly more likely.")
+//
+// THIS REVERSES the flat roll of session 30, and the old reasoning is worth
+// keeping because it's still half true: "a picker that offers every chord with
+// equal ceremony should have a die that does the same." The wheel does still
+// offer all 120 evenly — you can spin to any of them with the same two gestures.
+// What changed is that a uniform roll over a 12 × 10 matrix isn't neutral in
+// practice: eight of the ten qualities are colour chords, so ~80% of flat rolls
+// landed on something you'd rarely actually play. The weights (in QUALITIES and
+// ROOT_WEIGHT, as data) put the die's odds where the music is without closing
+// anything off — 20:1 end to end, and nothing is ever zero.
+//
+// ONE weighted draw rather than pickDifferent's resample-until-different: the
+// current chord is simply excluded from the pool, so a non-repeat is guaranteed
+// by construction instead of by 24 retries and a fallback.
 export function randomChord(currentChord, rng = Math.random, pool = CHORD_IDS) {
-  return pickDifferent(pool, (c) => c === currentChord, rng);
+  const options = pool.filter((c) => c !== currentChord);
+  if (!options.length) return pool[0] ?? null;
+  const weights = options.map(chordWeight);
+  const total = weights.reduce((a, b) => a + b, 0);
+  if (!(total > 0)) return options[Math.floor(rng() * options.length)];
+  let r = rng() * total;
+  for (let i = 0; i < options.length; i++) {
+    r -= weights[i];
+    if (r < 0) return options[i];
+  }
+  return options[options.length - 1]; // float remainder
 }
 
 // Identify the current per-bar chords: a preset OR a saved custom id if they

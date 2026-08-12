@@ -23,171 +23,16 @@ Status legend: **OPEN** = not started · **NEEDS A CALL** = blocked on a
 decision · **ON THE PHONE** = built, waiting on his test · **ANSWERED** =
 investigated, no work needed unless he wants a change.
 
-**Fixed in v3.13.1, his first report back:** a long saved progression let the
-drum slide sideways. Two causes — a phantom horizontal scroller every reel
-has had since the wheel shipped, and a progression reel starved of width by
-a key drum holding 40px it never used. The key drum is narrower now and the
-type shrinks past that; nothing else moved.
+**Nothing is on the phone. Nothing is waiting on code.** Session 45 shipped
+item 17 (save custom progressions) plus three rounds of polish, and in the
+same pass he signed off **everything** that had been outstanding: item 17,
+item 14 (the Fraunces numeral face + the PIMA fix), item 16 (Nylon / Steel
+and its sustain fix), v3.10.2's eleven rewritten Travis bass patterns, and
+the SVG play/stop icons. All verified good, all closed.
 
-**On the phone now (v3.13.0):** **saved custom progressions (item 17)** — the
-headline, and the one to try first; see its section below for what to look at.
-Still unjudged from before: the numeral voice moved to Fraunces and the
-PIMA optical fix (item 14), the Nylon / Steel tone toggle and its high-note
-sustain fix (item 16), v3.10.2's eleven rewritten Travis bass patterns, and
-the transport's play/stop icons redrawn as SVG at the gear's 22px (his
-observation that the stop square looked small — it was, by half, and had
-been for months). The bass and tone work is audible-only; the type and the
-transport icons are the ones to judge with your eyes, at arm's length.
+**Item 18 (App Store) is the only thing left in this file.**
 
 ---
-
-## The order (his call, session 44)
-
-**16 → 14 → 17 → 18.** Items 16, 14 and now **17 are all shipped and on his
-phone** — nothing is waiting on code. **18 (App Store) is what's left**, and
-it becomes a checklist doc whenever he wants it; nothing about the current
-app has to change to keep that option open.
-
----
-
-## Item 16 — the guitar sound is too twangy **ON THE PHONE (v3.11.1)**
-
-**Round 2.** The toggle stays, per your call. Your sustain note was right,
-and it was worse than it sounded: nylon's high notes were bleeding badly.
-
-**Measured** — mean audible level half a second in, as a fraction of steel
-at the same pitch (24 renders per point, since the pluck is random):
-
-```
-         G3    B3    E4    A4    C5    E5
-before  0.44  0.40  0.30  0.26  0.18  0.11
-after   0.72  0.79  0.96  0.98  1.26  1.56
-```
-
-**The deficit grew with pitch**, which is the tell. It's structural, not a
-tuning slip: the filter that darkens the tone has a fixed cutoff, so a low
-note passes under it while a high note's own fundamental sits in its path
-and gets eaten on every pass. The darker the voice, the worse it gets —
-which is why steel never showed it.
-
-**My original error was treating "less bright" and "less sustain" as the
-same thing.** I'd shortened nylon's decay on the theory that nylon rings
-less. A real nylon treble sustains fine; what it lacks is high harmonics.
-There's a new knob (`sustainTilt`) that keeps those two independent, so the
-brightness setting you liked is untouched.
-
-**What to judge, since the dev box has no ear:**
-- **Do the high notes hold up now?** They measure at 0.96–1.56x steel where
-  they were 0.11–0.30x. If it's still short up top, the tilt goes higher.
-- **Is it now too much?** C5/E5 ring slightly *longer* than steel. If that
-  reads unnatural, the same dial comes back down.
-- **Is nylon actually better, or just different?** Still the real question.
-  If it wins outright we can drop steel and the toggle — but you've said
-  keep the toggle, so that's parked unless you change your mind.
-- **Does it hold up under a full three-finger rake at tempo**, not just on
-  single notes — that's where the brightness was doing some work.
-- **The bass is untouched** in both tones (the tilt is a no-op down there by
-  design). If the nylon *treble* now sits oddly against it, that's next.
-
-<details>
-<summary>The original item 16 write-up, kept for the record</summary>
-
-
-His words: twangy, "almost harpsichord like in some cases." That points at
-something specific and fixable. Karplus-Strong with a high `decay` and
-near-1 `brightness` is exactly the plucked-metal end of the algorithm, and
-**the treble voice is the bright one**: `TREBLE_VOICE = { decay: 0.996,
-seconds: 0.8, gain: 0.24 }` — no `brightness` key at all, so it runs
-canonical, i.e. brightest. The bass voice already got the palm-mute
-treatment (`brightness: 0.37`) and isn't what he's hearing.
-
-- **A nylon-ish voice needs no new engine.** Nylon's signature is a duller
-  attack and faster harmonic decay, both of which are knobs `synth.js`
-  already has: lower the treble `brightness` (the same in-loop one-pole
-  low-pass the bass mute uses), soften the excitation, shorten `decay`.
-- **The fork is toggle vs. retune.** A toggle costs a Preferences lamp, a
-  `tp-audio` key, and a second cache line (the buffer cache is already keyed
-  per voice, so that part is cheap). A retune costs no UI at all — and per
-  his own standing rule that this is a practical workhorse, a better single
-  sound may beat a choice.
-- **Recommended: build both cheaply and let him play them.** This is the
-  swing-resolution situation exactly — a few numbers in one pure module,
-  where a guitar trial settles in one pass what a conversation won't.
-- **The dev box cannot judge this at all.** Tone is his ear, on a phone.
-
-</details>
-
-## Item 14 — the fret-numeral / PIMA face **DONE (v3.12.0), on the phone**
-
-**Your question closed this better than my plan did.** I was about to spend
-39KB bundling Nunito as a third face; you asked whether we'd considered the
-two we already ship. We had not, and one of them does the job.
-
-**The stated reason a third voice existed turned out to be wrong.**
-`DESIGN.md` justified it as "serif hairlines and tracked caps both go mushy
-at 11px in a 30px circle" — reasoned, never measured. Rendered side by side
-in the real dome at the real size, Fraunces holds up completely. Two things
-had been missed: it's a *variable* font, so `opsz` 9 is a genuine small-size
-cut with thicker hairlines and opener counters, and its **`SOFT` axis rounds
-the terminals** — which is the rounded quality the third voice existed for
-in the first place.
-
-**So the fret digits, ruler, BPM and chord-box digit are Fraunces now.**
-Zero new bytes, no third license, and the app is down to two type voices.
-It also closed the real gap: the old stack was a *system* one, free only
-while every user is on Apple hardware — off it, `system-ui` isn't rounded at
-all and the design intent silently vanished. That's the same trap that made
-the legend bundled Jost instead of system Futura; the numeral voice had just
-never been held to it. A test now asserts every voice leads with a bundled
-face.
-
-**PIMA got its optical fix too.** A dome centres the line box, not the ink,
-so `p`'s descender dragged it low and `i`'s dot rode high — measured at
-0.23em of drift across p/i/m/a versus 0.01em across the digits, which reads
-as the letters hopping when you scan a column. p/m/a are nudged; digits and
-`i` needed nothing.
-
-**What to check on the phone:**
-- **Do the digits read as well as before at arm's length?** This is the
-  one thing the dev box can't settle. Fraunces has more stroke contrast than
-  the old rounded face — if it costs you legibility on the grid, Jost is the
-  fallback (monoline, also already bundled, also zero bytes).
-- **Do the PIMA letters sit level now** when you scan down a column?
-- **The ruler and BPM readout changed face too** — they're the same voice.
-
-Budget re-measured and untouched: 55.09 / 384.84 / 11.06, no overflow.
-
-## Item 17 — save custom progressions **ON THE PHONE (v3.13.0)**
-
-Shipped session 45, to the cheap shape — a user entry in the existing
-progression list, **no new surface in the Load sheet at all**, which is what
-your bloat worry asked for.
-
-**What to try:**
-- Hand-edit a bar in progression mode. The drum's trailing entry now reads
-  **`Unsaved`** instead of `Custom`, and a **save key** lights up beside the
-  die. Tap it; your progression joins the drum under a **`Custom`** header,
-  labelled with its own numerals (`I–vi7–V–V`).
-- **Then change key.** That's the whole point — it's stored as numerals, so it
-  transposes like a shipped preset. Crossing the major/minor line correctly
-  drops it from the reel.
-- Select it again and the same key becomes a **delete** key (it confirms
-  first, and deleting never touches the bars on screen or any saved pattern).
-- The 🎲 rolls your saved progressions too, per your call.
-
-**Worth judging on the phone, since the dev box can't:**
-- **Is the save key legible as a floppy/bin at 44px?** It sits beside the die
-  at 2px narrower, which was the width the row had spare.
-- **Does `Unsaved` read right** where `Custom` used to?
-- **Is the die rolling your own progressions actually what you want?** The
-  minor set ships only 3 presets, so a few saved minor ones will dominate a
-  minor roll. One word reverts it.
-
-**One thing changed that you didn't ask for**, because the feature made it
-unsurvivable: transposing used to leave any chord outside the key's curated
-map exactly where it was — a bar edited to Am7 in C stayed **Am7** in G rather
-than becoming Em7. It now transposes properly. Worth a sanity check on a
-hand-edited progression you care about.
 
 ## Item 18 — App Store **OPEN, large; its own project**
 
@@ -235,7 +80,7 @@ against — no action taken:
 
 ---
 
-## Closed — the ledger for items 1–15
+## Closed — the ledger for items 1–17
 
 Kept as one-liners so the numbering stays legible and nothing settled gets
 re-opened. Detail for every one of these is in `CHANGELOG.md`.
@@ -256,6 +101,9 @@ re-opened. Detail for every one of these is in `CHANGELOG.md`.
 | 11 | "Add to Home Screen" hint | **FOLDED INTO ITEM 18** (session 44, his call) |
 | 12 | More keys (all 12 + sharp minors) | **CLOSED** (session 44, his call): "I'm fine with the selection we have now. These are pretty much the typical keys you would call for guitar music." Note if ever revisited: item 12 and a Key×mode drum are one job or neither |
 | 13 | Drums elsewhere / page tabs / dropdowns | **CLOSED.** Tabs done (v2.14.5), drums answered by his cross-product rule, materials matched (v2.14.6/.8). The last sub-question — dropdowns as wells or buttons — closed session 44, his call: "dropdowns feel good as is" |
+| 14 | Fret-numeral / PIMA face | **DONE** (v3.12.0), signed off session 45. His question killed a 39KB third font before it shipped — Fraunces at `opsz` 9 / `SOFT` 100 does the job, so the app is on two type voices and zero new bytes |
+| 16 | Guitar sound too twangy | **DONE** (v3.11.0–.1), signed off session 45. Nylon / Steel toggle; steel stays the default. The cause was one missing `brightness` key, and round 2 added `sustainTilt` so tone and length stop fighting |
+| 17 | Save custom progressions | **DONE** (v3.13.0–.2), signed off session 45. Stored as Nashville tokens so one saved idea plays in any key of its mode; three-state Save/Delete key on the die's row; entries labelled by their own numerals under a `Custom` header |
 | 15 | Is MIX real? | **ANSWERED** (session 44), no work needed. It's functional, not a holdover, but only hand-editing can produce it: `patternType()` in `generator.js` returns only `relative`/`absolute`, while `deriveType()` in `editor.js` returns `mixed` when drawn bass notes are partly role-matched and partly absolute. Doing exactly the job the spec asked for |
 
 ---

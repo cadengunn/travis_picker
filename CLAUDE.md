@@ -1264,8 +1264,31 @@ Event = { slot: 1..8, finger: "p"|"i"|"m"|"a", role?, string?, fret? }
     muted-string check is scoped to **relative** patterns: climb / descend / full
     random walk literal strings and ignore the chord by design, which is what the
     ABS indicator warns about.
-  - **🎲 rolls the whole library** (his call, with the wheel) — a picker that
-    offers every chord with equal ceremony should have a die that does the same.
+  - **🎲 rolls the whole library, WEIGHTED BY COMMONNESS** (session 45d, his
+    call). It rolled the library *flat* from session 30 — "a picker that offers
+    every chord with equal ceremony should have a die that does the same" — and
+    that argument is still half right: the wheel does still offer all 120 evenly.
+    But a uniform roll over a 12 × 10 matrix isn't neutral in practice. Eight of
+    the ten qualities are colour chords, so **80% of flat rolls landed on
+    something you'd rarely play**; measured over 60k draws the weights put
+    major + minor at **52%** against a flat 20%.
+  - **The weights are DATA and nothing else reads them** — `QUALITIES[].weight`
+    (10 major → 1 add9) × `ROOTS[].weight`, built by `chordWeight()`. Tune by ear
+    there; never in the roll.
+    - **The two axes do different jobs, and that's why the root bias is gentle**
+      (2:1 against the qualities' 10:1, his call). Weighting the TYPE means the
+      die hands you what a fingerstyle player actually plays. Weighting the ROOT
+      decides which KEYS you get drilled in, and leaning hard on that is backwards
+      for a practice tool — the awkward keys are the ones worth practising. The
+      four sharp/flat roots still take 22% of rolls.
+    - **Every weight is > 0, so nothing is unreachable** — his condition ("I still
+      want it to be possible to hit anything"). A test asserts it **by
+      construction** rather than by sampling: at 20:1 the rarest chord is ~1/620 a
+      draw, so coupon-collecting all 119 is slow AND flaky, and a flaky test here
+      would be indistinguishable from a real regression.
+    - `randomChord` takes ONE weighted draw from a pool with the current chord
+      already excluded, so a non-repeat is guaranteed by construction rather than
+      by `pickDifferent`'s 24 retries.
 - **`generatePattern` always makes exactly one distinct bar** (session 36 —
   **replaced** the old "Pattern length" dial, `PATTERN_LENGTHS`/`DEFAULT_PATTERN_BARS`/
   `setPatternBars`, all deleted). His guitar testing across many real Jerry Reed
@@ -1398,6 +1421,12 @@ one distinct bar is ever generated there's nothing left to disambiguate
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.14.0, 154/154 green.** Session 45d: **the chord die is weighted by
+commonness** — major + minor take 52% of rolls against a flat 20%, while every
+chord stays reachable and the sharp/flat roots still take 22%. Reverses the
+flat roll of session 30; see the chord-library section. **Session 45's whole
+run — item 17 and its three rounds of polish — is signed off on his phone.**
 
 **v3.13.2, 153/153 green.** Session 45c, three of his notes: the drum's
 `Custom` header is drawn even when `Unsaved` is its only member (ungrouped, it

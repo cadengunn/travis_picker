@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [45d](#where-things-stand-session-45d--v3140-2026-08-12) | **v3.14.0** | the chord die is **weighted by commonness** (his call), reversing the flat roll of session 30. That old argument — "a picker that offers every chord with equal ceremony should have a die that does the same" — is still half true, and the half that isn't is the point: eight of the ten qualities are colour chords, so a *uniform* roll over a 12 × 10 matrix put ~80% of its rolls on something you'd rarely play. Measured over 60k draws, major + minor go 20% → **52%**. Weights are data (`QUALITIES[].weight` × `ROOTS[].weight`), the root bias is deliberately gentle at 2:1 against the qualities' 10:1 (leaning hard on roots would stop you drilling the awkward keys, which is backwards), and every weight is > 0 so nothing is unreachable — asserted by construction, because at 20:1 a coupon-collecting test would be both slow and flaky. **Everything from session 45 signed off on his phone** |
 | [45c](#where-things-stand-session-45c--v3132-2026-08-12) | **v3.13.2** | three of his notes off the phone. The `Custom` header is drawn even when `Unsaved` is its only member — ungrouped, it read as another Classic Standard, and on a barrel there's no "outside a section", only "in the last one". Both wheels split at the same place now (48/148, from 88/108 and 72/124), so the field's division line stops moving when you switch chord modes. And the die's row FILLS its track: it was a centred group of fixed widths, sitting inset 21.5px each side on a 414pt phone while every other row spanned the track. That last one inverted which of the field and the panel is cut to the other — the field leads now, the panel takes the trigger's width, and his v2.14.3 reason ("the chord/quality button should be the same size as the drum") is unchanged and still tested |
 | [45b](#where-things-stand-session-45b--v3131-2026-08-12) | **v3.13.1** | his first phone report of item 17: a long saved progression let the drum "move sideways". TWO causes. Every `.reel` has had a phantom horizontal scroller since the wheel shipped — `overflow-x` defaults to `visible`, but CSS computes that to `auto` when the other axis isn't visible, so `overflow-y: scroll` quietly created one; invisible until a facet finally overflowed. And the width came from the KEY drum, not the panel: 72px to show "Am" (28.8px measured) while the progression reel beside it starved at 124px. Key → 48, progression → 148, `--drums-w` deliberately untouched so the panel doesn't split from the closed field it's cut from; `fitFace()` shrinks past that to a 10.5px floor |
 | [45](#where-things-stand-session-45--v3130-2026-08-12) | **v3.13.0** | item 17 — **save custom progressions**, stored as Nashville TOKENS so one saved idea plays in any key of its mode. The enabling piece is `chordForRoman`, the pure inverse of `romanInKey`: **840/840 chord × key pairs round-trip**, measured, so tokens can't lose or coerce a chord. Save/Delete is one three-state key on the die's row (his placement call, after a row under the header pills was measured at ≥32px against 11.06px of clearance). Also caught by the feature: `setKey` transposed through the curated `KEYS` map alone, so an Am7 in C stayed Am7 in G — a documented wart that stops being survivable once a saved progression's whole promise is that it transposes |
@@ -72,6 +73,59 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 45d — v3.14.0, 2026-08-12)
+
+**Everything on his phone came back good and closed out**, in one pass: item
+17 and its three rounds of polish, plus the four things that had been waiting
+across two sessions — the Fraunces numeral face and the PIMA fix (item 14),
+the Nylon/Steel toggle and its sustain fix (item 16), and the eleven rewritten
+Travis bass patterns (v3.10.2). That clears the board except item 18.
+
+**Then one more, his:** "I think the dice roll in chord mode should be less
+random. I still want it to be possible to hit anything. But it should be
+weighted sort of in order of commonness of the chords. So like major and minor
+significantly more likely."
+
+**This reverses session 30's flat roll**, and the old argument deserves
+recording because it is still half right: *"a picker that offers every chord
+with equal ceremony should have a die that does the same."* The wheel does
+still offer all 120 evenly — the same two gestures reach any of them. What the
+argument missed is that a uniform roll over a **12 × 10 matrix** isn't neutral
+in practice. Eight of the ten qualities are colour chords, so roughly **80% of
+flat rolls landed on something you'd rarely actually play**, which is not what
+a die labelled "give me something to drill" should do.
+
+**Two axes, and asking about them separately was the useful question.** A
+chord here is root × quality, and the two do different jobs: weighting the TYPE
+decides whether you get handed something idiomatic; weighting the ROOT decides
+which KEYS you get drilled in. His call was "type strongly, root gently" — and
+the reasoning against a hard root bias is that for a *practice* tool it's
+backwards, since the awkward keys are exactly the ones worth the practice.
+
+**Measured over 60,000 draws**, rather than asserted from the table:
+
+```
+                 flat      now
+major + minor     20%     52.4%
+7 / m7            20%     21.3%
+maj7 / sus4       20%     12.4%
+6 / m6 / add9 / sus2  40%  14.0%
+
+roots   C D E G A  52.9%    F B♭ B  24.9%    C♯ E♭ F♯ G♯  22.1%
+```
+
+20:1 end to end; all 119 other chords still reachable.
+
+**The reachability test is by construction, not by sampling**, and that was a
+deliberate choice: at 20:1 the rarest chord is ~1/620 a draw, so coupon-
+collecting all 119 needs many thousands of draws and still flakes — and on this
+dev box a flaky test is indistinguishable from a real regression until you've
+spent an hour on it. So `chordWeight(id) > 0` for all 120 is asserted directly,
+and sampling is used only for the things sampling is good at: that the ordering
+holds in practice and that the roll ranges widely.
 
 ---
 
