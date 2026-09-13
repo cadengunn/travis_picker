@@ -181,11 +181,65 @@ differentiator in a subscription-saturated category.
 
 ## 1. Accounts & prerequisites
 
+### ⚠️ 1.0 — THE BUILD MACHINE IS A BLOCKER (found session 46)
+
+**Measured on the dev box, not assumed:**
+
+| what | value |
+|---|---|
+| model | `MacBookPro11,4` — MacBook Pro (Retina, 15-inch, Mid 2015) |
+| CPU | Intel Core i7-4770HQ |
+| macOS | **12.7 Monterey** |
+| Xcode | **not installed** — Command Line Tools only (`/Library/Developer/CommandLineTools`) |
+| simulators | none available |
+
+**Monterey is the last macOS this model supports** — Ventura dropped the 2015
+MacBook Pros — and Monterey caps at roughly **Xcode 14.2**. Apple requires new
+submissions to be built against a recent SDK, and that floor is well past Xcode
+14 and keeps rising. **So this machine cannot reach a submittable toolchain, and
+cannot be upgraded to one.**
+
+This hits Capacitor and the hand-rolled shell **identically**, so it does not
+reopen decision 2. Options, his call:
+- **A newer Mac** (Apple Silicon, or a late-Intel model on a current macOS) — the
+  realistic answer if the App Store is actually happening.
+- **A rented cloud Mac** (MacStadium, MacinCloud, Scaleway) — works, but painful
+  for iterative UI work and device testing.
+- **CI-only builds** (Codemagic/Bitrise) — possible, but debugging a shell you
+  can't run locally is a bad trade for a first native project.
+
+- **Borrowing a Mac is on the table** (his, session 46). Viable, with caveats:
+  - Check the borrowed machine's **model, macOS version and free disk space**
+    first — Apple Silicon is fine, Intel 2018+ probably, older may be the same
+    dead end. Xcode wants ~40GB free.
+  - **Mac access is RECURRING, not one-time.** This is the caveat that gets
+    forgotten once the first build ships: every bug fix, every iOS release that
+    breaks something, and most App Review rejections require a **rebuild and
+    resubmit**. An app being *sold* will get bug reports. Borrowing gets you to
+    launch; it's a poor standing arrangement.
+  - **The de-risking plan:** borrow to reach submission and prove the thing
+    (clears review, purchase flow sound, people actually buy), then buy a Mac out
+    of sales — ~60–90 sales at $6.79 net covers a used Mac mini.
+  - **Staging is on me.** If borrowed time is limited, everything possible gets
+    written and laid out beforehand — shell, bundled assets, project structure,
+    store copy — so the Mac time is "install Xcode, build, test, submit" rather
+    than starting cold.
+- [ ] **Verify Apple's current minimum Xcode/SDK for new submissions** — it moves;
+      check rather than trusting this note.
+- [ ] Decide the build-machine path before starting section 2.
+
+### 1.1 — Accounts
+
 - [ ] Apple Developer Program enrollment — **$99/year** (recurring). Individual
-      vs Organization per decision 0.3.
-- [ ] A Mac with a current Xcode (needed for any wrapper + submission).
+      per decision 0.3.
+- [ ] Apply for the **Small Business Program** (30% → 15%) at the same time.
 - [ ] App Store Connect access (comes with enrollment).
 - [ ] Bundle identifier reserved (e.g. `com.<identity>.travispicker`).
+
+**Enrollment is NOT the near-term blocker it looks like.** Nothing in section 4
+(the entire feature-gating build) needs an account, a Mac upgrade, or Xcode — it
+is all web code, testable in a browser and on his phone through the existing
+PWA with a stubbed entitlement flag. See the revised sequence in section 7.
 
 ## 2. The native wrapper
 
@@ -306,17 +360,68 @@ needed — the arrays are never filtered, so the matrix stays dense in both tier
 - [ ] "Add to Home Screen" hint (item 11) — relevant to the PWA side and to
       eviction protection; decide if it survives / where it lives.
 
-## 7. Rough sequence
+## 7. Who does what, and in what order
+
+### The hard lines — **his, and not delegable**
+
+Not preference; these are things an assistant must not do on his behalf, and
+saying so plainly up front avoids a stall later:
+
+- **Creating the Apple Developer account** and signing in with his Apple ID.
+- **Paying the $99 fee**, and entering banking/tax details for payouts.
+- **Accepting Apple's legal agreements** (Program License, Paid Apps agreement).
+- **Submitting the app for review**, and replying to App Review as the developer.
+- Anything carrying his **legal identity** (decision 0.3).
+
+Everything in App Store Connect sits behind his login anyway — so the working
+pattern there is: **I say exactly what to enter, he enters it.**
+
+### His, by judgment or hardware
+
+- **Feel calls**: barrel settle behaviour, whether locked faces dim, the iPad
+  note size. Built cheap, judged by playing — the project's standing method.
+- **The full-bleed app icon art** (item 5) — needs new art, and the icon was
+  built from his own theme values.
+- **Approving store copy** — name, subtitle, description, keywords. I draft.
+- **Real-device testing**: touch, the silent switch, wake lock, the lock screen,
+  and the sandbox purchase/restore flow. The dev box can't see any of it.
+- **The build-machine decision** (1.0) and **marketing execution** (section 8) —
+  posting as himself.
+
+### Mine
+
+- **All code**: the Swift shell, the StoreKit integration, the entitlement
+  bridge, every bit of feature gating, the unlock sheet, and the tests
+  (precedence, select-vs-exist, save-slot counting).
+- **Bundling the web assets** into the shell; verifying the web APIs behave in a
+  WKWebView as far as a dev box can.
+- **Deleting the PWA scaffolding** once the shell works — `sw.js`,
+  `createAppUpdater()`, the PRECACHE tests, the CACHE-bump ritual.
+- **Drafting** store copy, the privacy policy, and the review notes.
+- **Generating screenshots**; re-measuring the 375×553 budget; doc upkeep.
+
+### Revised sequence — **gating first, because it is unblocked**
+
+The original order put the wrapper before the gating. **That was wrong given
+1.0:** section 4 is entirely web code and needs no account, no Xcode and no Mac
+upgrade. It is also the part where his taste is needed most — and the PWA is
+still live, so he can judge the paywall's feel **on his own phone** before any
+native work exists.
 
 1. ~~Settle decisions 0.1–0.4.~~ **Done, session 46.**
-2. Enroll in the Developer Program — individual (0.3). Apply for the Small
-   Business Program at the same time (0.4).
-3. Pick + stand up the wrapper (section 2), get the app running natively offline.
-4. Feature-gating + unlock sheet (section 4).
-5. StoreKit + restore (section 3), sandbox test.
-6. Full-bleed icon + screenshots + metadata (section 5).
-7. Submit; handle review (section 6).
-8. Launch + marketing (section 8) — **and only then take the PWA down** (0.2).
+2. **Feature gating + unlock sheet** (section 4) against a *stubbed* entitlement
+   flag — **me**, unblocked, starts now. He reviews the feel on his phone.
+3. **Resolve the build machine** (1.0) — **him**, in parallel with 2.
+4. **Enroll** in the Developer Program + Small Business Program — **him**.
+5. **Stand up the WKWebView shell** (section 2) — **me**, needs 3.
+6. **StoreKit + restore** (section 3) — **me** for the code; **him** for the App
+   Store Connect product config and the sandbox test on a real device.
+   - Note: Xcode's local **StoreKit Configuration File** can test purchase and
+     restore with no App Store Connect product and no sandbox account, so most of
+     this can be built before 4 completes.
+7. **Icon, screenshots, metadata** (section 5) — his art, my drafts, his approval.
+8. **Submit; handle review** (section 6) — **him**, on my notes.
+9. **Launch + marketing** (section 8) — **and only then take the PWA down** (0.2).
 
 ---
 
