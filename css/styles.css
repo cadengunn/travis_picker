@@ -2575,7 +2575,20 @@ body.saved-open .pill-help[aria-pressed="true"] {
 /* ---- desktop afterthought ---- */
 @media (min-width: 720px) {
   body { max-width: 900px; margin: 0 auto; }
-  /* room for all four bars in a single row */
-  .grid-track[data-bars="4"] { grid-template-columns: repeat(4, 1fr); --note-font: 13px; }
   .grid-track[data-bars="2"] { --note-font: 15px; }
+}
+/* A single row of 4 is right only when the viewport is SHORT and wide - a desktop
+   window. WIDTH ALONE IS THE WRONG TEST, which is what this rule used to use: an
+   iPad in PORTRAIT is >=768px wide, so it tripped the desktop rule and got
+   quarter-width cells with the bottom half of the screen stranded (his iPad
+   report, session 46). Aspect ratio is the real driver - wide-and-short wants one
+   row, wide-and-tall keeps the phone's 2x2 and spends the height on bigger cells. */
+@media (min-width: 720px) and (min-aspect-ratio: 1/1) {
+  .grid-track[data-bars="4"] { grid-template-columns: repeat(4, 1fr); --note-font: 13px; }
+}
+/* Tall and wide (iPad portrait): the 2x2 from the base rule stands, but its cells
+   are ~2.5x the phone's, so the 10px note face sized for a 21px cell is far too
+   small. Measured at 768x1024 and 1024x1366 - see the comment on the base rule. */
+@media (min-width: 720px) and (max-aspect-ratio: 1/1) {
+  .grid-track[data-bars="4"] { --note-font: 18px; }
 }

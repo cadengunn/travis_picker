@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [46](#where-things-stand-session-46--v3141-2026-09-13) | **v3.14.1** | item 18 opens: `APP_STORE.md`, and every decision behind it made before a line of code. Free/paid split by the **engraved group** both drums already print, locked-but-visible with a **lock icon** — because greying already means "not applicable" (×2 in single mode) and the two must not collide. His refinement beat the first proposal twice: it needs no data filter at all, and it fixes the discovery problem a shorter reel would have created. Also his iPad report — progression mode rendered 1×4 on a portrait iPad because a rule labelled `/* desktop afterthought */` tested **width alone**; aspect ratio is the real driver, and the phone's budget came back byte-identical |
 | [45d](#where-things-stand-session-45d--v3140-2026-08-12) | **v3.14.0** | the chord die is **weighted by commonness** (his call), reversing the flat roll of session 30. That old argument — "a picker that offers every chord with equal ceremony should have a die that does the same" — is still half true, and the half that isn't is the point: eight of the ten qualities are colour chords, so a *uniform* roll over a 12 × 10 matrix put ~80% of its rolls on something you'd rarely play. Measured over 60k draws, major + minor go 20% → **52%**. Weights are data (`QUALITIES[].weight` × `ROOTS[].weight`), the root bias is deliberately gentle at 2:1 against the qualities' 10:1 (leaning hard on roots would stop you drilling the awkward keys, which is backwards), and every weight is > 0 so nothing is unreachable — asserted by construction, because at 20:1 a coupon-collecting test would be both slow and flaky. **Everything from session 45 signed off on his phone** |
 | [45c](#where-things-stand-session-45c--v3132-2026-08-12) | **v3.13.2** | three of his notes off the phone. The `Custom` header is drawn even when `Unsaved` is its only member — ungrouped, it read as another Classic Standard, and on a barrel there's no "outside a section", only "in the last one". Both wheels split at the same place now (48/148, from 88/108 and 72/124), so the field's division line stops moving when you switch chord modes. And the die's row FILLS its track: it was a centred group of fixed widths, sitting inset 21.5px each side on a 414pt phone while every other row spanned the track. That last one inverted which of the field and the panel is cut to the other — the field leads now, the panel takes the trigger's width, and his v2.14.3 reason ("the chord/quality button should be the same size as the drum") is unchanged and still tested |
 | [45b](#where-things-stand-session-45b--v3131-2026-08-12) | **v3.13.1** | his first phone report of item 17: a long saved progression let the drum "move sideways". TWO causes. Every `.reel` has had a phantom horizontal scroller since the wheel shipped — `overflow-x` defaults to `visible`, but CSS computes that to `auto` when the other axis isn't visible, so `overflow-y: scroll` quietly created one; invisible until a facet finally overflowed. And the width came from the KEY drum, not the panel: 72px to show "Am" (28.8px measured) while the progression reel beside it starved at 124px. Key → 48, progression → 148, `--drums-w` deliberately untouched so the panel doesn't split from the closed field it's cut from; `fitFace()` shrinks past that to a 10.5px floor |
@@ -75,6 +76,148 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 46 — v3.14.1, 2026-09-13)
+
+**Item 18 stops being a paragraph and becomes a plan.** `APP_STORE.md` is new
+and is the working doc; `OPEN_ITEMS.md` and `CLAUDE.md` both point at it. Four
+decisions that had been sitting open were all made in one pass, plus the whole
+paywall design, before any code — which is the right order for the one item
+that isn't a code task first.
+
+**The PWA comes down entirely once the App Store build is live** (his call —
+there's no user base to strand). Consequence worth stating plainly: that removes
+the only discovery path the app has, so marketing stops being optional. Parked
+as its own section rather than solved.
+
+**Identity: individual enrollment, his own legal name.** This knowingly reverses
+the standing privacy rule **for the store listing only** — the repo and its git
+history keep the GitHub noreply identity.
+
+**Price: $7.99, one-time, everything forever.** One action item attached that's
+easy to miss: the **Small Business Program** drops Apple's cut 30% → 15%, it's an
+application rather than automatic, and at 15% roughly fifteen sales a year cover
+the $99 developer fee.
+
+**The paywall is where the session actually earned something, and it took two
+corrections — both of mine.**
+
+The first proposal gated progression mode wholesale. He improved it: basic
+chords and progressions free, the advanced ones and custom progressions paid,
+**and progression mode must be demoable**. Right — it's the most distinctive
+thing in the app, and a buyer who can't see it work can't know what they'd be
+buying.
+
+The question that answered itself was *where* to cut, and the data had it
+already: **both drums are divided into named sections** — `QUALITIES[].group`
+and `PROGRESSIONS[].style` — which already print as engraved headers. So the
+tier boundary is a section boundary. Free gets **Triads + Sevenths** (60 of 120
+chords) and **3 of the 9 progression families** (6 of 18). Sevenths are free
+because this style is *built* on dominant 7ths; locking them would cripple the
+demo musically. A minor family is free because `KEYS[].mode` decides which
+progressions are offered, so with every minor family paid a free user in a minor
+key faces a drum where **nothing is selectable** — a dead mode, which is worse
+than a gated one.
+
+**Not `QUALITIES[].weight`.** The first instinct was to reuse the die's
+commonness weights as the free/paid ranking. The comment above that table
+forbids it in as many words — *"it is not a ranking and nothing else reads
+it"* — which is exactly the kind of thing that only gets caught by reading the
+data instead of remembering it.
+
+**Then his second refinement, and the correction it forced.** He asked for the
+paid options to stay **visible with a lock icon** rather than vanish. The first
+design had argued against locked cells on the grounds that CLAUDE.md calls a
+spinnable non-chord "a lie, and a test pins it" — **that reading was wrong.**
+The invariant is about *holes in the matrix*, and a locked cell is still a real
+chord. His version is therefore strictly better: no data filter at all (the
+arrays stay whole), the density test needs no change, and it solves the
+discovery problem the shorter-reel design would have introduced, where a free
+user never sees what they'd gain.
+
+**Two things fell out of it that are worth more than the decision itself.**
+First, the app **already has this idiom and he specified it himself**, in
+session 36: `.segmented[data-locked]` greys to 0.55, the stylesheet comment
+insists it's *"still a live target you're meant to be able to hit"*, the press
+keeps its travel, and `switchX2` simply refuses the commit — and `seatedLatch()`
+is generic on `[data-locked]`, not named after ×2. The paywall extends that
+rather than inventing a treatment.
+
+Second, and the reason a **lock icon** rather than greying is right: greying
+already means *"not applicable right now."* Two states, one signal, and no way
+to tell "buy this" from "doesn't apply here." So **grey = not applicable, lock =
+purchasable**, with an explicit precedence — mode beats tier, since unlocking ×2
+wouldn't help you in single mode anyway. That needs a test; it's exactly the kind
+of overlap that ships as a bug.
+
+**On the barrels the lock rides the SECTION HEADER, not each face.** Reel faces
+are text sized by `fitFace()`, already shrinking to a 10.5px floor and
+ellipsizing below it, and session 45b was specifically about the progression reel
+starving for width. A glyph on every locked face would eat from labels that
+already ellipsize; one lock per locked family costs zero face width and matches
+how this app says a barrel reads — *an engraved caption names everything below it
+until the next one.* The tier boundary **is** the section boundary.
+
+**Left open deliberately:** what a reel does when it settles on a locked name.
+Spin-through-with-return is spec'd, but the return animation is a feel question,
+and this project settles those by building the cheap version and playing it.
+
+**The wrapper: a hand-rolled WKWebView shell** (he deferred to the
+recommendation after asking for it in plain terms). The shell is unusually
+simple — no camera, GPS, notifications or background sync, just "display the app"
+and "sell one unlock" — which is the case where rolling your own is least risky,
+and Capacitor would permanently end the no-dependency/no-build-step character
+that's most of why these files still work. The counter-argument is recorded
+rather than dismissed: Capacitor is the trodden path when an iOS update breaks
+something. **iPhone-only for now**, iPads run it scaled.
+
+**On whether to do a cleanup pass before shipping — no, and not that kind.**
+Recorded because the reasoning outlives the question. This codebase's oddities
+are mostly load-bearing and documented, and the failure mode is one it has
+already lived: something gets removed, the tests still pass (they did for the
+dead pass lamps for an entire release), and it breaks on his phone. The gating
+work is about to rewrite the surfaces a cleanup would tidy. And **the biggest
+simplification available is downstream of the wrapper, not upstream** — `sw.js`,
+`createAppUpdater()`, the PRECACHE tests and the whole CACHE-bump ritual exist to
+answer "how does a *web* app update and work offline," and in a native shell the
+files are already on the device. Most of it becomes deletable. The pass worth
+doing before submission is **robustness, not tidiness**, because the stakes
+change: a bug costs a review cycle instead of a push.
+
+---
+
+**v3.14.1 — the iPad fix, his report.** Progression mode rendered as a single
+row of four bars on a portrait iPad, with the bottom half of the screen stranded
+and quarter-width cells.
+
+The cause was candid about itself — `/* ---- desktop afterthought ---- */`:
+
+```css
+@media (min-width: 720px) { .grid-track[data-bars="4"] { grid-template-columns: repeat(4, 1fr); } }
+```
+
+**Width alone is the wrong test.** A single row is right when the viewport is
+short *and* wide — a desktop window. An iPad in portrait is ≥768px wide and very
+tall, so it tripped a rule written for a shape it isn't. Aspect ratio is the real
+driver, and the fix splits the rule at `1/1`: wide-and-short keeps the single
+row, wide-and-tall keeps the phone's 2×2 and spends the height on bigger cells.
+The 2×2 case also needs its own `--note-font` (18px), since 10px was sized for a
+21px phone cell and these are 45–53px.
+
+Measured at five viewports rather than reasoned about:
+
+| viewport | layout | cell | note font | overflow |
+|---|---|---|---|---|
+| iPad portrait 768×1024 | **2×2** | 45.1px | 18px | 0 |
+| iPad Pro portrait 1024×1366 | **2×2** | 53.4px | 18px | 0 |
+| iPad landscape 1180×820 | 1×4 | 26.3px | 13px | 0 |
+| desktop 1440×900 | 1×4 | 26.3px | 13px | 0 |
+| phone 375×553 | 2×2 | 20.6px | 10px | 0 |
+
+**The phone came back byte-identical to the documented budget** — 55.09 /
+384.84 / 11.06, `main` overflow 0 — which was the regression that mattered.
+Desktop is untouched. A real iPad layout pass (that bottom half could hold
+something) is separate and later, his call.
 
 ## Where things stand (session 45d — v3.14.0, 2026-08-12)
 

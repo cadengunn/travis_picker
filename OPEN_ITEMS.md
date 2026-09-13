@@ -34,7 +34,21 @@ the SVG play/stop icons. All verified good, all closed.
 
 ---
 
-## Item 18 — App Store **OPEN, large; its own project**
+## Item 18 — App Store **IN PROGRESS; see `APP_STORE.md`**
+
+> **Session 46 opened this properly. `APP_STORE.md` is now the working doc —
+> read it, not this section.** All four blocking decisions are made (paywall
+> line, PWA fate, identity, price) plus the wrapper and the full feature-gating
+> design. What's left here is the original framing, kept because the reasoning
+> behind the shape of the work is still useful.
+>
+> **Settled:** PWA comes down once the store build is live · individual
+> enrollment, his own identity (listing only) · **$7.99** one-time · hand-rolled
+> **WKWebView** shell · paywall **locked-but-visible with a lock icon**, split on
+> the engraved group headers both drums already print · **iPhone-only** first.
+>
+> **Next:** Developer Program enrollment (+ the Small Business Program
+> application), then stand up the shell.
 
 His read that this is "its own whole new project in a way" is right, and
 it's the one item that isn't a code task first. **Items 5 (app icon full
