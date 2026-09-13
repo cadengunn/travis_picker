@@ -89,6 +89,10 @@ import { confirmModal, promptModal } from "./modal.js";
 import { isNav, helpTargetFor, createHelp, NAV_SELECTOR } from "./help.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 import { chordBoxModel, renderChordBox, BOX_FRETS } from "./chordbox.js";
+import {
+  createEntitlement, FREE_QUALITY_GROUPS, FREE_PROGRESSION_STYLES,
+  FREE_SAVE_SLOTS, PAID_FEATURES, UNLOCK_BENEFITS, STORE_KEY,
+} from "./entitlement.js";
 
 const results = [];
 function check(name, fn) {
@@ -4640,6 +4644,134 @@ acheck("app: summarize() leads with what you're playing over, not a Thumb/Finger
   assert(/CHORDS\[ctx\.chord\]\?\.name/.test(fn), "Single mode must show the chord's real display name");
   assert(/`\$\{.*degreeLabel\(c, ctx\.key\)\)\.join\(.–.\)\} in \$\{ctx\.key\}`/.test(fn),
     "Progression mode must read as one clause, numerals then key (\"I-V-vi-IV in E\"), not separate \"Progression\"/\"Key\" segments");
+});
+
+
+// ---- entitlement / the paywall (APP_STORE.md item 18) ----
+// A memory store, same posture as the Saved-library tests: never touch the real
+// localStorage, so a test run can't change what tier his own browser is in.
+function memStore(seed = {}) {
+  const m = new Map(Object.entries(seed));
+  return {
+    getItem: (k) => (m.has(k) ? m.get(k) : null),
+    setItem: (k, v) => m.set(k, String(v)),
+    _map: m,
+  };
+}
+
+check("entitlement DEFAULTS TO UNLOCKED with nothing stored", () => {
+  // The safety property. The live PWA is the full app, so a deploy that
+  // silently dropped him to the free tier would be a bug, not a preview.
+  assert(createEntitlement({ store: memStore() }).unlocked() === true,
+    "an entitlement with no stored tier must be unlocked");
+  assert(createEntitlement({}).unlocked() === true,
+    "an entitlement with NO STORE AT ALL must still be unlocked");
+});
+
+check("?tier=free and ?tier=paid set the tier and persist it", () => {
+  const store = memStore();
+  const free = createEntitlement({ store, search: "?tier=free" });
+  assert(free.unlocked() === false, "?tier=free must lock");
+  assert(store.getItem(STORE_KEY) === "free", "?tier=free must persist");
+  // A later load with no param reads the stored value back.
+  assert(createEntitlement({ store }).unlocked() === false, "the stored tier must survive a reload");
+  const paid = createEntitlement({ store, search: "?tier=paid" });
+  assert(paid.unlocked() === true, "?tier=paid must unlock");
+  assert(createEntitlement({ store }).unlocked() === true, "?tier=paid must persist too");
+});
+
+check("free tier gates chords and progressions by their ENGRAVED GROUP", () => {
+  const free = createEntitlement({ store: memStore(), search: "?tier=free" });
+  assert(free.qualityGroupLocked("Sixths"), "Sixths must be locked in the free tier");
+  assert(free.qualityGroupLocked("Added"), "Added must be locked in the free tier");
+  assert(!free.qualityGroupLocked("Triads"), "Triads must be free");
+  // Sevenths are free because this style is BUILT on dominant 7ths — locking
+  // them would musically cripple the demo. See APP_STORE.md 0.1.
+  assert(!free.qualityGroupLocked("Sevenths"), "Sevenths must be free");
+  assert(free.progressionStyleLocked("Ragtime / Piedmont"), "Ragtime must be locked");
+  assert(!free.progressionStyleLocked("Foundations"), "Foundations must be free");
+  assert(free.featureLocked("x2") && free.featureLocked("customProgressions"),
+    "x2 and custom progressions must be locked in the free tier");
+});
+
+check("paid tier locks NOTHING", () => {
+  const paid = createEntitlement({ store: memStore(), search: "?tier=paid" });
+  for (const q of QUALITIES) assert(!paid.qualityGroupLocked(q.group), `${q.group} must be free when unlocked`);
+  for (const p of PROGRESSIONS) assert(!paid.progressionStyleLocked(p.style), `${p.style} must be free when unlocked`);
+  for (const f of PAID_FEATURES) assert(!paid.featureLocked(f), `${f} must be free when unlocked`);
+  assert(paid.slotsLeft([]) === Infinity, "the paid library is unlimited");
+});
+
+check("every FREE_* group name matches a real group in the data", () => {
+  // A TYPO HERE WOULD SILENTLY LOCK A WHOLE FAMILY, and nothing else would say
+  // so — the gate is a string compare against a field the data owns.
+  const groups = new Set(QUALITIES.map((q) => q.group));
+  for (const g of FREE_QUALITY_GROUPS) assert(groups.has(g), `FREE_QUALITY_GROUPS has no such group: "${g}"`);
+  const styles = new Set(PROGRESSIONS.map((p) => p.style));
+  for (const st of FREE_PROGRESSION_STYLES) assert(styles.has(st), `FREE_PROGRESSION_STYLES has no such style: "${st}"`);
+});
+
+check("the free tier can still reach BOTH modes", () => {
+  // If every minor family were paid, a free user in a minor key would face a
+  // drum where nothing is selectable — a dead mode, worse than a gated one.
+  const free = createEntitlement({ store: memStore(), search: "?tier=free" });
+  for (const mode of ["major", "minor"]) {
+    const reachable = PROGRESSIONS.filter((p) => p.mode === mode && !free.progressionStyleLocked(p.style));
+    assert(reachable.length > 0, `the free tier must offer at least one ${mode} progression`);
+  }
+});
+
+check("built-ins never consume a free save slot", () => {
+  // seedNewBuiltins() puts five real items in the library at boot, so counting
+  // them would start a free user at 5 of 3 and unable to save anything at all.
+  const free = createEntitlement({ store: memStore(), search: "?tier=free" });
+  const builtins = [1, 2, 3, 4, 5].map((n) => ({ id: `b${n}`, builtinId: `builtin-${n}` }));
+  assert(free.usedSlots(builtins) === 0, "built-ins must not count against the cap");
+  assert(free.slotsLeft(builtins) === FREE_SAVE_SLOTS, "a fresh free library must have all its slots");
+  assert(free.canSave(builtins), "a free user with only built-ins must be able to save");
+
+  const mine = [{ id: "m1" }, { id: "m2" }, { id: "m3" }];
+  assert(free.usedSlots([...builtins, ...mine]) === 3, "only the user's own items count");
+  assert(!free.canSave([...builtins, ...mine]), "the cap must actually stop a 4th save");
+  // Overwriting one you already have consumes no new slot — refusing it would
+  // strand a free user who just wants to revise one of their three.
+  assert(free.canSave([...builtins, ...mine], "m2"), "overwriting an existing item must be allowed at the cap");
+});
+
+check("a refused store never throws, and the session tier still holds", () => {
+  const hostile = {
+    getItem() { throw new Error("blocked"); },
+    setItem() { throw new Error("quota"); },
+  };
+  const ent = createEntitlement({ store: hostile, search: "?tier=free" });
+  assert(ent.unlocked() === false, "the tier must apply even when the store is unusable");
+  assert(ent.setUnlocked(true) === true, "setUnlocked must not throw on a refused write");
+});
+
+check("the unlock sheet names families, not 'premium features'", () => {
+  const blob = UNLOCK_BENEFITS.join(" ");
+  assert(UNLOCK_BENEFITS.length >= 4, "the sheet needs a real list of what you get");
+  assert(/Ragtime/.test(blob) && /sus4|add9/.test(blob),
+    "the benefits must name the actual locked families — a free user can't see inside a locked section");
+  assert(!/premium/i.test(blob), "'premium features' says nothing; name the families");
+});
+
+acheck("app.js applies MODE-BEATS-TIER precedence to x2", async () => {
+  // In single mode ×2 is *not applicable*, so it keeps the plain grey
+  // `data-locked` and stays silent — unlocking wouldn't help there. Only in
+  // progression mode does the tier lock apply. This is exactly the kind of
+  // two-signal overlap that ships as a bug, so it is pinned at the source.
+  const appjs = await (await fetch("js/app.js")).text();
+  const fn = appjs.match(/function syncTierLocks\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(fn, "syncTierLocks() must exist");
+  assert(/prog && tier\.featureLocked\("x2"\)/.test(fn),
+    "the x2 tier lock must be gated on progression mode (mode beats tier)");
+  // A tier lock must never use `disabled`: a disabled button emits no click, so
+  // it could not open the unlock sheet — the same trap help mode's liftDisabled
+  // exists for.
+  const setter = appjs.match(/function setTierLock\([\s\S]*?\n\}\n/)?.[0] || "";
+  assert(setter && !/\bdisabled\b/.test(setter),
+    "setTierLock must not touch `disabled` — a disabled control can't open the unlock sheet");
 });
 
 // ---- render report ----

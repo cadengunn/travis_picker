@@ -57,13 +57,89 @@ import {
 // only the menu, and synth.js stays dependency-free so it can't own both.
 import { DEFAULT_TONE } from "./synth.js";
 import { setUiSoundEnabled, playPress, playRelease, playTick, playPlace } from "./ui-sound.js";
-import { confirmModal, promptModal, infoModal } from "./modal.js";
+import { confirmModal, promptModal, infoModal, unlockModal } from "./modal.js";
+import { createEntitlement, UNLOCK_BENEFITS } from "./entitlement.js";
 import { createHelp } from "./help.js";
 import { enhanceSelect, enhanceAll, retargetOpenPanel, commit, openDropdownTrigger } from "./dropdown.js";
 import { createChordWheel, createKeyProgWheel, chordSplitLabel, keyProgSplitLabel } from "./wheel.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 
 const el = (id) => document.getElementById(id);
+
+// ---- the paywall (APP_STORE.md item 18) ----
+// A STUB until the native StoreKit bridge exists — see entitlement.js. It
+// defaults to UNLOCKED, so the live PWA is unchanged for him; `?tier=free`
+// switches this device to the free tier and persists, `?tier=paid` switches it
+// back. That costs no chrome at all, which is what makes it affordable to carry
+// while the real bridge is still months out behind a build machine.
+const tier = createEntitlement({
+  store: (() => { try { return localStorage; } catch { return null; } })(),
+  search: (() => { try { return location.search; } catch { return ""; } })(),
+});
+
+// Marks a control as PURCHASABLE: a lock glyph, and `data-tier-locked` for the
+// press handlers to check. Deliberately never touches `disabled` — a disabled
+// button emits no click, so it could not open the unlock sheet, which is the
+// same trap that made help mode need `liftDisabled`.
+// `markIn` is separate from `host` on purpose: the ATTRIBUTE belongs on the
+// control the press handler checks, but the GLYPH belongs wherever it reads as a
+// label rather than as debris inside the control. On ×2 that's the field's
+// legend ("×2 🔒"); dropped into the `.segmented` itself it floats in the gap
+// between the two keys, which is where the first cut put it.
+function setTierLock(host, locked, { markIn = null } = {}) {
+  if (!host) return locked;
+  host.toggleAttribute("data-tier-locked", locked);
+  const parent = markIn || host;
+  if (!parent) return locked;
+  let mark = parent.querySelector(":scope > .tier-lock");
+  if (locked && !mark) {
+    mark = document.createElement("span");
+    mark.className = "tier-lock";
+    mark.setAttribute("aria-hidden", "true");
+    parent.appendChild(mark);
+  } else if (!locked && mark) {
+    mark.remove();
+  }
+  return locked;
+}
+
+// One sheet for every locked surface. It names the FAMILIES rather than saying
+// "premium features" — "adds Ragtime / Piedmont and Classic Country" is a real
+// pitch, and a user who can see a locked section can't otherwise tell what is
+// inside it. `lead` says which control they actually pressed, so the card
+// answers the question they asked rather than opening a generic store page.
+async function showUnlockSheet(lead) {
+  const bought = await unlockModal({
+    title: "Unlock everything",
+    message: lead
+      ? lead + " Unlocking is a one-time purchase — every feature, forever, no subscription."
+      : "One purchase unlocks every feature, forever. No subscription.",
+    items: UNLOCK_BENEFITS,
+  });
+  // TODO(APP_STORE.md §3): this is where the StoreKit purchase goes. Until the
+  // native bridge exists, tapping Unlock flips the stub so the unlocked app can
+  // be exercised end to end on a real phone.
+  if (bought) {
+    tier.setUnlocked(true);
+    syncTierLocks();
+    render();
+  }
+  return bought;
+}
+
+// Re-applies every tier lock. Called from render(), the one funnel all of these
+// controls already pass through — the same reason savePrefs() lives there.
+function syncTierLocks() {
+  const prog = state.chordMode === "progression";
+  // PRECEDENCE: MODE BEATS TIER. In single mode ×2 is *not applicable*, so it
+  // keeps the plain grey `data-locked` and stays silent; unlocking wouldn't help
+  // you there. Only in progression mode does the tier lock apply.
+  const x2 = el("x2-toggle");
+  setTierLock(x2, prog && tier.featureLocked("x2"), {
+    markIn: x2?.parentElement?.querySelector(":scope > span"),
+  });
+  syncProgressionSaveKey();
+}
 
 // The transport glyphs are SVG in index.html now, swapped by CSS off
 // `aria-pressed` (session 44e). They used to be the text characters ▶ / ■ plus
@@ -76,7 +152,7 @@ const el = (id) => document.getElementById(id);
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.14.1";
+const APP_VERSION = "v3.15.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -328,6 +404,13 @@ function syncProgressionSaveKey() {
     : canSaveProgression() ? "save"
     : "off";
   btn.dataset.action = mode;
+  // PRECEDENCE, same rule as ×2: "off" means there is nothing savable here
+  // (a preset, or single mode) — not applicable, so it stays really `disabled`
+  // and wears no lock. The tier lock only applies where a save WOULD work.
+  // Deleting is never gated: removing your own saved data must always be
+  // reachable, even on a device that has since dropped to the free tier.
+  const tierLocked = mode === "save" && tier.featureLocked("customProgressions");
+  setTierLock(btn, tierLocked, { markIn: btn.parentElement });
   btn.disabled = mode === "off";
   btn.setAttribute("aria-label", mode === "delete" ? "Delete this saved progression" : "Save this progression");
   btn.title = mode === "delete" ? "Delete progression" : "Save progression";
@@ -523,6 +606,7 @@ function renderContext() {
 // ----- render -----
 function render() {
   if (!state.pattern) return;
+  syncTierLocks();
   const chords = phraseChords();                       // un-doubled, ≤4 bars on screen
   const phrase = resolvePhrase(state.pattern, chords);  // what's DRAWN
   const x2 = x2Active();
@@ -1788,6 +1872,12 @@ function attach() {
   // `:active` at all, so it just sat dead under the finger.
   const switchX2 = (e) => {
     if (el("x2-toggle").hasAttribute("data-locked")) return;
+    // Tier-locked is the OTHER kind of refusal: it has somewhere to go, so it
+    // opens the sheet instead of being a silent no-op.
+    if (el("x2-toggle").hasAttribute("data-tier-locked")) {
+      if (e.type === "click") showUnlockSheet("×2 lets each chord in a progression ring for two bars.");
+      return;
+    }
     const btn = e.target.closest("[data-x2]");
     if (btn && btn.classList.contains("active") === false) {
       state.x2 = btn.dataset.x2 === "on";
@@ -1827,7 +1917,12 @@ function attach() {
   // DOES re-render (it changes the bars), but landing back on Unsaved doesn't.
   el("progression").addEventListener("change", syncProgressionSaveKey);
   el("save-progression").addEventListener("click", () => {
-    if (el("save-progression").dataset.action === "delete") deleteCurrentProgression();
+    const btn = el("save-progression");
+    if (btn.hasAttribute("data-tier-locked")) {
+      showUnlockSheet("Saving your own progressions stores them as numerals, so one idea plays in any key.");
+      return;
+    }
+    if (btn.dataset.action === "delete") deleteCurrentProgression();
     else saveCurrentProgression();
   });
 

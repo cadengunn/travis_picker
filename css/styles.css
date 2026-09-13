@@ -2433,6 +2433,87 @@ main {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.10)), var(--control);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
 }
+/* The unlock sheet's benefit list. Markers are the lock's own amber rather than
+   a bullet glyph, so the card reads as engraved plate rather than a web list. */
+.tp-modal-list {
+  margin: -4px 0 16px;
+  padding: 0;
+  list-style: none;
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.38;
+  color: var(--text);
+}
+.tp-modal-list li { position: relative; padding-left: 16px; margin: 0 0 7px; }
+.tp-modal-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.52em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.75;
+}
+
+/* ---- the PURCHASABLE signal ----
+   A LOCK, deliberately not greying. `[data-locked]`'s 0.55 already means "not
+   applicable right now" (×2 in single mode), and one signal for two states
+   leaves no way to tell "buy this" from "doesn't apply here" — so: grey = not
+   applicable, lock = purchasable. Precedence is mode-beats-tier, decided in
+   app.js, since unlocking ×2 wouldn't help you in single mode anyway.
+   See APP_STORE.md 0.1.
+
+   Drawn with a MASK rather than an <img> or an inline <svg> so it inherits
+   `currentColor` and is therefore correct in all five themes for free — and so
+   no module has to learn how to draw a lock. `dropdown.js` and `wheel.js` stay
+   dependency-free: they set a class, the stylesheet does the rest. */
+.tier-lock {
+  display: inline-block;
+  width: 0.84em;
+  height: 0.84em;
+  flex: none;
+  vertical-align: -0.08em;
+  background-color: currentColor;
+  opacity: 0.72;
+  -webkit-mask-image: var(--lock-mask);
+  mask-image: var(--lock-mask);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  pointer-events: none;
+}
+:root {
+  --lock-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4.6' y='10.4' width='14.8' height='9.6' rx='2.2'/%3E%3Cpath d='M8.1 10.4V7.1a3.9 3.9 0 0 1 7.8 0v3.3'/%3E%3C/svg%3E");
+}
+/* A locked control keeps its full press travel — it must feel like a key that
+   can be pressed, because pressing it is how you reach the unlock sheet. That is
+   the same reason `data-locked` was chosen over `disabled` in session 36: a
+   disabled button can never match `:active`, so it sits dead under the finger. */
+[data-tier-locked] { cursor: pointer; }
+.field > span > .tier-lock { margin-left: 5px; }
+/* On the die row's save key the lock is a corner badge, since the button's face
+   already carries a glyph of its own.
+   ⚠️ The mark is a SIBLING of `.die-btn` inside the well, not a child — it is
+   appended to the well so it can sit over the button's corner. Written first as
+   `.die-btn .tier-lock`, which matched nothing, so the badge fell back to static
+   flow and landed BELOW the well, adding ~8px to the die row. Measured, not
+   guessed: the height budget is 11.06px and this row sits in the Options sheet,
+   but the same mistake on a main-view control would have spent it. */
+.die-well > .tier-lock {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  width: 9px;
+  height: 9px;
+  opacity: 0.9;
+}
+.die-well { position: relative; }
+
 .tp-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .tp-modal-actions .pill { padding: 11px 16px; font-size: 15px; }
 .tp-modal-actions .btn-primary { width: auto; padding: 11px 18px; font-size: 15px; }

@@ -12,7 +12,7 @@
 
 let openCount = 0;
 
-function build({ title, message, value, confirmText, cancelText, danger, prompt }) {
+function build({ title, message, value, confirmText, cancelText, danger, prompt, items }) {
   const root = document.createElement("div");
   root.className = "tp-modal";
 
@@ -45,6 +45,21 @@ function build({ title, message, value, confirmText, cancelText, danger, prompt 
     input.value = value ?? "";
     input.autocomplete = "off";
     card.appendChild(input);
+  }
+
+  // An optional benefit list, for the unlock sheet. A plain <ul> under the
+  // message rather than newlines in it: `message` is set with textContent (so a
+  // "\n" would render as a space), and the list is genuinely a list — it wants
+  // its own rhythm and its own marker, not a wrapped paragraph.
+  if (Array.isArray(items) && items.length) {
+    const ul = document.createElement("ul");
+    ul.className = "tp-modal-list";
+    for (const text of items) {
+      const li = document.createElement("li");
+      li.textContent = text;
+      ul.appendChild(li);
+    }
+    card.appendChild(ul);
   }
 
   const actions = document.createElement("div");
@@ -120,6 +135,23 @@ export function infoModal(opts = {}) {
   return new Promise((resolve) => {
     const parts = build({ ...opts, cancelText: null, prompt: false });
     present(parts, () => resolve());
+  });
+}
+
+// The paywall's one dialog. Same card, same machinery — it is an ordinary
+// confirm with a benefit list, NOT a new surface: a store-style "upsell screen"
+// would be the first thing in this app that doesn't look like the app. Resolves
+// true if he tapped Unlock, which is where the StoreKit purchase will hang once
+// the bridge exists (APP_STORE.md section 3).
+export function unlockModal(opts = {}) {
+  return new Promise((resolve) => {
+    const parts = build({
+      cancelText: "Not now",
+      confirmText: "Unlock",
+      ...opts,
+      prompt: false,
+    });
+    present(parts, (r) => resolve(r === "ok"));
   });
 }
 

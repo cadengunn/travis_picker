@@ -1423,6 +1423,19 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.15.0, 164/164 green.** Session 46b started the paywall **on the web side** —
+`js/entitlement.js` is a stub for the native StoreKit bridge that **defaults to
+UNLOCKED** (the live PWA must not lose features mid-testing), with
+`?tier=free` / `?tier=paid` opting a device in at zero chrome cost. The tier
+split reads the **engraved group** (`QUALITIES[].group`, `PROGRESSIONS[].style`),
+so a new chord inherits its family's tier with no list to sync. ×2 and the
+custom-progression save key are gated so far. **Three rules bind anything added
+here:** grey means "not applicable" and a **lock** means "purchasable"; **mode
+beats tier**; and a tier lock **never uses `disabled`**, since a disabled button
+emits no click and so can't open the unlock sheet. Next is the barrels — the
+section-header locks and the settle behaviour, which is a feel call for his
+phone. See `APP_STORE.md` §4.
+
 **v3.14.1, 154/154 green.** Session 46 opened **item 18** — `APP_STORE.md` is
 the working doc and all four blocking decisions are made: the PWA comes down
 once the store build is live, individual enrollment under his own identity

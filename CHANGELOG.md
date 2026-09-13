@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [46b](#where-things-stand-session-46b--v3150-2026-09-13) | **v3.15.0** | the paywall starts, and it starts on the WEB side — gating needs no Apple account, no Xcode and no build machine, and the PWA is still live, so he can judge the feel on his own phone before any Swift exists. `entitlement.js` is a stub the native StoreKit bridge will later replace; it **defaults to UNLOCKED** so the live app is unchanged, and `?tier=free` opts a device in. First surfaces gated: ×2 and the custom-progression save key. **Grey stays "not applicable", a LOCK means "purchasable"** — and the lock never uses `disabled`, because a disabled button emits no click and so could not open the unlock sheet. Ten new checks, all verified to fail without their fix |
 | [46](#where-things-stand-session-46--v3141-2026-09-13) | **v3.14.1** | item 18 opens: `APP_STORE.md`, and every decision behind it made before a line of code. Free/paid split by the **engraved group** both drums already print, locked-but-visible with a **lock icon** — because greying already means "not applicable" (×2 in single mode) and the two must not collide. His refinement beat the first proposal twice: it needs no data filter at all, and it fixes the discovery problem a shorter reel would have created. Also his iPad report — progression mode rendered 1×4 on a portrait iPad because a rule labelled `/* desktop afterthought */` tested **width alone**; aspect ratio is the real driver, and the phone's budget came back byte-identical |
 | [45d](#where-things-stand-session-45d--v3140-2026-08-12) | **v3.14.0** | the chord die is **weighted by commonness** (his call), reversing the flat roll of session 30. That old argument — "a picker that offers every chord with equal ceremony should have a die that does the same" — is still half true, and the half that isn't is the point: eight of the ten qualities are colour chords, so a *uniform* roll over a 12 × 10 matrix put ~80% of its rolls on something you'd rarely play. Measured over 60k draws, major + minor go 20% → **52%**. Weights are data (`QUALITIES[].weight` × `ROOTS[].weight`), the root bias is deliberately gentle at 2:1 against the qualities' 10:1 (leaning hard on roots would stop you drilling the awkward keys, which is backwards), and every weight is > 0 so nothing is unreachable — asserted by construction, because at 20:1 a coupon-collecting test would be both slow and flaky. **Everything from session 45 signed off on his phone** |
 | [45c](#where-things-stand-session-45c--v3132-2026-08-12) | **v3.13.2** | three of his notes off the phone. The `Custom` header is drawn even when `Unsaved` is its only member — ungrouped, it read as another Classic Standard, and on a barrel there's no "outside a section", only "in the last one". Both wheels split at the same place now (48/148, from 88/108 and 72/124), so the field's division line stops moving when you switch chord modes. And the die's row FILLS its track: it was a centred group of fixed widths, sitting inset 21.5px each side on a 414pt phone while every other row spanned the track. That last one inverted which of the field and the panel is cut to the other — the field leads now, the panel takes the trigger's width, and his v2.14.3 reason ("the chord/quality button should be the same size as the drum") is unchanged and still tested |
@@ -76,6 +77,60 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 46b — v3.15.0, 2026-09-13)
+
+**The paywall begins, on the web side, deliberately.** Section 4 of
+`APP_STORE.md` needs no Apple account, no Xcode and no build machine — and the
+PWA is still live, so the feel can be judged on a real phone months before the
+native shell exists. That is the whole reason the sequence was reordered.
+
+**`entitlement.js` is a STUB and says so.** The real answer will come from the
+StoreKit bridge. Two properties matter now:
+- **It defaults to UNLOCKED.** The live PWA is the full app, and a deploy that
+  silently took features away mid-testing would be a bug, not a preview. A test
+  pins this, including the no-store-at-all case.
+- **`?tier=free` / `?tier=paid` sets and persists the tier**, so the paywall can
+  be A/B'd on his phone with **zero added chrome** — which is what makes it
+  affordable to carry while the bridge is still months out. Nothing to remove
+  later either.
+
+**The tier split is the ENGRAVED GROUP, not a list of ids** (`QUALITIES[].group`,
+`PROGRESSIONS[].style`). A chord or progression added later inherits its
+family's tier for free, with no list to keep in sync — and a test asserts every
+`FREE_*` name matches a real group, because a typo there would silently lock a
+whole family and nothing else would say so.
+
+**Gated so far: ×2 and the custom-progression save key**, chosen because they
+establish the *visual language* on easy controls before it goes near the
+barrels. Two rules came out of building it:
+- **Grey means "not applicable"; a LOCK means "purchasable."** `data-locked`'s
+  0.55 already meant the former (×2 in single mode), and one signal for two
+  states leaves no way to tell "buy this" from "doesn't apply here."
+- **Precedence is MODE BEATS TIER** — in single mode ×2 keeps the plain grey and
+  stays silent, since unlocking wouldn't help there. Pinned at the source.
+
+**A tier lock must never use `disabled`.** A disabled button emits no click, so
+it could not open the unlock sheet — the same trap `liftDisabled` exists for in
+help mode. `setTierLock` is asserted not to contain the word.
+
+**The unlock sheet is an ordinary `confirmModal` with a list**, not a new
+surface: a store-style upsell screen would be the first thing in this app that
+doesn't look like the app. It **names the families** (Ragtime / Piedmont,
+Classic Country, sus4, add9…) rather than saying "premium features", because a
+user looking at a locked section cannot otherwise see what is inside it — and a
+test forbids the word "premium".
+
+**One bug, caught by measuring rather than squinting.** The save key's lock badge
+was written as `.die-btn .tier-lock`, but the mark is a **sibling** of the button
+inside the well, not a child — so the selector matched nothing, the badge fell
+back to static flow, and it landed *below* the well, adding ~8px to the die row.
+Exactly the class of mistake the pass lamps shipped with twice. Fixed to
+`.die-well > .tier-lock`, and the row measured identical at 57.75px either side.
+
+**Ten new checks, and all of them were verified to fail without their fix** in
+one break round (three deliberate breaks → four failures, each traceable, the
+group-name typo tripping two). 164/164.
 
 ## Where things stand (session 46 — v3.14.1, 2026-09-13)
 
