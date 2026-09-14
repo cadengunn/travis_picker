@@ -231,7 +231,21 @@ button, select, .cell, .lamp, .stepper, .segmented, .dd-trigger, .dd-option,
    of this is verifiable on the dev box — there is no touch there. */
 html, body {
   margin: 0;
+  /* ⚠️ `height: 100%` ALONE IS WRONG IN A SAFARI TAB, and it is why the grid sat
+     "significantly lower" there than in the installed app (his report, session
+     46f). `html`'s percentage resolves against the INITIAL CONTAINING BLOCK,
+     which on iOS Safari is the LARGE viewport — the full height as if the
+     collapsible toolbars weren't there. So the body box is taller than what you
+     can actually see, `main { flex: 1 }` takes the surplus, and
+     `.stage { justify-content: center }` faithfully centres the grid in a box
+     whose bottom is behind the toolbar. Standalone has no toolbars, so large ==
+     visible and the same CSS looks right — which is exactly why this only showed
+     up in a tab.
+     `min-height: 100dvh` on body could never have rescued it: dvh is SMALLER
+     than the inherited height here, so the min never binds.
+     100% stays first as the fallback for anything without `dvh` (pre-15.4). */
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: pan-y;

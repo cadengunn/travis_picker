@@ -1423,6 +1423,20 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.17.1, 172/172 green.** Session 46e–f. **The tier splits by QUALITY now, not
+by engraved group** — free is major, minor and **dominant 7** (his call: dom7 is
+the sound this app teaches; maj7/m7 are colour chords). 36 free chords. That
+deliberately breaks "tier boundary == section boundary", so **the lock rides the
+highest level that is ENTIRELY locked**: a wholly locked family keeps one caption
+lock, a partially locked one marks its faces instead. Minor Blues is the free
+minor family. **A purchase re-cuts the open reels** (`r.open()`), or the locks sit
+there stale. And **`html { height: 100% }` was wrong in a Safari tab**: a
+percentage resolves against the INITIAL CONTAINING BLOCK, which on iOS Safari is
+the LARGE viewport, so the body outgrew the visible area and `.stage`'s centring
+pushed the grid down behind the toolbar — standalone has no toolbars, which is
+why it hid. `height: 100dvh` after the `100%` fallback; a source test pins the
+order. **Unverifiable here** (no toolbars on the dev box) — his phone decides.
+
 **v3.16.1, 169/169 green.** Session 46d, six notes off his phone. **A refusal now
 LINGERS and rolls back once the unlock sheet closes** — `onSettle` may return a
 promise — and **buying accepts the value you spun to**. Restore is **ungated** (it
