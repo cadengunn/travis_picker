@@ -117,11 +117,14 @@ re-opened. Detail for every one of these is in `CHANGELOG.md`.
 - **Capo is shape-first** — you pick the shape and the capo, the concert key is
   derived. Sound-first ("I need B♭, what capo?") has no unique answer, so it
   would be a lookup helper on top, not a different model.
-- **Buttons never sound on a silenced phone** (v2.8.2). The web can't read the
-  ring switch, so the rule is "no button sound while the transport is running" —
-  playback is the only window where they could punch through. Haptics can't
-  substitute: iOS Safari has never shipped the Vibration API. **Revisit both only
-  if this ever becomes a real App Store app** — i.e. item 18.
+- **~~Buttons never sound on a silenced phone~~ REVERSED (session 47, his call).**
+  The v2.8.2 rule was "no button sound while the transport is running", because
+  the web can't read the ring switch and playback is the only window where UI
+  clicks could punch through a silenced phone. It's now gone: UI sound has its own
+  Preferences lamp, so anyone bothered by clicks over a take can switch them off —
+  a clearer contract than a voice that vanishes unpredictably. All four voices
+  (press/release, wheel detent, edit thock) moved together. Haptics still can't
+  substitute: iOS Safari has never shipped the Vibration API.
 - **Bundled OFL faces, not system ones** (v2.11.0). Referencing a commercial
   system face is free only while every user is on Apple hardware, and he wants
   this commercialisable. (Note item 14: `--numeral` is the one that never got

@@ -223,15 +223,34 @@ export function createMetronome({
     timer = setTimeout(scheduler, LOOKAHEAD_MS);
   }
 
-  // Report the most recent slot whose audio time has actually arrived.
+  // Report EVERY slot whose audio time has arrived, in order.
+  //
+  // ⚠️ IT USED TO REPORT ONLY THE NEWEST, AND THAT SILENTLY DROPPED BEATS
+  // (session 47, his report: the beat lamp "gets a little spotty at high tempos,
+  // like it doesn't fully light every time it should"). The old loop drained the
+  // queue but kept just the last entry, which is correct for the PLAYHEAD — only
+  // the final cell is painted, so intermediate positions are invisible — and
+  // wrong for anything EDGE-triggered. The beat lamp pulses only on odd slots, so
+  // a frame that happened to span two slots swallowed the beat and kept the
+  // offbeat, and that beat never flashed at all.
+  //
+  // Why high tempo: slots are closest together there (at 240bpm an 8th is 125ms),
+  // so an ordinary late frame — a GC pause, a render, the phone dropping to 30fps
+  // — is far more likely to cover two of them. Nothing was wrong with the lamp's
+  // own animation restart, which is why this looked like a CSS problem.
+  //
+  // Reporting each one costs a couple of extra highlightColumn calls in a
+  // catch-up frame and keeps this module ignorant of what a "beat" is — app.js
+  // still decides that. A long backlog can't build up here: the playback guard
+  // stops the transport when the page hides, and the scheduler's own drift
+  // backstop drops missed slots and resyncs past MAX_DRIFT.
   function frame() {
     if (!running) return;
     const now = ctx.currentTime;
-    let current = null;
-    while (queue.length && queue[0].time <= now) current = queue.shift();
-    if (current) {
-      if (current.step === null) onCountIn(current.count);
-      else onStep(stepToPosition(current.step));
+    while (queue.length && queue[0].time <= now) {
+      const due = queue.shift();
+      if (due.step === null) onCountIn(due.count);
+      else onStep(stepToPosition(due.step));
     }
     raf = requestAnimationFrame(frame);
   }

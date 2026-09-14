@@ -438,10 +438,23 @@ main {
    glyph need an explicit gap. */
 .pill-icon .rec-lamp { margin-right: 5px; }
 /* Edit armed = a latching button pressed IN (engaged), wearing the lit REC lamp.
-   The pressed look + the red lamp carry the state — no accent ring needed. */
+   The pressed look + the red lamp carry the state — no accent ring needed.
+
+   THE TRAVEL IS `position: relative; top`, NEVER A TRANSFORM (session 47, his
+   report: a black dash blinking just outside this pill's top-left corner while
+   edit was armed, on the phone only). Third instance of the same iOS bug this
+   stylesheet has now hit — see `.context` and the single-mode chord glyph, which
+   both carry the same note. A transform promotes the element to its own
+   compositing layer; here that layer also contains `.rec-lamp`, whose `rec-pulse`
+   animates a box-shadow GLOW that spills past this pill's top-left corner (the
+   lamp sits at the left edge). iOS mis-painted a sliver at those expanded layer
+   bounds, and it blinked because the animation repainted it. `position: relative`
+   promotes nothing, and with no `z-index` it creates no stacking context — which
+   the help pill's z-index:30 rule below depends on. */
 .pill[aria-pressed="true"] {
   color: var(--text);
-  transform: translateY(1px);
+  position: relative;
+  top: 1px;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(255, 245, 225, 0.05)),
     var(--control);
@@ -2675,7 +2688,9 @@ main {
 .pill-help[aria-pressed="true"] {
   color: var(--bg);
   background: var(--active);
-  transform: translateY(1px);
+  /* travel comes from `.pill[aria-pressed="true"]` above — `position: relative;
+     top: 1px`, not a transform. Restating a transform here would both double the
+     offset and reintroduce the layer promotion that rule exists to avoid. */
   box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.4),
     inset 0 -1px 0 var(--bevel-hi);

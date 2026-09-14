@@ -1892,12 +1892,12 @@ check("grid: PIMA labels carry the glyph tag that optically centres them", () =>
   }
 });
 
-check("grid: ×2 renders exactly 4 bars with two pass lamps each; omitted when off", () => {
+check("grid: pass lamps follow the `passes` COUNT — 2 under ×2, 1 under ×1, none in single mode", () => {
   const host = document.createElement("div");
   const p = generatePattern("C", { rng: seeded(50) });
   const phrase = resolvePhrase(p, ["C", "F", "G", "C"]);
 
-  renderGrid(host, phrase, { x2: true, editableChords: true });
+  renderGrid(host, phrase, { passes: 2, editableChords: true });
   assert(host.querySelectorAll(".bar").length === 4, "×2 must never grow the grid past 4 bars");
   const lampGroups = [...host.querySelectorAll(".pass-lamps")];
   assert(lampGroups.length === 4, `expected 4 pass-lamp groups, got ${lampGroups.length}`);
@@ -1908,8 +1908,26 @@ check("grid: ×2 renders exactly 4 bars with two pass lamps each; omitted when o
       `bar ${i} should have exactly a pass-0 and a pass-1 lamp, got ${JSON.stringify(passes)}`);
   });
 
-  renderGrid(host, phrase, { x2: false, editableChords: true });
-  assert(host.querySelectorAll(".pass-lamps").length === 0, "×2 off should omit the pass-lamp markup entirely");
+  // ×1 in progression mode: ONE lamp per bar, and it must be pass 0 — that's the
+  // only pass splitAudioBar ever reports at passesPerBar 1, so a lamp numbered
+  // anything else would never light (session 47).
+  renderGrid(host, phrase, { passes: 1, editableChords: true });
+  const onePer = [...host.querySelectorAll(".pass-lamps")];
+  assert(onePer.length === 4, `×1 should still give 4 lamp groups, got ${onePer.length}`);
+  onePer.forEach((g, i) => {
+    const passes = [...g.querySelectorAll(".pass-lamp")].map((l) => l.dataset.pass);
+    assert(JSON.stringify(passes) === JSON.stringify(["0"]),
+      `×1 bar ${i} should have exactly one pass-0 lamp, got ${JSON.stringify(passes)}`);
+  });
+
+  // Single mode renders none. This is load-bearing, not cosmetic: `.bar-header`
+  // collapses via `:empty`, and single mode's header has no chord select, so a
+  // lamp would un-collapse it and spend 26px of the height budget.
+  renderGrid(host, phrase, { passes: 0, editableChords: false });
+  assert(host.querySelectorAll(".pass-lamps").length === 0,
+    "single mode should omit the pass-lamp markup entirely, or the empty bar header stops collapsing");
+  assert([...host.querySelectorAll(".bar-header")].every((h) => h.children.length === 0),
+    "single mode's bar headers must stay empty so `.bar-header:empty` can collapse them");
 });
 
 // 13c2) THE QUERY IS THE CONTRACT, not the markup's shape. The check above
@@ -1922,7 +1940,7 @@ check("grid: ×2 renders exactly 4 bars with two pass lamps each; omitted when o
 check("grid: passLampSelector actually finds every lamp it names", () => {
   const host = document.createElement("div");
   const p = generatePattern("C", { rng: seeded(51) });
-  renderGrid(host, resolvePhrase(p, ["C", "F", "G", "C"]), { x2: true, editableChords: true });
+  renderGrid(host, resolvePhrase(p, ["C", "F", "G", "C"]), { passes: 2, editableChords: true });
 
   const seen = new Set();
   for (let bar = 0; bar < 4; bar++) {
@@ -1938,6 +1956,23 @@ check("grid: passLampSelector actually finds every lamp it names", () => {
   // …and each of the 8 lamps is addressed by exactly one (bar, pass) pair — no
   // two coordinates collapsing onto the same element.
   assert(seen.size === 8, `the 8 (bar, pass) pairs resolved to ${seen.size} distinct lamps`);
+
+  // The ×1 lamp needs the SAME proof, and for the same reason: app.js calls
+  // passLampSelector(bar, 0) unconditionally now, so if the single lamp were
+  // numbered or nested differently the lookup would find nothing and the lamp
+  // would never light — silently, exactly as the ×2 lamps once didn't.
+  renderGrid(host, resolvePhrase(p, ["C", "F", "G", "C"]), { passes: 1, editableChords: true });
+  const onePass = new Set();
+  for (let bar = 0; bar < 4; bar++) {
+    const found = host.querySelectorAll(passLampSelector(bar, 0));
+    assert(found.length === 1,
+      `×1: passLampSelector(${bar}, 0) matched ${found.length} elements, expected exactly 1`);
+    onePass.add(found[0]);
+    // …and there is no pass-1 lamp to light under ×1.
+    assert(host.querySelectorAll(passLampSelector(bar, 1)).length === 0,
+      `×1: bar ${bar} should have no pass-1 lamp`);
+  }
+  assert(onePass.size === 4, `×1: the 4 bars resolved to ${onePass.size} distinct lamps`);
 });
 
 // 13d) Regression guard: ×2's doubled audio-chords array must never be written
@@ -3970,6 +4005,35 @@ acheck("type: every bundled face is declared, and no voice falls back to a syste
     "--numeral-var must not pin wght — font-weight controls it per site");
 });
 
+// A LATCHING PILL MUST NOT TRAVEL BY TRANSFORM (session 47). Third time this
+// stylesheet has hit the same iOS bug: a transform promotes the element to its
+// own compositing layer, and iOS Safari then mis-paints at that layer's bounds.
+// `.context` and the single-mode chord glyph both carry the note; here the layer
+// also contained `.rec-lamp`, whose `rec-pulse` animates a box-shadow glow past
+// the pill's top-left corner, so a black dash sat outside the armed Edit button
+// and blinked with the animation (his phone, session 47).
+//
+// Source-level, and it has to be: the artifact is WebKit-only and this dev box is
+// Chromium, so no computed style or rendered measurement here can see it. The
+// claim being pinned is "this rule does not promote a layer", not a spelling —
+// `top`'s exact value is deliberately not asserted.
+acheck("layout: an armed latching pill travels by position, never by transform", async () => {
+  const css = await (await fetch("css/styles.css")).text();
+  for (const sel of ['.pill[aria-pressed="true"]', '.pill-help[aria-pressed="true"]']) {
+    const esc = sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rule = css.match(new RegExp(esc + "\\s*\\{[^}]*\\}", "s"))?.[0];
+    assert(rule, `expected a ${sel} rule in the stylesheet`);
+    // `text-transform` is a different property and must not trip this.
+    assert(!/(^|[;{\s])transform\s*:/.test(rule),
+      `${sel} must not use a transform — it promotes a compositing layer and iOS `
+      + "mis-paints the animated REC lamp's glow at its bounds (use position: relative + top)");
+  }
+  // …and the travel still exists, or the latch stops reading as pressed in.
+  const armed = css.match(/\.pill\[aria-pressed="true"\]\s*\{[^}]*\}/s)[0];
+  assert(/position:\s*relative/.test(armed) && /(^|[;{\s])top\s*:/.test(armed),
+    "the armed pill still has to move — position: relative + top replaces the transform");
+});
+
 acheck("pwa: the precache bypasses the HTTP cache (or a deploy can install stale)", async () => {
   const swText = await (await fetch("sw.js")).text();
 
@@ -4341,6 +4405,70 @@ acheck("metronome: a resume that NEVER settles is still an answer, and the rebui
       m.stop();
     }
   );
+});
+
+// A LATE FRAME MUST NOT SWALLOW A BEAT (session 47, his report: the beat lamp is
+// "spotty at high tempos"). The playhead loop drained every due slot but reported
+// only the LAST — right for the cell highlight, wrong for the beat lamp, which is
+// edge-triggered on odd slots. One frame spanning two slots dropped the beat and
+// kept the offbeat, so that beat never flashed.
+//
+// Driven by hand rather than by rAF: rAF is paused in a hidden tab, which is
+// exactly where this suite runs, so the frame callback is captured and invoked
+// directly. That also lets the "late frame" be exact instead of hoped for.
+acheck("metronome: a late frame reports every slot it spans, not just the newest", async () => {
+  const realRaf = window.requestAnimationFrame;
+  const realCancel = window.cancelAnimationFrame;
+  let pending = null;
+  window.requestAnimationFrame = (cb) => { pending = cb; return 1; };
+  window.cancelAnimationFrame = () => { pending = null; };
+
+  const seen = [];
+  let ctx = null;
+  try {
+    await withFakeAudio(
+      () => (ctx = fakeAudioContext({ state: "running" })),
+      async () => {
+        const m = createMetronome({ onStep: (p) => { if (p) seen.push(p); } });
+        m.setBpm(240);              // the fastest the app allows: an 8th is 125ms
+        m.setCountInEnabled(false); // or the first bar queues count-in, not steps
+        await m.start(1);
+
+        // start() queues only the slot at 0.08: the scheduler fills to
+        // SCHEDULE_AHEAD (0.2s) and the following slot lands at 0.205, five
+        // milliseconds past it. So the clock is moved on and the scheduler — a
+        // plain setTimeout chain, independent of rAF — is left to run once more
+        // and queue 0.205 / 0.33 / 0.455. Nothing drains meanwhile, because the
+        // frame callback is captured and deliberately not invoked yet.
+        //
+        // 0.30 is chosen to sit BELOW MAX_DRIFT (0.25 behind nextSlotTime), so
+        // the freeze backstop doesn't resync and drop the backlog instead. An
+        // earlier draft jumped to 1.0s and only proved the backstop works.
+        ctx.currentTime = 0.30;
+        await new Promise((r) => setTimeout(r, 900)); // throttled in a hidden tab
+
+        // ONE frame, with the slots at 0.08 and 0.205 both overdue.
+        const f = pending; pending = null;
+        if (f) f();
+        m.stop();
+      }
+    );
+  } finally {
+    window.requestAnimationFrame = realRaf;
+    window.cancelAnimationFrame = realCancel;
+  }
+
+  assert(seen.length >= 2,
+    `a frame spanning two slots must report both, got ${seen.length}`);
+  // The whole point: the BEAT (an odd slot) survives. Under the old coalescing
+  // loop only the newest entry arrived — the offbeat — so the beat never reached
+  // app.js and the lamp simply didn't flash for it.
+  assert(seen.some((p) => p.slot % 2 === 1),
+    `the spanned beat must be reported, got slots ${seen.map((p) => p.slot).join(",")}`);
+  // …and in order, or the playhead would jump backwards mid-catch-up.
+  const slots = seen.map((p) => p.bar * 8 + p.slot);
+  assert(slots.every((v, i) => i === 0 || v > slots[i - 1]),
+    `slots must arrive in ascending order, got ${slots.join(",")}`);
 });
 
 acheck("metronome: recoverAudio discards a context it can't repair", async () => {

@@ -148,10 +148,15 @@ fonts/            bundled Fraunces (serif voice) + Jost (panel legends), both
                   .woff2 + their OFL licenses — precached, see "Type" below
 icons/            PWA + favicon PNGs, GENERATED — never hand-edit
 tools/            make_icons.py + icon-master.png; authoring only, nothing
-                  imports it at runtime. Pure stdlib (no PIL on this Mac), and it
-                  ABORTS rather than writing if the art drifts outside the
-                  maskable safe zone. Icons are opaque colour-type-2 — iOS
-                  composites black behind any alpha in a home-screen icon.
+                  imports it at runtime. Pure stdlib (no PIL on this Mac). The
+                  master is a FULL-BLEED RGBA icon carrying its own frame and
+                  rounded corners (session 47, his art), so FIT is 1.0 and the
+                  old maskable-safe-zone abort is retired — see FIT for the
+                  Android cost. Output stays opaque colour-type-2, and the
+                  master's alpha MUST be composited, not dropped: iOS composites
+                  black behind any alpha in a home-screen icon, and truncating
+                  it turns the transparent corners black. An abort now checks
+                  the finished 512's corners for exactly that.
                   gen_chord_reference.html regenerates CHORD_REFERENCE.md's
                   tables from js/data.js (session 37) — also authoring-only,
                   needs the dev server for its ES module import.
@@ -440,6 +445,19 @@ only if v2's pattern playback actually needs a synth library.
   highlighting there would visibly lead the click. It touches cell classes
   directly instead of re-rendering (up to 8 updates/bar, and a re-render would
   fight edit mode); `render()` resets `litCells`.
+- **THAT LOOP REPORTS EVERY DUE SLOT, NEVER JUST THE NEWEST** (session 47, his
+  report: the beat lamp "gets a little spotty at high tempos"). It used to drain
+  the queue and keep only the last entry, which is right for the PLAYHEAD — only
+  the final cell is painted, so intermediate positions are invisible — and wrong
+  for anything **edge-triggered**. The beat lamp pulses only on odd slots, so a
+  frame that happened to span two slots swallowed the beat and kept the offbeat,
+  and that beat never flashed. Worse at high tempo because slots are closest
+  together (an 8th is 125ms at 240bpm), so an ordinary late frame — a GC pause, a
+  render, the phone dropping to 30fps — is far likelier to cover two. **Nothing
+  was wrong with the lamp's CSS**, which is where this looked like it lived. A
+  long backlog still can't build up: the playback guard stops the transport when
+  the page hides, and the scheduler's own `hasDrifted`/`MAX_DRIFT` backstop drops
+  missed slots and resyncs. A test drives a real late frame with a stubbed rAF.
 - The **beat lamp** (`#beat-lamp`, by the BPM readout) rides this SAME
   `onStep`/`onCountIn` loop — no second clock. It blinks on beats (downbeat a
   bigger pulse), so it's a **silent visual metronome** when the click is off. The
@@ -950,16 +968,24 @@ Four dependency-free modules, all precached:
   chess piece set down) — same woody `body`, but the contact `tick` is LOW and
   low-Q, because felt damps the strike; it fires on every place AND delete, and
   grid cells are excluded from `pressStrength` so nothing doubles it. Own on/off
-  lamp, persisted in `tp-audio`. Three rules decide *when* a press is silent, and
-  all three live in `app.js`, not here — this is glue `tests.js` doesn't import,
-  so each was verified by counting oscillator starts per `AudioContext`:
-  - **No button sound while the transport is running** (v2.8.2). The web can't
-    read the iOS ring switch, and playback is the only window in which we hold the
-    audio category that overrides it — so muting buttons there is what makes a
-    silenced phone genuinely silent while the metronome and melody (audio you
-    asked for) still come through. Accepted side effect with the ringer on: no
-    clicks during a take. Decided once per press and held for the pair
-    (`pressSilenced`), so the button that starts or stops gets a matched ka-chunk.
+  lamp, persisted in `tp-audio`.
+  **UI SOUND DURING A TAKE IS ALLOWED (session 47, his call — REVERSES v2.8.2).**
+  The old rule silenced every UI voice while the transport ran, and its reasoning
+  is still *true*, just no longer decisive: the web can't read the iOS ring
+  switch, and playback is the only window in which we hold the audio category that
+  overrides it, so muting buttons there is what made a silenced phone genuinely
+  silent while the metronome and melody still came through. What overturned it is
+  that **UI sound has its own Preferences lamp** — anyone bothered by clicks over
+  a take can switch them off, which is a clearer contract than a voice that
+  vanishes for reasons you can neither see nor predict. The side effect simply
+  inverts: with the ringer ON you now hear clicks during a take unless you turn
+  the lamp off. **All four voices moved together** (press/release, the wheel's
+  `playTick`, edit mode's `playPlace`) — they were one policy, and splitting them
+  would leave the wheel silent over a take while the button beside it clicked.
+  `pressSilenced` is gone.
+  Two rules still decide *when* a press is silent, and both live in `app.js`, not
+  here — this is glue `tests.js` doesn't import, so each was verified by counting
+  oscillator starts per `AudioContext`:
   - **A NO-OP press stays silent, like the capo at an end-stop** (his note). Also
     held for the pair (`pressNoop`), because by pointerup the state has changed:
     an already-**seated** latching key (the current page tab or Format value)
@@ -1355,12 +1381,25 @@ one distinct bar is ever generated there's nothing left to disambiguate
   `detectProgression` silently stops recognizing it, which is the regression
   this guards against). `metronome.js` itself needed **zero changes** — it
   stays generic over bar count and ignorant of the screen/audio split.
-- **Two pass lamps sit at the left of each bar's chord label, centred
-  vertically in it** (`.pass-lamps`/`.pass-lamp`) and mark which of the two
-  passes through that bar's chord is currently sounding — left lights on the
-  first, right on the second. **The old numeral chip (`.bar-num`) that used to
+- **Pass lamps sit at the left of each bar's chord label, centred vertically in
+  it** (`.pass-lamps`/`.pass-lamp`). Under ×2 there are **two**, marking which
+  pass through that bar's chord is sounding — left on the first, right on the
+  second. **Since session 47 ×1 gets ONE** (his ask), which simply marks the
+  sounding bar; worth having once four bars wrap to a 2×2 and the playhead only
+  tells you the column. **The old numeral chip (`.bar-num`) that used to
   share that corner is GONE** (also session 36, his call, unprompted by ×2 —
   reading order is already left-right/top-bottom).
+  **`renderGrid` takes a COUNT (`passes`: 2 / 1 / 0), not an `x2` flag**, and
+  **0 in single mode is load-bearing rather than cosmetic**: `.bar-header:empty`
+  collapses the header, single mode's header has no chord select, so a lamp there
+  would un-collapse it and spend **26px** of the height budget to say what the
+  playhead already says on one bar. Because the lamps are `position: absolute`,
+  wherever the header already exists they cost NO height at all. `app.js` calls
+  `highlightPassLamps` unconditionally now — under ×1 `splitAudioBar` always
+  reports pass 0, and single mode renders no lamps, so the lookup simply finds
+  nothing there. Self-guarding, rather than a mode test that could drift from the
+  markup. Tests pin all three counts AND run the real selector for ×1, since a
+  selector matching nothing is exactly how these lamps once silently never lit.
   **THE MATERIAL IS THE BEAT LAMP'S, EXACTLY** (his call): same 11px jewel,
   same idle glass, same rim, same inset — they're the same *kind* of object, a
   lamp reporting where you are in the loop, so they must be indistinguishable
@@ -1429,6 +1468,29 @@ one distinct bar is ever generated there's nothing left to disambiguate
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.20.0, 175/175 green. ON HIS PHONE, UNJUDGED — a six-item batch from session
+47**, worked in one pass so he could test them together. Three of his reports
+turned out to be caused by something other than what they looked like:
+- **The blinking dash by the armed Edit pill was the THIRD instance of this
+  stylesheet's iOS compositing bug** — a `transform` promoted the pill, whose
+  layer held the pulsing REC lamp. Both latching pills travel by
+  `position: relative; top` now, pinned by a source test. See `DESIGN.md`.
+- **The "spotty" beat lamp was not CSS**: the playhead's frame loop reported only
+  the newest due slot, so a late frame swallowed the beat and kept the offbeat.
+  See the metronome section.
+- **A NEW FULL-BLEED ICON replaced the recolour** built earlier in the session
+  (his artwork). RGBA, its own frame and corners — and `read_png` was truncating
+  alpha, which would have shipped black corners. See `tools/`.
+
+Also: **UI sound during a take is now allowed (reverses v2.8.2)**, ×1 gets one
+pass lamp per bar, and the Save sheet no longer lets iOS shove the grid up.
+**Two things are NOT settled**: the keyboard fix is the least certain item (if
+iOS pans the visual viewport rather than scrolling the document, no CSS stops it
+and it needs instrumenting), and **Play going dead after help mode is
+undiagnosed** — both obvious causes ruled out; it needs to know whether the
+button stayed on the stop icon or sprang back. **Still queued from that batch:**
+the help-copy pass, a scoped cleanup pass, and a pre-release security review.
 
 **v3.19.0, 173/173 green.** Session 46i **solved the missing tweed along the
 bottom edge, and it was never a CSS bug.** Measured on his phone across two

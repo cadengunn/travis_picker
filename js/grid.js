@@ -37,13 +37,22 @@ function labelFor(ev, labelMode) {
 // above the whole grid (#chord-head), so a per-bar header there would just
 // repeat it; an empty header collapses via CSS.
 //
-// Under ×2 (always exactly 4 bars when it's active — see app.js's x2Active),
-// it also carries two small pass lamps at the top-left corner: left lights on
-// the first pass through this bar's chord, right on the second. app.js's
-// playhead lights them directly (same no-re-render approach as the cell
-// highlight) by querying `passLampSelector()` below, so the markup only needs
-// to exist — nothing here drives it live. Omitted entirely (not hidden) when
-// x2 is false.
+// It also carries the bar's pass lamps, at the left of the chord label. How many
+// is `passes`, and it is a COUNT, not a ×2 flag (session 47):
+//   2 — ×2 is on; left lights on the first pass through this bar's chord, right
+//       on the second.
+//   1 — ×1 in progression mode; the single lamp just says "this bar is sounding",
+//       which is worth having once four bars wrap to a 2×2 and the playhead only
+//       tells you the column.
+//   0 — single-chord mode. NOT merely cosmetic: `.bar-header:empty` collapses the
+//       header (`display: none`), and single mode's header is otherwise empty, so
+//       a lamp there would un-collapse it and cost 26px of the height budget for
+//       one lamp on one bar that the playhead already covers.
+// The lamps are `position: absolute`, so wherever the header already exists they
+// cost NO height at all. app.js's playhead lights them directly (same
+// no-re-render approach as the cell highlight) by querying `passLampSelector()`
+// below, so the markup only needs to exist — nothing here drives it live.
+// Omitted entirely (not hidden) when `passes` is 0.
 //
 // THE SELECTOR LIVES HERE, beside the markup it has to match, and app.js
 // imports it — it must never be re-typed at the call site. Session 36b: it was,
@@ -55,15 +64,15 @@ export function passLampSelector(bar, pass) {
   return `.pass-lamps[data-bar="${bar}"] .pass-lamp[data-pass="${pass}"]`;
 }
 
-function buildHeader(chordId, barIdx, editableChords, x2) {
+function buildHeader(chordId, barIdx, editableChords, passes) {
   const header = document.createElement("div");
   header.className = "bar-header";
 
-  if (x2) {
+  if (passes > 0) {
     const lamps = document.createElement("span");
     lamps.className = "pass-lamps";
     lamps.dataset.bar = String(barIdx);
-    for (let pass = 0; pass < 2; pass++) {
+    for (let pass = 0; pass < passes; pass++) {
       const lamp = document.createElement("span");
       lamp.className = "pass-lamp";
       lamp.dataset.pass = String(pass);
@@ -99,12 +108,13 @@ function buildHeader(chordId, barIdx, editableChords, x2) {
   return header;
 }
 
-// renderGrid(container, phrase, { labelMode, editableChords, editable, x2 })
+// renderGrid(container, phrase, { labelMode, editableChords, editable, passes })
 export function renderGrid(container, phrase, opts = {}) {
   const labelMode = opts.labelMode || "fret";
   const editableChords = !!opts.editableChords;
   const editable = !!opts.editable;
-  const x2 = !!opts.x2;
+  // 0 / 1 / 2 pass lamps per bar — see buildHeader for why 0 is load-bearing.
+  const passes = Number(opts.passes) || 0;
   container.innerHTML = "";
 
   const track = document.createElement("div");
@@ -121,7 +131,7 @@ export function renderGrid(container, phrase, opts = {}) {
     barEl.setAttribute("role", "group");
     barEl.setAttribute("aria-label", `Bar ${barIdx + 1}, chord ${chord}`);
 
-    barEl.appendChild(buildHeader(chord, barIdx, editableChords, x2));
+    barEl.appendChild(buildHeader(chord, barIdx, editableChords, passes));
 
     const idx = indexBar(bar);
 

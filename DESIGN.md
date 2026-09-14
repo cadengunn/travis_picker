@@ -85,10 +85,19 @@ so it rides every theme.
   part of why it exists.
 - **Anything typed that isn't in a bundled face must be DRAWN.** The sheet's `✕`
   was U+2715 and rendered in Arial — the one system-font element in the app.
-- **Prefer `position: relative; top` over `transform` for small lifts.** A
-  `transform` promotes a compositing layer, and content behind the Options
-  sheet's translucent backdrop then doesn't repaint on iOS — that was a real
-  lingering-label bug.
+- **Use `position: relative; top` for small lifts, NEVER `transform`.** A
+  `transform` promotes a compositing layer, and iOS then mis-paints around it.
+  This has now bitten three separate times, so treat it as a rule rather than a
+  preference: content behind the Options sheet's translucent backdrop failing to
+  repaint (the lingering-label bug, twice — `.context` and the single-mode chord
+  glyph), and then session 47's **black dash blinking just outside the armed Edit
+  pill**. That third one is the clearest illustration of the mechanism: the pill's
+  own `transform: translateY(1px)` promoted it, the layer contained `.rec-lamp`
+  whose `rec-pulse` animates a box-shadow glow spilling past the pill's top-left
+  corner, and iOS painted a stray sliver at those expanded bounds — blinking,
+  because the animation repainted it. A source test now pins both latching pills
+  as transform-free; the artifact is WebKit-only, so no Chromium measurement here
+  can catch a regression.
 
 ## Type — the panel speaks in TWO voices
 

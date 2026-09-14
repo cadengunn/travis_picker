@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [47](#where-things-stand-session-47--v3200-2026-09-14) | **v3.20.0** | a batch of his testing notes, and **three of them turned out to be something other than what they looked like**. The blinking "underscore" by the armed Edit pill was the **third instance of this stylesheet's iOS compositing bug** — `transform: translateY(1px)` promoted the pill, its layer contained the pulsing REC lamp whose glow spills past the top-left corner, and iOS painted a stray sliver there. The **beat lamp being "spotty at high tempos" was not CSS at all**: the playhead's frame loop drained every due slot but reported only the LAST, which is right for the cell highlight and silently wrong for anything edge-triggered, so a late frame swallowed the beat and kept the offbeat. And the **icon recolour was superseded mid-session** by his own new artwork — a full-bleed RGBA piece that inverted the whole pipeline's assumptions. Also: UI sound during a take is now ALLOWED (**reverses v2.8.2**, his call — the Preferences lamp is the clearer contract), ×1 gets a single pass lamp per bar, and the Save sheet no longer lets iOS shove the grid up |
 | [46e–j](#where-things-stand-session-46ej--v3170--v3190-2026-09-13) | **v3.17.0 → v3.19.0** | his phone notes, two layout bugs, and the destination reopened. **dom7 goes free** while maj7/m7 stay paid, so the tier stops coinciding with the engraved group and the lock rule moved twice more (caption-only → caption-or-face → **face-only**, his call). A purchase now **re-cuts the open reels**. **The Safari grid sat low** because `.stage` pins the grid 140px below the stage top and dumps all slack underneath — centred in `display-mode: browser` only, standalone byte-identical. **The tweed's bottom edge cost three failed CSS fixes** before two marker builds on his phone proved the strip was outside the document entirely: it was the `black-translucent` quirk, the meta is gone, and `theme-color` now follows the theme. Then he reopened **whether the App Store is worth it at all** — `APP_STORE.md` became `MONETIZATION.md` |
 | [46d](#where-things-stand-session-46d--v3161-2026-09-13) | **v3.16.1** | six notes off his phone. The barrel used to turn back **behind the unlock sheet**, where nobody could see it — it now LINGERS on what you chose and rolls back once the sheet closes (`onSettle` may return a promise), and **buying accepts the chord you spun to** instead of snapping away from it. Restore is ungated (it only returns free content); per-item Export gated to match the library one; locked faces dimmed; the lock redrawn **with a keyhole** so it stops reading as a briefcase. Two real bugs found on the way: a stale `reverting` flag that swallowed the next genuine settle, and a dim that could never have worked because `paint()` writes inline opacity every frame |
 | [46c](#where-things-stand-session-46c--v3160-2026-09-13) | **v3.16.0** | the paywall reaches the **barrels**, which was the risky surface. A locked family wears **one lock on its engraved caption**, never a mark per face — the faces are already width-starved. Settling on a locked family is **REFUSED**: `onSettle` returns false, the sheet opens, the barrel turns back, and the hidden `<select>` never takes a locked value. `wheel.js` stays dependency-free — the gate is callbacks, like `tick`. Also: **the die can no longer roll what you can't select**, the free library caps at 3 (built-ins exempt, overwrite still allowed), and export/import/restore are gated. His note actioned: the unlock sheet's specific line now sits in its own paragraph |
@@ -78,6 +79,109 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 47 — v3.20.0, 2026-09-14)
+
+A batch of testing notes worked in one pass so he could test them together. The
+theme of the session: **three separate reports were caused by something other
+than the thing they appeared to be about**, and each was settled by measuring
+rather than by the first plausible theory.
+
+**The blinking "underscore" by the Edit pill — the third instance of one bug.**
+He reported a black horizontal line, just outside the pill's top-left corner,
+blinking while edit was armed. Measured here first: the REC lamp itself is
+perfect — 9×9, `border-radius: 50%`, centred, pulsing — nothing in the app draws
+an underscore, nothing takes focus on arm, and the markup has no stray element.
+His screenshot settled it: the artifact is OUTSIDE the pill. Cause is
+`.pill[aria-pressed="true"] { transform: translateY(1px) }`, which promotes the
+pill to its own compositing layer on iOS. That layer contains `.rec-lamp`, whose
+`rec-pulse` animates a box-shadow glow spilling past the pill's top-left corner
+(the lamp sits at the left edge), and iOS painted a stray sliver at the expanded
+bounds — blinking, because the animation repainted it; most likely a mis-offset
+slice of the pill's own `0 2px 3px` drop shadow. **This stylesheet has now hit
+the same bug three times** (`.context` and the single-mode chord glyph carry the
+earlier notes), so both latching pills moved to `position: relative; top`, and a
+source test pins them transform-free — verified to fail when the transform is put
+back. The artifact is WebKit-only, so no measurement here could have caught it.
+
+**The beat lamp was never a CSS problem.** His note was that it "gets a little
+spotty at high tempos, like it doesn't fully light every time it should", which
+reads exactly like an animation failing to restart — and the restart (remove
+class, force reflow, re-add) was already correct. The real cause is in
+`metronome.js`'s frame loop, which drained every due queue entry but kept only
+the last: `while (...) current = queue.shift()`. That is **right for the
+playhead** — only the final cell is painted, so intermediate positions are
+invisible — and **silently wrong for anything edge-triggered**. The beat lamp
+pulses only on odd slots, so a frame spanning two slots swallowed the beat and
+kept the offbeat, and that beat never flashed at all. High tempo makes it worse
+because the slots are closest together (an 8th is 125ms at 240bpm), so an
+ordinary late frame covers two. Now every due slot is reported, in order.
+Two drafts of the test were wrong before one was right, and both wrongs are
+recorded at the test: the first jumped the clock 1.0s and only proved the
+`MAX_DRIFT` freeze backstop works; the second counted count-in entries, which
+route to `onCountIn`, not `onStep`. The working version stubs `requestAnimationFrame`
+so the frame can be driven by hand — rAF is paused in the hidden tab the suite
+runs in — and fails on the old loop with "got 1".
+
+**The icon: a recolour, then his own artwork, which superseded it.** His first
+note was that the hand looked "too desaturated, just looks off white"; that was
+built as a palette substitution in `make_icons.py` (all five of the mark's flats
+measured, cream → Jerry `accent`), and two attempts at it were wrong in ways
+worth keeping: rebuilding each pixel from its weights **discarded the master's
+own resample noise** and took DISC from 9.9% of the image to 20.9% — a silent
+repaint on top of the recolour asked for — and the corrected version still
+dragged the **teal thumbpick**, which sits 1.56 from the border/disc/cream plane
+with a cream weight of 0.959, so no model-fit test can separate it. Then he
+supplied **new artwork**, and it replaced all of that. It is a finished
+full-bleed RGBA icon with its own frame, own rounded corners and own palette,
+which inverts the pipeline's assumptions: FIT is 1.0, the maskable safe-zone
+abort is retired (an icon whose frame IS the edge reaches r=0.588 by
+construction, so that check would fire on every run), and the recolour machinery
+is deleted rather than left dead. **The one thing that would have shipped
+broken:** `read_png` truncated alpha, so the transparent corners decoded to pure
+black — the exact artifact its sibling `write_png` warns about. It composites
+now, and a new abort checks the finished 512's corners, verified to fire.
+Accepted, measured cost: the manifest still says `purpose: "any maskable"`, and
+Android's circle mask crops the frame into arcs. Android is not a shipping
+target and it is one line to reverse.
+
+**UI sound during a take is now allowed — reverses v2.8.2, his call.** The old
+rule silenced every UI voice while the transport ran, and its reasoning is still
+true, just no longer decisive: the web can't read the iOS ring switch, and
+playback is the only window in which the app holds the audio category that
+overrides it. What overturned it is that UI sound has **its own Preferences
+lamp** — switching it off is a clearer contract than a voice that vanishes for
+reasons you can neither see nor predict. All four voices moved together
+(press/release, the wheel's detent, edit mode's thock); they were one policy, and
+splitting them would leave the wheel silent over a take while the button beside
+it clicked.
+
+**×1 gets one pass lamp per bar** (his ask), simply marking the sounding bar —
+worth having once four bars wrap to a 2×2 and the playhead only tells you the
+column. `renderGrid` takes a COUNT now rather than an `x2` flag, and **0 in
+single mode is load-bearing**: `.bar-header:empty` collapses the header, so a
+lamp there would un-collapse it and spend 26px of the height budget to say what
+the playhead already says on one bar.
+
+**The Save sheet's keyboard shove, partially.** A `syncSheetToViewport` already
+pinned the sheet to the visual viewport; nothing stopped the DOCUMENT scrolling,
+which is what slid the grid up behind it. A scroll guard undoes that — legitimate
+rather than a hack, since the app declares itself unscrollable — plus a `focusin`
+sync so the sheet pins before iOS decides whether to shove the page. **Least
+certain item in the batch:** if iOS is panning the visual viewport rather than
+scrolling the document, no CSS prevents it, and that needs instrumenting on his
+phone rather than a fourth guess.
+
+**Not diagnosed: Play going dead after help mode.** Both obvious candidates were
+ruled out — `ui-sound.js` caches a single AudioContext (no exhaustion), and
+`start()` already drops and rebuilds a context that won't resume. The symptom
+("had to restart the app") fits the interrupted-context family, but `recoverAudio()`
+only runs on return to foreground, so nothing retries if the app was never
+backgrounded. Left open pending one detail: whether the Play button stayed on the
+stop icon or sprang back, which separates "start failed and reported it" from
+"start succeeded but produced no sound".
 
 ---
 

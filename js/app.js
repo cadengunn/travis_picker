@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.19.0";
+const APP_VERSION = "v3.20.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -249,9 +249,10 @@ function fillSelectGrouped(select, groups) {
 // The <select> itself is unchanged and still holds all 36 as flat options, so
 // it remains the source of truth (see wheel.js).
 const chordWheel = createChordWheel({
-  // The detent obeys the same silent-switch policy as the buttons: no UI sound
-  // while the transport holds the audio category that overrides the ring switch.
-  tick: () => { if (!metronome.running) playTick(); },
+  // The detent sounds whenever UI sound is on, transport or not (session 47).
+  // See the ui-sound listeners near the bottom of this file for why the old
+  // "silent while the transport runs" rule was dropped.
+  tick: () => playTick(),
   gate: wheelGate,
 });
 // The Options sheet's field shows the two halves separately under their own
@@ -261,7 +262,7 @@ const chordWheel = createChordWheel({
 // through the panel's own `commit` — that targets #progression — so it gets its
 // own committer, looked up at call time rather than captured.
 const keyProgWheel = createKeyProgWheel({
-  tick: () => { if (!metronome.running) playTick(); },
+  tick: () => playTick(),
   keySelect: () => el("key"),
   commitKey: (v) => commit(el("key"), v),
   gate: wheelGate,
@@ -644,11 +645,17 @@ function render() {
   const chords = phraseChords();                       // un-doubled, ≤4 bars on screen
   const phrase = resolvePhrase(state.pattern, chords);  // what's DRAWN
   const x2 = x2Active();
+  const progression = state.chordMode === "progression";
+  // Lamp COUNT, not a ×2 flag (session 47): 2 under ×2, 1 under ×1, and 0 in
+  // single mode — where the bar header is otherwise empty and collapses, so a
+  // lamp would cost 26px to say what the playhead already says on one bar.
+  // Distinct from `passesPerBar` below, which is the audio→screen bar mapping.
+  const passes = progression ? (x2 ? 2 : 1) : 0;
   renderGrid(el("grid"), phrase, {
     labelMode: state.labelMode,
-    editableChords: state.chordMode === "progression",
+    editableChords: progression,
     editable: state.editing,
-    x2,
+    passes,
   });
   // The per-bar chord <select>s are rebuilt every render; give them the same
   // wheel as the Options sheet's chord (idempotent per element).
@@ -1089,11 +1096,16 @@ function highlightColumn(pos) {
     `.cell[data-bar="${screenBar}"][data-slot="${pos.slot}"]`
   )];
   for (const c of litCells) c.classList.add("playing");
-  highlightPassLamps(passesPerBar > 1 ? screenBar : null, pass);
+  // Unconditional since session 47: ×1 lights its single lamp too, and under ×1
+  // splitAudioBar always reports pass 0, so the same call covers both. Single
+  // mode renders no lamps at all, so the lookup simply finds nothing there —
+  // self-guarding, rather than a mode test that could drift from the markup.
+  highlightPassLamps(screenBar, pass);
 }
 
-// The two pass lamps in a bar's header: left lights on the first pass through
-// that bar's chord, right on the second. Same direct-DOM-touch approach as the
+// The pass lamps in a bar's header. Under ×2 there are two — left lights on the
+// first pass through that bar's chord, right on the second; under ×1 there is one
+// and it simply marks the sounding bar. Same direct-DOM-touch approach as the
 // cell highlight, for the same reason (no re-render mid-playback).
 let litLamps = [];
 function highlightPassLamps(screenBar, pass) {
@@ -2145,20 +2157,36 @@ function attach() {
     return seg.classList.contains("active") || !!seg.closest("[data-locked]");
   };
 
-  let pressSilenced = false;
+  // UI SOUND DURING A TAKE: ALLOWED (session 47, his call — REVERSES v2.8.2).
+  //
+  // The old rule silenced every UI voice while the transport ran. The reasoning
+  // was sound and is kept here because it is still TRUE, just no longer decisive:
+  // the web cannot read the iOS ring switch, and playback is the only window in
+  // which we hold the `playback` audio category that overrides it — so muting
+  // buttons there is what made a silenced phone genuinely silent while the
+  // metronome and melody (audio you asked for) still came through.
+  //
+  // What overturned it: the UI sound has its own Preferences lamp. Anyone bothered
+  // by clicks over a take can switch them off, and that is a clearer contract than
+  // a voice that vanishes for reasons the user can neither see nor predict. The
+  // cost is the accepted side effect in reverse — with the ringer OFF you now hear
+  // button clicks during a take unless you turn the lamp off.
+  //
+  // All four voices moved together (press/release here, the wheel's detent and
+  // edit mode's thock above): they were one policy, and splitting them would make
+  // the wheel silent over a take while the button beside it clicked.
   let pressNoop = false;
   document.addEventListener("pointerdown", (e) => {
     let s = pressStrength(e);
     if (s == null && (overOpenTrigger(e) || overOpenDie(e))) s = 0.82;
     if (s == null) return;
-    pressSilenced = metronome.running;
     pressNoop = seatedLatch(e);
-    if (!pressSilenced && !pressNoop) playPress(s);
+    if (!pressNoop) playPress(s);
   });
   document.addEventListener("pointerup", (e) => {
     let s = pressStrength(e);
     if (s == null && (overOpenTrigger(e) || overOpenDie(e))) s = 0.82;
-    if (s == null || pressSilenced || pressNoop) return;
+    if (s == null || pressNoop) return;
     playRelease(s);
   });
 
@@ -2230,10 +2258,10 @@ function attach() {
       chordId: chords[screenBar],
     });
     // A felt-on-board "thock" on every place/delete, so editing has the same
-    // tactile confirmation the rest of the app does. Silenced while the transport
-    // runs, exactly like the button ka-chunk (the ring-switch rule) — grid cells
-    // are excluded from pressStrength(), so this is their only voice.
-    if (!metronome.running) playPlace();
+    // tactile confirmation the rest of the app does. Grid cells are excluded from
+    // pressStrength(), so this is their only voice. It sounds during a take too
+    // (session 47) — same reversal as the button ka-chunk below.
+    playPlace();
     state.unsavedEdits = true;
     markDirty();
     render();
@@ -2310,6 +2338,26 @@ function attach() {
     window.visualViewport.addEventListener("resize", syncSheetToViewport);
     window.visualViewport.addEventListener("scroll", syncSheetToViewport);
   }
+  // …and pin it as soon as the field takes focus, not only once the keyboard has
+  // finished animating. iOS decides whether it needs to shove the page during
+  // that animation, so waiting for the resize event is already too late.
+  document.addEventListener("focusin", syncSheetToViewport);
+
+  // THE DOCUMENT MUST NEVER SCROLL (session 47, his report: opening Save "pushes
+  // the entire background up"). Focusing the name field makes iOS scroll the
+  // document to reveal the input, which slides the whole app — grid included —
+  // upward behind the sheet. The sheet itself is already pinned to the visual
+  // viewport by syncSheetToViewport, so that scroll is pure damage.
+  //
+  // Undoing it is legitimate rather than a hack: the app is a locked one-screen
+  // instrument that declares `overflow: hidden` and `touch-action: pan-y`
+  // precisely so the page can't move (see the stylesheet's document-lock note),
+  // so a non-zero window scroll is always something the OS did, never something
+  // the user asked for. `main` keeps its own overflow — that's the deliberate
+  // safety valve for screens too small for the grid, and it is untouched here.
+  window.addEventListener("scroll", () => {
+    if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
+  }, { passive: true });
   el("options-sheet").addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) setOptionsOpen(false);
   });
