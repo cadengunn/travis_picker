@@ -91,7 +91,7 @@ export function fitFace(face) {
 // `groupLocked` and a FALSE return from `onSettle` are the paywall's two hooks.
 // Both are callbacks, exactly like `tick`, so this module still knows nothing
 // about entitlement — app.js owns that and hands the answers in.
-function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked }, { tick, settleMs }) {
+function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked, valueLocked }, { tick, settleMs }) {
   const drum = document.createElement("div");
   drum.className = `drum drum-${cls}`;
   parent.appendChild(drum);
@@ -195,11 +195,15 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked },
         cell.className = "reel-head";
         cell.setAttribute("aria-hidden", "true");
         face.classList.add("reel-head-face");
-        // A LOCKED FAMILY WEARS ONE LOCK ON ITS ENGRAVED CAPTION, never a mark on
-        // each face. The faces are width-starved — fitFace() already shrinks them
-        // to a 10.5px floor and ellipsizes below it (session 45b) — and on a
-        // barrel a caption names everything below it until the next one, so one
-        // lock per family is both cheaper and clearer. APP_STORE.md 0.1.
+        // A WHOLLY locked family wears ONE lock on its engraved caption. The
+        // faces are width-starved — fitFace() already shrinks them to a 10.5px
+        // floor and ellipsizes below it (session 45b) — and on a barrel a caption
+        // names everything below it until the next one, so one mark per family is
+        // both cheaper and clearer.
+        //
+        // A PARTIALLY locked family gets no caption lock (it would lie about the
+        // free members) and marks its locked FACES instead — see below. That case
+        // exists because the Sevenths family splits: dom7 free, maj7/m7 paid.
         if (groupLocked && groupLocked(row.label)) {
           cell.classList.add("reel-head-locked");
           const lock = document.createElement("span");
@@ -216,11 +220,24 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked },
       cell.appendChild(face);
       el.appendChild(cell);
       // Lighter than `data-locked`'s 0.55 on purpose: these are names you still
-      // have to read while deciding whether to buy them, and the engraved caption
-      // above already carries the actual lock.
-      const locked = !!(groupLocked && row.group && groupLocked(row.group));
-      if (locked) cell.classList.add("reel-item-locked");
-      faces.push({ cell, face, head: row.head, dim: row.head ? (groupLocked && groupLocked(row.label) ? 0.8 : 1) : (locked ? 0.62 : 1) });
+      // have to read while deciding whether to buy them, and where the caption
+      // carries a lock it is already saying so.
+      const headLocked = row.head && !!(groupLocked && groupLocked(row.label));
+      const famLocked = !row.head && !!(groupLocked && row.group && groupLocked(row.group));
+      const ownLocked = !row.head && !!(valueLocked && valueLocked(row.value));
+      if (famLocked || ownLocked) cell.classList.add("reel-item-locked");
+      // Its OWN lock only where the family isn't wholly locked — otherwise the
+      // caption above has already said it once, and repeating it per face is the
+      // width cost this design exists to avoid.
+      if (ownLocked && !famLocked) {
+        const lock = document.createElement("span");
+        lock.className = "tier-lock";
+        face.appendChild(lock);
+      }
+      faces.push({
+        cell, face, head: row.head,
+        dim: row.head ? (headLocked ? 0.8 : 1) : (famLocked || ownLocked ? 0.62 : 1),
+      });
     });
     el.appendChild(pad.cloneNode());
     // Fit the type BEFORE positioning: measuring needs the reel laid out, which
@@ -397,6 +414,7 @@ export function createChordWheel({ tick = () => {}, settleMs = SETTLE_MS, gate =
         items: () => QUALITIES.map((q) => ({ value: q.id, label: q.name, group: q.group })),
         value: () => chosen.quality,
         groupLocked: gate ? (label) => gate.qualityGroupLocked(label) : null,
+        valueLocked: gate ? (v) => gate.qualityFaceLocked(v) : null,
         onSettle: (v) => {
           // Refuse rather than commit: the barrel turns back and the unlock sheet
           // opens. The ROOT reel is never gated — all twelve are free, and the
@@ -405,6 +423,11 @@ export function createChordWheel({ tick = () => {}, settleMs = SETTLE_MS, gate =
             return gate.refuse("quality", v).then((bought) => {
               if (!bought) return false;
               chosen.quality = v; apply();
+              // RE-CUT THE OPEN REELS (his note): the panel stays up after a
+              // purchase, so without this the locks and the dimming sit there
+              // stale until you close and reopen the selector. `open()` is
+              // setItems(items(), value()), which re-asks the gate for every row.
+              for (const r of reels) r.open();
               return true;
             });
           }
@@ -470,6 +493,7 @@ export function createKeyProgWheel({ tick = () => {}, settleMs = SETTLE_MS, keyS
             return gate.refuse("progression", v).then((bought) => {
               if (!bought) return false;
               commit(v);
+              for (const r of reels) r.open();   // same stale-locks fix as the chord wheel
               return true;
             });
           }

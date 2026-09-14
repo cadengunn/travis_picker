@@ -17,8 +17,25 @@
 // every face. It also means a chord or progression added later inherits its
 // family's tier for free, with no list here to keep in sync.
 
-export const FREE_QUALITY_GROUPS = ["Triads", "Sevenths"];
-export const FREE_PROGRESSION_STYLES = ["Foundations", "Folk & Roots", "Minor Descends"];
+// FREE CHORD QUALITIES — by id, NOT by engraved group (his call, session 46e).
+//
+// This deliberately breaks the tidy "tier boundary == section boundary" rule the
+// first cut was built on, and the reason is musical: the Sevenths family splits.
+// DOMINANT 7 is the characteristic sound of Travis picking, ragtime and Piedmont
+// blues — a demo without it doesn't demonstrate the thing the app teaches — while
+// maj7 and m7 are colour chords worth charging for.
+//
+// The cost is real and is paid in wheel.js: a PARTIALLY locked family can't be
+// marked by its caption alone, so those faces carry their own locks. A wholly
+// locked family still gets one caption lock, which is where the width economy
+// actually mattered. His call, unprompted: "we can just put the lock next to each
+// chord voicings instead of the headers if we need to."
+export const FREE_QUALITIES = ["major", "minor", "dom7"];
+
+// Minor Blues rather than Minor Descends (his call, session 46e). Both are
+// coherent now that dominant 7 is free — Minor Blues is i–iv–V7 twice over, and
+// its V7 is a chord a free user can also reach on the wheel.
+export const FREE_PROGRESSION_STYLES = ["Foundations", "Folk & Roots", "Minor Blues"];
 
 // Saving works in the free tier and stops at 3 (his call) — a far better demo
 // than no saving at all. BUILT-INS ARE EXEMPT: `seedNewBuiltins()` puts five real
@@ -40,8 +57,8 @@ export const STORE_KEY = "tp-tier";
 // features" — "adds Ragtime / Piedmont and Classic Country" is a real pitch and
 // a greyed control is not. Order is roughly by how much a player would want it.
 export const UNLOCK_BENEFITS = [
-  "All 120 chords — 6, m6, sus2, sus4 and add9 on every root",
-  "All 18 progressions — Ragtime / Piedmont, Classic Country, Classic Standards, Modern Pop, Minor Blues, Modern Minor",
+  "All 120 chords — maj7, m7, 6, m6, sus2, sus4 and add9 on every root",
+  "All 18 progressions — Ragtime / Piedmont, Classic Country, Classic Standards, Modern Pop, Minor Descends, Modern Minor",
   "Save your own progressions in any key",
   "×2 mode — let each chord ring for two bars",
   "An unlimited pattern library, with folders",
@@ -100,8 +117,13 @@ export function createEntitlement({ store = null, search = "" } = {}) {
       return paid;
     },
 
-    // --- the two drums, gated by their engraved section ---
-    qualityGroupLocked: (group) => !paid && !FREE_QUALITY_GROUPS.includes(group),
+    // --- the two drums ---
+    qualityLocked: (id) => !paid && !FREE_QUALITIES.includes(id),
+    // A FAMILY is locked only when EVERY quality in it is. Takes the ids rather
+    // than the group name so this module still knows nothing about data.js —
+    // app.js owns the group → qualities mapping.
+    groupLocked: (qualityIds = []) =>
+      !paid && qualityIds.length > 0 && qualityIds.every((id) => !FREE_QUALITIES.includes(id)),
     progressionStyleLocked: (style) => !paid && !FREE_PROGRESSION_STYLES.includes(style),
 
     // --- whole features ---

@@ -134,11 +134,17 @@ async function showUnlockSheet(lead) {
 // The paywall as the DRUMS see it — plain callbacks, so wheel.js stays free of
 // entitlement entirely (same trick as `tick`). `refuse` is what turns a settle
 // on a locked family into the unlock sheet plus a barrel that turns back.
+const qualityIdsIn = (group) => QUALITIES.filter((q) => q.group === group).map((q) => q.id);
 const wheelGate = {
-  qualityGroupLocked: (label) => tier.qualityGroupLocked(label),
-  qualityLocked: (id) => {
-    const g = QUALITIES.find((q) => q.id === id)?.group;
-    return g ? tier.qualityGroupLocked(g) : false; // unknown id: never refuse
+  // A family is locked only when EVERY quality in it is — which Sevenths no
+  // longer is, since dom7 is free (entitlement.js).
+  qualityGroupLocked: (label) => tier.groupLocked(qualityIdsIn(label)),
+  qualityLocked: (id) => tier.qualityLocked(id),
+  // Its own lock only where the family is PARTIALLY locked; a wholly locked
+  // family is already marked once, on its caption.
+  qualityFaceLocked: (id) => {
+    const q = QUALITIES.find((x) => x.id === id);
+    return !!q && tier.qualityLocked(id) && !tier.groupLocked(qualityIdsIn(q.group));
   },
   progressionStyleLocked: (label) => tier.progressionStyleLocked(label),
   progressionLocked: (id) => {
@@ -152,14 +158,14 @@ const wheelGate = {
   // to, rather than snapping the barrel away from a chord he just paid for.
   refuse: (kind) => showUnlockSheet(
     kind === "quality"
-      ? "That chord family is part of the full set — 6, m6, sus2, sus4 and add9 on every root."
+      ? "That chord is part of the full set — maj7, m7, 6, m6, sus2, sus4 and add9 on every root."
       : "That progression family is part of the full set."
   ),
 };
 
 // Pools the DIE may draw from. Without these it would hand you a chord or a
 // progression you can't select — a roll you have to undo is worse than no roll.
-const rollableChords = () => CHORD_IDS.filter((id) => !wheelGate.qualityLocked(splitChordId(id)?.quality));
+const rollableChords = () => CHORD_IDS.filter((id) => !tier.qualityLocked(splitChordId(id)?.quality));
 const rollableProgression = (p) => !tier.progressionStyleLocked(p.style);
 
 // Re-applies every tier lock. Called from render(), the one funnel all of these
@@ -187,7 +193,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.16.1";
+const APP_VERSION = "v3.17.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle

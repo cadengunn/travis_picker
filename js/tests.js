@@ -90,7 +90,7 @@ import { isNav, helpTargetFor, createHelp, NAV_SELECTOR } from "./help.js";
 import { createWakeLock, createAudioSession, createAppUpdater, createPlaybackGuard } from "./platform.js";
 import { chordBoxModel, renderChordBox, BOX_FRETS } from "./chordbox.js";
 import {
-  createEntitlement, FREE_QUALITY_GROUPS, FREE_PROGRESSION_STYLES,
+  createEntitlement, FREE_QUALITIES, FREE_PROGRESSION_STYLES,
   FREE_SAVE_SLOTS, PAID_FEATURES, UNLOCK_BENEFITS, STORE_KEY,
 } from "./entitlement.js";
 
@@ -4680,33 +4680,41 @@ check("?tier=free and ?tier=paid set the tier and persist it", () => {
   assert(createEntitlement({ store }).unlocked() === true, "?tier=paid must persist too");
 });
 
-check("free tier gates chords and progressions by their ENGRAVED GROUP", () => {
+check("free tier gates chords by QUALITY, and the Sevenths family SPLITS", () => {
   const free = createEntitlement({ store: memStore(), search: "?tier=free" });
-  assert(free.qualityGroupLocked("Sixths"), "Sixths must be locked in the free tier");
-  assert(free.qualityGroupLocked("Added"), "Added must be locked in the free tier");
-  assert(!free.qualityGroupLocked("Triads"), "Triads must be free");
-  // Sevenths are free because this style is BUILT on dominant 7ths — locking
-  // them would musically cripple the demo. See APP_STORE.md 0.1.
-  assert(!free.qualityGroupLocked("Sevenths"), "Sevenths must be free");
+  const ids = (g) => QUALITIES.filter((q) => q.group === g).map((q) => q.id);
+  // DOMINANT 7 IS FREE and maj7/m7 are not (his call, session 46e): dom7 is the
+  // characteristic sound of this style, so a demo without it doesn't demonstrate
+  // the thing the app teaches. maj7/m7 are colour chords.
+  assert(!free.qualityLocked("dom7"), "dominant 7 must be free");
+  assert(free.qualityLocked("maj7") && free.qualityLocked("min7"), "maj7 and m7 must be paid");
+  assert(!free.qualityLocked("major") && !free.qualityLocked("minor"), "the triads must be free");
+  assert(free.qualityLocked("maj6") && free.qualityLocked("add9"), "the colour families must be paid");
+  // A FAMILY is locked only when EVERY quality in it is — which is what decides
+  // whether the barrel marks a caption or the individual faces.
+  assert(!free.groupLocked(ids("Sevenths")), "Sevenths is only PARTIALLY locked, so its caption must not claim otherwise");
+  assert(free.groupLocked(ids("Sixths")) && free.groupLocked(ids("Added")), "wholly paid families must read as locked");
+  assert(!free.groupLocked(ids("Triads")), "Triads must not read as locked");
   assert(free.progressionStyleLocked("Ragtime / Piedmont"), "Ragtime must be locked");
   assert(!free.progressionStyleLocked("Foundations"), "Foundations must be free");
   assert(free.featureLocked("x2") && free.featureLocked("customProgressions"),
     "x2 and custom progressions must be locked in the free tier");
+  assert(!free.featureLocked("restore"), "Restore only returns free content and must never be gated");
 });
 
 check("paid tier locks NOTHING", () => {
   const paid = createEntitlement({ store: memStore(), search: "?tier=paid" });
-  for (const q of QUALITIES) assert(!paid.qualityGroupLocked(q.group), `${q.group} must be free when unlocked`);
+  for (const q of QUALITIES) assert(!paid.qualityLocked(q.id), `${q.id} must be free when unlocked`);
   for (const p of PROGRESSIONS) assert(!paid.progressionStyleLocked(p.style), `${p.style} must be free when unlocked`);
   for (const f of PAID_FEATURES) assert(!paid.featureLocked(f), `${f} must be free when unlocked`);
   assert(paid.slotsLeft([]) === Infinity, "the paid library is unlimited");
 });
 
-check("every FREE_* group name matches a real group in the data", () => {
-  // A TYPO HERE WOULD SILENTLY LOCK A WHOLE FAMILY, and nothing else would say
-  // so — the gate is a string compare against a field the data owns.
-  const groups = new Set(QUALITIES.map((q) => q.group));
-  for (const g of FREE_QUALITY_GROUPS) assert(groups.has(g), `FREE_QUALITY_GROUPS has no such group: "${g}"`);
+check("every FREE_* name matches something real in the data", () => {
+  // A TYPO HERE WOULD SILENTLY LOCK A CHORD OR A WHOLE FAMILY, and nothing else
+  // would say so — the gate is a string compare against fields the data owns.
+  const qids = new Set(QUALITIES.map((q) => q.id));
+  for (const id of FREE_QUALITIES) assert(qids.has(id), `FREE_QUALITIES has no such quality: "${id}"`);
   const styles = new Set(PROGRESSIONS.map((p) => p.style));
   for (const st of FREE_PROGRESSION_STYLES) assert(styles.has(st), `FREE_PROGRESSION_STYLES has no such style: "${st}"`);
 });
@@ -4751,7 +4759,7 @@ check("a refused store never throws, and the session tier still holds", () => {
 check("the unlock sheet names families, not 'premium features'", () => {
   const blob = UNLOCK_BENEFITS.join(" ");
   assert(UNLOCK_BENEFITS.length >= 4, "the sheet needs a real list of what you get");
-  assert(/Ragtime/.test(blob) && /sus4|add9/.test(blob),
+  assert(/Ragtime/.test(blob) && /maj7/.test(blob) && /sus4|add9/.test(blob),
     "the benefits must name the actual locked families — a free user can't see inside a locked section");
   assert(!/premium/i.test(blob), "'premium features' says nothing; name the families");
 });
@@ -4779,13 +4787,12 @@ check("the die can never roll a chord or progression you can't select", () => {
   // A roll you have to undo is worse than no roll. randomChord takes a POOL and
   // randomKeyProgression takes an ALLOW predicate for exactly this.
   const free = createEntitlement({ store: memStore(), search: "?tier=free" });
-  const qOf = (id) => QUALITIES.find((q) => q.id === splitChordId(id)?.quality)?.group;
-  const pool = CHORD_IDS.filter((id) => !free.qualityGroupLocked(qOf(id)));
-  assert(pool.length === 60, `the free chord pool should be 60 chords, got ${pool.length}`);
+  const pool = CHORD_IDS.filter((id) => !free.qualityLocked(splitChordId(id)?.quality));
+  assert(pool.length === 36, `the free chord pool should be 36 chords (3 qualities x 12 roots), got ${pool.length}`);
   const rng = seeded(7);
   for (let i = 0; i < 300; i++) {
     const c = randomChord("E", rng, pool);
-    assert(!free.qualityGroupLocked(qOf(c)), `the die rolled a locked chord: ${c}`);
+    assert(!free.qualityLocked(splitChordId(c)?.quality), `the die rolled a locked chord: ${c}`);
   }
   const allow = (p) => !free.progressionStyleLocked(p.style);
   for (let i = 0; i < 200; i++) {
@@ -4799,8 +4806,7 @@ check("the free chord pool still covers every ROOT", () => {
   // The tier splits on QUALITY only — all twelve roots stay reachable, so the
   // free tier can still drill the awkward keys.
   const free = createEntitlement({ store: memStore(), search: "?tier=free" });
-  const qOf = (id) => QUALITIES.find((q) => q.id === splitChordId(id)?.quality)?.group;
-  const roots = new Set(CHORD_IDS.filter((id) => !free.qualityGroupLocked(qOf(id)))
+  const roots = new Set(CHORD_IDS.filter((id) => !free.qualityLocked(splitChordId(id)?.quality))
     .map((id) => splitChordId(id).root));
   assert(roots.size === ROOTS.length, `every root must stay reachable, got ${roots.size}/${ROOTS.length}`);
 });
@@ -4835,17 +4841,56 @@ acheck("a refused settle never writes the locked value to the <select>", async (
     "onSettle may return a PROMISE, so the barrel can linger under the unlock sheet and roll back only once it closes");
 });
 
-acheck("a locked FAMILY is marked on its header, never on each face", async () => {
+acheck("a WHOLLY locked family is marked once on its header, never per face", async () => {
   // Faces are width-starved — fitFace() already shrinks to a 10.5px floor and
-  // ellipsizes below it — so a glyph per face would eat the labels.
+  // ellipsizes below it — so a glyph on every face would eat the labels.
+  //
+  // ⚠️ THIS TEST USED TO SAY "never on each face", FULL STOP. Session 46e
+  // overturned that deliberately: dom7 is free while maj7/m7 are paid, so the
+  // Sevenths family is only PARTIALLY locked and a caption lock would lie about
+  // it. The width argument is unchanged and still binding — it is just now scoped
+  // to families that are wholly locked, which is where it actually bought
+  // anything.
   const src = await (await fetch("js/wheel.js")).text();
   const setItems = src.match(/function setItems\([\s\S]*?\n  \}\n/)?.[0] || "";
   assert(setItems, "setItems must exist");
   assert(/row\.head[\s\S]*?groupLocked\(row\.label\)/.test(setItems),
-    "the lock must hang off the HEADER row, keyed on the group label");
-  // The option branch must stay clean of it.
-  const optBranch = setItems.split("} else {")[1] || "";
-  assert(!/tier-lock/.test(optBranch), "no lock may be added to an option face");
+    "a wholly locked family's lock must hang off the HEADER row, keyed on the group label");
+  assert(/if \(ownLocked && !famLocked\)/.test(setItems),
+    "a face may carry its own lock ONLY where its family is not wholly locked — otherwise the caption already said it");
+});
+
+
+check("a PARTIALLY locked family marks its faces, a WHOLLY locked one marks its caption", () => {
+  // The whole width economy of the header lock depends on this split. Sevenths
+  // is the case that forced it: dom7 free, maj7/m7 paid, so a caption lock would
+  // lie about the family and no lock at all would leave two dead detents.
+  const free = createEntitlement({ store: memStore(), search: "?tier=free" });
+  const ids = (g) => QUALITIES.filter((q) => q.group === g).map((q) => q.id);
+  const faceLocked = (id) => {
+    const q = QUALITIES.find((x) => x.id === id);
+    return !!q && free.qualityLocked(id) && !free.groupLocked(ids(q.group));
+  };
+  assert(faceLocked("maj7") && faceLocked("min7"),
+    "maj7 and m7 must carry their OWN lock — their family is only partially locked");
+  assert(!faceLocked("dom7"), "a free quality must never be marked");
+  // Everything in a wholly locked family is marked ONCE, on the caption.
+  for (const id of ids("Sixths").concat(ids("Added"))) {
+    assert(!faceLocked(id), `${id} must not repeat its family's caption lock on its own face`);
+  }
+});
+
+acheck("a purchase re-cuts the OPEN reels, so the locks don't sit there stale", async () => {
+  // His note: buying from the wheel worked, but "the locks and greyed out
+  // appearance remain until I close and reopen the selector". The panel stays
+  // open by design after a settle, so it has to be re-asked.
+  const src = await (await fetch("js/wheel.js")).text();
+  const buys = src.match(/if \(!bought\) return false;[\s\S]*?return true;/g) || [];
+  assert(buys.length === 2, `both wheels must handle a purchase, found ${buys.length}`);
+  for (const b of buys) {
+    assert(/for \(const r of reels\) r\.open\(\)/.test(b),
+      "a purchase must re-cut the open reels — open() is setItems(items(), value()), which re-asks the gate for every row");
+  }
 });
 
 // ---- render report ----
