@@ -1423,6 +1423,20 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.17.3, 171/171 green.** Session 46h **BACKED OUT the `100dvh` root-box
+change** of v3.17.1. The reasoning was sound and the iOS behaviour is real, but
+**it did not fix the Safari layout difference** (he shipped it, confirmed the
+version, symptom unchanged) and a shorter root box is exactly what leaves the
+tweed unpainted along the bottom edge in standalone — which he noticed in the
+same session. Two guesses, both wrong, so there is now an **instrument instead**:
+`?debug=1` (sticky in localStorage, same trick as `?tier=`, so it reaches the
+INSTALLED app too) draws a fixed overlay with `innerHeight`, `visualViewport`,
+all four viewport units, both safe-area insets and the box of every layout
+element. **TEMPORARY — delete it once the layout question is settled.** Note the
+dev box cannot see any of this: vh == dvh == svh == lvh and both insets are 0
+here. Minor Descends also moved last among the minor families (his call, it's the
+most niche).
+
 **v3.17.2, 172/172 green.** Session 46g simplified the lock rule to **one mark
 per locked FACE, and nothing on a header** (his call). The caption lock existed
 to save face width — real, but it only paid off on a tight barrel and it cost a

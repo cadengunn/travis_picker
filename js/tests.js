@@ -4880,24 +4880,6 @@ acheck("a purchase re-cuts the OPEN reels, so the locks don't sit there stale", 
 });
 
 
-acheck("the root box tracks the DYNAMIC viewport, not the initial containing block", async () => {
-  // Invisible from inside the app and silent when wrong — which is why it is
-  // pinned at the source, the same argument as sw.js's `cache: "reload"`.
-  // `html { height: 100% }` resolves against the INITIAL CONTAINING BLOCK, which
-  // on iOS Safari is the LARGE viewport (as if the collapsible toolbars weren't
-  // there). In a tab that makes the body taller than what you can see, and
-  // `.stage`'s centring then pushes the grid down behind the toolbar — his
-  // session-46f report. Standalone has no toolbars, so the same CSS looks right,
-  // which is exactly why it hid for so long.
-  const css = await (await fetch("css/styles.css")).text();
-  const rule = css.match(/html, body \{[\s\S]*?\n\}/)?.[0] || "";
-  assert(rule, "the html, body rule must exist");
-  assert(/height: 100%;/.test(rule), "keep the 100% fallback for anything without dvh");
-  assert(/height: 100dvh;/.test(rule), "the root box must be sized in dvh, not just %");
-  assert(rule.indexOf("height: 100dvh;") > rule.indexOf("height: 100%;"),
-    "100dvh must come AFTER the 100% fallback or the cascade keeps the wrong one");
-});
-
 // ---- render report ----
 export async function runTests(mount) {
   for (const { name, fn } of asyncChecks) {

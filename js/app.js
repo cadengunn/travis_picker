@@ -79,6 +79,67 @@ const tier = createEntitlement({
   search: (() => { try { return location.search; } catch { return ""; } })(),
 });
 
+// ---- TEMPORARY: viewport diagnostics (session 46h) ----
+// Two rounds of reasoning about why the grid sits lower in a Safari tab than in
+// the installed app were both wrong, so this measures instead. `?debug=1` turns
+// it on and PERSISTS, exactly like `?tier=` — which is the point: a query string
+// can't be handed to an installed PWA, but localStorage is shared with the
+// Safari tab on the same origin, so setting it once in Safari lights it up in
+// both. `?debug=0` clears it. DELETE THIS once the layout question is settled.
+function viewportDebug() {
+  let on = false;
+  try { on = localStorage.getItem("tp-debug") === "1"; } catch {}
+  try {
+    const m = /[?&]debug=([01])/.exec(location.search);
+    if (m) { on = m[1] === "1"; localStorage.setItem("tp-debug", m[1]); }
+  } catch {}
+  if (!on) return;
+
+  // `position: fixed` + `pointer-events: none` so it can't disturb the very
+  // layout it is measuring, or swallow a tap.
+  const box = document.createElement("pre");
+  box.style.cssText = "position:fixed;left:4px;top:4px;z-index:99999;margin:0;"
+    + "font:9px/1.25 ui-monospace,Menlo,monospace;color:#fff;background:rgba(0,0,0,.72);"
+    + "padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre;";
+  document.body.appendChild(box);
+
+  // A probe reads the viewport units and the safe-area insets as the browser
+  // actually resolves them, rather than trusting what they ought to be.
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;pointer-events:none;";
+  document.body.appendChild(probe);
+  const px = (v) => { probe.style.height = v; return Math.round(probe.getBoundingClientRect().height); };
+
+  const rect = (sel) => {
+    const e = document.querySelector(sel);
+    if (!e) return "—";
+    const r = e.getBoundingClientRect();
+    return `${Math.round(r.top)}..${Math.round(r.bottom)} (${Math.round(r.height)})`;
+  };
+
+  const draw = () => {
+    const vv = window.visualViewport;
+    box.textContent = [
+      `standalone ${matchMedia("(display-mode: standalone)").matches}`,
+      `innerH ${innerHeight}  docClientH ${document.documentElement.clientHeight}`,
+      `visualVP ${vv ? Math.round(vv.height) : "—"} @${vv ? Math.round(vv.offsetTop) : "—"}`,
+      `vh ${px("100vh")}  dvh ${px("100dvh")}  svh ${px("100svh")}  lvh ${px("100lvh")}`,
+      `safe top ${px("env(safe-area-inset-top)")} bot ${px("env(safe-area-inset-bottom)")}`,
+      `html ${rect("html")}`,
+      `body ${rect("body")}`,
+      `main ${rect("main")}`,
+      `head ${rect(".app-head")}`,
+      `stage ${rect(".stage")}`,
+      `grid ${rect(".grid-track")}`,
+      `ctrls ${rect(".controls")}`,
+    ].join("\n");
+  };
+  draw();
+  addEventListener("resize", draw);
+  if (window.visualViewport) visualViewport.addEventListener("resize", draw);
+  setInterval(draw, 1000);
+}
+
 // Marks a control as PURCHASABLE: a lock glyph, and `data-tier-locked` for the
 // press handlers to check. Deliberately never touches `disabled` — a disabled
 // button emits no click, so it could not open the unlock sheet, which is the
@@ -184,7 +245,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.17.2";
+const APP_VERSION = "v3.17.3";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -2420,6 +2481,7 @@ async function boot() {
     console.error("Theme load failed; using stylesheet fallback.", err);
     el("theme").hidden = true;
   }
+  viewportDebug();   // TEMPORARY, session 46h — see above
 }
 
 registerServiceWorker(); // before boot, so a boot failure can still be fixed by a deploy
