@@ -2745,37 +2745,28 @@ body.saved-open .pill-help[aria-pressed="true"] {
 
 
 /* ===================================================================== *
- *  ⚠️⚠️  TEMPORARY DIAGNOSTIC — session 46i. DELETE THIS WHOLE BLOCK.   *
+ *  ⚠️⚠️  TEMPORARY DIAGNOSTIC ROUND 2 — session 46i. DELETE THIS BLOCK.  *
  *                                                                       *
- *  Three fixes for the missing tweed along the bottom edge have failed,  *
- *  each of which measured FINE on the dev box. That box is Chromium and  *
- *  his phone is WebKit, and they disagree on exactly the behaviour in    *
- *  question, so a fourth guess from here would be a fourth wrong one.    *
- *  These three markers make his screenshot answer it outright.           *
+ *  Round 1 answered the big question: the CYAN line (the viewport floor, *
+ *  position:fixed bottom:0) sits ABOVE the bare strip, so the strip is   *
+ *  OUTSIDE THE VIEWPORT. No element and no fixed layer can ever paint it *
+ *  — which is why all three earlier fixes failed. Only the propagated    *
+ *  CANVAS BACKGROUND COLOUR can reach there.                             *
  *                                                                       *
- *   MAGENTA  the bottom 40px of BODY'S BACKGROUND POSITIONING AREA.      *
- *            It is an extra background layer, so it goes exactly where   *
- *            the tweed goes. If magenta runs all the way to the bottom   *
- *            of the screen, body's background reaches the band and the   *
- *            texture's absence is a paint bug. If a bare strip sits      *
- *            BELOW the magenta, body's background stops short and no CSS *
- *            on body can ever reach that strip.                          *
- *   LIME     the bottom edge of `.controls`, the transport strip.        *
- *   CYAN     the bottom of the VIEWPORT (position: fixed, bottom: 0).    *
- *            If cyan sits ABOVE the bare strip, the strip is outside the *
- *            viewport entirely — which would explain every failure so    *
- *            far, and would mean the fix cannot be a painted element.    *
+ *  And the vignette can't explain the seam either: worked out properly,  *
+ *  the bottom-CENTRE of a 375x852 box lands at 51.9% of the gradient's   *
+ *  ellipse radius, just inside the `transparent 52%` stop — so the page's*
+ *  bottom edge is essentially pure --faceplate already, and should have  *
+ *  matched the strip. It visibly doesn't.                                *
+ *                                                                       *
+ *  So round 2 asks the only remaining question: CAN I COLOUR THAT STRIP  *
+ *  AT ALL? html gets a flat red. If the strip turns red, the canvas      *
+ *  colour is mine to set and the fix is one line. If it stays pale, the  *
+ *  strip belongs to iOS (manifest background_color / the status-bar      *
+ *  style) and no stylesheet will ever touch it.                          *
+ *  CYAN still marks the viewport floor for reference.                    *
  * ===================================================================== */
-body {
-  background:
-    linear-gradient(to top, magenta 0 40px, transparent 40px),
-    radial-gradient(120% 52% at 50% -8%, rgba(255, 240, 215, 0.10), transparent 62%),
-    radial-gradient(150% 108% at 50% 44%, transparent 52%, rgba(0, 0, 0, 0.34)),
-    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.035) 0 2px, transparent 2px 4px),
-    repeating-linear-gradient(-45deg, rgba(255, 245, 225, 0.018) 0 2px, transparent 2px 4px),
-    var(--faceplate);
-}
-.controls { box-shadow: inset 0 -4px 0 #32ff32; }
+html { background-color: #ff0000; }
 body::after {
   content: "";
   position: fixed;
