@@ -2743,30 +2743,14 @@ body.saved-open .pill-help[aria-pressed="true"] {
   .grid-track[data-bars="4"] { --note-font: 18px; }
 }
 
-
 /* ===================================================================== *
- *  ⚠️⚠️  TEMPORARY DIAGNOSTIC ROUND 2 — session 46i. DELETE THIS BLOCK.  *
- *                                                                       *
- *  Round 1 answered the big question: the CYAN line (the viewport floor, *
- *  position:fixed bottom:0) sits ABOVE the bare strip, so the strip is   *
- *  OUTSIDE THE VIEWPORT. No element and no fixed layer can ever paint it *
- *  — which is why all three earlier fixes failed. Only the propagated    *
- *  CANVAS BACKGROUND COLOUR can reach there.                             *
- *                                                                       *
- *  And the vignette can't explain the seam either: worked out properly,  *
- *  the bottom-CENTRE of a 375x852 box lands at 51.9% of the gradient's   *
- *  ellipse radius, just inside the `transparent 52%` stop — so the page's*
- *  bottom edge is essentially pure --faceplate already, and should have  *
- *  matched the strip. It visibly doesn't.                                *
- *                                                                       *
- *  So round 2 asks the only remaining question: CAN I COLOUR THAT STRIP  *
- *  AT ALL? html gets a flat red. If the strip turns red, the canvas      *
- *  colour is mine to set and the fix is one line. If it stays pale, the  *
- *  strip belongs to iOS (manifest background_color / the status-bar      *
- *  style) and no stylesheet will ever touch it.                          *
- *  CYAN still marks the viewport floor for reference.                    *
+ *  ⚠️  TEMPORARY MARKER — session 46i. DELETE WITH THE DEBUG PANEL.     *
+ *  CYAN is the VIEWPORT FLOOR (position: fixed; bottom: 0). It is the   *
+ *  whole test for the status-bar-style experiment in index.html: if the *
+ *  cyan line now sits flush on the bottom edge of the SCREEN, the web   *
+ *  view has stopped coming up 44px short and the bare strip is gone. If *
+ *  a pale strip still sits below cyan, the experiment failed.           *
  * ===================================================================== */
-html { background-color: #ff0000; }
 body::after {
   content: "";
   position: fixed;
@@ -2778,4 +2762,3 @@ body::after {
   z-index: 99998;
   pointer-events: none;
 }
-/* ===================  END TEMPORARY DIAGNOSTIC  ====================== */

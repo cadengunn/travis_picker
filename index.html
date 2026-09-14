@@ -18,7 +18,20 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- ⚠️ TEMPORARY EXPERIMENT (session 46i) — `black-translucent` is commented
+       out, not deleted, so it can go straight back.
+       His missing tweed along the bottom edge is NOT a CSS problem: measured on
+       his phone, a `position: fixed; bottom: 0` marker sits ABOVE the bare strip,
+       and a red `html` background did not tint it either. So the strip is outside
+       the document entirely. The geometry says why — the page occupies screen
+       0..852 of an 896 screen, and 44 is exactly `safe-area-inset-top`. That is
+       the known `black-translucent` quirk: the view is told to extend UNDER the
+       status bar but is still only given "screen minus status bar" of height, so
+       it starts at 0 and runs out 44px early at the bottom.
+       Trade-off if this works: the status bar stops being transparent, so iOS
+       draws it and `env(safe-area-inset-top)` goes to 0 (the header's own
+       `max(8px, ...)` already handles that). -->
+  <!-- <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" /> -->
   <meta name="apple-mobile-web-app-title" content="Travis" />
 
   <link rel="stylesheet" href="css/styles.css" />
