@@ -4898,24 +4898,6 @@ acheck("the stage rebalance is scoped to a BROWSER TAB, never standalone", async
     "a tab centres the slack and drops the upward-bias cap");
 });
 
-acheck("the faceplate is painted by a fixed LARGE-viewport layer", async () => {
-  // The root box is shorter than the screen in standalone (his panel: body 852,
-  // lvh 896), and a propagated background fills that strip with the base colour
-  // but none of the gradient layers — measured, twice, after two other fixes
-  // failed. `height: 100lvh` is the whole point of the rule.
-  const css = await (await fetch("css/styles.css")).text();
-  const rule = css.match(/\nbody::before \{[\s\S]*?\n\}/)?.[0] || "";
-  assert(rule, "body::before must paint the faceplate");
-  assert(/position: fixed/.test(rule), "it has to be fixed, not in flow");
-  assert(/height: 100lvh/.test(rule), "it must be sized to the LARGE viewport or the bottom band stays bare");
-  assert(/z-index: -1/.test(rule) && /pointer-events: none/.test(rule),
-    "it must sit behind every child of body and never take a tap");
-  // And nothing may quietly put the textured stack back on body itself.
-  const body = css.match(/\nbody \{[\s\S]*?\n\}/)?.[0] || "";
-  assert(!/repeating-linear-gradient/.test(body),
-    "the texture must not go back onto body — that is the bug this replaced");
-});
-
 // ---- render report ----
 export async function runTests(mount) {
   for (const { name, fn } of asyncChecks) {

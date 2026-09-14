@@ -258,48 +258,17 @@ body {
   flex-direction: column;
   min-height: 100dvh;
   -webkit-text-size-adjust: 100%;
-  /* The BASE TONE only. The textured faceplate is painted by `body::before`
-     below — see there for why it can't live on this element. */
-  background: var(--faceplate);
-}
-
-/* ---- the tweed faceplate ----
-   ⚠️ PAINTED BY A FIXED LAYER, NOT BY `body`'s OWN BACKGROUND, and the reason is
-   measured rather than argued (session 46h, his report: the texture is missing
-   along the very bottom edge in the installed app, on every theme).
-
-   His panel gave the geometry: in standalone, `html`/`body` are 852 tall
-   (`height: 100%` resolving to the small viewport) while `lvh` is 896 — so there
-   is a 44px strip of screen BELOW the root box, exactly the height of the top
-   safe-area inset. Reproduced here by shrinking body inside a taller viewport:
-   the propagated background fills that strip with the base COLOUR but none of the
-   gradient layers, which is precisely the flat band he was seeing.
-
-   Two fixes were tried and MEASURED TO FAIL before this one: removing
-   `background-attachment: fixed` (it was wrong for other reasons and is still
-   gone — it only matters for content that scrolls, and this document never
-   does), and moving the whole background to the root element, whose painting
-   area is supposed to cover the canvas. Neither carried the gradient layers into
-   the strip.
-
-   `height: 100lvh` is the point of this rule: the LARGE viewport, so the layer
-   covers the band the root box can't reach. `bottom: 0` is the fallback for
-   anything without `lvh` (it covers the small viewport, i.e. today's behaviour);
-   where `height` is honoured it wins, since top+height over-constrains. The layer
-   is `z-index: -1` + `pointer-events: none`, so it sits behind every child of
-   body and can never take a tap. body keeps the flat `--faceplate` underneath, so
-   the worst case if this rule is ever dropped is an untextured faceplate rather
-   than bare white. */
-body::before {
-  content: "";
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  height: 100lvh;
-  z-index: -1;
-  pointer-events: none;
+  /* the tweed faceplate: top sheen, edge vignette, woven crosshatch, base tone.
+     ⚠️ `background-attachment: fixed` is deliberately ABSENT (removed session
+     46h): under `fixed` the background's positioning area is the viewport, and it
+     only ever mattered for content that SCROLLS — html/body are `overflow:
+     hidden` here, so the document never has.
+     A `body::before` FIXED LAYER at `height: 100lvh` was also tried (v3.18.0) and
+     BACKED OUT: a fixed element is clipped to the viewport, so it cannot paint the
+     strip outside it — the very thing it was added for — and it bought a
+     `z-index: -1` layer under every child of body for nothing. See the session
+     46h notes: his bottom-edge band is still unexplained, and three attempts at it
+     were each measured rather than assumed. */
   background:
     radial-gradient(120% 52% at 50% -8%, rgba(255, 240, 215, 0.10), transparent 62%),
     radial-gradient(150% 108% at 50% 44%, transparent 52%, rgba(0, 0, 0, 0.34)),

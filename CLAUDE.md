@@ -1430,6 +1430,17 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.18.1, 172/172 green.** The Safari grid placement is **confirmed good on his
+phone**. The tweed's bottom edge is **STILL OPEN and three attempts have failed**,
+each measured: removing `background-attachment: fixed`, moving the background to
+the root, and a `body::before` fixed layer at `height: 100lvh` (backed out — a
+fixed element is clipped to the viewport, so it cannot paint the strip outside it).
+⚠️ **The dev box cannot settle this one.** It is Chromium; his is WebKit, and they
+disagree: measured here, body's background images **do** propagate past the root
+box (body at 300 in a 553 viewport paints the full height), which is precisely
+what does not happen on his device. Do not attempt a fourth fix from this machine
+without a marker diagnostic from his phone.
+
 **v3.18.0, 173/173 green.** Session 46h closed both layout reports **by measuring
 rather than guessing** — his two debug panels finally made the difference
 visible. **The tweed's missing bottom edge:** in standalone the root box is 852
