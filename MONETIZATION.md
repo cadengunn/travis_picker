@@ -225,6 +225,61 @@ their liability. **Stripe alone does not do this** — with raw Stripe he is the
 seller of record. Worth checking against his own situation, but it is the main
 reason these services exist.
 
+### 1.1a — What it actually looks like to set up and live with
+
+**HIS ONE-TIME SETUP — about an hour, mostly paperwork.** Sign up, create one
+product (name, $7.99, license keys ON), enter bank details for payouts, accept
+their terms. Out come a **checkout URL** and whatever the app needs to verify a
+key. ⚠️ **All of this is his and is not delegable** — account creation, bank
+details and accepting terms are the same hard line as an Apple developer account.
+
+⚠️ **Confirm the verification endpoint needs NO SECRET.** Lemon Squeezy's and
+Gumroad's license validate/activate endpoints are designed to be called from the
+client, which is what makes this work at all — **a PWA is public source, so
+anything secret embedded in it is not secret.** If a chosen service requires a
+server-side token to verify, that service is unusable here without a backend.
+
+**WHAT GETS BUILT — roughly one session.** The unlock sheet's button opens the
+checkout URL; a key field with an Activate button (in the sheet, plus a quieter
+"I already have a key" entry in Preferences); `entitlement.js` gains
+`activate(key)` — one fetch, flip the flag, store the key; real wording for the
+three failure states (bad key, no network, activation limit reached); tests
+against a stubbed fetch, the way `storage.js` is tested. **The gating itself does
+not change** — that is what the entitlement abstraction was for.
+
+**THE BUYER'S PATH.** Unlock → Safari opens checkout → email + card → key shown
+on the success page AND emailed → back to the installed app → paste → Activate.
+Never touches the network again.
+
+**HIS ONGOING INVOLVEMENT — near zero.** Payouts on the service's schedule,
+refunds are a dashboard button, and occasionally someone emails "I lost my key"
+and he resends it from the dashboard. That is the only recurring task. No server,
+nothing to maintain, nothing he is responsible for keeping up.
+
+| situation | resolution |
+|---|---|
+| iOS evicts storage | re-paste from their email |
+| new phone | same key, within the activation limit |
+| service outage | already-unlocked users unaffected — verified once, not per launch |
+| service shuts down for good | existing users keep working forever; new sales need a new service |
+
+That last row is the real dependency risk, and it is **why verification happens
+once rather than on every launch** — a company disappearing must not be able to
+reach back and lock people out of something they paid for.
+
+**Still his calls:** which service, the activation limit (3 devices is typical
+and generous), and where the key field lives.
+
+**ON A SEPARATE BANK ACCOUNT (his question, session 46k).** Worth doing as
+BOOKKEEPING — one place that shows what this earned and what it cost, which makes
+tax time far easier and costs nothing beyond opening a second account. It does
+**not** create legal separation; that would need an actual entity, and whether
+that is worth it is a question for an accountant in his jurisdiction, not for
+this doc. Two facts that do belong here: the merchant of record handles **sales
+tax/VAT**, but **income tax on what he earns is still his**; and payment services
+require his **real legal identity** for KYC regardless of route — so the
+GitHub-noreply privacy rule protects the repo, never the payment side.
+
 ### 1.2 — The alternative that owns the whole stack
 
 Cryptographically signed keys, verified **offline** in the browser via Web Crypto
