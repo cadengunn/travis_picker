@@ -15,7 +15,7 @@ own doc and is read on demand:
 | `DESIGN.md` | you're changing how it **looks or feels** — materials, type, colour, the geometry of the sheet and the drum pickers, touch behaviour |
 | `CHANGELOG.md` | you want to know **why** a decision was made, or whether an idea has already been tried and rejected — session by session, newest first |
 | `OPEN_ITEMS.md` | you want the standing **open** list: each item's size, what's decided, what needs his call |
-| `APP_STORE.md` | you're working on **item 18 — shipping to the App Store**: the settled decisions (paywall line, wrapper, identity, price), the build checklist, and what's still open |
+| `MONETIZATION.md` | you're working on **item 18 — how this gets sold**: the settled paywall design, the five routes (App Store / license keys / honor unlock / donations / free) with their real costs, and what still needs his call |
 | `HELP_COPY.md` | you're reviewing help-card **wording** — a review sheet, not a source; `HELP` in `data.js` is the source |
 | `travis-picker-spec.md` | you need the source of truth for the **musical model** |
 | `travis-picker-workflow.md` | you want the original build order (complete) |
@@ -1547,9 +1547,9 @@ here:** grey means "not applicable" and a **lock** means "purchasable"; **mode
 beats tier**; and a tier lock **never uses `disabled`**, since a disabled button
 emits no click and so can't open the unlock sheet. Next is the barrels — the
 section-header locks and the settle behaviour, which is a feel call for his
-phone. See `APP_STORE.md` §4.
+phone. See `MONETIZATION.md` §4.
 
-**v3.14.1, 154/154 green.** Session 46 opened **item 18** — `APP_STORE.md` is
+**v3.14.1, 154/154 green.** Session 46 opened **item 18** — `MONETIZATION.md` is
 the working doc and all four blocking decisions are made: the PWA comes down
 once the store build is live, individual enrollment under his own identity
 (store listing only — the repo keeps the noreply identity), $7.99 one-time, and
@@ -1560,7 +1560,7 @@ progression families. Two rules came out of it that bind any work there: **grey
 already means "not applicable"**, so the purchasable signal has to be a lock and
 mode beats tier; and on a barrel the lock rides the **section header**, never the
 face, which is width-starved. Details and the full checklist are in
-`APP_STORE.md`. **Deferred deliberately:** a cleanup pass — the largest
+`MONETIZATION.md`. **Deferred deliberately:** a cleanup pass — the largest
 simplification available (deleting `sw.js`, `createAppUpdater()` and the
 CACHE-bump ritual) is **downstream of the wrapper**, and the pre-ship pass worth
 doing is robustness, not tidiness.

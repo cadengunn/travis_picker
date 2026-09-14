@@ -30,25 +30,23 @@ item 14 (the Fraunces numeral face + the PIMA fix), item 16 (Nylon / Steel
 and its sustain fix), v3.10.2's eleven rewritten Travis bass patterns, and
 the SVG play/stop icons. All verified good, all closed.
 
-**Item 18 (App Store) is the only thing left in this file.**
+**Item 18 — how this gets sold — is the only thing left in this file.**
 
 ---
 
-## Item 18 — App Store **IN PROGRESS; see `APP_STORE.md`**
+## Item 18 — how this gets sold **IN PROGRESS; see `MONETIZATION.md`**
 
-> **Session 46 opened this properly. `APP_STORE.md` is now the working doc —
-> read it, not this section.** All four blocking decisions are made (paywall
-> line, PWA fate, identity, price) plus the wrapper and the full feature-gating
-> design. What's left here is the original framing, kept because the reasoning
-> behind the shape of the work is still useful.
+> **`MONETIZATION.md` is the working doc — read it, not this section.**
 >
-> **Settled:** PWA comes down once the store build is live · individual
-> enrollment, his own identity (listing only) · **$7.99** one-time · hand-rolled
-> **WKWebView** shell · paywall **locked-but-visible with a lock icon**, split on
-> the engraved group headers both drums already print · **iPhone-only** first.
+> **Settled and shipping:** the paywall itself — locked-but-visible with a lock
+> icon, free = major/minor/dom7 + 3 progression families, 3 save slots, $7.99.
 >
-> **Next:** Developer Program enrollment (+ the Small Business Program
-> application), then stand up the shell.
+> **REOPENED (session 46j):** whether it goes to the App Store at all. His read:
+> a niche tool doesn't pay for a 15–30% cut plus $99/yr plus possibly a computer.
+> Five routes are laid out in `MONETIZATION.md`; his constraint is that payment
+> must be **instant and automatic**. Leaning PWA + license keys.
+>
+> **Next:** his call on the route. Nothing else is blocked on it.
 
 His read that this is "its own whole new project in a way" is right, and
 it's the one item that isn't a code task first. **Items 5 (app icon full
@@ -67,30 +65,9 @@ work. Detail on each kept below so it isn't lost:
   home-screen install is also what protects saved patterns from iOS storage
   eviction, which makes it doubly relevant next to a paid app.
 
-The shape of the work itself, stated so the discussion has something to push
-against — no action taken:
-
-- **This is a no-build vanilla-ES-modules PWA.** Shipping means a native
-  wrapper (realistically Capacitor or a hand-rolled `WKWebView` shell), an
-  Apple Developer account, and App Review. **Apple rejects thin web wrappers
-  under rule 4.2** ("minimum functionality"); the usual answer is that it
-  must work fully offline and use real native capability. Offline is already
-  true — the service worker precaches everything, and there's a test.
-- **His model — free demo, one-time unlock, no subscription, no ads — is a
-  Non-Consumable In-App Purchase.** Simplest StoreKit product type, but it
-  still means StoreKit integration, a restore-purchases path (Apple
-  *requires* one), entitlement checking, and a sandbox test pass.
-- **The feature gating has to be designed, not just coded.** Which features
-  are free vs. paid touches almost every surface, and this app's own rules
-  (the 11px height budget, "no dead chrome") mean a locked control can't
-  just be greyed in place without thought.
-- **Two things to decide early because they're expensive later:** whether the
-  free PWA stays live on GitHub Pages alongside a paid build (it currently
-  undercuts the paid version), and whether the identity stays the GitHub
-  noreply persona — an App Store listing requires a real legal identity,
-  which reverses a standing privacy rule in `CLAUDE.md`.
-- **Recommended first step:** a checklist doc of its own (his instinct), not
-  code.
+**The App Store analysis** — the Mac blocker, the wrapper choice, StoreKit,
+rule 4.2 — is kept in `MONETIZATION.md` section 2. It is still correct; it is
+just no longer the assumed plan.
 
 ---
 
