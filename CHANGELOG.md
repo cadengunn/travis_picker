@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [46e–j](#where-things-stand-session-46ej--v3170--v3190-2026-09-13) | **v3.17.0 → v3.19.0** | his phone notes, two layout bugs, and the destination reopened. **dom7 goes free** while maj7/m7 stay paid, so the tier stops coinciding with the engraved group and the lock rule moved twice more (caption-only → caption-or-face → **face-only**, his call). A purchase now **re-cuts the open reels**. **The Safari grid sat low** because `.stage` pins the grid 140px below the stage top and dumps all slack underneath — centred in `display-mode: browser` only, standalone byte-identical. **The tweed's bottom edge cost three failed CSS fixes** before two marker builds on his phone proved the strip was outside the document entirely: it was the `black-translucent` quirk, the meta is gone, and `theme-color` now follows the theme. Then he reopened **whether the App Store is worth it at all** — `APP_STORE.md` became `MONETIZATION.md` |
 | [46d](#where-things-stand-session-46d--v3161-2026-09-13) | **v3.16.1** | six notes off his phone. The barrel used to turn back **behind the unlock sheet**, where nobody could see it — it now LINGERS on what you chose and rolls back once the sheet closes (`onSettle` may return a promise), and **buying accepts the chord you spun to** instead of snapping away from it. Restore is ungated (it only returns free content); per-item Export gated to match the library one; locked faces dimmed; the lock redrawn **with a keyhole** so it stops reading as a briefcase. Two real bugs found on the way: a stale `reverting` flag that swallowed the next genuine settle, and a dim that could never have worked because `paint()` writes inline opacity every frame |
 | [46c](#where-things-stand-session-46c--v3160-2026-09-13) | **v3.16.0** | the paywall reaches the **barrels**, which was the risky surface. A locked family wears **one lock on its engraved caption**, never a mark per face — the faces are already width-starved. Settling on a locked family is **REFUSED**: `onSettle` returns false, the sheet opens, the barrel turns back, and the hidden `<select>` never takes a locked value. `wheel.js` stays dependency-free — the gate is callbacks, like `tick`. Also: **the die can no longer roll what you can't select**, the free library caps at 3 (built-ins exempt, overwrite still allowed), and export/import/restore are gated. His note actioned: the unlock sheet's specific line now sits in its own paragraph |
 | [46b](#where-things-stand-session-46b--v3150-2026-09-13) | **v3.15.0** | the paywall starts, and it starts on the WEB side — gating needs no Apple account, no Xcode and no build machine, and the PWA is still live, so he can judge the feel on his own phone before any Swift exists. `entitlement.js` is a stub the native StoreKit bridge will later replace; it **defaults to UNLOCKED** so the live app is unchanged, and `?tier=free` opts a device in. First surfaces gated: ×2 and the custom-progression save key. **Grey stays "not applicable", a LOCK means "purchasable"** — and the lock never uses `disabled`, because a disabled button emits no click and so could not open the unlock sheet. Ten new checks, all verified to fail without their fix |
@@ -79,6 +80,104 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 46e–j — v3.17.0 → v3.19.0, 2026-09-13)
+
+**Three of his phone notes, two layout bugs that took far too many attempts, and
+then the whole destination reopened.**
+
+**dom7 GOES FREE; maj7 and m7 stay paid** (his call). Dominant 7 is the
+characteristic sound of Travis picking, ragtime and Piedmont blues — a demo
+without it doesn't demonstrate what the app teaches — while maj7/m7 are colour
+chords. Free chords: 36, was 60.
+
+That **deliberately broke the "tier boundary == section boundary" rule** the
+first cut was built on, and he named the cost himself before it was raised: *"we
+can just put the lock next to each chord voicings instead of the headers if we
+need to."* So the lock moved to the highest level that is entirely locked — then
+in the very next round he went further: **headers carry nothing, every locked
+face wears its own lock.** The width argument behind caption locks was real but
+only ever paid off on a tight barrel, and it cost a two-case rule. **Measured
+after the change, because width was the whole justification:** at 375px every
+progression label still renders at 17px with nothing ellipsized, longest
+included. The lock-placement test has now been overturned twice and carries its
+own history rather than being rewritten clean.
+
+**The locked-face fade is gone** (his call: *"I'm not sure the dimming is doing
+much"*). He was right — `paint()` already fades every facet by its distance from
+the window, so a second fade read as more of the same. A warning stays on that
+line: a fade on a reel face MUST be multiplied into `paint()`, which writes an
+inline opacity every frame, so a stylesheet rule can never win.
+
+**A purchase re-cuts the open reels.** The panel stays open after a settle by
+design, so without it the locks and dimming sat there stale until you closed and
+reopened the selector. Buying now also **accepts the value you spun to** — you
+land on the chord you just paid for.
+
+---
+
+**THE SAFARI GRID SAT LOW, and the cause was a constant.** `.stage` is
+`flex-start` with a 112px `::before` cap, so the gap above the grid is **140 in
+both contexts** and every spare pixel lands underneath. Standalone comes out
+near-balanced (140/131); a tab does not (140/57). Centred now, **in
+`display-mode: browser` only** — he judged the installed app fine, and standalone
+is byte-identical (55.09 / 384.84 / 11.06, verified on both branches). **Part of
+that gap is not fixable and is documented as such**: Safari takes 134pt off the
+top and nothing can draw in the URL bar.
+
+⚠️ **The dev box is always `display-mode: browser`**, so a plain budget
+measurement now reads the TAB branch (19.53), not the documented 11.06.
+
+---
+
+**THE TWEED'S BOTTOM EDGE TOOK THREE FAILED FIXES AND TWO MARKER BUILDS**, and
+the lesson is bigger than the bug.
+
+Failed, in order, each measured fine on the dev box: removing
+`background-attachment: fixed`; moving the background to the root element; a
+`body::before` fixed layer at `height: 100lvh`. The third could never have
+worked — a fixed element is clipped to the viewport — and it was added on the
+strength of two bad experiments: one that read a flat-looking band as evidence
+when the weave is 0.035-alpha and invisible at screenshot scale, and one where
+`body::before` masked the very background it was measuring.
+
+**The dev box could not see the problem at all.** It is Chromium; his phone is
+WebKit, and they disagree on exactly the behaviour in question — measured here,
+body's background images **do** propagate past the root box. So the guessing
+stopped and two marker builds went to his phone instead. They answered it in
+minutes: a `position: fixed; bottom: 0` line sat **above** the strip, and a red
+`html` background would not tint it. The strip was outside the document
+altogether — neither viewport nor canvas.
+
+**The geometry named the cause:** the page occupied screen 0..852 of an 896
+screen, and 44 is exactly `safe-area-inset-top`. That is the
+`apple-mobile-web-app-status-bar-style: black-translucent` quirk — the view is
+told to paint under the status bar but is still sized "screen minus status bar"
+and anchored at y=0, so it runs out 44px early **at the bottom**. The same offset
+showed twice: the page reserved its home-indicator inset above where the
+indicator actually rendered.
+
+**The meta is deleted**, with the full account in `index.html` so it isn't put
+back by someone who only notices the app no longer paints under the status bar.
+The cost is that iOS draws the status bar, from `theme-color` — so **`theme.js`
+now keeps that in step with the active theme**, matched to the app's TOP EDGE
+(the sheen lifts it ~8% toward a warm white) rather than the flat faceplate.
+**A 44px flat band is unavoidable in a PWA**; the only choice is whether it sits
+at the status bar (normal for every iOS app) or below the home indicator (reads
+as a bug). Only a native wrapper removes it.
+
+---
+
+**THEN HE REOPENED THE DESTINATION.** *"This app isn't going to be a huge
+moneymaker, it's very niche. So giving 1/3 of that to Apple plus $99 a year plus
+possibly a new computer just doesn't make sense."* The arithmetic agrees — at
+$7.99 the store needs ~15 sales a year to clear the fee alone. `APP_STORE.md`
+became **`MONETIZATION.md`**: five routes with real numbers, the App Store
+demoted to one of them. His constraint is that payment be **instant and
+automatic**, which rules out hand-issued keys — otherwise the most elegant option
+(signed keys verified offline via Web Crypto, no service, works forever), kept in
+the doc with the exact condition that would revive it. **Nothing is decided yet**,
+and nothing is blocked on it.
 
 ## Where things stand (session 46d — v3.16.1, 2026-09-13)
 

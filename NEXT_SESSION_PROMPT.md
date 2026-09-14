@@ -1,87 +1,90 @@
-Travis Picker — new session. **v3.14.0 is live and pushed, 154/154 green.**
+Travis Picker — new session. **v3.19.0 is live and pushed, 173/173 green.**
 Read `CLAUDE.md` first; it's a hub, so follow its pointers rather than reading
-everything. `OPEN_ITEMS.md` is 191 lines now and is the fastest way to see
-what's open.
+everything.
 
-## The state of things: unusually clean
+## He is arriving with ONE OF TWO THINGS — ask which
 
-**Nothing is waiting on code, and nothing is waiting on his phone.** Session 45
-shipped item 17 and three rounds of polish, and in the same pass he signed off
-*everything* that had been outstanding across three sessions — items 14, 16 and
-17, the eleven rewritten Travis bass patterns, and the SVG play/stop icons.
-All verified good, all moved to the closed ledger.
+He said so explicitly at the end of session 46: **either a decision about
+monetization, or more notes from testing.** Don't assume. If it's testing notes,
+just work them; if it's the decision, `MONETIZATION.md` is the doc.
 
-**Item 18 (App Store) is the only open item.** Don't assume that's the work for
-this session — ask. He may well arrive with guitar notes instead, and that's
-where this project's best decisions have come from.
+## The state: the paywall is BUILT and CONFIRMED
 
-## If it IS item 18
+Sessions 46b–46g built the whole thing and he signed off each round on his phone:
+locked-but-visible with a **lock icon on every locked face** (headers carry
+nothing), free = **major / minor / dom7** plus 3 progression families, **3 save
+slots** (built-ins exempt), the unlock sheet, the die restricted to what you can
+select, and a purchase that lands you on the chord you spun to.
 
-**His own instinct is that it starts as a checklist doc, not code, and that's
-right** — it's the one item that isn't a code task first. `OPEN_ITEMS.md` has
-the shape of it. Two decisions are worth settling early because they're
-expensive to reverse and cost nothing to make now:
+**What is NOT built is how money changes hands.** That is the open decision, and
+nothing else is blocked on it.
 
-- **Does the free PWA stay live on GitHub Pages alongside a paid build?** It
-  currently undercuts the paid version.
-- **Does the identity stay the GitHub noreply persona?** An App Store listing
-  requires a real legal identity, which reverses a standing privacy rule in
-  `CLAUDE.md`. **Do not act on this unilaterally in either direction.**
+## If it's the monetization decision
 
-Also folded into 18 (session 44): the full-bleed app icon (needs new art, not a
-recolour) and the "Add to Home Screen" hint.
+`MONETIZATION.md` has five routes with real numbers. **Do not re-derive them.**
+The two facts that matter more than the fee percentages:
 
-## What session 45 established, so it isn't re-derived
+- **Only "free + donations" and "free, no money" throw the paywall away.** If
+  either wins, **rip the gating out** — don't leave it dormant. Fifteen tests and
+  an entitlement layer maintained for a feature earning nothing is exactly the rot
+  this repo warns about, and git has it if he reverses.
+- **Only the App Store is hard to reverse.** The other four are hours apart.
 
-- **`chordForRoman()` is the pure inverse of `romanInKey()`, and the round trip
-  is total** — 840 chord × key pairs, 0 mismatches, measured. That's what makes
-  a saved progression storable as numerals and playable in any key of its mode.
-- **`progressionChords()` has a numeral fallback AND an explicit mode guard**,
-  and both are load-bearing. Read the comment before touching it; the failure
-  mode is a saved progression that silently plays the wrong chords.
-- **The panel and the Options field are still one object — but the FIELD now
-  leads.** It fills its row and the panel takes the trigger's width (v3.13.2,
-  inverting v2.14.3). Both wheels split 48/148. Three tests pin this.
-- **The die's weights are DATA** (`QUALITIES[].weight` × `ROOTS[].weight`).
-  Tune by ear there, never in the roll. Every weight is > 0 on purpose.
-- **Two stale numbers were found in CSS comments this session** (the die row's
-  "327px of track" is really 343). Measure; don't trust a comment's arithmetic.
+**His constraint: payment must be instant and automatic.** Hand-issued keys are
+out. He was leaning PWA + license keys, with the App Store still tempting him on
+ease of installation — the counter already put to him is that **install friction
+is fixable in a PWA (item 11) but App Store search isn't**, and that the store is
+a bet placed before the evidence.
+
+**The one design trap, already documented in §1.1:** the paste is the PRIMARY path
+on iOS, not a fallback. A redirect-back-with-the-key-in-the-URL cannot work,
+because a link tapped from a standalone PWA opens Safari and **iOS gives the
+installed app its own storage partition** — measured in session 46i.
+
+## Dev-box limits — these cost most of session 46, so read them
+
+- ⚠️ **THE DEV BOX IS CHROMIUM; HIS PHONE IS WEBKIT, AND THEY DISAGREE.** Three
+  CSS fixes for the tweed's bottom edge each measured fine here and each failed
+  there. **If a rendering bug only reproduces on his phone, instrument it and ask
+  his device — do not reason about it from here.** Two marker builds answered in
+  minutes what four rounds of theorising hadn't.
+- ⚠️ **No safe-area insets here** (measured: top 0, bottom 0), and
+  `vh == dvh == svh == lvh`. Anything involving viewport units or insets is
+  invisible on this machine.
+- ⚠️ **The dev box is always `display-mode: browser`**, so a plain 375×553 budget
+  measurement reads the TAB branch (clearance 19.53). The documented standalone
+  budget is **55.09 / 384.84 / 11.06** and you must neutralise the
+  `@media (display-mode: browser)` block to measure it.
+- `tests.html` stalls in a hidden tab — poll it with a bounded `await` loop rather
+  than nudging with screenshots; a screenshot mid-run closes `.dd-panel` and fails
+  the wheel checks.
+- The preview server can't read `~/Desktop`, so it serves an rsync mirror wired up
+  in `.claude/launch.json` (untracked). **Re-sync after every edit.**
 
 ## Ground rules
 
-- **Agree the design before coding**, surface genuine forks, don't guess. The
-  clearest win of session 45: he asked for the Save button below the header
-  pills, which measures at ≥32px against 11.06px of clearance — and my own
-  fallback was wrong too, because Options row 1's "empty" slot is 28.3px
-  deliberately donated to Format. Both were caught by measuring, not reasoning.
-- **Measure, don't theorise.** Every significant claim this session was checked
-  against the live DOM or a rendered buffer, and several plausible-sounding ones
-  were wrong.
-- **A new test must be verified to FAIL without its fix.** Fourteen were, this
-  session, across five break rounds. A test that passes vacuously is worse than
-  none — see the pass lamps, which shipped dead twice.
+- **Agree the design before coding**, surface genuine forks, don't guess. Several
+  of session 46's best calls were his corrections to a proposal.
+- **Measure, don't theorise.** The single biggest lesson of session 46: every one
+  of my wrong answers was a plausible theory I hadn't checked, and two "findings"
+  were bad experiments read as evidence.
+- **A new test must be verified to FAIL without its fix.** Several this session
+  were; two that weren't turned out to be pinning a spelling rather than a claim,
+  and a third had a regex that could never match.
 - **When a change contradicts a documented decision, say so and keep the old
-  rationale.** Three were reversed in session 45 (the flat die, the field/panel
-  coupling, `setKey`'s transpose), and in each case the original reason was
-  still half right and worth recording.
-- **Tests stay green**; run `tests.html` in the browser and say the count.
-  It's **154/154**.
-- **Any chrome change to the MAIN app view needs the 375×553 re-measure** —
-  55.09 / 384.84 / 11.06, clearance against `main.bottom`, `main` overflow 0.
+  rationale.** The lock-placement rule was overturned twice and its test now
+  carries that history on purpose.
+- **Tests stay green**; run `tests.html` and say the count. It's **173/173**.
 - **Deploy = bump `CACHE` in `sw.js` + `APP_VERSION` in `js/app.js`, push.**
-  GitHub noreply identity only; the repo is public. He force-quits and reopens.
+  GitHub noreply identity only; the repo is public.
 - **Don't push without asking** — he'll say when.
 
-## Dev-box limits that bite
+## Loose ends, none blocking
 
-All in `CLAUDE.md`, but the two that cost time in session 45:
-
-- **`tests.html` stalls in a hidden tab.** It makes no progress until something
-  forces frames; nudge it with real `computer` screenshots/clicks. A run that
-  "hangs" here is the tab, not the code.
-- **A screenshot mid-run resizes the pane, which closes any open `.dd-panel`
-  and fails the wheel checks.** Screenshot *between* runs, not during one. A
-  wheel failure right after a screenshot is almost always that.
-- The preview server can't read `~/Desktop`, so it serves an rsync mirror in the
-  session scratchpad wired up in `.claude/launch.json` (untracked). **Re-sync
-  after every edit**, or you're testing the previous copy.
+- **Item 11, "Add to Home Screen" hint** — now more relevant than it was, since
+  install friction is the App Store's best remaining argument and this is the
+  cheap counter to it. In `OPEN_ITEMS.md`, folded under item 18.
+- **The full-bleed app icon** (old item 5) — only matters if the store wins.
+- **The 44px flat band** is unavoidable in a PWA; it sits at the status bar now,
+  which is where every iOS app has one. `theme-color` keeps it matching. If it
+  ever reads as a seam, the lift is one number in `theme.js`.
