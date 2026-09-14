@@ -79,80 +79,6 @@ const tier = createEntitlement({
   search: (() => { try { return location.search; } catch { return ""; } })(),
 });
 
-// ---- TEMPORARY: viewport diagnostics (session 46h) ----
-// Two rounds of reasoning about why the grid sits lower in a Safari tab than in
-// the installed app were both wrong, so this measures instead. `?debug=1` turns
-// it on and PERSISTS, exactly like `?tier=` — which is the point: a query string
-// can't be handed to an installed PWA, but localStorage is shared with the
-// Safari tab on the same origin, so setting it once in Safari lights it up in
-// both. `?debug=0` clears it. DELETE THIS once the layout question is settled.
-function viewportDebug() {
-  // ⚠️ UNCONDITIONAL FOR THIS ONE RELEASE, then delete. It was gated behind a
-  // sticky `?debug=1` on the assumption that localStorage reaches the installed
-  // app the way it reaches a Safari tab on the same origin. IT DOES NOT: iOS
-  // gives a standalone PWA its OWN STORAGE PARTITION, so the flag set in Safari
-  // was invisible to the installed app and the panel never appeared there — which
-  // is the one reading actually needed.
-  // The same fact means `?tier=free` cannot reach the installed app either; the
-  // paywall can only be exercised in a tab until the native bridge exists.
-
-  // `position: fixed` + `pointer-events: none` so it can't disturb the very
-  // layout it is measuring, or swallow a tap.
-  const box = document.createElement("pre");
-  box.style.cssText = "position:fixed;left:4px;top:4px;z-index:99999;margin:0;"
-    + "font:9px/1.25 ui-monospace,Menlo,monospace;color:#fff;background:rgba(0,0,0,.72);"
-    + "padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre;";
-  document.body.appendChild(box);
-
-  // A probe reads the viewport units and the safe-area insets as the browser
-  // actually resolves them, rather than trusting what they ought to be.
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;pointer-events:none;";
-  document.body.appendChild(probe);
-  const px = (v) => { probe.style.height = v; return Math.round(probe.getBoundingClientRect().height); };
-
-  const rect = (sel) => {
-    const e = document.querySelector(sel);
-    if (!e) return "—";
-    const r = e.getBoundingClientRect();
-    return `${Math.round(r.top)}..${Math.round(r.bottom)} (${Math.round(r.height)})`;
-  };
-
-  const draw = () => {
-    const vv = window.visualViewport;
-    box.textContent = [
-      `standalone ${matchMedia("(display-mode: standalone)").matches}  ${APP_VERSION}`,
-      `innerH ${innerHeight}  docClientH ${document.documentElement.clientHeight}`,
-      `visualVP ${vv ? Math.round(vv.height) : "—"} @${vv ? Math.round(vv.offsetTop) : "—"}`,
-      `vh ${px("100vh")}  dvh ${px("100dvh")}  svh ${px("100svh")}  lvh ${px("100lvh")}`,
-      `safe top ${px("env(safe-area-inset-top)")} bot ${px("env(safe-area-inset-bottom)")}`,
-      `html ${rect("html")}`,
-      `body ${rect("body")}`,
-      `main ${rect("main")}`,
-      `head ${rect(".app-head")}`,
-      `stage ${rect(".stage")}`,
-      `chordhead ${rect("#chord-head")}`,
-      `grid ${rect(".grid-track")}`,
-      `ctrls ${rect(".controls")}`,
-      // The gap above vs below the grid INSIDE the stage. `.stage` centres the
-      // readout and the grid as ONE group, so the grid necessarily sits below the
-      // stage's own centre — the question is whether that offset differs between
-      // the two contexts, which is what the complaint is actually about.
-      (() => {
-        const st = document.querySelector(".stage");
-        const gr = document.querySelector(".grid-track");
-        if (!st || !gr) return "gap —";
-        const a = st.getBoundingClientRect(), b = gr.getBoundingClientRect();
-        return `gap above ${Math.round(b.top - a.top)}  below ${Math.round(a.bottom - b.bottom)}`;
-      })(),
-    ].join("\n");
-  };
-  draw();
-  addEventListener("resize", draw);
-  if (window.visualViewport) visualViewport.addEventListener("resize", draw);
-  setInterval(draw, 1000);
-}
-
 // Marks a control as PURCHASABLE: a lock glyph, and `data-tier-locked` for the
 // press handlers to check. Deliberately never touches `disabled` — a disabled
 // button emits no click, so it could not open the unlock sheet, which is the
@@ -258,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.18.4-debug";
+const APP_VERSION = "v3.19.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -2494,7 +2420,6 @@ async function boot() {
     console.error("Theme load failed; using stylesheet fallback.", err);
     el("theme").hidden = true;
   }
-  viewportDebug();   // TEMPORARY, session 46h — see above
 }
 
 registerServiceWorker(); // before boot, so a boot failure can still be fixed by a deploy

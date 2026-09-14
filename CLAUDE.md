@@ -1430,6 +1430,22 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.19.0, 173/173 green.** Session 46i **solved the missing tweed along the
+bottom edge, and it was never a CSS bug.** Measured on his phone across two
+marker builds: a `position: fixed; bottom: 0` line sat **above** the bare strip,
+and a red `html` background would not tint it — so the strip was outside the
+document entirely, which is why **three CSS fixes all failed**. The geometry
+named the cause: the page occupied screen 0..852 of an 896 screen, and 44 is
+exactly `safe-area-inset-top`. That is the
+`apple-mobile-web-app-status-bar-style: black-translucent` quirk — the view is
+told to paint under the status bar but is still sized "screen minus status bar"
+and anchored at y=0, so it runs out 44px early **at the bottom**. **The meta is
+gone** (`index.html` carries the full reasoning; don't put it back). The cost is
+that iOS draws the status bar, so **`theme.js` now keeps `theme-color` in step
+with the active theme**, matched to the app's TOP EDGE (the sheen lifts it ~8%
+toward a warm white) rather than the flat faceplate. A test pins both halves.
+**The `?debug=1` panel and all markers are removed.**
+
 **v3.18.1, 172/172 green.** The Safari grid placement is **confirmed good on his
 phone**. The tweed's bottom edge is **STILL OPEN and three attempts have failed**,
 each measured: removing `background-attachment: fixed`, moving the background to

@@ -4898,6 +4898,35 @@ acheck("the stage rebalance is scoped to a BROWSER TAB, never standalone", async
     "a tab centres the slack and drops the upward-bias cap");
 });
 
+
+acheck("the status bar is left to iOS, and theme-color keeps it matching", async () => {
+  // ⚠️ BOTH HALVES ARE LOAD-BEARING AND THE FAILURE IS SILENT EITHER WAY.
+  //
+  // `black-translucent` let the app paint under the status bar, but iOS still
+  // sized the web view to "screen minus status bar" and anchored it at y=0, so it
+  // ran out 44px early AT THE BOTTOM — a flat strip below the home indicator that
+  // no stylesheet could reach (measured on his phone: a fixed bottom:0 marker sat
+  // ABOVE it, and a red html background would not tint it). Three CSS fixes were
+  // tried and all failed for that reason.
+  //
+  // Removing it fixes the bottom but hands the status bar to iOS, which paints it
+  // from `theme-color`. A fixed theme-color would then read as a foreign band in
+  // six of the seven themes, so theme.js has to keep it in step.
+  const html = await (await fetch("index.html")).text();
+  const active = html
+    .replace(/<!--[\s\S]*?-->/g, "")   // the reasoning lives in a comment; ignore it
+    .match(/apple-mobile-web-app-status-bar-style/);
+  assert(!active, "black-translucent must stay out — it costs the bottom edge");
+
+  const theme = await (await fetch("js/theme.js")).text();
+  assert(/function setThemeColor\(/.test(theme), "theme.js must own the theme-color meta");
+  const apply = theme.match(/export function applyTheme\([\s\S]*?\n\}\n/)?.[0] || "";
+  assert(/setThemeColor\(/.test(apply),
+    "applyTheme must update theme-color, or the status bar keeps the previous theme's colour");
+  assert(/mix\(faceplate, "#fff0d7"/.test(apply),
+    "match the app's TOP EDGE, not the flat faceplate — the sheen lifts it there");
+});
+
 // ---- render report ----
 export async function runTests(mount) {
   for (const { name, fn } of asyncChecks) {

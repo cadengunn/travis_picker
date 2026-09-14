@@ -2742,23 +2742,3 @@ body.saved-open .pill-help[aria-pressed="true"] {
 @media (min-width: 720px) and (max-aspect-ratio: 1/1) {
   .grid-track[data-bars="4"] { --note-font: 18px; }
 }
-
-/* ===================================================================== *
- *  ⚠️  TEMPORARY MARKER — session 46i. DELETE WITH THE DEBUG PANEL.     *
- *  CYAN is the VIEWPORT FLOOR (position: fixed; bottom: 0). It is the   *
- *  whole test for the status-bar-style experiment in index.html: if the *
- *  cyan line now sits flush on the bottom edge of the SCREEN, the web   *
- *  view has stopped coming up 44px short and the bare strip is gone. If *
- *  a pale strip still sits below cyan, the experiment failed.           *
- * ===================================================================== */
-body::after {
-  content: "";
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 4px;
-  background: #00e5ff;
-  z-index: 99998;
-  pointer-events: none;
-}

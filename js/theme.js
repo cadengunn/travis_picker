@@ -31,6 +31,19 @@ function toHex([r, g, b]) {
   return "#" + [r, g, b].map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
 }
 // mix(a, b, t) — t = how much of b to blend into a
+// iOS reads this at launch for the standalone status bar; a live theme change
+// may not repaint the bar until the next launch, which is fine — the theme is
+// restored from storage at boot, so a relaunch always agrees with the app.
+function setThemeColor(hex) {
+  let m = document.querySelector('meta[name="theme-color"]');
+  if (!m) {
+    m = document.createElement("meta");
+    m.setAttribute("name", "theme-color");
+    document.head.appendChild(m);
+  }
+  m.setAttribute("content", hex);
+}
+
 function mix(a, b, t) {
   const A = parseHex(a), B = parseHex(b);
   return toHex(A.map((v, i) => v + (B[i] - v) * t));
@@ -76,7 +89,17 @@ export function applyTheme(id) {
   // the tweed faceplate tone — the whole screen's surface, between bg & surface.
   // The weave/sheen/vignette overlays that make it "tweed" are fixed rgba in the
   // CSS, so this one blend is all a theme needs to define.
-  r.setProperty("--faceplate", mix(t.bg, t.surface, 0.42));
+  const faceplate = mix(t.bg, t.surface, 0.42);
+  r.setProperty("--faceplate", faceplate);
+  // THE STATUS BAR IS DRAWN BY iOS NOW, not by us — `black-translucent` came out
+  // in session 46i (see index.html for the whole story). That makes `theme-color`
+  // the only thing painting the bar, and a fixed value would read as a foreign
+  // strip above the app in every theme but one. So it follows the theme.
+  // Matched to the app's TOP EDGE rather than to the flat faceplate: the sheen
+  // layer (`rgba(255, 240, 215, 0.10)`, centred just above the top edge) lifts it
+  // there, and a band matched to the unlifted tone sits visibly darker than the
+  // pixels directly beneath it.
+  setThemeColor(mix(faceplate, "#fff0d7", 0.08));
   // playhead column — reads clearly against `surface` in light and dark themes.
   // Overridable per theme: the default blend toward `active` goes muddy when
   // surface and active are complements (Doc's blue+amber cancels to gray), so
