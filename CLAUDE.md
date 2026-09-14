@@ -1423,6 +1423,16 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.16.1, 169/169 green.** Session 46d, six notes off his phone. **A refusal now
+LINGERS and rolls back once the unlock sheet closes** — `onSettle` may return a
+promise — and **buying accepts the value you spun to**. Restore is **ungated** (it
+only returns free content); per-item Export is gated like the library one; locked
+faces dim to 0.62; the lock has a **keyhole** (it read as a briefcase) at 1em. Two
+bugs fell out: a stale `reverting` flag that swallowed the next genuine settle
+(replaced by `if (v === committed) return;`, which can't go stale), and a CSS dim
+that could never have worked because **`paint()` writes an inline opacity every
+frame** — anything fading a `.reel-face` must multiply into that, not fight it.
+
 **v3.16.0, 169/169 green.** Session 46c took the paywall to the **barrels**. A
 locked family wears **one lock on its engraved caption, never a mark per face**
 (the faces are width-starved — `fitFace()` shrinks to a 10.5px floor). Settling

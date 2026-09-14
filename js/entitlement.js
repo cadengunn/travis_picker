@@ -29,7 +29,10 @@ export const FREE_SAVE_SLOTS = 3;
 // Whole features behind the unlock, keyed by the name the UI passes. Kept here
 // rather than scattered through app.js so the paid surface can be read in one
 // place — and so the unlock sheet can name them.
-export const PAID_FEATURES = ["x2", "customProgressions", "folders", "exportImport", "restore"];
+// NOTE: "restore" is deliberately NOT here (his call, session 46d). Restore only
+// brings back built-in patterns, which are free content — gating it would be
+// charging to undo a delete of something you were given.
+export const PAID_FEATURES = ["x2", "customProgressions", "folders", "exportImport"];
 
 export const STORE_KEY = "tp-tier";
 

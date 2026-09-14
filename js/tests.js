@@ -4619,7 +4619,7 @@ acheck("app: a saved item's row loads on tap; Rename/Export/Delete/folder live b
     "a per-item \"...\" toggle must reveal Rename/Export/Delete/folder");
   assert(/actions\.hidden = !actions\.hidden/.test(row),
     "the \"...\" must be a plain reveal toggle, same idiom as the folder header's Rename/Delete");
-  assert(/exportOne\.addEventListener\("click", \(\) => exportItem\(item\)\)/.test(row),
+  assert(/exportOne\.addEventListener\("click",[\s\S]*?exportItem\(item\)/.test(row),
     "Export must be one of the actions behind the per-item \"...\" (item 6)");
 });
 
@@ -4823,12 +4823,16 @@ acheck("a refused settle never writes the locked value to the <select>", async (
   // truth and the reel reflects it — so a refusal must turn the barrel back, not
   // leave the select holding something the app didn't accept.
   const src = await (await fetch("js/wheel.js")).text();
-  assert(/onSettle\(v\) === false/.test(src),
+  assert(/const res = onSettle\(v\);/.test(src) && /if \(res === false\)/.test(src),
     "buildDrum must treat a FALSE return from onSettle as a refusal");
   assert(/rowOfValue\(committed\)/.test(src),
     "a refusal must scroll back to the last ACCEPTED value");
-  assert(/if \(reverting\) \{ reverting = false; return; \}/.test(src),
-    "the revert's own scroll must not re-enter onSettle and re-offer the sheet");
+  assert(/if \(v === committed\) return;/.test(src),
+    "a settle landing on the held value must be a no-op — that is what makes the revert self-cancelling without a flag that can go stale");
+  assert(!/reverting/.test(src),
+    "the stale-flag guard is gone on purpose: a revert scroll doesn't always emit a scroll event, so the flag swallowed the next genuine settle");
+  assert(/typeof res\.then === "function"/.test(src),
+    "onSettle may return a PROMISE, so the barrel can linger under the unlock sheet and roll back only once it closes");
 });
 
 acheck("a locked FAMILY is marked on its header, never on each face", async () => {

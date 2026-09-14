@@ -148,6 +148,8 @@ const wheelGate = {
     const st = allProgressions().find((p) => p.id === id)?.style;
     return st ? tier.progressionStyleLocked(st) : false;
   },
+  // Resolves TRUE if he bought it — the caller then accepts the value he spun
+  // to, rather than snapping the barrel away from a chord he just paid for.
   refuse: (kind) => showUnlockSheet(
     kind === "quality"
       ? "That chord family is part of the full set — 6, m6, sus2, sus4 and add9 on every root."
@@ -185,7 +187,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.16.0";
+const APP_VERSION = "v3.16.1";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1368,7 +1370,6 @@ function refreshSavedCount() {
   el("restore-builtins-btn").disabled = !missingBuiltins().length;
   setTierLock(el("export-btn"), libLocked && n > 0);
   setTierLock(el("import-btn"), libLocked);
-  setTierLock(el("restore-builtins-btn"), tier.featureLocked("restore") && !!missingBuiltins().length);
 }
 
 // Sentinel option value for the per-item folder <select>'s trailing "+ New
@@ -1507,7 +1508,17 @@ function appendSavedRow(list, item, folders) {
   const exportOne = document.createElement("button");
   exportOne.type = "button";
   exportOne.textContent = "Export";
-  exportOne.addEventListener("click", () => exportItem(item));
+  // The per-item export is the SAME feature as the library one — buildExport()
+  // has shared a wrapper shape between a single item and the whole library since
+  // session 38 — so it takes the same gate (his note, session 46d).
+  setTierLock(exportOne, tier.featureLocked("exportImport"));
+  exportOne.addEventListener("click", () => {
+    if (exportOne.hasAttribute("data-tier-locked")) {
+      showUnlockSheet("Exporting writes a pattern to a file you can keep, move to another device, or hand to someone.");
+      return;
+    }
+    exportItem(item);
+  });
 
   const del = document.createElement("button");
   del.type = "button";
@@ -2257,10 +2268,6 @@ function attach() {
     if (file) importLibrary(file);
   });
   el("restore-builtins-btn").addEventListener("click", () => {
-    if (el("restore-builtins-btn").hasAttribute("data-tier-locked")) {
-      showUnlockSheet("Restore brings back any built-in pattern you've deleted, without duplicating the ones you kept.");
-      return;
-    }
     const n = restoreMissingBuiltins();
     el("import-hint").textContent = n
       ? `Restored ${n} built-in pattern${n === 1 ? "" : "s"}.`

@@ -117,7 +117,6 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked },
   let rowIndex = 0; // the centred ROW (headers included)
   let settleTimer = null;
   let committed = null;   // the last value onSettle ACCEPTED — what a refusal returns to
-  let reverting = false;  // the revert's own scroll must not re-enter onSettle
 
   // Interleave section headers into the option list. A named group prints a header
   // before its first option; an unnamed break after a named group (Custom) marks
@@ -128,7 +127,7 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked },
     for (const o of opts) {
       const g = o.group || "";
       if (g && g !== prevGroup) out.push({ head: true, label: g });
-      out.push({ head: false, label: o.label, value: o.value, groove: !g && !!prevGroup });
+      out.push({ head: false, label: o.label, value: o.value, group: g, groove: !g && !!prevGroup });
       prevGroup = g;
     }
     return out;
@@ -154,9 +153,13 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked },
     for (let i = 0; i < faces.length; i++) {
       const d = i - centre / ITEM_H;
       const away = Math.abs(d);
-      const { cell, face, head } = faces[i];
+      const { cell, face, head, dim } = faces[i];
       face.style.transform = `rotateX(${(-d * DEG_PER_STEP).toFixed(2)}deg)`;
-      face.style.opacity = String(Math.max(0, 1 - away * 0.17));
+      // `dim` is the locked-family fade, MULTIPLIED IN HERE rather than set in
+      // CSS: this line writes an inline opacity every frame, so a stylesheet rule
+      // on `.reel-face` could never win. Found before it shipped, but it is the
+      // same shape as every other "looked right in a screenshot" bug in this app.
+      face.style.opacity = String(Math.max(0, 1 - away * 0.17) * dim);
       cell.classList.toggle("in-window", away < 0.5);
       if (!head) cell.setAttribute("aria-selected", away < 0.5 ? "true" : "false");
     }
@@ -212,7 +215,12 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked },
       }
       cell.appendChild(face);
       el.appendChild(cell);
-      faces.push({ cell, face, head: row.head });
+      // Lighter than `data-locked`'s 0.55 on purpose: these are names you still
+      // have to read while deciding whether to buy them, and the engraved caption
+      // above already carries the actual lock.
+      const locked = !!(groupLocked && row.group && groupLocked(row.group));
+      if (locked) cell.classList.add("reel-item-locked");
+      faces.push({ cell, face, head: row.head, dim: row.head ? (groupLocked && groupLocked(row.label) ? 0.8 : 1) : (locked ? 0.62 : 1) });
     });
     el.appendChild(pad.cloneNode());
     // Fit the type BEFORE positioning: measuring needs the reel laid out, which
@@ -236,19 +244,33 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked },
     }
     clearTimeout(settleTimer);
     settleTimer = setTimeout(() => {
-      // The revert below scrolls, which schedules another settle; swallow that one
-      // rather than re-offering the same refusal.
-      if (reverting) { reverting = false; return; }
       const v = rows[nearestOpt(rowIndex)].value;
-      // A FALSE return REFUSES the value (a locked family). The barrel turns back
+      // A settle that lands back on the value we already hold is a NO-OP — which
+      // is exactly what the revert below produces, so it needs no flag of its own.
+      // It was a flag first, and that was wrong: the revert's smooth scroll does
+      // not always emit a scroll event (a hidden tab pauses rAF), so the flag
+      // stayed set and swallowed the NEXT genuine settle — measured, the second
+      // spin onto a locked family silently did nothing. Comparing values can't go
+      // stale the way a flag can.
+      if (v === committed) return;
+      // A FALSE return REFUSES the value (a locked family): the barrel turns back
       // to the last accepted one rather than sitting on something the app didn't
       // take — the hidden <select> is the source of truth and must never hold a
       // locked value, which is the wheel's whole contract.
-      if (onSettle(v) === false) {
-        const back = rowOfValue(committed);
-        if (back !== rowIndex) { reverting = true; scrollToRow(back, true); }
+      //
+      // A PROMISE defers that decision, and it exists for one reason (his note,
+      // session 46d): the unlock sheet covers the drum, so an immediate turn-back
+      // happens where nobody can see it. Resolving only once the sheet closes
+      // means the barrel LINGERS on what you chose, and rolls back in view. It
+      // also lets a purchase resolve TRUE, so the chord you spun to is simply
+      // accepted rather than snapped away from.
+      const back = () => scrollToRow(rowOfValue(committed), true);
+      const res = onSettle(v);
+      if (res && typeof res.then === "function") {
+        res.then((ok) => { if (ok === false) back(); else committed = v; });
         return;
       }
+      if (res === false) { back(); return; }
       committed = v;
     }, settleMs);
   });
@@ -379,7 +401,13 @@ export function createChordWheel({ tick = () => {}, settleMs = SETTLE_MS, gate =
           // Refuse rather than commit: the barrel turns back and the unlock sheet
           // opens. The ROOT reel is never gated — all twelve are free, and the
           // tier splits on quality only.
-          if (gate && gate.qualityLocked(v)) { gate.refuse("quality", v); return false; }
+          if (gate && gate.qualityLocked(v)) {
+            return gate.refuse("quality", v).then((bought) => {
+              if (!bought) return false;
+              chosen.quality = v; apply();
+              return true;
+            });
+          }
           chosen.quality = v; apply();
         },
       },
@@ -438,7 +466,13 @@ export function createKeyProgWheel({ tick = () => {}, settleMs = SETTLE_MS, keyS
         // makes app.js set this select to Custom, so the reel opens on it.
         groupLocked: gate ? (label) => gate.progressionStyleLocked(label) : null,
         onSettle: (v) => {
-          if (gate && gate.progressionLocked(v)) { gate.refuse("progression", v); return false; }
+          if (gate && gate.progressionLocked(v)) {
+            return gate.refuse("progression", v).then((bought) => {
+              if (!bought) return false;
+              commit(v);
+              return true;
+            });
+          }
           commit(v);
         },
       },

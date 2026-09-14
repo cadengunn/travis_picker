@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [46d](#where-things-stand-session-46d--v3161-2026-09-13) | **v3.16.1** | six notes off his phone. The barrel used to turn back **behind the unlock sheet**, where nobody could see it — it now LINGERS on what you chose and rolls back once the sheet closes (`onSettle` may return a promise), and **buying accepts the chord you spun to** instead of snapping away from it. Restore is ungated (it only returns free content); per-item Export gated to match the library one; locked faces dimmed; the lock redrawn **with a keyhole** so it stops reading as a briefcase. Two real bugs found on the way: a stale `reverting` flag that swallowed the next genuine settle, and a dim that could never have worked because `paint()` writes inline opacity every frame |
 | [46c](#where-things-stand-session-46c--v3160-2026-09-13) | **v3.16.0** | the paywall reaches the **barrels**, which was the risky surface. A locked family wears **one lock on its engraved caption**, never a mark per face — the faces are already width-starved. Settling on a locked family is **REFUSED**: `onSettle` returns false, the sheet opens, the barrel turns back, and the hidden `<select>` never takes a locked value. `wheel.js` stays dependency-free — the gate is callbacks, like `tick`. Also: **the die can no longer roll what you can't select**, the free library caps at 3 (built-ins exempt, overwrite still allowed), and export/import/restore are gated. His note actioned: the unlock sheet's specific line now sits in its own paragraph |
 | [46b](#where-things-stand-session-46b--v3150-2026-09-13) | **v3.15.0** | the paywall starts, and it starts on the WEB side — gating needs no Apple account, no Xcode and no build machine, and the PWA is still live, so he can judge the feel on his own phone before any Swift exists. `entitlement.js` is a stub the native StoreKit bridge will later replace; it **defaults to UNLOCKED** so the live app is unchanged, and `?tier=free` opts a device in. First surfaces gated: ×2 and the custom-progression save key. **Grey stays "not applicable", a LOCK means "purchasable"** — and the lock never uses `disabled`, because a disabled button emits no click and so could not open the unlock sheet. Ten new checks, all verified to fail without their fix |
 | [46](#where-things-stand-session-46--v3141-2026-09-13) | **v3.14.1** | item 18 opens: `APP_STORE.md`, and every decision behind it made before a line of code. Free/paid split by the **engraved group** both drums already print, locked-but-visible with a **lock icon** — because greying already means "not applicable" (×2 in single mode) and the two must not collide. His refinement beat the first proposal twice: it needs no data filter at all, and it fixes the discovery problem a shorter reel would have created. Also his iPad report — progression mode rendered 1×4 on a portrait iPad because a rule labelled `/* desktop afterthought */` tested **width alone**; aspect ratio is the real driver, and the phone's budget came back byte-identical |
@@ -78,6 +79,54 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 46d — v3.16.1, 2026-09-13)
+
+Six notes off his phone, and two of them exposed real bugs.
+
+**"The turn back I actually can't see because it's behind the popup anyway.
+Maybe better if it lingers and rolls back once you close the popup."** Right, and
+the fix is better than the note asks for. `onSettle` may now return a **promise**:
+the barrel stays on what you chose, the sheet sits over it, and the roll-back
+happens **in view** once the sheet closes. And because the promise carries a
+result, **buying now ACCEPTS the value you spun to** — you land on the chord you
+just paid for instead of being snapped away from it.
+
+**BUG 1, found while testing that: a stale flag.** The revert used a `reverting`
+boolean to stop its own scroll re-entering `onSettle`. But a smooth `scrollTo`
+does not always emit a scroll event (a hidden tab pauses rAF), so the flag stayed
+set and **swallowed the next genuine settle** — measured: the second spin onto a
+locked family silently did nothing. Replaced with `if (v === committed) return;`,
+which is exact, makes the revert self-cancelling, and cannot go stale.
+
+**BUG 2, caught before it shipped: a dim that could never have worked.** The
+locked-face fade was written as a CSS rule on `.reel-face` — but `paint()` writes
+an **inline** opacity on every face every frame, so a stylesheet could never win.
+The fade is multiplied into that value instead. Same shape as every other "looked
+right in a screenshot" bug here; the only reason it was caught is that the
+mechanism was read rather than the render trusted.
+
+**His other four:**
+- **Restore is UNGATED.** It only brings back built-in patterns, which are free
+  content — gating it was charging to undo a delete of something you were given.
+- **Per-item Export is gated**, matching the library one. Same feature:
+  `buildExport()` has shared a wrapper shape between one item and the whole
+  library since session 38.
+- **Locked faces are dimmed** (0.62), lighter than `data-locked`'s 0.55 on
+  purpose — these are names you still have to read while deciding whether to buy
+  them, and the caption above already carries the actual lock.
+- **The lock has a keyhole now** and went 0.84em → 1em to make room for it. His
+  note: the first one "read as a briefcase", which an outlined rectangle with a
+  handle is exactly what it was. The keyhole is one subpath inside the same
+  `<path>` under `fill-rule="evenodd"`, since a mask only sees alpha and two
+  separate shapes could not subtract.
+
+**Two existing assertions also had to be relaxed** — both pinned an exact
+spelling rather than an intent, and both intents still hold. Worth noting as a
+pattern: a test that matches source text has to test the CLAIM, not the syntax.
+
+**169/169.** Still open for his phone: whether the roll-back reads well now that
+it happens in view, and whether the keyhole resolves at arm's length.
 
 ## Where things stand (session 46c — v3.16.0, 2026-09-13)
 
