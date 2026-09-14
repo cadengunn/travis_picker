@@ -265,7 +265,19 @@ body {
     repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.035) 0 2px, transparent 2px 4px),
     repeating-linear-gradient(-45deg, rgba(255, 245, 225, 0.018) 0 2px, transparent 2px 4px),
     var(--faceplate);
-  background-attachment: fixed;
+  /* ⚠️ `background-attachment: fixed` WAS REMOVED HERE (session 46h, his report:
+     the tweed texture is missing along the very bottom edge in the installed app,
+     on every theme).
+     Under `fixed` the background's POSITIONING AREA is the viewport, not the
+     element — so when body's background propagates to the canvas, the base colour
+     still paints everywhere but the texture and vignette layers are sized to the
+     viewport and stop short of the home-indicator safe area. A plain, untextured
+     band along the bottom is exactly that.
+     It bought nothing to begin with: `fixed` only matters for content that
+     SCROLLS, and html/body are `overflow: hidden` here — the document has never
+     scrolled. It has been in the file unexamined since the v2.1 tweed pass.
+     NOT VERIFIABLE ON THE DEV BOX: no safe-area insets here (measured: top 0,
+     bottom 0), so there is no band to lose. */
 }
 
 /* ---- main / stage ---- */

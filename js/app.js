@@ -87,13 +87,14 @@ const tier = createEntitlement({
 // Safari tab on the same origin, so setting it once in Safari lights it up in
 // both. `?debug=0` clears it. DELETE THIS once the layout question is settled.
 function viewportDebug() {
-  let on = false;
-  try { on = localStorage.getItem("tp-debug") === "1"; } catch {}
-  try {
-    const m = /[?&]debug=([01])/.exec(location.search);
-    if (m) { on = m[1] === "1"; localStorage.setItem("tp-debug", m[1]); }
-  } catch {}
-  if (!on) return;
+  // ⚠️ UNCONDITIONAL FOR THIS ONE RELEASE, then delete. It was gated behind a
+  // sticky `?debug=1` on the assumption that localStorage reaches the installed
+  // app the way it reaches a Safari tab on the same origin. IT DOES NOT: iOS
+  // gives a standalone PWA its OWN STORAGE PARTITION, so the flag set in Safari
+  // was invisible to the installed app and the panel never appeared there — which
+  // is the one reading actually needed.
+  // The same fact means `?tier=free` cannot reach the installed app either; the
+  // paywall can only be exercised in a tab until the native bridge exists.
 
   // `position: fixed` + `pointer-events: none` so it can't disturb the very
   // layout it is measuring, or swallow a tap.
@@ -120,7 +121,7 @@ function viewportDebug() {
   const draw = () => {
     const vv = window.visualViewport;
     box.textContent = [
-      `standalone ${matchMedia("(display-mode: standalone)").matches}`,
+      `standalone ${matchMedia("(display-mode: standalone)").matches}  ${APP_VERSION}`,
       `innerH ${innerHeight}  docClientH ${document.documentElement.clientHeight}`,
       `visualVP ${vv ? Math.round(vv.height) : "—"} @${vv ? Math.round(vv.offsetTop) : "—"}`,
       `vh ${px("100vh")}  dvh ${px("100dvh")}  svh ${px("100svh")}  lvh ${px("100lvh")}`,
@@ -130,8 +131,20 @@ function viewportDebug() {
       `main ${rect("main")}`,
       `head ${rect(".app-head")}`,
       `stage ${rect(".stage")}`,
+      `chordhead ${rect("#chord-head")}`,
       `grid ${rect(".grid-track")}`,
       `ctrls ${rect(".controls")}`,
+      // The gap above vs below the grid INSIDE the stage. `.stage` centres the
+      // readout and the grid as ONE group, so the grid necessarily sits below the
+      // stage's own centre — the question is whether that offset differs between
+      // the two contexts, which is what the complaint is actually about.
+      (() => {
+        const st = document.querySelector(".stage");
+        const gr = document.querySelector(".grid-track");
+        if (!st || !gr) return "gap —";
+        const a = st.getBoundingClientRect(), b = gr.getBoundingClientRect();
+        return `gap above ${Math.round(b.top - a.top)}  below ${Math.round(a.bottom - b.bottom)}`;
+      })(),
     ].join("\n");
   };
   draw();
@@ -245,7 +258,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.17.3";
+const APP_VERSION = "v3.17.4";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
