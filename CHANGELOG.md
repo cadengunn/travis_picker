@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [46c](#where-things-stand-session-46c--v3160-2026-09-13) | **v3.16.0** | the paywall reaches the **barrels**, which was the risky surface. A locked family wears **one lock on its engraved caption**, never a mark per face — the faces are already width-starved. Settling on a locked family is **REFUSED**: `onSettle` returns false, the sheet opens, the barrel turns back, and the hidden `<select>` never takes a locked value. `wheel.js` stays dependency-free — the gate is callbacks, like `tick`. Also: **the die can no longer roll what you can't select**, the free library caps at 3 (built-ins exempt, overwrite still allowed), and export/import/restore are gated. His note actioned: the unlock sheet's specific line now sits in its own paragraph |
 | [46b](#where-things-stand-session-46b--v3150-2026-09-13) | **v3.15.0** | the paywall starts, and it starts on the WEB side — gating needs no Apple account, no Xcode and no build machine, and the PWA is still live, so he can judge the feel on his own phone before any Swift exists. `entitlement.js` is a stub the native StoreKit bridge will later replace; it **defaults to UNLOCKED** so the live app is unchanged, and `?tier=free` opts a device in. First surfaces gated: ×2 and the custom-progression save key. **Grey stays "not applicable", a LOCK means "purchasable"** — and the lock never uses `disabled`, because a disabled button emits no click and so could not open the unlock sheet. Ten new checks, all verified to fail without their fix |
 | [46](#where-things-stand-session-46--v3141-2026-09-13) | **v3.14.1** | item 18 opens: `APP_STORE.md`, and every decision behind it made before a line of code. Free/paid split by the **engraved group** both drums already print, locked-but-visible with a **lock icon** — because greying already means "not applicable" (×2 in single mode) and the two must not collide. His refinement beat the first proposal twice: it needs no data filter at all, and it fixes the discovery problem a shorter reel would have created. Also his iPad report — progression mode rendered 1×4 on a portrait iPad because a rule labelled `/* desktop afterthought */` tested **width alone**; aspect ratio is the real driver, and the phone's budget came back byte-identical |
 | [45d](#where-things-stand-session-45d--v3140-2026-08-12) | **v3.14.0** | the chord die is **weighted by commonness** (his call), reversing the flat roll of session 30. That old argument — "a picker that offers every chord with equal ceremony should have a die that does the same" — is still half true, and the half that isn't is the point: eight of the ten qualities are colour chords, so a *uniform* roll over a 12 × 10 matrix put ~80% of its rolls on something you'd rarely play. Measured over 60k draws, major + minor go 20% → **52%**. Weights are data (`QUALITIES[].weight` × `ROOTS[].weight`), the root bias is deliberately gentle at 2:1 against the qualities' 10:1 (leaning hard on roots would stop you drilling the awkward keys, which is backwards), and every weight is > 0 so nothing is unreachable — asserted by construction, because at 20:1 a coupon-collecting test would be both slow and flaky. **Everything from session 45 signed off on his phone** |
@@ -77,6 +78,58 @@ Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
 
 ---
+
+## Where things stand (session 46c — v3.16.0, 2026-09-13)
+
+**His verdict on v3.15.0: "this looks good"**, with one note — the unlock
+sheet's feature-specific sentence should be split from the generic pitch. Done,
+and done the way the app already does it: **a blank line in a modal `message`
+becomes a real `<p>`**, the same convention help copy uses in `data.js`.
+Single-paragraph callers are byte-identical.
+
+**Then the rest of the gating, including the barrels — the surface with the
+actual risk in it.**
+
+**A locked family wears ONE LOCK ON ITS ENGRAVED CAPTION, never a mark per
+face.** The faces are width-starved: `fitFace()` already shrinks them to a
+10.5px floor and ellipsizes below it, and session 45b was specifically about the
+progression reel starving. One lock per family is cheaper *and* clearer, and it
+matches how this app says a barrel reads — a caption names everything below it
+until the next one. A test pins that no lock ever lands on an option face.
+
+**Settling on a locked family is REFUSED, not committed.** `onSettle` returning
+**false** is the refusal: the unlock sheet opens and the barrel turns back to the
+last accepted value. That last part is the load-bearing half — **the hidden
+`<select>` is the source of truth and must never hold a locked value**, which is
+the wheel's whole contract. Verified: the select is unchanged after a settle on
+`6`. **The turn-back ANIMATION is unverifiable here** — smooth `scrollTo` needs
+rAF, which is paused in a hidden preview tab — so that stays a question for his
+phone, exactly as flagged.
+
+**`wheel.js` still knows nothing about entitlement.** The gate arrives as plain
+callbacks, the same shape as `tick`, and `gate: null` (every test, and the
+unlocked app) behaves exactly as before.
+
+**The die can no longer roll something you can't select.** A roll you have to
+undo is worse than no roll. `randomChord` already took a `pool`;
+`randomKeyProgression` gained an `allow` predicate. Worth recording *how* that
+was nearly missed: the first two tests built their own pool and so proved only
+that the data functions *honour* a restriction — they passed while `app.js`
+supplied none at all. The wiring test added afterwards **failed immediately**,
+on a regex of mine that couldn't span `el("chord").value` because `[^)]*` stops
+at the first `)`. Both halves are now covered.
+
+**The library caps at 3 in the free tier.** Built-ins are exempt — otherwise
+`seedNewBuiltins()` would start a free user at 5 of 3, unable to save anything —
+and **overwriting one of your three is always allowed**, since it consumes no
+slot and refusing it would strand someone revising their own work.
+Export/Import/Restore are gated, and **mode still beats tier**: an empty library
+reads as empty rather than as something to buy.
+
+**Four more checks, all verified to fail without their fix** (four breaks → seven
+failures; break 2 stopped `onSettle` being called at all, so the three existing
+wheel tests caught it too — good collateral evidence they aren't vacuous).
+**169/169.**
 
 ## Where things stand (session 46b — v3.15.0, 2026-09-13)
 

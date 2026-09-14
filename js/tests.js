@@ -4774,6 +4774,76 @@ acheck("app.js applies MODE-BEATS-TIER precedence to x2", async () => {
     "setTierLock must not touch `disabled` — a disabled control can't open the unlock sheet");
 });
 
+
+check("the die can never roll a chord or progression you can't select", () => {
+  // A roll you have to undo is worse than no roll. randomChord takes a POOL and
+  // randomKeyProgression takes an ALLOW predicate for exactly this.
+  const free = createEntitlement({ store: memStore(), search: "?tier=free" });
+  const qOf = (id) => QUALITIES.find((q) => q.id === splitChordId(id)?.quality)?.group;
+  const pool = CHORD_IDS.filter((id) => !free.qualityGroupLocked(qOf(id)));
+  assert(pool.length === 60, `the free chord pool should be 60 chords, got ${pool.length}`);
+  const rng = seeded(7);
+  for (let i = 0; i < 300; i++) {
+    const c = randomChord("E", rng, pool);
+    assert(!free.qualityGroupLocked(qOf(c)), `the die rolled a locked chord: ${c}`);
+  }
+  const allow = (p) => !free.progressionStyleLocked(p.style);
+  for (let i = 0; i < 200; i++) {
+    const roll = randomKeyProgression("C", "maj_1_5", rng, allow);
+    const st = PROGRESSIONS.find((p) => p.id === roll.progression)?.style;
+    assert(!free.progressionStyleLocked(st), `the die rolled a locked progression family: ${st}`);
+  }
+});
+
+check("the free chord pool still covers every ROOT", () => {
+  // The tier splits on QUALITY only — all twelve roots stay reachable, so the
+  // free tier can still drill the awkward keys.
+  const free = createEntitlement({ store: memStore(), search: "?tier=free" });
+  const qOf = (id) => QUALITIES.find((q) => q.id === splitChordId(id)?.quality)?.group;
+  const roots = new Set(CHORD_IDS.filter((id) => !free.qualityGroupLocked(qOf(id)))
+    .map((id) => splitChordId(id).root));
+  assert(roots.size === ROOTS.length, `every root must stay reachable, got ${roots.size}/${ROOTS.length}`);
+});
+
+acheck("app.js actually hands the die its restricted pools", async () => {
+  // The pool tests above prove randomChord/randomKeyProgression HONOUR a
+  // restriction; this proves app.js supplies one. Without it they'd pass while
+  // the die still rolled locked chords.
+  const appjs = await (await fetch("js/app.js")).text();
+  const fn = appjs.match(/function randomizeChords\(\)[\s\S]*?\n\}\n/)?.[0] || "";
+  assert(fn, "randomizeChords() must exist");
+  assert(/randomChord\([\s\S]*?rollableChords\(\)/.test(fn),
+    "the chord die must draw from the rollable pool");
+  assert(/randomKeyProgression\([\s\S]*?rollableProgression\)/.test(fn),
+    "the progression die must be given the rollable predicate");
+});
+
+acheck("a refused settle never writes the locked value to the <select>", async () => {
+  // The wheel's whole contract is that the hidden <select> is the source of
+  // truth and the reel reflects it — so a refusal must turn the barrel back, not
+  // leave the select holding something the app didn't accept.
+  const src = await (await fetch("js/wheel.js")).text();
+  assert(/onSettle\(v\) === false/.test(src),
+    "buildDrum must treat a FALSE return from onSettle as a refusal");
+  assert(/rowOfValue\(committed\)/.test(src),
+    "a refusal must scroll back to the last ACCEPTED value");
+  assert(/if \(reverting\) \{ reverting = false; return; \}/.test(src),
+    "the revert's own scroll must not re-enter onSettle and re-offer the sheet");
+});
+
+acheck("a locked FAMILY is marked on its header, never on each face", async () => {
+  // Faces are width-starved — fitFace() already shrinks to a 10.5px floor and
+  // ellipsizes below it — so a glyph per face would eat the labels.
+  const src = await (await fetch("js/wheel.js")).text();
+  const setItems = src.match(/function setItems\([\s\S]*?\n  \}\n/)?.[0] || "";
+  assert(setItems, "setItems must exist");
+  assert(/row\.head[\s\S]*?groupLocked\(row\.label\)/.test(setItems),
+    "the lock must hang off the HEADER row, keyed on the group label");
+  // The option branch must stay clean of it.
+  const optBranch = setItems.split("} else {")[1] || "";
+  assert(!/tier-lock/.test(optBranch), "no lock may be added to an option face");
+});
+
 // ---- render report ----
 export async function runTests(mount) {
   for (const { name, fn } of asyncChecks) {

@@ -297,39 +297,47 @@ recommendation.
 `PROGRESSIONS` stay whole in both tiers; entitlement decides only what *commits*.
 See 0.1.
 
-- [ ] **Entitlement flag** — how the web app learns it's unlocked: native bridge
+- [x] **Entitlement flag** (stub — `?tier=free`/`?tier=paid`) — how the web app learns it's unlocked: native bridge
       sets a flag the app reads at boot, and on purchase/restore **without a
       relaunch**.
-- [ ] **Extend `data-locked`** rather than inventing a treatment. It's already
+- [x] **Extend `data-locked`** rather than inventing a treatment. It's already
       generic on `[data-locked]` (`seatedLatch`), already greys at 0.55, and
       already keeps press travel. The paywall adds: a lock icon, and an unlock
       sheet in place of the silent no-op.
-- [ ] **Precedence test: mode beats tier** — ×2 in single mode is grey/silent/no
+- [x] **Precedence test: mode beats tier** — ×2 in single mode is grey/silent/no
       lock even on the free tier.
-- [ ] **Barrel settle behaviour — DECIDE BY PLAYING** (see 0.1): locked cells spin
-      freely, settling on one opens the unlock sheet, dismissing animates the reel
-      back to the previous detent. The return animation is the feel risk; build the
-      cheap version and judge it on the phone.
+- [x] **Barrel settle behaviour — BUILT, feel unjudged.** Locked families spin
+      freely; settling on one is REFUSED (`onSettle` returns false), the unlock
+      sheet opens, and the barrel turns back to the last accepted value. The
+      refusal is verified — the hidden `<select>` never takes a locked value — but
+      **the turn-back animation is unverifiable here** (`scrollTo({behavior:
+      "smooth"})` needs rAF, which is paused in a hidden preview tab). His phone
+      is the only place that question can be answered.
   - The reel must not commit a locked value to the hidden `<select>` — it is the
     source of truth, and the wheel's whole contract is that the reel reflects it.
-- [ ] Lock icons on the **section headers** of locked families (both barrels), not
+- [x] Lock icons on the **section headers** of locked families (both barrels), not
       on each face — width (see 0.1).
-- [ ] Gate `#save-progression`, `#x2-toggle`, and the library's folder /
+- [x] Gate `#save-progression`, `#x2-toggle`, and the library's folder /
       export-import / Restore actions.
-- [ ] **3 free save slots**: 4th save attempt opens the unlock sheet with a
+- [x] **3 free save slots** (built-ins exempt, overwrite allowed at the cap): 4th save attempt opens the unlock sheet with a
       "3 of 3 used" line. **Built-ins must NOT count against the 3** — they're
       seeded into the real library by `seedNewBuiltins()`, so a free user would
       start at 5 of 3 and be unable to save anything. Decide: seed fewer built-ins
       in the free tier, or exempt `builtinId`-tagged items from the count
       *(exempting is cleaner and keeps Restore honest)*.
-- [ ] **Design the unlock sheet.** Name the locked families explicitly
+- [x] **Design the unlock sheet.** Name the locked families explicitly
       (Ragtime/Piedmont, Classic Country, Sixths, Suspended, Added…), not "premium
       features."
-- [ ] Verify the **select-vs-exist rule**: a built-in or imported pattern using a
+- [x] Verify the **select-vs-exist rule**: a built-in or imported pattern using a
       paid-tier chord still resolves and sounds right in the free tier.
 - [ ] Re-measure at **375×553** if any main-view chrome changes (55.09 / 384.84 /
       11.06, `main` overflow 0). A lock icon on a header or an in-sheet control
       shouldn't touch it, but measure rather than assume.
+
+- [x] **The die may only roll what you can select.** `randomChord` already took a
+      `pool`; `randomKeyProgression` gained an `allow` predicate. A roll you have
+      to undo is worse than no roll. Tests cover both the honouring AND the
+      wiring — the first pair passed while app.js supplied no pool at all.
 
 **Retired from an earlier draft:** parameterizing the matrix-density test. Not
 needed — the arrays are never filtered, so the matrix stays dense in both tiers.

@@ -16,6 +16,8 @@ import {
   DEFAULT_KEY,
   PROGRESSIONS,
   CUSTOM_PROGRESSION_ID,
+  QUALITIES,
+  splitChordId,
   allProgressions,
   setCustomProgressions,
   progressionGroups,
@@ -58,7 +60,7 @@ import {
 import { DEFAULT_TONE } from "./synth.js";
 import { setUiSoundEnabled, playPress, playRelease, playTick, playPlace } from "./ui-sound.js";
 import { confirmModal, promptModal, infoModal, unlockModal } from "./modal.js";
-import { createEntitlement, UNLOCK_BENEFITS } from "./entitlement.js";
+import { createEntitlement, UNLOCK_BENEFITS, FREE_SAVE_SLOTS } from "./entitlement.js";
 import { createHelp } from "./help.js";
 import { enhanceSelect, enhanceAll, retargetOpenPanel, commit, openDropdownTrigger } from "./dropdown.js";
 import { createChordWheel, createKeyProgWheel, chordSplitLabel, keyProgSplitLabel } from "./wheel.js";
@@ -111,8 +113,10 @@ function setTierLock(host, locked, { markIn = null } = {}) {
 async function showUnlockSheet(lead) {
   const bought = await unlockModal({
     title: "Unlock everything",
+    // Blank line = a real paragraph (modal.js), so the sentence about the
+    // control he actually pressed stands apart from the generic pitch.
     message: lead
-      ? lead + " Unlocking is a one-time purchase — every feature, forever, no subscription."
+      ? lead + "\n\nUnlocking is a one-time purchase — every feature, forever, no subscription."
       : "One purchase unlocks every feature, forever. No subscription.",
     items: UNLOCK_BENEFITS,
   });
@@ -126,6 +130,35 @@ async function showUnlockSheet(lead) {
   }
   return bought;
 }
+
+// The paywall as the DRUMS see it — plain callbacks, so wheel.js stays free of
+// entitlement entirely (same trick as `tick`). `refuse` is what turns a settle
+// on a locked family into the unlock sheet plus a barrel that turns back.
+const wheelGate = {
+  qualityGroupLocked: (label) => tier.qualityGroupLocked(label),
+  qualityLocked: (id) => {
+    const g = QUALITIES.find((q) => q.id === id)?.group;
+    return g ? tier.qualityGroupLocked(g) : false; // unknown id: never refuse
+  },
+  progressionStyleLocked: (label) => tier.progressionStyleLocked(label),
+  progressionLocked: (id) => {
+    // "Unsaved" is a READOUT, not a choice — picking it is already a no-op, so
+    // refusing it would be a dead detent for everyone.
+    if (id === CUSTOM_PROGRESSION_ID) return false;
+    const st = allProgressions().find((p) => p.id === id)?.style;
+    return st ? tier.progressionStyleLocked(st) : false;
+  },
+  refuse: (kind) => showUnlockSheet(
+    kind === "quality"
+      ? "That chord family is part of the full set — 6, m6, sus2, sus4 and add9 on every root."
+      : "That progression family is part of the full set."
+  ),
+};
+
+// Pools the DIE may draw from. Without these it would hand you a chord or a
+// progression you can't select — a roll you have to undo is worse than no roll.
+const rollableChords = () => CHORD_IDS.filter((id) => !wheelGate.qualityLocked(splitChordId(id)?.quality));
+const rollableProgression = (p) => !tier.progressionStyleLocked(p.style);
 
 // Re-applies every tier lock. Called from render(), the one funnel all of these
 // controls already pass through — the same reason savePrefs() lives there.
@@ -152,7 +185,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.15.0";
+const APP_VERSION = "v3.16.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -220,6 +253,7 @@ const chordWheel = createChordWheel({
   // The detent obeys the same silent-switch policy as the buttons: no UI sound
   // while the transport holds the audio category that overrides the ring switch.
   tick: () => { if (!metronome.running) playTick(); },
+  gate: wheelGate,
 });
 // The Options sheet's field shows the two halves separately under their own
 // legends; the per-bar chip shows the one chord name. Same panel either way.
@@ -231,6 +265,7 @@ const keyProgWheel = createKeyProgWheel({
   tick: () => { if (!metronome.running) playTick(); },
   keySelect: () => el("key"),
   commitKey: (v) => commit(el("key"), v),
+  gate: wheelGate,
 });
 const chordPicker = (sel) =>
   sel.id === "chord" ? { render: chordWheel, label: chordSplitLabel }
@@ -756,7 +791,7 @@ function forceRepaint(node) {
 // discard confirmation needed (unlike Generate, which re-rolls the pattern).
 function randomizeChords() {
   if (state.chordMode === "progression") {
-    const roll = randomKeyProgression(state.key, detectProgression(state.progression, state.key));
+    const roll = randomKeyProgression(state.key, detectProgression(state.progression, state.key), Math.random, rollableProgression);
     if (!roll) return;
     state.key = roll.key;
     el("key").value = roll.key;
@@ -764,7 +799,7 @@ function randomizeChords() {
     applyProgressionPreset(roll.progression); // sets bars, marks dirty, renders
     return;
   }
-  const chord = randomChord(el("chord").value);
+  const chord = randomChord(el("chord").value, Math.random, rollableChords());
   if (!chord) return;
   el("chord").value = chord;
   markDirty();
@@ -1325,8 +1360,15 @@ function refreshSavedCount() {
   // if EVERYTHING, Built-ins included, has been deleted — and that's exactly
   // when the Load sheet, the only way to reach Restore, must stay reachable.
   el("open-load").disabled = n === 0 && BUILTIN_PATTERNS.length === 0;
+  // Export/Import/Restore are paid. They keep their own "nothing to do yet"
+  // disabled state — MODE BEATS TIER here too, so an empty library still reads
+  // as empty rather than as something to buy.
+  const libLocked = tier.featureLocked("exportImport");
   el("export-btn").disabled = n === 0;
   el("restore-builtins-btn").disabled = !missingBuiltins().length;
+  setTierLock(el("export-btn"), libLocked && n > 0);
+  setTierLock(el("import-btn"), libLocked);
+  setTierLock(el("restore-builtins-btn"), tier.featureLocked("restore") && !!missingBuiltins().length);
 }
 
 // Sentinel option value for the per-item folder <select>'s trailing "+ New
@@ -1686,6 +1728,18 @@ async function saveCurrent() {
   // still merges via the old suffix behaviour untouched (see storage.js),
   // since a batch import has no one to ask.
   const existing = savedStore.list().find((i) => i.name === name);
+
+  // THE FREE CAP. Checked against `existing.id`, so overwriting one of your
+  // three is always allowed — it consumes no new slot, and refusing it would
+  // strand a free user who just wants to revise something. Built-ins never
+  // count (entitlement.js): seedNewBuiltins() puts five real items in the
+  // library at boot, so counting them would start a free user at 5 of 3.
+  if (!tier.canSave(savedStore.list(), existing?.id)) {
+    const used = tier.usedSlots(savedStore.list());
+    await showUnlockSheet(`The free library holds ${FREE_SAVE_SLOTS} patterns, and you've used ${used}.`);
+    return;
+  }
+
   let item;
   if (existing) {
     const overwrite = await confirmModal({
@@ -2183,14 +2237,30 @@ function attach() {
   el("library-menu-btn").addEventListener("click", () => {
     el("library-menu").hidden = !el("library-menu").hidden;
   });
-  el("export-btn").addEventListener("click", exportLibrary);
-  el("import-btn").addEventListener("click", () => el("import-file").click());
+  el("export-btn").addEventListener("click", () => {
+    if (el("export-btn").hasAttribute("data-tier-locked")) {
+      showUnlockSheet("Exporting writes your whole library to a file you can keep or move to another device.");
+      return;
+    }
+    exportLibrary();
+  });
+  el("import-btn").addEventListener("click", () => {
+    if (el("import-btn").hasAttribute("data-tier-locked")) {
+      showUnlockSheet("Importing merges a library file into this one — nothing is ever overwritten.");
+      return;
+    }
+    el("import-file").click();
+  });
   el("import-file").addEventListener("change", (e) => {
     const file = e.target.files[0];
     e.target.value = ""; // clear so re-importing the same file still fires change
     if (file) importLibrary(file);
   });
   el("restore-builtins-btn").addEventListener("click", () => {
+    if (el("restore-builtins-btn").hasAttribute("data-tier-locked")) {
+      showUnlockSheet("Restore brings back any built-in pattern you've deleted, without duplicating the ones you kept.");
+      return;
+    }
     const n = restoreMissingBuiltins();
     el("import-hint").textContent = n
       ? `Restored ${n} built-in pattern${n === 1 ? "" : "s"}.`

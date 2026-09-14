@@ -1423,6 +1423,19 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.16.0, 169/169 green.** Session 46c took the paywall to the **barrels**. A
+locked family wears **one lock on its engraved caption, never a mark per face**
+(the faces are width-starved — `fitFace()` shrinks to a 10.5px floor). Settling
+on a locked family is **REFUSED**: `onSettle` returns **false**, the sheet opens,
+the barrel turns back, and **the hidden `<select>` never takes a locked value** —
+the wheel's whole contract. `wheel.js` stays dependency-free: the gate is
+callbacks, like `tick`, and `gate: null` behaves exactly as before. **The die may
+only roll what you can select** (`randomChord`'s `pool`, and a new `allow` on
+`randomKeyProgression`). The free library caps at **3**, built-ins exempt,
+overwrite always allowed. **Unverifiable here and waiting on his phone:** the
+barrel's turn-back animation — smooth `scrollTo` needs rAF, which a hidden
+preview tab pauses.
+
 **v3.15.0, 164/164 green.** Session 46b started the paywall **on the web side** —
 `js/entitlement.js` is a stub for the native StoreKit bridge that **defaults to
 UNLOCKED** (the live PWA must not lose features mid-testing), with

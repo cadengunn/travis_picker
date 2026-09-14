@@ -973,8 +973,11 @@ function pickDifferent(options, isSame, rng, tries = 24) {
 // subset. The tradeoff was put to him and accepted: within one key the pool is
 // flat, and the minor set ships only 3 presets, so a handful of saved minor
 // progressions can dominate a minor roll. One word here reverts it.
-export function randomKeyProgression(currentKey, currentProgId, rng = Math.random) {
-  const progsFor = (key) => allProgressions().filter((p) => p.mode === KEYS[key].mode);
+// `allow` lets a caller narrow the pool without this function learning why —
+// the paywall passes one so the die can never hand you a progression family you
+// cannot actually select (APP_STORE.md 0.1).
+export function randomKeyProgression(currentKey, currentProgId, rng = Math.random, allow = () => true) {
+  const progsFor = (key) => allProgressions().filter((p) => p.mode === KEYS[key].mode && allow(p));
   const isCurrent = (x) => x.key === currentKey && x.progression === currentProgId;
   for (let i = 0; i < 24; i++) {
     const key = KEY_IDS[Math.floor(rng() * KEY_IDS.length)];

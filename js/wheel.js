@@ -88,7 +88,10 @@ export function fitFace(face) {
 // groove, since there's no name to engrave. So the visual barrel is `rows` —
 // headers interleaved with options — while `list` stays the pure options (1:1
 // with the <select>), which is what index/commit and list() reason about.
-function buildDrum(parent, { cls, legend, items, value, onSettle }, { tick, settleMs }) {
+// `groupLocked` and a FALSE return from `onSettle` are the paywall's two hooks.
+// Both are callbacks, exactly like `tick`, so this module still knows nothing
+// about entitlement — app.js owns that and hands the answers in.
+function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked }, { tick, settleMs }) {
   const drum = document.createElement("div");
   drum.className = `drum drum-${cls}`;
   parent.appendChild(drum);
@@ -113,6 +116,8 @@ function buildDrum(parent, { cls, legend, items, value, onSettle }, { tick, sett
   let list = [];    // options only, 1:1 with the <select> — what commit reasons about
   let rowIndex = 0; // the centred ROW (headers included)
   let settleTimer = null;
+  let committed = null;   // the last value onSettle ACCEPTED — what a refusal returns to
+  let reverting = false;  // the revert's own scroll must not re-enter onSettle
 
   // Interleave section headers into the option list. A named group prints a header
   // before its first option; an unnamed break after a named group (Custom) marks
@@ -187,6 +192,17 @@ function buildDrum(parent, { cls, legend, items, value, onSettle }, { tick, sett
         cell.className = "reel-head";
         cell.setAttribute("aria-hidden", "true");
         face.classList.add("reel-head-face");
+        // A LOCKED FAMILY WEARS ONE LOCK ON ITS ENGRAVED CAPTION, never a mark on
+        // each face. The faces are width-starved — fitFace() already shrinks them
+        // to a 10.5px floor and ellipsizes below it (session 45b) — and on a
+        // barrel a caption names everything below it until the next one, so one
+        // lock per family is both cheaper and clearer. APP_STORE.md 0.1.
+        if (groupLocked && groupLocked(row.label)) {
+          cell.classList.add("reel-head-locked");
+          const lock = document.createElement("span");
+          lock.className = "tier-lock";
+          face.appendChild(lock);
+        }
       } else {
         cell.type = "button";
         cell.className = "reel-item";
@@ -204,6 +220,7 @@ function buildDrum(parent, { cls, legend, items, value, onSettle }, { tick, sett
     // is in the document (same reason scrollToRow needs it below).
     for (const f of faces) fitFace(f.face);
     rowIndex = rowOfValue(current);
+    committed = rows[rowIndex] && !rows[rowIndex].head ? rows[rowIndex].value : current;
     scrollToRow(rowIndex, false);
     paint();
   }
@@ -218,7 +235,22 @@ function buildDrum(parent, { cls, legend, items, value, onSettle }, { tick, sett
       tick();
     }
     clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => onSettle(rows[nearestOpt(rowIndex)].value), settleMs);
+    settleTimer = setTimeout(() => {
+      // The revert below scrolls, which schedules another settle; swallow that one
+      // rather than re-offering the same refusal.
+      if (reverting) { reverting = false; return; }
+      const v = rows[nearestOpt(rowIndex)].value;
+      // A FALSE return REFUSES the value (a locked family). The barrel turns back
+      // to the last accepted one rather than sitting on something the app didn't
+      // take — the hidden <select> is the source of truth and must never hold a
+      // locked value, which is the wheel's whole contract.
+      if (onSettle(v) === false) {
+        const back = rowOfValue(committed);
+        if (back !== rowIndex) { reverting = true; scrollToRow(back, true); }
+        return;
+      }
+      committed = v;
+    }, settleMs);
   });
 
   el.addEventListener("keydown", (e) => {
@@ -297,7 +329,9 @@ function optionItems(select) {
 // CHORD × QUALITY — two reels writing ONE composite select value
 // ---------------------------------------------------------------------------
 
-export function createChordWheel({ tick = () => {}, settleMs = SETTLE_MS } = {}) {
+// `gate` is the paywall, injected. Null means everything is reachable, which is
+// what every test and the unlocked app pass.
+export function createChordWheel({ tick = () => {}, settleMs = SETTLE_MS, gate = null } = {}) {
   return function renderChordWheel(select, panel, { commit }) {
     const start = splitChordId(select.value) || { root: ROOTS[0].id, quality: QUALITIES[0].id };
     const chosen = { root: start.root, quality: start.quality };
@@ -340,7 +374,14 @@ export function createChordWheel({ tick = () => {}, settleMs = SETTLE_MS } = {})
         // uses — now that the reel carries up to a dozen qualities.
         items: () => QUALITIES.map((q) => ({ value: q.id, label: q.name, group: q.group })),
         value: () => chosen.quality,
-        onSettle: (v) => { chosen.quality = v; apply(); },
+        groupLocked: gate ? (label) => gate.qualityGroupLocked(label) : null,
+        onSettle: (v) => {
+          // Refuse rather than commit: the barrel turns back and the unlock sheet
+          // opens. The ROOT reel is never gated — all twelve are free, and the
+          // tier splits on quality only.
+          if (gate && gate.qualityLocked(v)) { gate.refuse("quality", v); return false; }
+          chosen.quality = v; apply();
+        },
       },
     ], { tick, settleMs });
 
@@ -365,7 +406,7 @@ export function createChordWheel({ tick = () => {}, settleMs = SETTLE_MS } = {})
 //
 // The panel is opened on the PROGRESSION select, so `commit` targets that one and
 // the key reel writes through `commitKey`.
-export function createKeyProgWheel({ tick = () => {}, settleMs = SETTLE_MS, keySelect, commitKey } = {}) {
+export function createKeyProgWheel({ tick = () => {}, settleMs = SETTLE_MS, keySelect, commitKey, gate = null } = {}) {
   return function renderKeyProgWheel(select, panel, { commit }) {
     const reels = buildHousing(panel, "wheel-keyprog", [
       {
@@ -395,7 +436,11 @@ export function createKeyProgWheel({ tick = () => {}, settleMs = SETTLE_MS, keyS
         // (his call): picking it leaves the grid's chords exactly as they are,
         // which is already what applyProgressionPreset does. Editing a bar chord
         // makes app.js set this select to Custom, so the reel opens on it.
-        onSettle: (v) => commit(v),
+        groupLocked: gate ? (label) => gate.progressionStyleLocked(label) : null,
+        onSettle: (v) => {
+          if (gate && gate.progressionLocked(v)) { gate.refuse("progression", v); return false; }
+          commit(v);
+        },
       },
     ], { tick, settleMs });
 

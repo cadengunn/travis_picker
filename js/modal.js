@@ -32,10 +32,16 @@ function build({ title, message, value, confirmText, cancelText, danger, prompt,
     card.setAttribute("aria-label", title);
   }
 
-  const p = document.createElement("p");
-  p.className = "tp-modal-msg";
-  p.textContent = message;
-  card.appendChild(p);
+  // A BLANK LINE IN `message` BECOMES A REAL <p>, the same convention help
+  // copy already uses in data.js — so the unlock sheet can keep the sentence
+  // about the control you actually pressed apart from the generic pitch (his
+  // note). Single-paragraph callers are byte-identical: the split yields one.
+  for (const para of String(message ?? "").split(/\n\s*\n/)) {
+    const p = document.createElement("p");
+    p.className = "tp-modal-msg";
+    p.textContent = para;
+    card.appendChild(p);
+  }
 
   let input = null;
   if (prompt) {
