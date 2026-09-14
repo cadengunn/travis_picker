@@ -1423,6 +1423,17 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.17.2, 172/172 green.** Session 46g simplified the lock rule to **one mark
+per locked FACE, and nothing on a header** (his call). The caption lock existed
+to save face width — real, but it only paid off on a tight barrel and it cost a
+two-case rule once the Sevenths family split. **Measured after the change: every
+progression label still renders at the full 17px with no ellipsis at 375px**, so
+the width worry didn't materialise. **The locked-face fade is gone too** (his
+call — `paint()` already fades every facet by distance, so a second fade read as
+more of the same). Minor Blues now leads the minor families, since it's the free
+one. ⚠️ **A fade on a reel face must be multiplied into `paint()`** — that line
+writes an inline opacity every frame, so CSS can never win.
+
 **v3.17.1, 172/172 green.** Session 46e–f. **The tier splits by QUALITY now, not
 by engraved group** — free is major, minor and **dominant 7** (his call: dom7 is
 the sound this app teaches; maj7/m7 are colour chords). 36 free chords. That

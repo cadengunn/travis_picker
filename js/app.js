@@ -134,19 +134,10 @@ async function showUnlockSheet(lead) {
 // The paywall as the DRUMS see it — plain callbacks, so wheel.js stays free of
 // entitlement entirely (same trick as `tick`). `refuse` is what turns a settle
 // on a locked family into the unlock sheet plus a barrel that turns back.
-const qualityIdsIn = (group) => QUALITIES.filter((q) => q.group === group).map((q) => q.id);
 const wheelGate = {
-  // A family is locked only when EVERY quality in it is — which Sevenths no
-  // longer is, since dom7 is free (entitlement.js).
-  qualityGroupLocked: (label) => tier.groupLocked(qualityIdsIn(label)),
+  // One question per FACE, for both drums. There is no group-level gate any more
+  // (session 46g) — headers carry nothing, every locked face wears its own lock.
   qualityLocked: (id) => tier.qualityLocked(id),
-  // Its own lock only where the family is PARTIALLY locked; a wholly locked
-  // family is already marked once, on its caption.
-  qualityFaceLocked: (id) => {
-    const q = QUALITIES.find((x) => x.id === id);
-    return !!q && tier.qualityLocked(id) && !tier.groupLocked(qualityIdsIn(q.group));
-  },
-  progressionStyleLocked: (label) => tier.progressionStyleLocked(label),
   progressionLocked: (id) => {
     // "Unsaved" is a READOUT, not a choice — picking it is already a no-op, so
     // refusing it would be a dead detent for everyone.
@@ -193,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.17.1";
+const APP_VERSION = "v3.17.2";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle

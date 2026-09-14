@@ -88,10 +88,10 @@ export function fitFace(face) {
 // groove, since there's no name to engrave. So the visual barrel is `rows` —
 // headers interleaved with options — while `list` stays the pure options (1:1
 // with the <select>), which is what index/commit and list() reason about.
-// `groupLocked` and a FALSE return from `onSettle` are the paywall's two hooks.
-// Both are callbacks, exactly like `tick`, so this module still knows nothing
-// about entitlement — app.js owns that and hands the answers in.
-function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked, valueLocked }, { tick, settleMs }) {
+// `valueLocked` and a FALSE (or promise-of-false) return from `onSettle` are the
+// paywall's two hooks. Both are callbacks, exactly like `tick`, so this module
+// still knows nothing about entitlement — app.js owns that and hands the answers in.
+function buildDrum(parent, { cls, legend, items, value, onSettle, valueLocked }, { tick, settleMs }) {
   const drum = document.createElement("div");
   drum.className = `drum drum-${cls}`;
   parent.appendChild(drum);
@@ -153,13 +153,13 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked, v
     for (let i = 0; i < faces.length; i++) {
       const d = i - centre / ITEM_H;
       const away = Math.abs(d);
-      const { cell, face, head, dim } = faces[i];
+      const { cell, face, head } = faces[i];
       face.style.transform = `rotateX(${(-d * DEG_PER_STEP).toFixed(2)}deg)`;
-      // `dim` is the locked-family fade, MULTIPLIED IN HERE rather than set in
-      // CSS: this line writes an inline opacity every frame, so a stylesheet rule
-      // on `.reel-face` could never win. Found before it shipped, but it is the
-      // same shape as every other "looked right in a screenshot" bug in this app.
-      face.style.opacity = String(Math.max(0, 1 - away * 0.17) * dim);
+      // ⚠️ ADDING A FADE TO A LOCKED OR DISABLED FACE LATER? It has to be
+      // multiplied in HERE. This line writes an INLINE opacity every frame, so a
+      // stylesheet rule on `.reel-face` can never win. A locked-face fade lived on
+      // this exact line for one release and was cut in 46g.
+      face.style.opacity = String(Math.max(0, 1 - away * 0.17));
       cell.classList.toggle("in-window", away < 0.5);
       if (!head) cell.setAttribute("aria-selected", away < 0.5 ? "true" : "false");
     }
@@ -195,21 +195,15 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked, v
         cell.className = "reel-head";
         cell.setAttribute("aria-hidden", "true");
         face.classList.add("reel-head-face");
-        // A WHOLLY locked family wears ONE lock on its engraved caption. The
-        // faces are width-starved — fitFace() already shrinks them to a 10.5px
-        // floor and ellipsizes below it (session 45b) — and on a barrel a caption
-        // names everything below it until the next one, so one mark per family is
-        // both cheaper and clearer.
+        // HEADERS CARRY NO LOCK (his call, session 46g): "I prefer that big lock
+        // next to maj7 and min7 over the lock on the header. Let's apply that to
+        // all chords and progressions instead of in the headers."
         //
-        // A PARTIALLY locked family gets no caption lock (it would lie about the
-        // free members) and marks its locked FACES instead — see below. That case
-        // exists because the Sevenths family splits: dom7 free, maj7/m7 paid.
-        if (groupLocked && groupLocked(row.label)) {
-          cell.classList.add("reel-head-locked");
-          const lock = document.createElement("span");
-          lock.className = "tier-lock";
-          face.appendChild(lock);
-        }
+        // The caption lock was invented to save face width, and that argument was
+        // real — but it only bought anything on a barrel whose faces were tight,
+        // and it cost a rule with two cases (wholly vs partially locked) that had
+        // to be kept straight once the Sevenths family split. One mark per locked
+        // thing, always, is simpler and is what he can actually read.
       } else {
         cell.type = "button";
         cell.className = "reel-item";
@@ -219,25 +213,19 @@ function buildDrum(parent, { cls, legend, items, value, onSettle, groupLocked, v
       }
       cell.appendChild(face);
       el.appendChild(cell);
-      // Lighter than `data-locked`'s 0.55 on purpose: these are names you still
-      // have to read while deciding whether to buy them, and where the caption
-      // carries a lock it is already saying so.
-      const headLocked = row.head && !!(groupLocked && groupLocked(row.label));
-      const famLocked = !row.head && !!(groupLocked && row.group && groupLocked(row.group));
+      // EVERY locked face carries its own lock, and NOTHING is faded (his call,
+      // session 46g: "I'm not sure the dimming is doing much. Lock alone should be
+      // sufficient."). The fade shipped at 0.62 for one release and he was right —
+      // against a barrel that already fades every facet by its distance from the
+      // window, a second fade reads as more of the same rather than as a new fact.
       const ownLocked = !row.head && !!(valueLocked && valueLocked(row.value));
-      if (famLocked || ownLocked) cell.classList.add("reel-item-locked");
-      // Its OWN lock only where the family isn't wholly locked — otherwise the
-      // caption above has already said it once, and repeating it per face is the
-      // width cost this design exists to avoid.
-      if (ownLocked && !famLocked) {
+      if (ownLocked) {
+        cell.classList.add("reel-item-locked");
         const lock = document.createElement("span");
         lock.className = "tier-lock";
         face.appendChild(lock);
       }
-      faces.push({
-        cell, face, head: row.head,
-        dim: row.head ? (headLocked ? 0.8 : 1) : (famLocked || ownLocked ? 0.62 : 1),
-      });
+      faces.push({ cell, face, head: row.head });
     });
     el.appendChild(pad.cloneNode());
     // Fit the type BEFORE positioning: measuring needs the reel laid out, which
@@ -413,8 +401,7 @@ export function createChordWheel({ tick = () => {}, settleMs = SETTLE_MS, gate =
         // uses — now that the reel carries up to a dozen qualities.
         items: () => QUALITIES.map((q) => ({ value: q.id, label: q.name, group: q.group })),
         value: () => chosen.quality,
-        groupLocked: gate ? (label) => gate.qualityGroupLocked(label) : null,
-        valueLocked: gate ? (v) => gate.qualityFaceLocked(v) : null,
+        valueLocked: gate ? (v) => gate.qualityLocked(v) : null,
         onSettle: (v) => {
           // Refuse rather than commit: the barrel turns back and the unlock sheet
           // opens. The ROOT reel is never gated — all twelve are free, and the
@@ -487,7 +474,7 @@ export function createKeyProgWheel({ tick = () => {}, settleMs = SETTLE_MS, keyS
         // (his call): picking it leaves the grid's chords exactly as they are,
         // which is already what applyProgressionPreset does. Editing a bar chord
         // makes app.js set this select to Custom, so the reel opens on it.
-        groupLocked: gate ? (label) => gate.progressionStyleLocked(label) : null,
+        valueLocked: gate ? (v) => gate.progressionLocked(v) : null,
         onSettle: (v) => {
           if (gate && gate.progressionLocked(v)) {
             return gate.refuse("progression", v).then((bought) => {

@@ -119,11 +119,6 @@ export function createEntitlement({ store = null, search = "" } = {}) {
 
     // --- the two drums ---
     qualityLocked: (id) => !paid && !FREE_QUALITIES.includes(id),
-    // A FAMILY is locked only when EVERY quality in it is. Takes the ids rather
-    // than the group name so this module still knows nothing about data.js —
-    // app.js owns the group → qualities mapping.
-    groupLocked: (qualityIds = []) =>
-      !paid && qualityIds.length > 0 && qualityIds.every((id) => !FREE_QUALITIES.includes(id)),
     progressionStyleLocked: (style) => !paid && !FREE_PROGRESSION_STYLES.includes(style),
 
     // --- whole features ---

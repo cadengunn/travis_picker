@@ -787,10 +787,10 @@ export const PROGRESSIONS = [
   { id: "maj_1_4_2_5",    mode: "major", style: "Classic Standards",  label: "I–IV–ii–V",    tokens: ["I", "IV", "ii", "V"] },
   { id: "maj_1_6_2_5",    mode: "major", style: "Classic Standards",  label: "I–vi–ii–V",    tokens: ["I", "vi", "ii", "V"] },
   // --- minor ---
-  { id: "min_1_7_6_5",    mode: "minor", style: "Minor Descends",     label: "i–VII–VI–V",   tokens: ["i", "VII", "VI", "V"] },
-  { id: "min_1_7_6_57",   mode: "minor", style: "Minor Descends",     label: "i–VII–VI–V7",  tokens: ["i", "VII", "VI", "V7"] },
   { id: "min_1_4_57",     mode: "minor", style: "Minor Blues",        label: "i–iv–V7",      tokens: ["i", "i", "iv", "V7"] },
   { id: "min_1_4_1_57",   mode: "minor", style: "Minor Blues",        label: "i–iv–i–V7",    tokens: ["i", "iv", "i", "V7"] },
+  { id: "min_1_7_6_5",    mode: "minor", style: "Minor Descends",     label: "i–VII–VI–V",   tokens: ["i", "VII", "VI", "V"] },
+  { id: "min_1_7_6_57",   mode: "minor", style: "Minor Descends",     label: "i–VII–VI–V7",  tokens: ["i", "VII", "VI", "V7"] },
   { id: "min_1_6_3_7",    mode: "minor", style: "Modern Minor",       label: "i–VI–III–VII", tokens: ["i", "VI", "III", "VII"] },
   { id: "min_1_3_7_6",    mode: "minor", style: "Modern Minor",       label: "i–III–VII–VI", tokens: ["i", "III", "VII", "VI"] },
 ];

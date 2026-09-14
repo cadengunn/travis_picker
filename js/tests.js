@@ -4682,7 +4682,6 @@ check("?tier=free and ?tier=paid set the tier and persist it", () => {
 
 check("free tier gates chords by QUALITY, and the Sevenths family SPLITS", () => {
   const free = createEntitlement({ store: memStore(), search: "?tier=free" });
-  const ids = (g) => QUALITIES.filter((q) => q.group === g).map((q) => q.id);
   // DOMINANT 7 IS FREE and maj7/m7 are not (his call, session 46e): dom7 is the
   // characteristic sound of this style, so a demo without it doesn't demonstrate
   // the thing the app teaches. maj7/m7 are colour chords.
@@ -4690,11 +4689,6 @@ check("free tier gates chords by QUALITY, and the Sevenths family SPLITS", () =>
   assert(free.qualityLocked("maj7") && free.qualityLocked("min7"), "maj7 and m7 must be paid");
   assert(!free.qualityLocked("major") && !free.qualityLocked("minor"), "the triads must be free");
   assert(free.qualityLocked("maj6") && free.qualityLocked("add9"), "the colour families must be paid");
-  // A FAMILY is locked only when EVERY quality in it is — which is what decides
-  // whether the barrel marks a caption or the individual faces.
-  assert(!free.groupLocked(ids("Sevenths")), "Sevenths is only PARTIALLY locked, so its caption must not claim otherwise");
-  assert(free.groupLocked(ids("Sixths")) && free.groupLocked(ids("Added")), "wholly paid families must read as locked");
-  assert(!free.groupLocked(ids("Triads")), "Triads must not read as locked");
   assert(free.progressionStyleLocked("Ragtime / Piedmont"), "Ragtime must be locked");
   assert(!free.progressionStyleLocked("Foundations"), "Foundations must be free");
   assert(free.featureLocked("x2") && free.featureLocked("customProgressions"),
@@ -4841,44 +4835,36 @@ acheck("a refused settle never writes the locked value to the <select>", async (
     "onSettle may return a PROMISE, so the barrel can linger under the unlock sheet and roll back only once it closes");
 });
 
-acheck("a WHOLLY locked family is marked once on its header, never per face", async () => {
-  // Faces are width-starved — fitFace() already shrinks to a 10.5px floor and
-  // ellipsizes below it — so a glyph on every face would eat the labels.
-  //
-  // ⚠️ THIS TEST USED TO SAY "never on each face", FULL STOP. Session 46e
-  // overturned that deliberately: dom7 is free while maj7/m7 are paid, so the
-  // Sevenths family is only PARTIALLY locked and a caption lock would lie about
-  // it. The width argument is unchanged and still binding — it is just now scoped
-  // to families that are wholly locked, which is where it actually bought
-  // anything.
+acheck("every locked FACE wears a lock, and no header does", async () => {
+  // ⚠️ THIS TEST HAS BEEN OVERTURNED TWICE, so the history is worth keeping.
+  // v3.16.0: the lock rode the engraved CAPTION and never a face, to spare the
+  // width fitFace() is already fighting for. v3.17.0: dom7 went free while
+  // maj7/m7 stayed paid, so a partially locked family could not be marked by its
+  // caption without lying, and faces gained locks in that case only. v3.17.2
+  // (his call): headers carry nothing at all and every locked face wears one.
+  // The width argument was real but only ever paid off on a tight barrel, and it
+  // cost a two-case rule; one mark per locked thing is what he can read.
   const src = await (await fetch("js/wheel.js")).text();
   const setItems = src.match(/function setItems\([\s\S]*?\n  \}\n/)?.[0] || "";
   assert(setItems, "setItems must exist");
-  assert(/row\.head[\s\S]*?groupLocked\(row\.label\)/.test(setItems),
-    "a wholly locked family's lock must hang off the HEADER row, keyed on the group label");
-  assert(/if \(ownLocked && !famLocked\)/.test(setItems),
-    "a face may carry its own lock ONLY where its family is not wholly locked — otherwise the caption already said it");
+  assert(!/groupLocked/.test(src), "the group-level gate is gone — one question per face now");
+  assert(/if \(ownLocked\) \{/.test(setItems), "a locked face must carry its own lock");
+  // The header branch must add nothing.
+  const headBranch = setItems.split("if (row.head) {")[1]?.split("} else {")[0] || "";
+  assert(!/tier-lock/.test(headBranch), "a header must not carry a lock");
 });
 
-
-check("a PARTIALLY locked family marks its faces, a WHOLLY locked one marks its caption", () => {
-  // The whole width economy of the header lock depends on this split. Sevenths
-  // is the case that forced it: dom7 free, maj7/m7 paid, so a caption lock would
-  // lie about the family and no lock at all would leave two dead detents.
-  const free = createEntitlement({ store: memStore(), search: "?tier=free" });
-  const ids = (g) => QUALITIES.filter((q) => q.group === g).map((q) => q.id);
-  const faceLocked = (id) => {
-    const q = QUALITIES.find((x) => x.id === id);
-    return !!q && free.qualityLocked(id) && !free.groupLocked(ids(q.group));
-  };
-  assert(faceLocked("maj7") && faceLocked("min7"),
-    "maj7 and m7 must carry their OWN lock — their family is only partially locked");
-  assert(!faceLocked("dom7"), "a free quality must never be marked");
-  // Everything in a wholly locked family is marked ONCE, on the caption.
-  for (const id of ids("Sixths").concat(ids("Added"))) {
-    assert(!faceLocked(id), `${id} must not repeat its family's caption lock on its own face`);
-  }
+acheck("a locked face is marked ONLY by its lock — no second fade", async () => {
+  // His call: "I'm not sure the dimming is doing much. Lock alone should be
+  // sufficient." He was right — paint() already fades every facet by its
+  // distance from the window, so a locked fade read as more of the same.
+  const src = await (await fetch("js/wheel.js")).text();
+  const paint = src.match(/function paint\(\)[\s\S]*?\n  \}\n/)?.[0] || "";
+  assert(paint, "paint() must exist");
+  assert(/opacity = String\(Math\.max\(0, 1 - away \* 0\.17\)\);/.test(paint),
+    "the facet fade must be distance ONLY — no locked-state factor multiplied in");
 });
+
 
 acheck("a purchase re-cuts the OPEN reels, so the locks don't sit there stale", async () => {
   // His note: buying from the wheel worked, but "the locks and greyed out
