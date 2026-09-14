@@ -258,27 +258,56 @@ body {
   flex-direction: column;
   min-height: 100dvh;
   -webkit-text-size-adjust: 100%;
-  /* the tweed faceplate: top sheen, edge vignette, woven crosshatch, base tone */
+  /* The BASE TONE only. The textured faceplate is painted by `body::before`
+     below — see there for why it can't live on this element. */
+  background: var(--faceplate);
+}
+
+/* ---- the tweed faceplate ----
+   ⚠️ PAINTED BY A FIXED LAYER, NOT BY `body`'s OWN BACKGROUND, and the reason is
+   measured rather than argued (session 46h, his report: the texture is missing
+   along the very bottom edge in the installed app, on every theme).
+
+   His panel gave the geometry: in standalone, `html`/`body` are 852 tall
+   (`height: 100%` resolving to the small viewport) while `lvh` is 896 — so there
+   is a 44px strip of screen BELOW the root box, exactly the height of the top
+   safe-area inset. Reproduced here by shrinking body inside a taller viewport:
+   the propagated background fills that strip with the base COLOUR but none of the
+   gradient layers, which is precisely the flat band he was seeing.
+
+   Two fixes were tried and MEASURED TO FAIL before this one: removing
+   `background-attachment: fixed` (it was wrong for other reasons and is still
+   gone — it only matters for content that scrolls, and this document never
+   does), and moving the whole background to the root element, whose painting
+   area is supposed to cover the canvas. Neither carried the gradient layers into
+   the strip.
+
+   `height: 100lvh` is the point of this rule: the LARGE viewport, so the layer
+   covers the band the root box can't reach. `bottom: 0` is the fallback for
+   anything without `lvh` (it covers the small viewport, i.e. today's behaviour);
+   where `height` is honoured it wins, since top+height over-constrains. The layer
+   is `z-index: -1` + `pointer-events: none`, so it sits behind every child of
+   body and can never take a tap. body keeps the flat `--faceplate` underneath, so
+   the worst case if this rule is ever dropped is an untextured faceplate rather
+   than bare white. */
+body::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  height: 100lvh;
+  z-index: -1;
+  pointer-events: none;
   background:
     radial-gradient(120% 52% at 50% -8%, rgba(255, 240, 215, 0.10), transparent 62%),
     radial-gradient(150% 108% at 50% 44%, transparent 52%, rgba(0, 0, 0, 0.34)),
     repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.035) 0 2px, transparent 2px 4px),
     repeating-linear-gradient(-45deg, rgba(255, 245, 225, 0.018) 0 2px, transparent 2px 4px),
     var(--faceplate);
-  /* ⚠️ `background-attachment: fixed` WAS REMOVED HERE (session 46h, his report:
-     the tweed texture is missing along the very bottom edge in the installed app,
-     on every theme).
-     Under `fixed` the background's POSITIONING AREA is the viewport, not the
-     element — so when body's background propagates to the canvas, the base colour
-     still paints everywhere but the texture and vignette layers are sized to the
-     viewport and stop short of the home-indicator safe area. A plain, untextured
-     band along the bottom is exactly that.
-     It bought nothing to begin with: `fixed` only matters for content that
-     SCROLLS, and html/body are `overflow: hidden` here — the document has never
-     scrolled. It has been in the file unexamined since the v2.1 tweed pass.
-     NOT VERIFIABLE ON THE DEV BOX: no safe-area insets here (measured: top 0,
-     bottom 0), so there is no band to lose. */
 }
+
 
 /* ---- main / stage ---- */
 main {
@@ -580,6 +609,40 @@ main {
   content: "";
   flex: 0 1 112px; /* upward-bias cap; the ONLY item that shrinks when tight */
   min-height: 0;
+}
+
+/* ---- the grid sits too low IN A BROWSER TAB ---- (his report, session 46h)
+   MEASURED from his two debug panels, not guessed at — the previous two attempts
+   at this were both guesses and both wrong.
+
+                       standalone   Safari tab
+     viewport              852          718
+     top safe inset         44            0
+     stage top              99           63
+     gap ABOVE grid        140          140
+     gap BELOW grid        131           57
+
+   The gap above is IDENTICAL because `.stage` is `justify-content: flex-start`
+   with a 112px `::before` cap — 112 + 28 (the readout) = 140 — and that spacer
+   only shrinks when the grid would otherwise not fit. In a tab it still fits,
+   with 9px to spare, so it never shrinks and ALL the slack lands underneath.
+   Standalone happens to come out near-balanced (140/131); a tab does not
+   (140/57), which is the "pattern is low" he could see.
+
+   PART OF THE DIFFERENCE IS NOT FIXABLE and should not be chased: Safari hands
+   the page 134 fewer points and puts them at the TOP, and nothing can draw in the
+   URL bar. Measured against its own viewport the grid is already HIGHER in a tab;
+   it looks lower because the whole page starts ~108pt down the screen.
+
+   So this only corrects the app's own half — in a tab the slack is centred
+   instead of dumped below, which pulls the grid up ~40px. Scoped to
+   `display-mode: browser` deliberately: he judged the installed app "fine", and
+   the upward-bias cap is a tuned design decision that keeps the top of the
+   pattern clear when the Options sheet slides up. This leaves standalone byte
+   for byte as it was. */
+@media (display-mode: browser) {
+  .stage { justify-content: center; }
+  .stage::before { flex-basis: 0; }
 }
 
 /* The one "what am I playing over" slot, above the grid — the single chord, or

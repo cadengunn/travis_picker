@@ -4880,6 +4880,42 @@ acheck("a purchase re-cuts the OPEN reels, so the locks don't sit there stale", 
 });
 
 
+
+acheck("the stage rebalance is scoped to a BROWSER TAB, never standalone", async () => {
+  // He judged the installed app "fine" and only a tab sits low, so this must not
+  // touch standalone — the 112px upward-bias cap is a tuned decision there, and
+  // the documented 375x553 budget (55.09 / 384.84 / 11.06) is measured on it.
+  // ⚠️ THE DEV BOX IS ALWAYS `display-mode: browser`, so a plain measurement here
+  // reads the TAB branch (clearance 19.53). To check the standalone budget you
+  // have to neutralise this block first.
+  const css = await (await fetch("css/styles.css")).text();
+  const base = css.match(/\n\.stage \{[\s\S]*?\n\}/)?.[0] || "";
+  assert(/justify-content: flex-start/.test(base),
+    "the BASE .stage must keep flex-start — standalone is unchanged");
+  const mq = css.match(/@media \(display-mode: browser\) \{[\s\S]*?\n\}/)?.[0] || "";
+  assert(mq, "the rebalance must live in a display-mode: browser block");
+  assert(/justify-content: center/.test(mq) && /flex-basis: 0/.test(mq),
+    "a tab centres the slack and drops the upward-bias cap");
+});
+
+acheck("the faceplate is painted by a fixed LARGE-viewport layer", async () => {
+  // The root box is shorter than the screen in standalone (his panel: body 852,
+  // lvh 896), and a propagated background fills that strip with the base colour
+  // but none of the gradient layers — measured, twice, after two other fixes
+  // failed. `height: 100lvh` is the whole point of the rule.
+  const css = await (await fetch("css/styles.css")).text();
+  const rule = css.match(/\nbody::before \{[\s\S]*?\n\}/)?.[0] || "";
+  assert(rule, "body::before must paint the faceplate");
+  assert(/position: fixed/.test(rule), "it has to be fixed, not in flow");
+  assert(/height: 100lvh/.test(rule), "it must be sized to the LARGE viewport or the bottom band stays bare");
+  assert(/z-index: -1/.test(rule) && /pointer-events: none/.test(rule),
+    "it must sit behind every child of body and never take a tap");
+  // And nothing may quietly put the textured stack back on body itself.
+  const body = css.match(/\nbody \{[\s\S]*?\n\}/)?.[0] || "";
+  assert(!/repeating-linear-gradient/.test(body),
+    "the texture must not go back onto body — that is the bug this replaced");
+});
+
 // ---- render report ----
 export async function runTests(mount) {
   for (const { name, fn } of asyncChecks) {

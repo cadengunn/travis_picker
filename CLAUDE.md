@@ -365,6 +365,13 @@ mode, capo set, the worst case:
 | **clearance under the grid** | **11.06px** |
 | `main` overflow | 0 — it fits |
 
+⚠️ **SINCE v3.18.0 THERE ARE TWO BRANCHES, and the dev box only shows one.**
+`@media (display-mode: browser)` centres the stage's slack (his report: the grid
+sat low in a Safari tab); standalone keeps the 112px upward-bias cap unchanged.
+The table above is the **standalone** branch. **A browser tab — which is what the
+dev box always is — reads clearance 19.53, not 11.06.** To measure the standalone
+budget here you must neutralise that media block first; a test says so too.
+
 **That 11px is the entire remaining budget, and it is the number to protect.**
 Those exact figures have held unchanged from v2.13.3 through v3.2.x, across the
 chord wheel, the chord diagram and every Options-sheet change — because all of
@@ -1422,6 +1429,23 @@ one distinct bar is ever generated there's nothing left to disambiguate
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.18.0, 173/173 green.** Session 46h closed both layout reports **by measuring
+rather than guessing** — his two debug panels finally made the difference
+visible. **The tweed's missing bottom edge:** in standalone the root box is 852
+tall while `lvh` is 896, so a 44px strip of screen sits below it, and a
+propagated background fills that strip with the base COLOUR but none of the
+gradient layers (reproduced here by shrinking body inside a taller viewport).
+Two earlier fixes were measured to FAIL first — removing
+`background-attachment: fixed`, and moving the background to the root. The
+faceplate is now painted by **`body::before`, fixed, `height: 100lvh`**.
+**The grid sitting low in a Safari tab:** `.stage` is `flex-start` with a 112px
+`::before` cap, so the gap above the grid is a constant 140 in both contexts and
+ALL slack lands below — standalone comes out near-balanced (140/131), a tab does
+not (140/57). Now centred **in `display-mode: browser` only**; standalone is byte
+for byte unchanged (verified: 55.09 / 384.84 / 11.06). Part of that gap is **not
+fixable and shouldn't be chased** — Safari takes 134pt off the top and nothing
+can draw in the URL bar.
 
 **v3.17.3, 171/171 green.** Session 46h **BACKED OUT the `100dvh` root-box
 change** of v3.17.1. The reasoning was sound and the iOS behaviour is real, but
