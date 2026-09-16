@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.20.3-debug";
+const APP_VERSION = "v3.20.4-debug";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1931,8 +1931,10 @@ function kbNote(evt) {
     box = document.createElement("pre");
     box.id = "kb-debug";
     box.style.cssText =
-      "position:fixed;left:0;top:0;z-index:9999;margin:0;padding:3px 5px;" +
-      "background:rgba(0,0,0,.85);color:#7dff9a;font:9px/1.3 ui-monospace,monospace;" +
+      // BELOW the 55px header: at top:0 it covered the Edit pill, and he still
+      // has to reach the other controls while testing.
+      "position:fixed;left:0;top:58px;z-index:9999;margin:0;padding:3px 5px;" +
+      "background:rgba(0,0,0,.9);color:#7dff9a;font:10px/1.35 ui-monospace,monospace;" +
       "white-space:pre;max-width:100vw;border-bottom-right-radius:6px";
     box.addEventListener("click", () => { kbGuardOn = !kbGuardOn; kbNote("TAP"); });
     document.body.appendChild(box);
@@ -2547,6 +2549,10 @@ async function boot() {
   await generate(); // roll one immediately so the grid is never empty
   seedNewBuiltins(); // one-time per id; a delete sticks across relaunches
   refreshSavedCount();
+  // TEMPORARY (session 47): draw the keyboard readout up front. It used to be
+  // created lazily by the first logged event, and removing the Save autofocus
+  // meant opening the sheet no longer produced one — so it looked absent.
+  kbNote("boot");
 
   // The first fit measured whatever font was available; Fraunces arrives async
   // and is wider than the fallback, so re-fit once it's actually in.
