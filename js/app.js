@@ -1906,7 +1906,17 @@ function openSheet(mode) {
   // too (see body.saved-open in styles.css).
   document.body.classList.add("saved-open");
   syncSheetToViewport();
-  if (saving) el("save-name").focus();
+  // THE NAME FIELD IS DELIBERATELY NOT FOCUSED (session 47, his call). Opening
+  // Save used to focus it immediately, which summoned the keyboard while the
+  // sheet was still animating in — and that race is what produced the quick
+  // slide-and-flash he reported in the grid behind it: iOS begins scrolling to
+  // reveal the field, paints that frame, and the scroll guard in initControls
+  // then yanks it back. Not focusing removes the race rather than fighting it.
+  //
+  // It is also the better default on its own terms: the placeholder already
+  // carries a sensible auto-name (describeCurrent()), so a save that accepts it
+  // had to dismiss a keyboard it never asked for, over a sheet the keyboard was
+  // covering. Typing a custom name now costs one tap on the field.
 }
 function closeSheet() {
   el("saved-sheet").hidden = true;
