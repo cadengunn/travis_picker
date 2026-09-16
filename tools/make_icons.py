@@ -19,10 +19,12 @@ own palette, and it REPLACED two earlier things at once: the flat three-value
 mark of session 15, and the brief recolour step that sat here to tint that
 mark's hand. Nothing here tints anything now. Three consequences, none optional:
 
-  * IT IS RGBA, 1254×1254. Outside the drawn frame the corners are rgba(0,0,0,0)
-    and `read_png` must COMPOSITE them, not drop alpha — see its warning. The
-    output stays opaque colour-type-2, because iOS composites black behind any
-    alpha in a home-screen icon.
+  * IT MAY ARRIVE RGBA. The current master (the second of session 47) is opaque
+    colour-type-2 and fills its own tile corner to corner, but the first was RGBA
+    with fully transparent corners, and `read_png` DROPPED alpha — which decoded
+    those corners to pure black, the exact artifact `write_png` warns about.
+    It composites now, and `main()` aborts if the finished 512's corners come out
+    near-black, so the same mistake can't return quietly with a future master.
   * IT IS FULL BLEED, so FIT is 1.0 and the maskable safe-zone abort is retired.
     See FIT for what that costs on Android and how to reverse it.
   * IT IS NOT A FLAT GRAPHIC. Session 15 chose a flat treatment by measurement
@@ -55,9 +57,12 @@ MASTER = "icon-master.png"
 # inset variant for the 192/512 entries.
 FIT = 1.00
 
-# Used only where alpha is composited and for any edge blend. Sampled from the
-# master's own frame, never black — see read_png and write_png.
-BORDER = (0x64, 0x49, 0x2a)
+# The pad/composite colour: used where alpha is composited and for the edge blend
+# at partial coverage. MUST match the master's own outermost pixels — sampled from
+# them, and never black (see read_png and write_png). Re-sample it whenever the
+# master changes: session 47's second master moved the outer edge from the brown
+# frame to the dark-green field, and a stale value here would fringe the border.
+BORDER = (0x27, 0x31, 0x21)
 
 # size -> filename. The 180 is the iOS home-screen icon (apple-touch-icon);
 # 192/512 feed the manifest; 32 is the browser-tab favicon.
