@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.20.2";
+const APP_VERSION = "v3.20.3-debug";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1895,6 +1895,51 @@ function syncSheetToViewport() {
 // iOS has less reason to scroll the document to reveal the field, which is what
 // the scroll guard was left mopping up. Self-terminating — three identical
 // heights or 1.2s, whichever comes first — so it costs nothing at rest.
+// ─── TEMPORARY KEYBOARD DIAGNOSTIC (session 47) ──────────────────────────────
+// ⚠️ DELETE THIS BLOCK, its three call sites and the `-debug` version label once
+// the Save-sheet flash is settled. Same idea as session 46's marker builds: this
+// bug has now survived three fixes reasoned from a Chromium box that has no soft
+// keyboard, no safe-area insets and no visual-viewport panning, so it gets
+// measured on his device instead of guessed at again.
+//
+// It answers the two questions that actually separate the candidates:
+//   1. WHICH MOVES — `scrollY` (the document scrolling, which the guard below
+//      can undo) or `visualViewport.offsetTop` (iOS panning the visual viewport,
+//      which nothing in CSS can prevent)?
+//   2. IS THE GUARD ITSELF THE FLASH? It reacts to a `scroll` event, i.e. after
+//      iOS has already painted a scrolled frame, so yanking back is visible by
+//      construction. TAP THE READOUT to toggle the guard and run Save again: if
+//      the flash goes with it, the guard is what he's seeing.
+// Always on in this build rather than URL-gated, because a standalone PWA has no
+// address bar and iOS gives the installed app its own storage partition, so a
+// sticky query flag set in Safari would never reach it (measured, session 46i).
+let kbGuardOn = true;
+const kbLog = [];
+function kbNote(evt) {
+  const vv = window.visualViewport;
+  const sheet = el("saved-sheet");
+  kbLog.push(
+    `${String(Math.round(performance.now() / 10) % 10000).padStart(4, "0")} ` +
+    `${evt.padEnd(8)} sy${window.scrollY} ` +
+    `vvH${vv ? Math.round(vv.height) : "-"} vvT${vv ? Math.round(vv.offsetTop) : "-"} ` +
+    `iH${window.innerHeight} ` +
+    `sh${sheet.style.height ? parseInt(sheet.style.height, 10) : "-"}/${sheet.style.top ? parseInt(sheet.style.top, 10) : "-"}`
+  );
+  if (kbLog.length > 13) kbLog.shift();
+  let box = document.getElementById("kb-debug");
+  if (!box) {
+    box = document.createElement("pre");
+    box.id = "kb-debug";
+    box.style.cssText =
+      "position:fixed;left:0;top:0;z-index:9999;margin:0;padding:3px 5px;" +
+      "background:rgba(0,0,0,.85);color:#7dff9a;font:9px/1.3 ui-monospace,monospace;" +
+      "white-space:pre;max-width:100vw;border-bottom-right-radius:6px";
+    box.addEventListener("click", () => { kbGuardOn = !kbGuardOn; kbNote("TAP"); });
+    document.body.appendChild(box);
+  }
+  box.textContent = `GUARD ${kbGuardOn ? "ON " : "OFF"} (tap to toggle)\n` + kbLog.join("\n");
+}
+
 let sheetSyncTimer = null;
 function scheduleSheetSync() {
   syncSheetToViewport();
@@ -2382,14 +2427,15 @@ function attach() {
 
   // Keep any open sheet pinned to the visual viewport as the keyboard shows/hides.
   if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", scheduleSheetSync);
-    window.visualViewport.addEventListener("scroll", syncSheetToViewport);
+    window.visualViewport.addEventListener("resize", () => { kbNote("vv:resize"); scheduleSheetSync(); });
+    window.visualViewport.addEventListener("scroll", () => { kbNote("vv:scroll"); syncSheetToViewport(); });
   }
   // …and start tracking as soon as the field takes focus, not only once the
   // keyboard has finished animating. Both entry points go through
   // scheduleSheetSync rather than a single snapshot — see its note for why one
   // sync can never be taken at the right moment.
-  document.addEventListener("focusin", scheduleSheetSync);
+  document.addEventListener("focusin", () => { kbNote("focusin"); scheduleSheetSync(); });
+  document.addEventListener("focusout", () => kbNote("focusout"));
 
   // THE DOCUMENT MUST NEVER SCROLL (session 47, his report: opening Save "pushes
   // the entire background up"). Focusing the name field makes iOS scroll the
@@ -2404,6 +2450,8 @@ function attach() {
   // the user asked for. `main` keeps its own overflow — that's the deliberate
   // safety valve for screens too small for the grid, and it is untouched here.
   window.addEventListener("scroll", () => {
+    kbNote("scroll");
+    if (!kbGuardOn) return;                 // TEMPORARY: the A/B, see kbNote
     if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
   }, { passive: true });
   el("options-sheet").addEventListener("click", (e) => {
