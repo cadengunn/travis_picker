@@ -290,6 +290,29 @@ body {
 }
 
 
+/* SCROLL-LOCK WHILE THE KEYBOARD IS COMING UP (session 47, measured).
+   `overflow: hidden` on html/body does NOT stop this: iOS's scroll-into-view for
+   a focused field is a user-agent scroll and overrides it — his instrumented run
+   recorded scrollY 390 with overflow already hidden. A body taken OUT OF FLOW is
+   what actually settles it, because then the document has no scrollable overflow
+   to scroll at all, rather than overflow the UA is willing to ignore the rules
+   for.
+
+   Applied at `focusin`, and the timing is the whole point. The log ordering is
+   `focusin sy0` … `vv:resize sy390`, i.e. iOS scrolls BEFORE it reports the
+   viewport change — so anything reactive (the --app-h clamp, the scroll guard)
+   can only ever undo a scroll that has already painted, which is what he saw as
+   a flash. focusin is the last moment we are still ahead of it.
+
+   Scoped to the class, not permanent: the body is in normal flow the rest of the
+   time, so nothing about the tweed's painting or the height budget changes when
+   no text field is focused. At scrollY 0 fixed and static coincide, so arming it
+   cannot itself shift anything. */
+body.kb-lock {
+  position: fixed;
+  inset: 0;
+}
+
 /* ---- main / stage ---- */
 main {
   flex: 1;

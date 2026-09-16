@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.20.5-debug";
+const APP_VERSION = "v3.20.6-debug";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1876,8 +1876,16 @@ function syncSheetToViewport() {
   // Note this canNOT be detected as `innerHeight - vv.height`: on that device the
   // layout viewport shrinks too, so once the keyboard settles the two are EQUAL
   // (462/462) and any such test reads "no keyboard".
+  // …and take the body OUT OF FLOW for the same window (`body.kb-lock`). The
+  // clamp alone cannot prevent the scroll, only shorten the shell after the fact:
+  // measured ordering is `focusin sy0` then `vv:resize sy390`, so iOS scrolls
+  // BEFORE it reports the viewport change and every reactive fix arrives a frame
+  // too late. This runs synchronously inside the focusin handler, which is the
+  // last moment we are still ahead of it. See body.kb-lock in the stylesheet.
   const root = document.documentElement;
-  if (document.activeElement?.matches?.(TEXT_ENTRY)) {
+  const typing = !!document.activeElement?.matches?.(TEXT_ENTRY);
+  document.body.classList.toggle("kb-lock", typing);
+  if (typing) {
     root.style.setProperty("--app-h", `${Math.round(vv.height)}px`);
   } else {
     root.style.removeProperty("--app-h");
