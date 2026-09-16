@@ -174,6 +174,21 @@ certain item in the batch:** if iOS is panning the visual viewport rather than
 scrolling the document, no CSS prevents it, and that needs instrumenting on his
 phone rather than a fourth guess.
 
+**His first pass back, and two follow-ups.** Confirmed good: the BPM lamp, and the
+Save sheet no longer dragging the grid up with the keyboard. What remained there
+was "a bit of quick slide up animation and a flash" in the grid behind the sheet,
+and the cause was `openSheet()` focusing the name field the instant the sheet
+opened — summoning the keyboard while the sheet was still animating in, so iOS
+began scrolling to reveal the field, painted that frame, and the scroll guard
+yanked it back. **The focus is gone** (his call, choosing it over instrumenting):
+that removes the race rather than fighting it, and is the better default anyway
+since the placeholder already carries the auto-name, so a save that accepts it
+had to dismiss a keyboard it never asked for over a sheet the keyboard was
+covering. He also supplied a **second icon master**, which is opaque
+colour-type-2 and fills its tile corner to corner — no alpha, so the black-corner
+trap cannot arise; the compositing path and its abort stay for whatever comes
+next, and `BORDER` moved to the dark-green field the new art ends on.
+
 **Not diagnosed: Play going dead after help mode.** Both obvious candidates were
 ruled out — `ui-sound.js` caches a single AudioContext (no exhaustion), and
 `start()` already drops and rebuilds a context that won't resume. The symptom

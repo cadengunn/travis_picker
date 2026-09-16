@@ -1469,9 +1469,23 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
-**v3.20.0, 175/175 green. ON HIS PHONE, UNJUDGED — a six-item batch from session
-47**, worked in one pass so he could test them together. Three of his reports
-turned out to be caused by something other than what they looked like:
+**v3.20.1, 175/175 green.** Session 47, a batch of his testing notes. **Confirmed
+on his phone: the BPM lamp, and the Save sheet no longer dragging the grid up.**
+**Still unjudged there: the new icon, the Edit-pill dash, the ×1 pass lamp, UI
+sound during a take, and the Play-dead watch.**
+
+Two follow-ups came out of his first pass. **The icon master was replaced a
+second time** (his artwork again) and the new one is **opaque colour-type-2,
+filling its tile corner to corner** — no alpha, so the black-corner trap is gone,
+though the compositing path and its abort stay for the next master. **`BORDER`
+moved to the dark-green field** the art now ends on; re-sample it whenever the
+master changes or the border fringes. And **Save no longer focuses the name field
+on open** (his call): that focus summoned the keyboard while the sheet was still
+animating, which was the residual slide-and-flash behind it — the placeholder
+already carries the auto-name, so the common save never needed the keyboard.
+
+Three of his reports turned out to be caused by something other than what they
+looked like:
 - **The blinking dash by the armed Edit pill was the THIRD instance of this
   stylesheet's iOS compositing bug** — a `transform` promoted the pill, whose
   layer held the pulsing REC lamp. Both latching pills travel by
@@ -1483,14 +1497,16 @@ turned out to be caused by something other than what they looked like:
   (his artwork). RGBA, its own frame and corners — and `read_png` was truncating
   alpha, which would have shipped black corners. See `tools/`.
 
-Also: **UI sound during a take is now allowed (reverses v2.8.2)**, ×1 gets one
-pass lamp per bar, and the Save sheet no longer lets iOS shove the grid up.
-**Two things are NOT settled**: the keyboard fix is the least certain item (if
-iOS pans the visual viewport rather than scrolling the document, no CSS stops it
-and it needs instrumenting), and **Play going dead after help mode is
-undiagnosed** — both obvious causes ruled out; it needs to know whether the
-button stayed on the stop icon or sprang back. **Still queued from that batch:**
-the help-copy pass, a scoped cleanup pass, and a pre-release security review.
+Also: **UI sound during a take is now allowed (reverses v2.8.2)** and ×1 gets one
+pass lamp per bar.
+**One thing is NOT settled**: **Play going dead after help mode is undiagnosed** —
+both obvious causes were ruled out (`ui-sound.js` caches a single AudioContext, and
+`start()` already rebuilds one that won't resume), and the next step needs one
+observation from his phone: whether the button **stays on the stop square or
+springs back**, which separates "the start failed and reported it" from "the start
+succeeded but made no sound". **Still queued from that batch:** the help-copy
+pass, a scoped cleanup pass, and a pre-release security review — the three he
+listed for just before promoting.
 
 **v3.19.0, 173/173 green.** Session 46i **solved the missing tweed along the
 bottom edge, and it was never a CSS bug.** Measured on his phone across two
