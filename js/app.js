@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.20.1";
+const APP_VERSION = "v3.20.2";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1878,6 +1878,43 @@ function syncSheetToViewport() {
   }
 }
 
+// ONE SYNC IS NOT ENOUGH, AND THAT WAS THE WHOLE BUG (session 47, his second
+// report: "the save field doesn't come up with the keyboard until after another
+// tap"). `syncSheetToViewport` is a snapshot, and every moment it could be taken
+// at is the wrong one:
+//   - at `focusin` the keyboard has not opened yet, so `keyboardUp` is false and
+//     the sync CLEARS the pin;
+//   - iOS then fires visualViewport resizes DURING the keyboard animation, with
+//     intermediate heights, and does not reliably fire a final one once it
+//     settles.
+// So the sheet was left unpinned until some unrelated later event — the next tap
+// — happened to re-run the snapshot against a settled viewport.
+//
+// Re-running until the viewport stops moving fixes both halves: the sheet lands
+// as the keyboard arrives rather than a tap later, and because it lands promptly
+// iOS has less reason to scroll the document to reveal the field, which is what
+// the scroll guard was left mopping up. Self-terminating — three identical
+// heights or 1.2s, whichever comes first — so it costs nothing at rest.
+let sheetSyncTimer = null;
+function scheduleSheetSync() {
+  syncSheetToViewport();
+  const vv = window.visualViewport;
+  if (!vv) return;
+  clearInterval(sheetSyncTimer);
+  let last = vv.height;
+  let stable = 0;
+  const startedAt = Date.now();
+  sheetSyncTimer = setInterval(() => {
+    syncSheetToViewport();
+    stable = vv.height === last ? stable + 1 : 0;
+    last = vv.height;
+    if (stable >= 3 || Date.now() - startedAt > 1200) {
+      clearInterval(sheetSyncTimer);
+      sheetSyncTimer = null;
+    }
+  }, 60);
+}
+
 // One sheet, two modes: Save shows the name field, Load shows the library.
 function openSheet(mode) {
   const saving = mode === "save";
@@ -2345,13 +2382,14 @@ function attach() {
 
   // Keep any open sheet pinned to the visual viewport as the keyboard shows/hides.
   if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", syncSheetToViewport);
+    window.visualViewport.addEventListener("resize", scheduleSheetSync);
     window.visualViewport.addEventListener("scroll", syncSheetToViewport);
   }
-  // …and pin it as soon as the field takes focus, not only once the keyboard has
-  // finished animating. iOS decides whether it needs to shove the page during
-  // that animation, so waiting for the resize event is already too late.
-  document.addEventListener("focusin", syncSheetToViewport);
+  // …and start tracking as soon as the field takes focus, not only once the
+  // keyboard has finished animating. Both entry points go through
+  // scheduleSheetSync rather than a single snapshot — see its note for why one
+  // sync can never be taken at the right moment.
+  document.addEventListener("focusin", scheduleSheetSync);
 
   // THE DOCUMENT MUST NEVER SCROLL (session 47, his report: opening Save "pushes
   // the entire background up"). Focusing the name field makes iOS scroll the
