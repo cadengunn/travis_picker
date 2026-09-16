@@ -256,7 +256,19 @@ body {
   font: 15px/1.3 var(--serif);
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  /* ⚠️ `100dvh` IS NOT KEYBOARD-AWARE, AND THAT WAS THE SAVE-SHEET BUG (session
+     47, measured on his phone). The dynamic viewport accounts for collapsible
+     browser toolbars but NOT the soft keyboard: with the keyboard up his device
+     reported innerHeight 462 while `dvh` still resolved to 852, so the body stood
+     852 tall inside a 462 viewport — 390px of overflow, which is exactly the
+     `scrollY` of 390 the instrumented build recorded. iOS then scrolled the
+     document to reveal the focused field, which is what dragged the grid up, and
+     the scroll guard yanking it back is what he saw as a flash.
+     `--app-h` is set to the visual viewport's height by syncSheetToViewport while
+     a text field is focused, and removed otherwise — so the overflow never exists
+     and there is nothing for iOS to scroll. The `100dvh` fallback is what applies
+     at all other times, unchanged. */
+  min-height: var(--app-h, 100dvh);
   -webkit-text-size-adjust: 100%;
   /* the tweed faceplate: top sheen, edge vignette, woven crosshatch, base tone.
      ⚠️ `background-attachment: fixed` is deliberately ABSENT (removed session
