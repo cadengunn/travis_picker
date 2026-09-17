@@ -11,7 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
-| [47](#where-things-stand-session-47--v3200-2026-09-14) | **v3.20.0** | a batch of his testing notes, and **three of them turned out to be something other than what they looked like**. The blinking "underscore" by the armed Edit pill was the **third instance of this stylesheet's iOS compositing bug** — `transform: translateY(1px)` promoted the pill, its layer contained the pulsing REC lamp whose glow spills past the top-left corner, and iOS painted a stray sliver there. The **beat lamp being "spotty at high tempos" was not CSS at all**: the playhead's frame loop drained every due slot but reported only the LAST, which is right for the cell highlight and silently wrong for anything edge-triggered, so a late frame swallowed the beat and kept the offbeat. And the **icon recolour was superseded mid-session** by his own new artwork — a full-bleed RGBA piece that inverted the whole pipeline's assumptions. Also: UI sound during a take is now ALLOWED (**reverses v2.8.2**, his call — the Preferences lamp is the clearer contract), ×1 gets a single pass lamp per bar, and the Save sheet no longer lets iOS shove the grid up |
+| [47](#where-things-stand-session-47--v3200-2026-09-14) | **v3.20.0 → v3.21.0** | a batch of his testing notes, and **three of them turned out to be something other than what they looked like**. The blinking "underscore" by the armed Edit pill was the **third instance of this stylesheet's iOS compositing bug** — `transform: translateY(1px)` promoted the pill, its layer contained the pulsing REC lamp whose glow spills past the top-left corner, and iOS painted a stray sliver there. The **beat lamp being "spotty at high tempos" was not CSS at all**: the playhead's frame loop drained every due slot but reported only the LAST, which is right for the cell highlight and silently wrong for anything edge-triggered, so a late frame swallowed the beat and kept the offbeat. And the **icon recolour was superseded mid-session** by his own new artwork — a full-bleed RGBA piece that inverted the whole pipeline's assumptions. Also: UI sound during a take is now ALLOWED (**reverses v2.8.2**, his call — the Preferences lamp is the clearer contract), ×1 gets a single pass lamp per bar, and the Save sheet no longer lets iOS shove the grid up |
 | [46e–j](#where-things-stand-session-46ej--v3170--v3190-2026-09-13) | **v3.17.0 → v3.19.0** | his phone notes, two layout bugs, and the destination reopened. **dom7 goes free** while maj7/m7 stay paid, so the tier stops coinciding with the engraved group and the lock rule moved twice more (caption-only → caption-or-face → **face-only**, his call). A purchase now **re-cuts the open reels**. **The Safari grid sat low** because `.stage` pins the grid 140px below the stage top and dumps all slack underneath — centred in `display-mode: browser` only, standalone byte-identical. **The tweed's bottom edge cost three failed CSS fixes** before two marker builds on his phone proved the strip was outside the document entirely: it was the `black-translucent` quirk, the meta is gone, and `theme-color` now follows the theme. Then he reopened **whether the App Store is worth it at all** — `APP_STORE.md` became `MONETIZATION.md` |
 | [46d](#where-things-stand-session-46d--v3161-2026-09-13) | **v3.16.1** | six notes off his phone. The barrel used to turn back **behind the unlock sheet**, where nobody could see it — it now LINGERS on what you chose and rolls back once the sheet closes (`onSettle` may return a promise), and **buying accepts the chord you spun to** instead of snapping away from it. Restore is ungated (it only returns free content); per-item Export gated to match the library one; locked faces dimmed; the lock redrawn **with a keyhole** so it stops reading as a briefcase. Two real bugs found on the way: a stale `reverting` flag that swallowed the next genuine settle, and a dim that could never have worked because `paint()` writes inline opacity every frame |
 | [46c](#where-things-stand-session-46c--v3160-2026-09-13) | **v3.16.0** | the paywall reaches the **barrels**, which was the risky surface. A locked family wears **one lock on its engraved caption**, never a mark per face — the faces are already width-starved. Settling on a locked family is **REFUSED**: `onSettle` returns false, the sheet opens, the barrel turns back, and the hidden `<select>` never takes a locked value. `wheel.js` stays dependency-free — the gate is callbacks, like `tick`. Also: **the die can no longer roll what you can't select**, the free library caps at 3 (built-ins exempt, overwrite still allowed), and export/import/restore are gated. His note actioned: the unlock sheet's specific line now sits in its own paragraph |
@@ -82,7 +82,7 @@ has the original build order.
 
 ---
 
-## Where things stand (session 47 — v3.20.0, 2026-09-14)
+## Where things stand (session 47 — v3.20.0 → v3.21.0, 2026-09-14)
 
 A batch of testing notes worked in one pass so he could test them together. The
 theme of the session: **three separate reports were caused by something other
@@ -189,14 +189,58 @@ colour-type-2 and fills its tile corner to corner — no alpha, so the black-cor
 trap cannot arise; the compositing path and its abort stay for whatever comes
 next, and `BORDER` moved to the dark-green field the new art ends on.
 
-**Not diagnosed: Play going dead after help mode.** Both obvious candidates were
-ruled out — `ui-sound.js` caches a single AudioContext (no exhaustion), and
-`start()` already drops and rebuilds a context that won't resume. The symptom
-("had to restart the app") fits the interrupted-context family, but `recoverAudio()`
-only runs on return to foreground, so nothing retries if the app was never
-backgrounded. Left open pending one detail: whether the Play button stayed on the
-stop icon or sprang back, which separates "start failed and reported it" from
-"start succeeded but produced no sound".
+**THE SAVE-SHEET SHOVE: FOUR ROUNDS, AND THE LESSON IS THE POINT.** The end state
+is correct and the remaining one-frame flash is accepted, but how it got there is
+worth keeping. Three structural fixes were reasoned out here and shipped, each
+plausible, each measured on his phone, and each wrong:
+
+1. **A scroll guard** (`scrollTo(0,0)`). Fixed the END state — the app stops
+   sitting 390px up while typing — and this one SURVIVES, because it is the only
+   thing that works. But it reacts to a `scroll` event, i.e. after iOS has painted,
+   so undoing the shift is itself visible. It converted the bug into the flash.
+2. **Tracking instead of snapshotting** (`scheduleSheetSync`). This one was right
+   and also survives: `syncSheetToViewport` was a snapshot, and every moment it
+   could fire at was wrong — at `focusin` the keyboard isn't up so it CLEARS the
+   pin, and iOS fires intermediate resizes during the animation without a reliable
+   final one. That is why the field "didn't come up until another tap". Fixed.
+3. **Removing the document overflow**, twice — an `--app-h` clamp, then a
+   `position: fixed` body. `min-height: 100dvh` genuinely is not keyboard-aware,
+   so the shell really does stand 852 tall inside a 462 viewport, and 852 − 462 =
+   390 matched the observed `scrollY` exactly. It was a beautiful theory. **Both
+   were backed out**: the `position: fixed` version was verified to leave
+   `scrollHeight === clientHeight`, i.e. no overflow at all, and the pan still
+   measured 390.
+
+What the instrumented build actually showed, and what no amount of reasoning here
+would have: **`scrollY` and `visualViewport.offsetTop` moved in LOCKSTEP on every
+single event.** It was never a document scroll — `scrollY` was mirroring a
+visual-viewport pan, which is a user-agent behaviour no CSS can prevent, and
+`overflow: hidden` doesn't stop it because a UA scroll-into-view overrides it. iOS
+pans because at the instant it decides, the sheet is still laid out for the
+full-height viewport; nothing can reflow before the keyboard exists. Pre-empting
+it by remembering the keyboard's height and clamping at `pointerdown` was costed
+and **deferred by him** — it trades one frame for a heuristic and a possible jump.
+
+The readout should have been built first, not fourth. Two of the three wrong
+fixes were plausible enough that they'd have been shipped and kept without it.
+
+**Not diagnosed: Play going dead after help mode — but narrowed.** Both obvious
+candidates were ruled out: `ui-sound.js` caches a single AudioContext (no
+exhaustion), and `start()` already drops and rebuilds a context that won't resume.
+The symptom ("had to restart the app") fits the interrupted-context family, but
+`recoverAudio()` only runs on return to foreground, so nothing retries if the app
+was never backgrounded. **He has since seen it show the STOP SQUARE**, which means
+`start()` returned true — the context resumed and the transport believes it is
+running — so it is NOT that family after all, and the session-32 recovery path
+would not have helped. The next observation that splits it: whether the PLAYHEAD
+keeps moving. Cells lighting and the beat lamp blinking means the scheduler is
+fine and the audio output is dead; frozen means the scheduler or its rAF loop died
+while `running` stayed true.
+
+**Also noticed:** the `sustainTilt` audio check is intermittently flaky (failed
+once at 0.00560 vs 0.00593, passed on re-run). It is an offline-render
+measurement and therefore load-sensitive; worth tightening in the robustness pass
+rather than leaving a coin-flip in the suite before promoting.
 
 ---
 

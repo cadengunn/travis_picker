@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.20.6-debug";
+const APP_VERSION = "v3.21.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1859,38 +1859,9 @@ function setOptionsOpen(open) {
 // stylesheet is right at every orientation, so rotating now self-corrects with no
 // orientation handling at all.
 const KEYBOARD_SLACK = 40; // px of viewport loss that isn't a keyboard (URL bar)
-// Only a text field summons a soft keyboard. The BPM fader is an input too, and
-// the sound lamps are checkboxes, so this must not be "an input is focused".
-const TEXT_ENTRY = 'input[type="text"], input[type="search"], input:not([type]), textarea';
-
 function syncSheetToViewport() {
   const vv = window.visualViewport;
   if (!vv) return;
-
-  // CLAMP THE SHELL TO WHAT IS VISIBLE WHILE A TEXT FIELD IS FOCUSED. `body` is
-  // `min-height: var(--app-h, 100dvh)`, and dvh is NOT keyboard-aware: measured
-  // on his phone, innerHeight fell to 462 with the keyboard up while dvh still
-  // resolved to 852, leaving 390px of overflow — precisely the scrollY recorded.
-  // That overflow is the only reason iOS had anything to scroll, so removing it
-  // removes both the shoved grid AND the flash of the guard yanking it back.
-  // Note this canNOT be detected as `innerHeight - vv.height`: on that device the
-  // layout viewport shrinks too, so once the keyboard settles the two are EQUAL
-  // (462/462) and any such test reads "no keyboard".
-  // …and take the body OUT OF FLOW for the same window (`body.kb-lock`). The
-  // clamp alone cannot prevent the scroll, only shorten the shell after the fact:
-  // measured ordering is `focusin sy0` then `vv:resize sy390`, so iOS scrolls
-  // BEFORE it reports the viewport change and every reactive fix arrives a frame
-  // too late. This runs synchronously inside the focusin handler, which is the
-  // last moment we are still ahead of it. See body.kb-lock in the stylesheet.
-  const root = document.documentElement;
-  const typing = !!document.activeElement?.matches?.(TEXT_ENTRY);
-  document.body.classList.toggle("kb-lock", typing);
-  if (typing) {
-    root.style.setProperty("--app-h", `${Math.round(vv.height)}px`);
-  } else {
-    root.style.removeProperty("--app-h");
-  }
-
   const keyboardUp = window.innerHeight - vv.height > KEYBOARD_SLACK;
   for (const s of document.querySelectorAll(".sheet")) {
     if (keyboardUp && !s.hidden) {
@@ -1924,53 +1895,6 @@ function syncSheetToViewport() {
 // iOS has less reason to scroll the document to reveal the field, which is what
 // the scroll guard was left mopping up. Self-terminating — three identical
 // heights or 1.2s, whichever comes first — so it costs nothing at rest.
-// ─── TEMPORARY KEYBOARD DIAGNOSTIC (session 47) ──────────────────────────────
-// ⚠️ DELETE THIS BLOCK, its three call sites and the `-debug` version label once
-// the Save-sheet flash is settled. Same idea as session 46's marker builds: this
-// bug has now survived three fixes reasoned from a Chromium box that has no soft
-// keyboard, no safe-area insets and no visual-viewport panning, so it gets
-// measured on his device instead of guessed at again.
-//
-// It answers the two questions that actually separate the candidates:
-//   1. WHICH MOVES — `scrollY` (the document scrolling, which the guard below
-//      can undo) or `visualViewport.offsetTop` (iOS panning the visual viewport,
-//      which nothing in CSS can prevent)?
-//   2. IS THE GUARD ITSELF THE FLASH? It reacts to a `scroll` event, i.e. after
-//      iOS has already painted a scrolled frame, so yanking back is visible by
-//      construction. TAP THE READOUT to toggle the guard and run Save again: if
-//      the flash goes with it, the guard is what he's seeing.
-// Always on in this build rather than URL-gated, because a standalone PWA has no
-// address bar and iOS gives the installed app its own storage partition, so a
-// sticky query flag set in Safari would never reach it (measured, session 46i).
-let kbGuardOn = true;
-const kbLog = [];
-function kbNote(evt) {
-  const vv = window.visualViewport;
-  const sheet = el("saved-sheet");
-  kbLog.push(
-    `${String(Math.round(performance.now() / 10) % 10000).padStart(4, "0")} ` +
-    `${evt.padEnd(8)} sy${window.scrollY} ` +
-    `vvH${vv ? Math.round(vv.height) : "-"} vvT${vv ? Math.round(vv.offsetTop) : "-"} ` +
-    `iH${window.innerHeight} ` +
-    `sh${sheet.style.height ? parseInt(sheet.style.height, 10) : "-"}/${sheet.style.top ? parseInt(sheet.style.top, 10) : "-"}`
-  );
-  if (kbLog.length > 13) kbLog.shift();
-  let box = document.getElementById("kb-debug");
-  if (!box) {
-    box = document.createElement("pre");
-    box.id = "kb-debug";
-    box.style.cssText =
-      // BELOW the 55px header: at top:0 it covered the Edit pill, and he still
-      // has to reach the other controls while testing.
-      "position:fixed;left:0;top:58px;z-index:9999;margin:0;padding:3px 5px;" +
-      "background:rgba(0,0,0,.9);color:#7dff9a;font:10px/1.35 ui-monospace,monospace;" +
-      "white-space:pre;max-width:100vw;border-bottom-right-radius:6px";
-    box.addEventListener("click", () => { kbGuardOn = !kbGuardOn; kbNote("TAP"); });
-    document.body.appendChild(box);
-  }
-  box.textContent = `GUARD ${kbGuardOn ? "ON " : "OFF"} (tap to toggle)\n` + kbLog.join("\n");
-}
-
 let sheetSyncTimer = null;
 function scheduleSheetSync() {
   syncSheetToViewport();
@@ -2458,31 +2382,43 @@ function attach() {
 
   // Keep any open sheet pinned to the visual viewport as the keyboard shows/hides.
   if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", () => { kbNote("vv:resize"); scheduleSheetSync(); });
-    window.visualViewport.addEventListener("scroll", () => { kbNote("vv:scroll"); syncSheetToViewport(); });
+    window.visualViewport.addEventListener("resize", scheduleSheetSync);
+    window.visualViewport.addEventListener("scroll", syncSheetToViewport);
   }
   // …and start tracking as soon as the field takes focus, not only once the
   // keyboard has finished animating. Both entry points go through
   // scheduleSheetSync rather than a single snapshot — see its note for why one
   // sync can never be taken at the right moment.
-  document.addEventListener("focusin", () => { kbNote("focusin"); scheduleSheetSync(); });
-  document.addEventListener("focusout", () => kbNote("focusout"));
+  document.addEventListener("focusin", scheduleSheetSync);
 
-  // THE DOCUMENT MUST NEVER SCROLL (session 47, his report: opening Save "pushes
-  // the entire background up"). Focusing the name field makes iOS scroll the
-  // document to reveal the input, which slides the whole app — grid included —
-  // upward behind the sheet. The sheet itself is already pinned to the visual
-  // viewport by syncSheetToViewport, so that scroll is pure damage.
+  // UN-PAN AFTER THE KEYBOARD SHOVES THE VIEW (session 47, his report: opening
+  // Save "pushes the entire background up"). Focusing the name field makes iOS
+  // move the whole app up — grid included — to reveal the field.
   //
-  // Undoing it is legitimate rather than a hack: the app is a locked one-screen
-  // instrument that declares `overflow: hidden` and `touch-action: pan-y`
-  // precisely so the page can't move (see the stylesheet's document-lock note),
-  // so a non-zero window scroll is always something the OS did, never something
-  // the user asked for. `main` keeps its own overflow — that's the deliberate
-  // safety valve for screens too small for the grid, and it is untouched here.
+  // ⚠️ IT IS A VISUAL-VIEWPORT PAN, NOT A DOCUMENT SCROLL, and knowing that is
+  // what stops the next three wrong fixes. Instrumented on his phone, `scrollY`
+  // and `visualViewport.offsetTop` moved in LOCKSTEP on every single event
+  // (390/390, 0/0, never once apart): `scrollY` is mirroring the pan. It was
+  // chased first as document overflow — `body { min-height: 100dvh }` really
+  // does stand the shell 852 tall inside a 462 viewport with the keyboard up —
+  // but removing that overflow two different ways (an `--app-h` clamp, then a
+  // `position: fixed` body, the latter verified to leave scrollHeight ===
+  // clientHeight) changed the measurement by exactly nothing. Both were backed
+  // out. `overflow: hidden` doesn't help either: a UA scroll-into-view overrides
+  // it. There is no CSS that prevents a user-agent pan.
+  //
+  // So this stays, and it is the only thing that does work: `scrollTo(0, 0)`
+  // resets the pan, which is what leaves the app correctly placed while typing.
+  // With it disabled, the app sat 390px up for as long as the keyboard was open.
+  //
+  // KNOWN AND ACCEPTED (his call): because a `scroll` event only fires after iOS
+  // has painted the panned frame, undoing it is visible as a one-frame flash.
+  // iOS pans on stale geometry — at the moment it decides, the sheet is still
+  // laid out for the full-height viewport — and we cannot reflow before the
+  // keyboard exists. Pre-empting it by remembering the keyboard's height and
+  // clamping at `pointerdown` was costed and deferred; it trades the flash for a
+  // heuristic and a possible jump at touch-down.
   window.addEventListener("scroll", () => {
-    kbNote("scroll");
-    if (!kbGuardOn) return;                 // TEMPORARY: the A/B, see kbNote
     if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
   }, { passive: true });
   el("options-sheet").addEventListener("click", (e) => {
@@ -2578,10 +2514,6 @@ async function boot() {
   await generate(); // roll one immediately so the grid is never empty
   seedNewBuiltins(); // one-time per id; a delete sticks across relaunches
   refreshSavedCount();
-  // TEMPORARY (session 47): draw the keyboard readout up front. It used to be
-  // created lazily by the first logged event, and removing the Save autofocus
-  // meant opening the sheet no longer produced one — so it looked absent.
-  kbNote("boot");
 
   // The first fit measured whatever font was available; Fraunces arrives async
   // and is wider than the fallback, so re-fit once it's actually in.
