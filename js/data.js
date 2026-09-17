@@ -1115,7 +1115,7 @@ export const HELP = {
   // --- header ---
   "edit-toggle": {
     title: "Edit",
-    body: "Tapping a cell adds or removes a note. Every bar plays the same picking pattern, so editing one changes them all.",
+    body: "Tapping a cell adds or removes a note. Drag a note to move it, or drop it on another to swap them. Every bar plays the same picking pattern, so editing one changes them all.",
   },
   "capo-tag": {
     title: "Capo",
@@ -1256,7 +1256,7 @@ export const HELP = {
   "click-toggle": { title: "Metronome", body: "The click on every beat." },
   "pattern-toggle": { title: "Melody", body: "Hear the pattern played back." },
   "count-in-toggle": { title: "Count-in", body: "One bar of counting before the loop starts." },
-  "ui-sound-toggle": { title: "Buttons", body: "The mechanical click when you press a control. It stays quiet while the transport runs." },
+  "ui-sound-toggle": { title: "Buttons", body: "The mechanical click when you press a control." },
   tone: { title: "Tone", body: "The string sound: steel is bright, nylon is softer and darker. Change it while the loop runs to compare." },
   "label-mode": { title: "Note Labels", body: "What's written inside each note: fret number, picking finger, or nothing." },
   theme: { title: "Theme", body: "The instrument's colours." },

@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [48](#where-things-stand-session-48--v3220-2026-09-16) | **v3.22.0** | four next-session notes, triaged into forks and **all decided with him before any code**. **Rebranded user-facing to "ThumbPicker"** (full rebrand, his call) — the home-screen label, `<title>`, manifest, help version readout, import-error text and export filenames, but NOT the repo, code identifiers or the `EXPORT_APP` machine tag. **The `playback` audio category is now held for the whole foreground session** (his note that clicks should sound on a silenced phone) — a straight REVERSAL of the transport-only policy and its documented rejection of holding it permanently; the "doesn't mix with other apps" cost is now accepted, bounded by releasing on hide. **The Options and Save/Load sheets slide up** — enter free via `@starting-style`, exit via a short-lived `.sheet-closing` that out-specifies the global `[hidden]{!important}`, `hidden` still the synchronous source of truth. **Drag notes on the grid** (the fourth note, the one editor change) shipped too — **Move + Swap**, his call: drag a filled cell to move its note, swapping onto an occupied one, the destination re-inferring hand/role. `moveNote` is pure and unit-tested; the pointer gesture is app.js glue, verified with synthetic events at an emulated viewport (the touch feel is his phone). 177/177 green |
 | [47](#where-things-stand-session-47--v3200-2026-09-14) | **v3.20.0 → v3.21.0** | a batch of his testing notes, and **three of them turned out to be something other than what they looked like**. The blinking "underscore" by the armed Edit pill was the **third instance of this stylesheet's iOS compositing bug** — `transform: translateY(1px)` promoted the pill, its layer contained the pulsing REC lamp whose glow spills past the top-left corner, and iOS painted a stray sliver there. The **beat lamp being "spotty at high tempos" was not CSS at all**: the playhead's frame loop drained every due slot but reported only the LAST, which is right for the cell highlight and silently wrong for anything edge-triggered, so a late frame swallowed the beat and kept the offbeat. And the **icon recolour was superseded mid-session** by his own new artwork — a full-bleed RGBA piece that inverted the whole pipeline's assumptions. Also: UI sound during a take is now ALLOWED (**reverses v2.8.2**, his call — the Preferences lamp is the clearer contract), ×1 gets a single pass lamp per bar, and the Save sheet no longer lets iOS shove the grid up |
 | [46e–j](#where-things-stand-session-46ej--v3170--v3190-2026-09-13) | **v3.17.0 → v3.19.0** | his phone notes, two layout bugs, and the destination reopened. **dom7 goes free** while maj7/m7 stay paid, so the tier stops coinciding with the engraved group and the lock rule moved twice more (caption-only → caption-or-face → **face-only**, his call). A purchase now **re-cuts the open reels**. **The Safari grid sat low** because `.stage` pins the grid 140px below the stage top and dumps all slack underneath — centred in `display-mode: browser` only, standalone byte-identical. **The tweed's bottom edge cost three failed CSS fixes** before two marker builds on his phone proved the strip was outside the document entirely: it was the `black-translucent` quirk, the meta is gone, and `theme-color` now follows the theme. Then he reopened **whether the App Store is worth it at all** — `APP_STORE.md` became `MONETIZATION.md` |
 | [46d](#where-things-stand-session-46d--v3161-2026-09-13) | **v3.16.1** | six notes off his phone. The barrel used to turn back **behind the unlock sheet**, where nobody could see it — it now LINGERS on what you chose and rolls back once the sheet closes (`onSettle` may return a promise), and **buying accepts the chord you spun to** instead of snapping away from it. Restore is ungated (it only returns free content); per-item Export gated to match the library one; locked faces dimmed; the lock redrawn **with a keyhole** so it stops reading as a briefcase. Two real bugs found on the way: a stale `reverting` flag that swallowed the next genuine settle, and a dim that could never have worked because `paint()` writes inline opacity every frame |
@@ -79,6 +80,86 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 48 — v3.22.0, 2026-09-16)
+
+Four notes off his next-session list. Rather than start coding, I triaged them
+into forks and got his call on each first — two of the four collided with
+decisions already recorded in `CLAUDE.md`, and one was ambiguous enough that a
+guess would have wasted the round. His answers: full rebrand, hold the audio
+category, animate both sheets, and the drag is about the notes on the grid.
+
+**Rebranded user-facing to "ThumbPicker" (full rebrand).** His note said "change
+the Home Screen name," but a home-screen label reading ThumbPicker over a
+`<title>` and manifest still saying "Travis Picker" would just look half-done, so
+he chose the whole product name. iOS actually prints `apple-mobile-web-app-title`
+under the icon (not the manifest), so the name lived in more places than the note
+implied: that meta, the manifest `name` + `short_name`, the `<title>`, the help
+version readout, the import-error message, and the two export download filenames
+— all now ThumbPicker. **Deliberately UNCHANGED:** the repo and all code
+identifiers, and the export wrapper's `EXPORT_APP` = "travis-picker" machine tag
+(a pinned test guards it, and changing it would orphan every file already
+exported). "Travis picking" the *technique* stays wherever it appears — it's the
+right name for the thing the app teaches.
+
+**The `playback` audio category is held for the whole foreground session now.**
+His note: "button click should sound even when phone is silenced." The web can't
+read the iOS ring switch; the only lever is `navigator.audioSession.type =
+"playback"`, and the app had deliberately taken it **only during a take** —
+`platform.js` even carried the note that holding it permanently was *rejected*,
+because that category doesn't mix and would interrupt another app's music. So
+this was a documented reversal, not a gap, and I surfaced exactly that before
+touching it. He accepted the cost. `boot()` now claims the category up front, the
+playback guard hands it back on hide and re-takes it on show (so the "doesn't
+mix" cost is bounded to while you're actually using the app), and
+`releasePlayback` no longer touches it — a per-take release would have silenced
+clicks again the instant you stopped. `togglePlay` still re-asserts it before the
+AudioContext is born (idempotent). **His phone is the only place this can be
+confirmed** — the dev box can't read the silent switch.
+
+**The Options and Save/Load sheets slide up from the bottom.** The tricky part
+was the app's global `[hidden]{display:none!important}` (styles.css:212), which
+yanks a panel out of the tree the instant you close it — so a transition can't
+play on the way out. The enter is free: `@starting-style` gives the panel a
+closed first-frame so it animates in with no JS. The exit needed one trick:
+`showSheet()` holds the panel in the tree with a short-lived `.sheet-closing`
+class whose `display:flex !important` out-specifies `[hidden]`, plays the
+slide-out, then drops the class so `[hidden]` takes over. Crucially, `hidden`
+stays the **synchronous** source of truth — every reader (the Escape/click
+handlers, help mode, the tests, all of which read `.hidden`) sees open/closed
+instantly, and only the visual lingers. At rest the panel carries **no**
+transform, so a pulsing lamp inside it (the save lamp) never sits under a promoted
+compositing layer — the iOS bug `DESIGN.md` keeps warning about. Verified as far
+as the box allows: caught the enter mid-slide at translateY(31px), confirmed the
+exit's `display` goes flex-while-closing → none, and proved the resting target
+transform is `none` by snapping past the (frozen) transition. **The actual feel
+is his call** — rAF and CSS transitions are frozen in the hidden preview pane, so
+the panel literally sticks partway here.
+
+**Drag notes on the grid.** His fourth note ("drag pattern token indicators
+around?") carried its own question mark, and it turned out to mean dragging a note
+from one grid cell to another — a real editor gesture on top of the pencil mode,
+and the only one of the four that changes musical behaviour. Its forks were
+genuine, so I put them to him before building: **Move + Swap** (drag relocates a
+note; onto an occupied cell the two swap), destination re-inference (a note IS its
+position — hand/role are recomputed where it lands, same rule as a tap), and the
+shared-cell reality (every screen bar is the same one distinct bar, so a drag
+changes all its repeats, exactly like a tap). The pure logic is `moveNote` in
+`editor.js` — no-op on an empty grab, removal by object reference so a same-bar
+move can't invalidate an index mid-splice — and it's unit-tested. The gesture is
+app.js glue: only a filled cell starts a drag (an empty cell always tap-places),
+a 10px threshold splits tap from drag, and a finished drag swallows the click it
+spawns so the moved note isn't also toggled. **Verified end-to-end with synthetic
+pointer events at an emulated 375px viewport** — the note moved and the click was
+swallowed — but the actual touch *feel* is a phone call (no touch here, and the
+grid collapses to 0px in a hidden preview pane, which is why the emulated viewport
+was needed to hit-test at all).
+
+All four shipped as **v3.22.0, 177/177 green** — two new tests: `moveNote`'s
+Move/Swap/re-inference behaviour, and a source test pinning the audio-session
+foreground-hold shape and the sheet's exit-class contract (both silent-if-broken).
 
 ---
 

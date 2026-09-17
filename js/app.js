@@ -46,7 +46,7 @@ import {
   progressionStore, CUSTOM_PROGRESSION_PREFIX,
 } from "./storage.js";
 import { BUILTIN_PATTERNS } from "./builtin-patterns.js";
-import { toggleNote } from "./editor.js";
+import { toggleNote, moveNote } from "./editor.js";
 import {
   createMetronome,
   DEFAULT_BPM,
@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.21.0";
+const APP_VERSION = "v3.22.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1188,10 +1188,10 @@ function stopTransport() {
 // Everything that has to be undone whether the transport ran or merely tried to.
 // It is deliberately NOT gated on `metronome.running`: a start that failed never
 // set it, and that gate is what used to make the failure unrecoverable —
-// stopTransport() returned early, so the audio category stayed claimed and the
-// button stayed showing STOP forever.
+// stopTransport() returned early, so the button stayed showing STOP forever.
+// NB it no longer touches the audio category: that's held for the whole
+// foreground session now (boot + playbackGuard), not claimed per take.
 function releasePlayback() {
-  audioSession.setPlayback(false); // back to a category that respects silent mode
   el("play").setAttribute("aria-pressed", "false");
   showCountIn(null); // clears the dim and resets the label
 }
@@ -1213,8 +1213,10 @@ async function togglePlay() {
   // always paid back: if the start fails the button springs back, so it can
   // never sit there showing STOP over a silent app (session 32).
   el("play").setAttribute("aria-pressed", "true");
-  // Claim the playback audio category BEFORE the AudioContext is created, so the
-  // transport sounds through a silenced ring switch (see platform.js).
+  // Normally already held for the whole foreground session (boot + guard), but
+  // re-assert it right before the AudioContext is born — idempotent, and it
+  // guarantees the context is created under "playback" even in an edge case where
+  // the foreground claim didn't take (see platform.js).
   audioSession.setPlayback(true);
   let started = false;
   try {
@@ -1648,7 +1650,7 @@ function exportLibrary() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `travis-picker-library-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `thumbpicker-library-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -1667,7 +1669,7 @@ function exportItem(item) {
   const a = document.createElement("a");
   a.href = url;
   const safeName = item.name.replace(/[^\w\- ]+/g, "").trim() || "pattern";
-  a.download = `travis-picker-${safeName}.json`;
+  a.download = `thumbpicker-${safeName}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -1833,8 +1835,27 @@ async function loadSaved(id) {
 // gets stranded above a closed sheet. Half the controls worth explaining live
 // in this sheet, so arming help mode from inside it is the common case, not an
 // edge one — you shouldn't have to close, arm, and reopen.
+// Show/hide a bottom sheet WITH the slide animation (styles.css). `hidden` stays
+// the logical source of truth and flips synchronously, so every reader (the
+// Escape/click handlers, help mode, the tests) sees open/closed instantly. The
+// only extra is the exit: [hidden]{display:none!important} would kill the panel
+// before it could slide out, so we hold it in the tree with `.sheet-closing`
+// (display:flex!important in CSS) for one animation, then let `hidden` take over.
+const SHEET_MS = 220; // keep in step with --sheet-ms in styles.css
+function showSheet(sheet, open) {
+  clearTimeout(sheet._sheetTimer);
+  if (open) {
+    sheet.classList.remove("sheet-closing"); // in case a close was still in flight
+    sheet.hidden = false; // base rule is the open look; @starting-style slides it in
+  } else {
+    sheet.classList.add("sheet-closing"); // keep it displayed just long enough to slide out
+    sheet.hidden = true;
+    sheet._sheetTimer = setTimeout(() => sheet.classList.remove("sheet-closing"), SHEET_MS + 40);
+  }
+}
+
 function setOptionsOpen(open) {
-  el("options-sheet").hidden = !open;
+  showSheet(el("options-sheet"), open);
   document.body.classList.toggle("options-open", open);
   if (open) syncSheetToViewport();
 }
@@ -1937,7 +1958,7 @@ function openSheet(mode) {
   } else {
     renderSavedList();
   }
-  el("saved-sheet").hidden = false;
+  showSheet(el("saved-sheet"), true);
   // Same treatment as the Options sheet: half of what's worth explaining now
   // lives inside, so help mode has to reach the "?" over this sheet's scrim
   // too (see body.saved-open in styles.css).
@@ -1956,7 +1977,7 @@ function openSheet(mode) {
   // covering. Typing a custom name now costs one tap on the field.
 }
 function closeSheet() {
-  el("saved-sheet").hidden = true;
+  showSheet(el("saved-sheet"), false);
   document.body.classList.remove("saved-open");
   el("library-menu").hidden = true;
   el("import-hint").textContent = "";
@@ -2290,20 +2311,74 @@ function attach() {
     render();
   });
 
-  // Tap a cell to toggle a note. A short pattern repeating across a longer
-  // progression shares one cell, so editing any repeat edits them all.
-  el("grid").addEventListener("click", (e) => {
-    if (!state.editing) return;
-    const cell = e.target.closest(".cell");
-    if (!cell) return;
+  // A tapped cell as a {cellIndex, slot, string, chordId} the editor understands.
+  // cellIndex is the DISTINCT bar (screenBar % bars.length) — a repeat shares one
+  // cell — and chordId is that screen bar's chord.
+  const cellRef = (cell) => {
     const screenBar = Number(cell.dataset.bar);
-    const chords = phraseChords();
-    state.pattern = toggleNote(state.pattern, {
+    return {
       cellIndex: screenBar % state.pattern.bars.length,
       slot: Number(cell.dataset.slot),
       string: Number(cell.dataset.string),
-      chordId: chords[screenBar],
-    });
+      chordId: phraseChords()[screenBar],
+    };
+  };
+
+  // Edit-mode gestures (his call, session 48): a TAP toggles a note, a DRAG from a
+  // filled cell MOVES it — swapping if the target is occupied. A small movement
+  // threshold separates the two, and a finished drag swallows the click it spawns
+  // so the moved note isn't also toggled. Only a filled cell starts a drag, so an
+  // empty cell is always a plain tap-to-place (a jittered tap can't become a drag).
+  const DRAG_PX = 10;
+  let drag = null;           // { cell, x, y, moved } while a filled cell is pressed
+  let dragCommitted = false; // a finished drag — suppress the trailing click
+
+  const endDrag = () => {
+    if (drag) drag.cell.classList.remove("dragging");
+    drag = null;
+  };
+
+  el("grid").addEventListener("pointerdown", (e) => {
+    dragCommitted = false; // clear any stale flag from a click that never arrived
+    if (!state.editing) return;
+    const cell = e.target.closest(".cell.filled"); // only a note can be dragged
+    if (!cell) return;
+    drag = { cell, x: e.clientX, y: e.clientY, moved: false };
+    try { cell.setPointerCapture(e.pointerId); } catch { /* capture is best-effort */ }
+  });
+  el("grid").addEventListener("pointermove", (e) => {
+    if (!drag || drag.moved) return;
+    if (Math.abs(e.clientX - drag.x) > DRAG_PX || Math.abs(e.clientY - drag.y) > DRAG_PX) {
+      drag.moved = true;
+      drag.cell.classList.add("dragging");
+    }
+  });
+  document.addEventListener("pointercancel", endDrag);
+  document.addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const started = drag;
+    endDrag();
+    if (!started.moved) return; // never left the cell — a tap; let click toggle it
+    dragCommitted = true;       // a real drag — swallow the click that follows
+    const target = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".cell");
+    if (!target || target === started.cell) return; // dropped on itself or off-grid
+    const next = moveNote(state.pattern, cellRef(started.cell), cellRef(target));
+    if (next === state.pattern) return; // nothing actually moved
+    state.pattern = next;
+    playPlace();
+    state.unsavedEdits = true;
+    markDirty();
+    render();
+  });
+
+  // Tap a cell to toggle a note. A short pattern repeating across a longer
+  // progression shares one cell, so editing any repeat edits them all.
+  el("grid").addEventListener("click", (e) => {
+    if (dragCommitted) { dragCommitted = false; return; } // a drag already handled this press
+    if (!state.editing) return;
+    const cell = e.target.closest(".cell");
+    if (!cell) return;
+    state.pattern = toggleNote(state.pattern, cellRef(cell));
     // A felt-on-board "thock" on every place/delete, so editing has the same
     // tactile confirmation the rest of the app does. Grid cells are excluded from
     // pressStrength(), so this is their only voice. It sounds during a take too
@@ -2446,8 +2521,12 @@ const updater = createAppUpdater({
 // ...and on the way back, repair the audio the backgrounding may have broken,
 // so the next Play starts from a healthy context instead of a dead button.
 const playbackGuard = createPlaybackGuard({
-  onHidden: stopTransport,
-  onShown: () => { metronome.recoverAudio(); },
+  // End the take AND hand the audio category back — a backgrounded app shouldn't
+  // keep overriding the silent switch or block another app's music (platform.js).
+  onHidden: () => { stopTransport(); audioSession.setPlayback(false); },
+  // Repair the audio the backgrounding may have broken, then re-take the category
+  // so button thocks sound again the moment you're back in the foreground.
+  onShown: () => { metronome.recoverAudio(); audioSession.setPlayback(true); },
 });
 
 // Register the offline service worker — but ONLY on the real HTTPS origin.
@@ -2511,6 +2590,10 @@ async function boot() {
   // practice mid-take. Re-acquired on every return to foreground (platform.js).
   wakeLock.start();
   playbackGuard.start();
+  // Take the "playback" audio category up front and hold it for the whole
+  // foreground session, so UI thocks sound through a silenced ring switch even
+  // before the first Play (his call; the guard above hands it back on hide).
+  audioSession.setPlayback(true);
   await generate(); // roll one immediately so the grid is never empty
   seedNewBuiltins(); // one-time per id; a delete sticks across relaunches
   refreshSavedCount();

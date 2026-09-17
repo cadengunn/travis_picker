@@ -402,6 +402,21 @@ Keep that invariant — a jumping control panel was a specific complaint.
 into `{cellIndex, slot, string, chordId}`):
 - Gated behind a **pencil toggle, off by default** — taps must never nudge a
   pattern while you're playing. Edit mode is signalled by a dashed outline.
+- **A tap toggles a note; a DRAG moves it** (`moveNote`, session 48, his call —
+  Move + Swap). Only a **filled** cell starts a drag (an empty cell is always a
+  tap-to-place, so a jittered tap can't become an empty drag), the two are split
+  by a 10px threshold, and a finished drag **swallows the click it spawns**
+  (`dragCommitted` in app.js) so the moved note isn't also toggled. If the
+  destination already holds a note the two **swap**; either way both landing cells
+  **re-infer** hand/role from their new position (a note IS its position here —
+  nothing is carried), which is the same `placeAt`/`inferFinger` rule a tap uses.
+  `moveNote` is **no-op on an empty grab** (returns the same pattern reference), so
+  the gesture layer needn't check what's under the finger. Removal is **by object
+  reference, not index**, because a same-bar move has source and destination in one
+  shared array. The gesture plumbing (pointer capture, `elementFromPoint` drop,
+  click suppression) is app.js glue verified by synthetic pointer events at an
+  emulated viewport — **the actual touch feel is a phone call** (no touch here, and
+  the grid collapses to 0px width in a hidden preview pane).
 - **Editing a repeat edits the shared cell, permanently.** A pattern is always
   one distinct bar (session 36), shown across however many bars are on screen —
   tapping bar 3 of a 4-bar progression changes all four
@@ -972,9 +987,11 @@ Four dependency-free modules, all precached:
   **UI SOUND DURING A TAKE IS ALLOWED (session 47, his call — REVERSES v2.8.2).**
   The old rule silenced every UI voice while the transport ran, and its reasoning
   is still *true*, just no longer decisive: the web can't read the iOS ring
-  switch, and playback is the only window in which we hold the audio category that
-  overrides it, so muting buttons there is what made a silenced phone genuinely
-  silent while the metronome and melody still came through. What overturned it is
+  switch, and playback WAS the only window in which we held the audio category
+  that overrides it (**no longer — session 48 holds it for the whole foreground
+  session, see `createAudioSession()` below**), so muting buttons there is what
+  made a silenced phone genuinely silent while the metronome and melody still came
+  through. What overturned it is
   that **UI sound has its own Preferences lamp** — anyone bothered by clicks over
   a take can switch them off, which is a clearer contract than a voice that
   vanishes for reasons you can neither see nor predict. The side effect simply
@@ -1017,11 +1034,17 @@ only the physical behaviour needs a phone.
   next ordinary launch is current.
 - **`createAudioSession()`** — `navigator.audioSession.type = "playback"` is the
   opt-out from the iOS silent switch. **The category is per-DOCUMENT**, and that
-  decides the policy: the app takes `playback` **only while the transport runs**
-  and hands the previous category back on stop. Set it **before**
-  `metronome.start()` so the AudioContext is created under it. Holding it
-  permanently was rejected — that category doesn't mix with other apps, so a stray
-  button tap would interrupt background music.
+  decides the policy: **the app holds `playback` for the WHOLE FOREGROUND SESSION**
+  (session 48, his call) — `boot()` claims it, the playback guard hands it back on
+  hide and re-takes it on show — so a button thock sounds on a silenced phone even
+  before Play. `togglePlay` still re-asserts it before `metronome.start()` so the
+  AudioContext is born under it (idempotent). **This REVERSES the earlier
+  transport-only policy**: holding `playback` doesn't mix, so opening the app now
+  interrupts another app's background audio — that cost was previously the reason
+  to take the category only for a take, and is now accepted (releasing it on hide
+  is what bounds it to "while you're using the app"). `releasePlayback` no longer
+  touches the category — it's foreground-scoped, not per take. A source test pins
+  the whole shape.
 - **`createWakeLock()`** — the screen stays awake the whole time the app is up,
   not just while playing (you read the grid between takes as much as during them).
   No toggle; add one only if battery cost bites. Two things make it actually work:
@@ -1468,6 +1491,31 @@ one distinct bar is ever generated there's nothing left to disambiguate
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.22.0, 177/177 green.** Session 48, all four of his next-session notes,
+DECIDED with him before any code (the fork triage is in `CHANGELOG.md`):
+- **Rebranded user-facing to "ThumbPicker"** (full rebrand, his call) — home-screen
+  label (`apple-mobile-web-app-title` + manifest `short_name`), `<title>`, manifest
+  `name`, the help version readout, the import-error message, and the export
+  download filenames. **The repo, code identifiers and the export machine tag
+  (`EXPORT_APP` = "travis-picker") are deliberately unchanged** (backward-compat +
+  the noreply-identity privacy rule).
+- **The `playback` audio category is now held for the whole foreground session**
+  (his note 4, reversing the transport-only policy) — clicks sound on a silenced
+  phone even before Play; the mixing cost is accepted, bounded by releasing on
+  hide. See `createAudioSession()` above.
+- **The Options and Save/Load sheets slide up** (his note 1) — enter free via
+  `@starting-style`, exit via a short-lived `.sheet-closing` that out-specifies the
+  global `[hidden]{!important}`; `hidden` stays the synchronous source of truth, so
+  logic/tests/help are untouched, and the panel carries no transform at rest.
+- **UNVERIFIABLE HERE, waiting on his phone:** the actual slide *feel* (rAF/CSS
+  transitions are frozen in the hidden preview pane — confirmed the panel sticks
+  mid-slide at 31px), and whether clicks now truly beat the silent switch when not
+  playing. Both are pure device calls; the wiring is unit-pinned.
+- **Note 2 — drag notes on the grid — SHIPPED** (Move + Swap, his call): drag a
+  filled cell to move its note, swapping if the target is occupied. Pure logic is
+  `moveNote` in `editor.js` (unit-tested); the pointer gesture is app.js glue. See
+  the Manual editor section. **The touch feel is the one thing left for his phone.**
 
 **v3.21.0, 175/175 green.** Session 47, a batch of his testing notes, worked
 across four rounds on his phone. **Confirmed there: the new icon, the Edit-pill

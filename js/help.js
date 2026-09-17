@@ -172,7 +172,7 @@ export function createHelp({ doc = document, onChange, version = "" } = {}) {
     if (key === "help-mode" && version) {
       const v = doc.createElement("p");
       v.className = "help-pop-version";
-      v.textContent = `Travis Picker ${version}`;
+      v.textContent = `ThumbPicker ${version}`;
       pop.appendChild(v);
     }
 

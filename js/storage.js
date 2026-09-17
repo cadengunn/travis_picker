@@ -317,8 +317,9 @@ function looksLikePattern(pattern) {
 // validates shape rather than trusting it (readAll()'s "corrupt input
 // degrades quietly" convention, extended to a whole file rather than one
 // stored blob). Individual malformed entries are skipped rather than failing
-// the whole import; only a file that isn't recognizable as a Travis Picker
-// export at all is rejected outright.
+// the whole import; only a file that isn't recognizable as a ThumbPicker
+// export at all is rejected outright. (The machine tag inside stays
+// `EXPORT_APP` = "travis-picker" for backward compatibility — see below.)
 export function parseImport(raw) {
   let parsed;
   try {
@@ -338,7 +339,7 @@ export function parseImport(raw) {
   const bareArray = Array.isArray(parsed) &&
     parsed.some((e) => e && typeof e === "object" && looksLikePattern(e.pattern));
   const entries = wrapped ? parsed.items : bareArray ? parsed : null;
-  if (!entries) return { ok: false, error: "That doesn't look like a Travis Picker export." };
+  if (!entries) return { ok: false, error: "That doesn't look like a ThumbPicker export." };
 
   const items = [];
   let skipped = 0;

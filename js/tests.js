@@ -62,7 +62,7 @@ import {
   createProgressionStore, CUSTOM_PROGRESSION_PREFIX,
 } from "./storage.js";
 import { BUILTIN_PATTERNS } from "./builtin-patterns.js";
-import { toggleNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
+import { toggleNote, moveNote, inferFinger, resolvedThumbString, deriveType } from "./editor.js";
 import { renderGrid, passLampSelector } from "./grid.js";
 import {
   createMetronome,
@@ -1773,6 +1773,37 @@ check("editor: a bass note matching no role goes absolute and flags the pattern 
   assert(mixed.type === "mixed", `pattern should read as mixed, got ${mixed.type}`);
   // absolute notes do not follow the chord
   assert(resolvedThumbString(drawn, "G") === 6, "an absolute bass note should stay on string 6");
+});
+
+check("editor: dragging a note MOVES it, and SWAPS onto an occupied cell (session 48)", () => {
+  const empty = { type: "relative", chord: "C", bass: "travis", chaos: "tame", thumbBars: [[]], trebleBars: [[]], bars: [[]] };
+  const C = (slot, string) => ({ cellIndex: 0, slot, string, chordId: "C" });
+  const at = (pat, slot, string) => pat.bars[0].some((e) => e.slot === slot && e.string === string);
+
+  // a finger note at (4,2) dragged to an EMPTY (6,1) relocates and re-infers hand
+  const one = toggleNote(empty, C(4, 2));
+  const moved = moveNote(one, C(4, 2), C(6, 1));
+  assert(!at(moved, 4, 2) && at(moved, 6, 1), "a note dragged to an empty cell relocates");
+  assert(moved.bars[0].find((e) => e.slot === 6 && e.string === 1).finger === "a",
+    "the destination re-infers hand (string 1 -> a)");
+  assert(moved.edited === true, "a move marks the pattern edited");
+
+  // occupy BOTH cells, then drag (4,2)->(6,1): they swap, so both stay filled
+  const two = toggleNote(one, C(6, 1));
+  const swapped = moveNote(two, C(4, 2), C(6, 1));
+  assert(at(swapped, 4, 2) && at(swapped, 6, 1),
+    "dragging onto an occupied cell swaps — both cells keep a note");
+
+  // a thumb note (string 6 on C = fifth) dragged to a finger string becomes a finger
+  const thumb = toggleNote(empty, C(2, 6));
+  const toFinger = moveNote(thumb, C(2, 6), C(2, 3));
+  const dest = toFinger.bars[0].find((e) => e.slot === 2 && e.string === 3);
+  assert(dest && dest.finger === "i", "a thumb note dragged to a finger string becomes a finger");
+  assert(toFinger.thumbBars[0].length === 0, "the thumb layer gives the note up");
+
+  // grabbing an empty cell, or dropping on itself, changes nothing (same reference)
+  assert(moveNote(empty, C(1, 1), C(2, 2)) === empty, "grabbing an empty cell is a no-op");
+  assert(moveNote(one, C(4, 2), C(4, 2)) === one, "dropping a note on its own cell is not a move");
 });
 
 check("editor: editing a shared cell changes every repeat of it", () => {
@@ -4529,9 +4560,11 @@ acheck("app: a failed Play springs the button back, and settings restore before 
   // same way the sw.js precache and the tab wiring are.
   const appjs = await (await fetch("js/app.js")).text();
 
-  // The optimistic button flip must always be paid back.
+  // The optimistic button flip must always be paid back. (The audio category is
+  // held for the whole foreground session now, not per take, so releasePlayback
+  // only springs the button back — see platform.js.)
   assert(/if \(!started\) releasePlayback\(\);/.test(appjs),
-    "a start that failed must put the Play button and the audio category back");
+    "a start that failed must put the Play button back");
   const release = appjs.match(/function releasePlayback\(\)[\s\S]*?\n\}/)?.[0] || "";
   assert(release && !/metronome\.running/.test(release),
     "releasePlayback must NOT be gated on metronome.running — a failed start never set it");
@@ -4548,6 +4581,39 @@ acheck("app: a failed Play springs the button back, and settings restore before 
   const sync = appjs.match(/function syncSheetToViewport\(\)[\s\S]*?\n\}\n/)?.[0] || "";
   assert(/style\.height = ""/.test(sync) && /style\.top = ""/.test(sync),
     "the sheet's viewport pin must CLEAR its inline box when there's no keyboard, or a rotation leaves a stale one");
+});
+
+acheck("app: the playback category is held while foregrounded, and sheets slide via .sheet-closing (session 48)", async () => {
+  // Both are app.js glue (not imported here) and both fail SILENTLY, so they're
+  // asserted against the source like the sw.js precache and the failed-Play path.
+  const appjs = await (await fetch("js/app.js")).text();
+  const css = await (await fetch("css/styles.css")).text();
+
+  // Silent-switch clicks (his call, session 48 — REVERSES the transport-only
+  // policy): "playback" is now held for the whole foreground session, so a button
+  // thock sounds on a silenced phone even before Play. Boot claims it, the guard
+  // hands it back on hide and re-takes it on show, and releasePlayback no longer
+  // touches it — a per-take release would silence clicks again the moment you stop.
+  const boot = appjs.match(/async function boot\(\)[\s\S]*?refreshSavedCount\(\);/)?.[0] || "";
+  assert(/audioSession\.setPlayback\(true\)/.test(boot),
+    "boot() must take the playback category up front, so clicks sound on a silenced phone before Play");
+  const guard = appjs.match(/const playbackGuard = createPlaybackGuard\(\{[\s\S]*?\n\}\);/)?.[0] || "";
+  assert(/onHidden[\s\S]*?setPlayback\(false\)/.test(guard),
+    "backgrounding must hand the category back, so it stops overriding the silent switch and blocking other apps");
+  assert(/onShown[\s\S]*?setPlayback\(true\)/.test(guard),
+    "returning to foreground must re-take the category, or clicks go silent after a background trip");
+  const release = appjs.match(/function releasePlayback\(\)[\s\S]*?\n\}/)?.[0] || "";
+  assert(!/setPlayback/.test(release),
+    "releasePlayback must NOT drop the category — it's foreground-scoped now, not per take");
+
+  // The sheet slide-out can't ride `hidden`: the global [hidden]{display:none
+  // !important} yanks the panel before it can animate. showSheet holds it in the
+  // tree with `.sheet-closing`, and the CSS gives that class a display that
+  // out-specifies [hidden]. If either half drifts, the exit silently stops.
+  assert(/classList\.add\("sheet-closing"\)/.test(appjs) && /classList\.remove\("sheet-closing"\)/.test(appjs),
+    "showSheet must add and later remove .sheet-closing to keep the panel alive for its exit slide");
+  assert(/\.sheet\.sheet-closing\s*\{[^}]*display:\s*flex\s*!important/.test(css),
+    ".sheet-closing must force display over [hidden]{!important}, or the exit animation never plays");
 });
 
 acheck("app: bpm saves with the pattern, and overwrite is offered on a name collision", async () => {

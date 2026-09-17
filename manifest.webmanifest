@@ -1,6 +1,6 @@
 {
-  "name": "Travis Picker",
-  "short_name": "Travis",
+  "name": "ThumbPicker",
+  "short_name": "ThumbPicker",
   "description": "Random, playable Travis-picking practice patterns on a drum-machine grid.",
   "start_url": "./",
   "scope": "./",

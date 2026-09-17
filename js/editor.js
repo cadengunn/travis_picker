@@ -50,6 +50,49 @@ export function deriveType(thumbBars) {
   return "mixed";
 }
 
+// The event sounding at a cell (slot + guitar string under a chord), or null —
+// a thumb event whose RESOLVED string matches, or a treble event on that string.
+// Returns the event object itself so callers can remove it by reference, which
+// is what keeps a same-bar move (source and destination in one shared array)
+// from invalidating an index mid-splice.
+function findEvent(thumb, treble, slot, string, chordId) {
+  const t = thumb.find((e) => e.slot === slot && resolvedThumbString(e, chordId) === string);
+  if (t) return t;
+  return treble.find((e) => e.slot === slot && e.string === string) || null;
+}
+
+// Create the event for a note placed at slot + string under a chord, pushing it
+// into the right layer. A note IS its position here — hand and role are inferred
+// fresh, never carried — so this is the one placement rule, shared by a tap and
+// a drag's landing.
+function placeAt(thumb, treble, slot, string, chordId) {
+  const finger = inferFinger(string, slot, chordId);
+  if (finger === "p") {
+    // Relative when the string is one of this chord's roles, so the note follows
+    // a progression; otherwise an absolute bass note (surfaced by the type
+    // indicator). `string` is stored even for a relative note (resolveBar
+    // recomputes it per chord) — without it the hard-rule dedupe key is
+    // "slot:undefined", which silently swallowed a second bass note in a slot.
+    const role = roleFor(string, chordId);
+    thumb.push(
+      role
+        ? { slot, finger: "p", role, string, absolute: false }
+        : { slot, finger: "p", string, absolute: true }
+    );
+  } else {
+    treble.push({ slot, finger, string });
+  }
+}
+
+const rebuild = (pattern, thumbBars, trebleBars) => ({
+  ...pattern,
+  thumbBars,
+  trebleBars,
+  bars: thumbBars.map((t, i) => mergeBar(t, trebleBars[i])),
+  type: deriveType(thumbBars),
+  edited: true,
+});
+
 // Toggle the note at one cell. `cellIndex` is the index into the pattern's
 // DISTINCT bars — a short pattern repeating across a longer progression shares
 // one cell, so editing any repeat edits them all.
@@ -59,41 +102,48 @@ export function toggleNote(pattern, { cellIndex, slot, string, chordId }) {
   const thumb = thumbBars[cellIndex];
   const treble = trebleBars[cellIndex];
 
-  const thumbAt = thumb.findIndex(
-    (e) => e.slot === slot && resolvedThumbString(e, chordId) === string
-  );
-  const trebleAt = treble.findIndex((e) => e.slot === slot && e.string === string);
-
-  if (thumbAt >= 0) {
-    thumb.splice(thumbAt, 1);
-  } else if (trebleAt >= 0) {
-    treble.splice(trebleAt, 1);
+  const existing = findEvent(thumb, treble, slot, string, chordId);
+  if (existing) {
+    thumbBars[cellIndex] = thumb.filter((e) => e !== existing);
+    trebleBars[cellIndex] = treble.filter((e) => e !== existing);
   } else {
-    const finger = inferFinger(string, slot, chordId);
-    if (finger === "p") {
-      // Keep it relative when the string is one of this chord's roles, so the
-      // note follows a progression. Otherwise it's an absolute bass note — the
-      // "matches no role" case, surfaced by the type indicator.
-      // `string` is stored even for relative notes (resolveBar recomputes it
-      // per chord). Without it the hard-rule dedupe key is "slot:undefined",
-      // which silently swallowed a second bass note in the same slot.
-      const role = roleFor(string, chordId);
-      thumb.push(
-        role
-          ? { slot, finger: "p", role, string, absolute: false }
-          : { slot, finger: "p", string, absolute: true }
-      );
-    } else {
-      treble.push({ slot, finger, string });
-    }
+    placeAt(thumb, treble, slot, string, chordId);
   }
 
-  return {
-    ...pattern,
-    thumbBars,
-    trebleBars,
-    bars: thumbBars.map((t, i) => mergeBar(t, trebleBars[i])),
-    type: deriveType(thumbBars),
-    edited: true,
-  };
+  return rebuild(pattern, thumbBars, trebleBars);
+}
+
+// Drag a note from one cell to another (Move + Swap — his call, session 48).
+// A grab of an empty cell is a no-op, so the gesture layer can call this without
+// first checking what's under the finger. If the destination already holds a
+// note the two SWAP; otherwise the note simply moves. Both landing cells RE-INFER
+// hand/role from their new position (a note is its position here, nothing is
+// carried), and — like every edit — this changes the one shared bar across all
+// its on-screen repeats.
+export function moveNote(pattern, from, to) {
+  if (from.cellIndex === to.cellIndex && from.slot === to.slot && from.string === to.string) {
+    return pattern; // same cell — not a move (a tap toggles instead)
+  }
+  const thumbBars = pattern.thumbBars.map((b) => b.slice());
+  const trebleBars = pattern.trebleBars.map((b) => b.slice());
+
+  const src = findEvent(thumbBars[from.cellIndex], trebleBars[from.cellIndex], from.slot, from.string, from.chordId);
+  if (!src) return pattern; // grabbed an empty cell
+  const dst = findEvent(thumbBars[to.cellIndex], trebleBars[to.cellIndex], to.slot, to.string, to.chordId);
+
+  // Remove the grabbed note and (on a swap) the displaced one BY REFERENCE, so a
+  // same-bar move — source and destination sharing one array — can't shift an
+  // index out from under the second removal.
+  const drop = (arr) => arr.filter((e) => e !== src && e !== dst);
+  thumbBars[from.cellIndex] = drop(thumbBars[from.cellIndex]);
+  trebleBars[from.cellIndex] = drop(trebleBars[from.cellIndex]);
+  if (to.cellIndex !== from.cellIndex) {
+    thumbBars[to.cellIndex] = drop(thumbBars[to.cellIndex]);
+    trebleBars[to.cellIndex] = drop(trebleBars[to.cellIndex]);
+  }
+
+  placeAt(thumbBars[to.cellIndex], trebleBars[to.cellIndex], to.slot, to.string, to.chordId);
+  if (dst) placeAt(thumbBars[from.cellIndex], trebleBars[from.cellIndex], from.slot, from.string, from.chordId);
+
+  return rebuild(pattern, thumbBars, trebleBars);
 }

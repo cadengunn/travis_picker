@@ -86,13 +86,20 @@ export function createWakeLock({ nav = navigator, doc = document } = {}) {
 // that ignores the switch.
 //
 // The category is per-DOCUMENT, so we can't hold two at once — and that decides
-// the policy. iOS convention splits on who asked for the sound: requested media
-// (music, video, a metronome) ignores the switch; incidental UI feedback
-// (keyboard clicks, tap sounds) respects it. So we take "playback" only while the
-// TRANSPORT is running and hand it back on stop. Silenced phone, not playing =>
-// a completely quiet app, button thocks included. Press play => you get music,
-// and the thocks ride along for the duration, exactly as they would in a native
-// app holding a playback session.
+// the policy. WE HOLD "playback" FOR THE WHOLE TIME THE APP IS FOREGROUNDED, not
+// just while the transport runs (his call — the button thocks should sound on a
+// silenced phone too, since the app is a deliberately noisy hardware panel and
+// the UI-sound lamp is there for anyone who wants them off). app.js acquires it
+// at boot and re-acquires on return to foreground; it hands the category BACK on
+// hide, so a backgrounded app stops overriding the switch and lets another app's
+// music resume.
+//
+// This REVERSES the earlier transport-only policy. That policy existed because
+// holding "playback" doesn't mix — grabbing it interrupts other apps' background
+// audio — so the app used to take it only for a take and respect the switch
+// otherwise. The cost is now accepted: opening ThumbPicker takes the audio
+// session, so it isn't a good background-music citizen while it's up. Releasing
+// it on hide is what keeps that cost bounded to "while you're actually using it."
 export function createAudioSession({ nav = navigator } = {}) {
   let previous = null; // the category we borrowed from, restored on stop
 
