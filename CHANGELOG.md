@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [48d](#where-things-stand-session-48d--v3232-2026-09-20) | **v3.23.2** | three dials and a closed thread. **The `ambient` release failed** — other audio still needs resuming by hand — and was **kept anyway**, which is the interesting bit: by the project's own "don't keep a fix that didn't fix anything" rule it was a revert candidate, and it survives only on the narrower grounds that manual resume works under it and it's the accurate declaration for a released state. It's marked do-not-retry at the line so nobody hopes for auto-resume again. Ghost lift 18 → 12px ("should be subtle"); sheet easing to **ease-IN-out** (`0.65, 0, 0.35, 1`) on his note that it should "start slower and speed up" — both earlier curves left fast and decelerated. And after all the discussion, **the lamp keeps the name "Buttons"**: only the help copy changed, now stating that it's also what makes the app audible with the ringer off, and that switching it off keeps other audio playing |
 | [48c](#where-things-stand-session-48c--v3231-2026-09-20) | **v3.23.1** | his notes on v3.23.0, and a discussion that produced a **fact rather than a feature**. He challenged an inconsistency in what I'd said about the audio trade — correctly: the exclusion isn't "clicks vs. other audio", it's **clicks *while silenced* vs. other audio**, with the ring switch as the hidden variable. Working the matrix out properly, he identified his own usual case (silent phone, wants the thocks, wants a podcast until he presses Play) as **the single unreachable cell** — and it kills the obvious fix, because a second toggle splitting clicks from takeover buys only the *ringer-ON* cell and would do nothing for him. Haptics would sidestep the audio session entirely; he declined the web hack. With the native shell **not near-term by his call**, this compromise is the standing state, so the lamp is a "which compromise today" switch and the reframe is worth settling. Shipped: release to `ambient` rather than `auto`, ghost lift 26 → 18px, softer sheet easing |
 | [48b](#where-things-stand-session-48b--v3230-2026-09-20) | **v3.23.0** | his phone test of v3.22.0 — 20 of 25 boxes, nothing broken, three behavioural notes. **The audio category is now gated on the Buttons lamp**: v3.22.0's whole-foreground hold cost a podcast on every launch, and the underlying constraint is that the web's single `audioSession.type` knob cannot both override the silent switch and mix with other apps. Gating on the lamp he already has gives the podcast case an escape hatch at zero chrome — and a native shell would dissolve the trade entirely (`.playback` + `.mixWithOthers`, which the web doesn't expose). A momentary per-tap grab was costed and rejected: it would interrupt other audio on *every press*. **The dragged note is now CARRIED** rather than teleported — his ask, "pick it up with my finger" — as a body-level ghost lifted 26px clear of the fingertip, with the landing cell ringed and an occupied one dimming to say *swap*. Plus the sheet slide 220 → 300ms, now pinned equal across its two files by a test |
 | [48](#where-things-stand-session-48--v3220-2026-09-16) | **v3.22.0** | four next-session notes, triaged into forks and **all decided with him before any code**. **Rebranded user-facing to "ThumbPicker"** (full rebrand, his call) — the home-screen label, `<title>`, manifest, help version readout, import-error text and export filenames, but NOT the repo, code identifiers or the `EXPORT_APP` machine tag. **The `playback` audio category is now held for the whole foreground session** (his note that clicks should sound on a silenced phone) — a straight REVERSAL of the transport-only policy and its documented rejection of holding it permanently; the "doesn't mix with other apps" cost is now accepted, bounded by releasing on hide. **The Options and Save/Load sheets slide up** — enter free via `@starting-style`, exit via a short-lived `.sheet-closing` that out-specifies the global `[hidden]{!important}`, `hidden` still the synchronous source of truth. **Drag notes on the grid** (the fourth note, the one editor change) shipped too — **Move + Swap**, his call: drag a filled cell to move its note, swapping onto an occupied one, the destination re-inferring hand/role. `moveNote` is pure and unit-tested; the pointer gesture is app.js glue, verified with synthetic events at an emulated viewport (the touch feel is his phone). 177/177 green |
@@ -82,6 +83,41 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 48d — v3.23.2, 2026-09-20)
+
+**The `ambient` experiment failed, and was kept anyway.** Measured on his phone:
+releasing to `ambient` does not make the interrupted app resume; you still have
+to hit play over there by hand. By this project's own rule — don't keep a fix
+that didn't fix anything — that made it a revert candidate, and it was offered
+back to him as one. It survives on narrower, honest grounds: manual resume
+demonstrably works under it, and `ambient` is the accurate declaration for a
+released state where `auto` only means "browser decides". The comment at the line
+now records the measured **no**, explicitly as a do-not-retry, so a future session
+doesn't spend another round hoping for auto-resume. The real signal, native's
+`.notifyOthersOnDeactivation`, has no web equivalent; nothing here can reach it.
+
+**Two feel dials.** `GHOST_LIFT` went 26 → 18 → **12px** across two rounds ("even
+less lift. Should be subtle"). And the sheet easing became **ease-in-out**,
+`cubic-bezier(0.65, 0, 0.35, 1)`, off a precise note: "maybe it should start
+slower and speed up". Both previous curves were out-curves that left fast and
+decelerated, so this is the first one that actually accelerates into the middle;
+the comment records which way to push it if it now arrives too abruptly.
+
+**The lamp keeps the name "Buttons".** This thread ran three sessions: he asked
+whether the control should be reframed as a true preference with the click sounds
+as a mentioned side effect, we established that his own usual case is the one
+combination the web can't reach, and the reframe was offered with four names and
+their costs. He chose the minimal option, and it's defensible on its own terms:
+"Buttons" is the most discoverable label for the common case (someone who just
+wants the clicking to stop), and the audio-policy meaning only bites when another
+app is actually playing, which is exactly what a help card is for. So only the
+copy changed. It now carries both halves without an em dash and inside the
+two-line ceiling: what it does, that it's what lets the app sound with the ringer
+off, and that switching it off keeps another app's music playing instead.
+**Thread closed** — reopening it needs a new argument, not a new name.
 
 ---
 

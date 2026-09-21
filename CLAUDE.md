@@ -1521,6 +1521,22 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.23.2, 178/178 green.** Session 48d, three dials off his phone and the naming
+question settled. **The `ambient` release FAILED its purpose** — measured on his
+phone, other audio still needs resuming by hand — and it is **kept anyway** on the
+narrower grounds that manual resume works under it and it is the accurate
+declaration for a released state. Recorded at the line as a **do-not-retry**, since
+by the project's own "don't keep a fix that didn't fix anything" rule it was a
+revert candidate; his call was that the behaviour is acceptable. **`GHOST_LIFT`
+18 → 12px** ("should be subtle"), and the sheet easing is now
+`cubic-bezier(0.65, 0, 0.35, 1)` — **ease-IN-out**, his note that it "should start
+slower and speed up"; both earlier curves left fast and decelerated.
+**THE LAMP KEEPS THE NAME "Buttons"** (his call, after the reframe was offered and
+costed). Only the help copy changed, and it now states both halves: what it does,
+that it is what lets the app sound with the ringer off, and that switching it off
+keeps another app's audio playing. So the reframe thread is **closed** — don't
+reopen it without a new argument.
+
 **v3.23.1, 178/178 green.** Session 48c, his notes on v3.23.0 and the discussion
 they opened. The audio category **releases to `ambient`** now rather than restoring
 `auto` (his report: other audio stayed stopped after we let go — `auto` only means

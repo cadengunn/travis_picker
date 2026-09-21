@@ -145,10 +145,13 @@ export function createAudioSession({ nav = navigator } = {}) {
           // RELEASE TO "ambient", NOT back to what we borrowed (session 48c, his
           // phone report: another app's audio stayed stopped after we let go).
           // "ambient" declares mixable-and-silenced-by-the-switch outright, where
-          // "auto" only means "browser decides" and may not actually relinquish
-          // anything. Whether iOS treats that as ending the interruption is the
-          // open question — the web has no `.notifyOthersOnDeactivation`, so this
-          // is the only lever available short of the native shell.
+          // "auto" only means "browser decides" and may not actually relinquish.
+          // ⚠️ MEASURED ON HIS PHONE: this does NOT make the other app resume —
+          // you still have to hit play over there by hand. Kept anyway, on the
+          // narrower grounds that manual resume works under it and it's the
+          // accurate declaration for a released state; do NOT re-try this hoping
+          // for auto-resume. The web has no `.notifyOthersOnDeactivation`, which
+          // is the actual signal, so nothing here can fix it.
           // Read back and fall back, so an engine that rejects "ambient" can never
           // leave us silently still holding "playback".
           s.type = "ambient";

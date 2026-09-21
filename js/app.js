@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.23.1";
+const APP_VERSION = "v3.23.2";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -2357,7 +2357,7 @@ function attach() {
   // at phone size: centred on the touch it would sit under your own finger, which
   // is the thing he couldn't see. GHOST_LIFT is the dial if that reads wrong.
   const DRAG_PX = 10;
-  const GHOST_LIFT = 18; // px above the fingertip (26 read as too far on his phone)
+  const GHOST_LIFT = 12; // px above the fingertip — subtle, his call (26 then 18 both read as too far)
   let drag = null;           // { cell, x, y, moved, ghost } while a filled cell is pressed
   let dragCommitted = false; // a finished drag — suppress the trailing click
   let hoverCell = null;      // the cell currently ringed as the drop target

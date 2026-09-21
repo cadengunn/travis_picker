@@ -1142,9 +1142,12 @@ main {
     repeating-linear-gradient(-45deg, rgba(255, 245, 225, 0.02) 0 2px, transparent 2px 4px),
     var(--faceplate);
   box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 245, 225, 0.10);
-  /* Softer landing than the old (0.22, 0.61, 0.36, 1): this leaves faster and
-     settles far more gently, which is what reads as "smooth" on the way in. */
-  transition: transform var(--sheet-ms) cubic-bezier(0.32, 0.72, 0, 1);
+  /* EASE-IN-OUT, his call: "maybe it should start slower and speed up". Both
+     earlier curves left fast and decelerated; this one starts gently, gathers
+     pace through the middle and still settles rather than slamming. Push toward
+     (0.8, 0, 0.2, 1) for a more pronounced version, back toward an out-curve if
+     it starts to feel like it arrives too abruptly. */
+  transition: transform var(--sheet-ms) cubic-bezier(0.65, 0, 0.35, 1);
 }
 /* Sheets slide up from the bottom edge (his note, session 48). ENTER is free via
    @starting-style: the panel's first painted frame is the closed transform, so it
