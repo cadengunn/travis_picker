@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [48c](#where-things-stand-session-48c--v3231-2026-09-20) | **v3.23.1** | his notes on v3.23.0, and a discussion that produced a **fact rather than a feature**. He challenged an inconsistency in what I'd said about the audio trade — correctly: the exclusion isn't "clicks vs. other audio", it's **clicks *while silenced* vs. other audio**, with the ring switch as the hidden variable. Working the matrix out properly, he identified his own usual case (silent phone, wants the thocks, wants a podcast until he presses Play) as **the single unreachable cell** — and it kills the obvious fix, because a second toggle splitting clicks from takeover buys only the *ringer-ON* cell and would do nothing for him. Haptics would sidestep the audio session entirely; he declined the web hack. With the native shell **not near-term by his call**, this compromise is the standing state, so the lamp is a "which compromise today" switch and the reframe is worth settling. Shipped: release to `ambient` rather than `auto`, ghost lift 26 → 18px, softer sheet easing |
 | [48b](#where-things-stand-session-48b--v3230-2026-09-20) | **v3.23.0** | his phone test of v3.22.0 — 20 of 25 boxes, nothing broken, three behavioural notes. **The audio category is now gated on the Buttons lamp**: v3.22.0's whole-foreground hold cost a podcast on every launch, and the underlying constraint is that the web's single `audioSession.type` knob cannot both override the silent switch and mix with other apps. Gating on the lamp he already has gives the podcast case an escape hatch at zero chrome — and a native shell would dissolve the trade entirely (`.playback` + `.mixWithOthers`, which the web doesn't expose). A momentary per-tap grab was costed and rejected: it would interrupt other audio on *every press*. **The dragged note is now CARRIED** rather than teleported — his ask, "pick it up with my finger" — as a body-level ghost lifted 26px clear of the fingertip, with the landing cell ringed and an occupied one dimming to say *swap*. Plus the sheet slide 220 → 300ms, now pinned equal across its two files by a test |
 | [48](#where-things-stand-session-48--v3220-2026-09-16) | **v3.22.0** | four next-session notes, triaged into forks and **all decided with him before any code**. **Rebranded user-facing to "ThumbPicker"** (full rebrand, his call) — the home-screen label, `<title>`, manifest, help version readout, import-error text and export filenames, but NOT the repo, code identifiers or the `EXPORT_APP` machine tag. **The `playback` audio category is now held for the whole foreground session** (his note that clicks should sound on a silenced phone) — a straight REVERSAL of the transport-only policy and its documented rejection of holding it permanently; the "doesn't mix with other apps" cost is now accepted, bounded by releasing on hide. **The Options and Save/Load sheets slide up** — enter free via `@starting-style`, exit via a short-lived `.sheet-closing` that out-specifies the global `[hidden]{!important}`, `hidden` still the synchronous source of truth. **Drag notes on the grid** (the fourth note, the one editor change) shipped too — **Move + Swap**, his call: drag a filled cell to move its note, swapping onto an occupied one, the destination re-inferring hand/role. `moveNote` is pure and unit-tested; the pointer gesture is app.js glue, verified with synthetic events at an emulated viewport (the touch feel is his phone). 177/177 green |
 | [47](#where-things-stand-session-47--v3200-2026-09-14) | **v3.20.0 → v3.21.0** | a batch of his testing notes, and **three of them turned out to be something other than what they looked like**. The blinking "underscore" by the armed Edit pill was the **third instance of this stylesheet's iOS compositing bug** — `transform: translateY(1px)` promoted the pill, its layer contained the pulsing REC lamp whose glow spills past the top-left corner, and iOS painted a stray sliver there. The **beat lamp being "spotty at high tempos" was not CSS at all**: the playhead's frame loop drained every due slot but reported only the LAST, which is right for the cell highlight and silently wrong for anything edge-triggered, so a late frame swallowed the beat and kept the offbeat. And the **icon recolour was superseded mid-session** by his own new artwork — a full-bleed RGBA piece that inverted the whole pipeline's assumptions. Also: UI sound during a take is now ALLOWED (**reverses v2.8.2**, his call — the Preferences lamp is the clearer contract), ×1 gets a single pass lamp per bar, and the Save sheet no longer lets iOS shove the grid up |
@@ -81,6 +82,50 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 48c — v3.23.1, 2026-09-20)
+
+Three small changes off his phone, and one genuinely useful piece of reasoning
+that came from him catching me out.
+
+**Shipped:** the audio category now **releases to `ambient`** instead of restoring
+whatever it borrowed. His report was that other audio stayed stopped after we let
+go — and the likely reason is that `auto` only means "browser decides" and may not
+relinquish anything, where `ambient` declares mixable-and-switch-respecting
+outright. It reads the value back and falls back, so an engine that won't take
+`ambient` can never be left silently holding `playback`. (The web has no
+`.notifyOthersOnDeactivation`, which is the actual signal that tells an
+interrupted app it may resume, so this is the only lever available.) Plus
+`GHOST_LIFT` 26 → 18px and a softer sheet curve, both his calls.
+
+**The real outcome was a fact.** He pushed back on an inconsistency: I'd said
+"clicks on a silenced phone" and "a podcast that keeps playing" were mutually
+exclusive, then later described a two-control design that would let you have
+clicks *and* a podcast. Both were true, and I'd been sloppy — the exclusion is
+specifically about the **ring switch**. Under `playback`, clicks sound either way
+and other audio always stops; under `ambient`, other audio always plays and clicks
+are silenced only when the ringer is off. Exactly one cell is unreachable:
+
+> ringer OFF + clicks audible + other audio still playing
+
+He then supplied the thing that settled it: **that cell is his usual case.** Which
+kills the second-control idea outright — the extra combination it buys is the
+*ringer-ON* one, so it would have been a fifth lamp that did nothing for the only
+person using the app. Worth noting he found that by asking rather than by my
+analysis; I'd recommended against the second control for the weaker reason (that
+the shell would make it redundant).
+
+**Haptics** came up as the one lever that sidesteps the audio session completely —
+a silenced phone still taps, and the podcast would never be touched. On the web
+that needs the `<input type="checkbox" switch>` hack, since iOS has no
+`navigator.vibrate`; he declined it. In a native shell it's one line.
+
+**And the framing changed at the end:** the native shell is **not near-term**, his
+call. So this isn't a stopgap waiting on a wrapper — it's the standing behaviour,
+which is what makes his suggested **reframe of the lamp** worth settling properly
+rather than deferring. Naming is still open; nothing was touched.
 
 ---
 

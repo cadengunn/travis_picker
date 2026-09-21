@@ -1053,13 +1053,27 @@ only the physical behaviour needs a phone.
   directly**, not via the gate — a take must sound whatever the lamp says, and
   `running` is still false at that point anyway; it must also precede the
   AudioContext being born. A source test pins the gate expression itself.
-  **Two dead ends, recorded so they aren't reproposed:** v3.22.0 held it for the
-  whole foreground session (cost a podcast on every launch — his phone report), and
-  a momentary per-tap grab was costed and rejected (flipping categories every press
-  would interrupt other audio constantly, worse than one clean stop). **A native
-  shell dissolves this entirely** — iOS's `AVAudioSession` has `.playback` **with
-  `.mixWithOthers`**, which `navigator.audioSession` doesn't expose. Revisit at
-  item 18.
+  ⚠️ **HIS USUAL CASE IS THE ONE COMBINATION THAT CANNOT WORK** (established
+  session 48c — read this before "fixing" any of it). The **ring switch** is the
+  hidden variable: under `playback` clicks sound either way and other audio always
+  stops; under `ambient` other audio always plays and clicks are silenced only when
+  the ringer is **off**. So exactly one cell is unreachable —
+  **ringer OFF + clicks audible + other audio still playing** — and that is how he
+  actually uses it (silent phone, wants the thocks, wants his podcast until he
+  presses Play). **No arrangement of web-side controls reaches it**, which kills
+  the obvious-looking fix: a second toggle splitting "clicks" from "takeover" buys
+  only the *ringer-ON* cell, i.e. a fifth lamp that does nothing for the real use
+  case. Proposed, costed, dropped.
+  **Four dead ends, recorded so they aren't reproposed:** v3.22.0's whole-foreground
+  hold (cost a podcast on every launch); a momentary per-tap grab (flipping
+  categories every press interrupts other audio constantly — worse than one clean
+  stop); the second control above; and **haptics**, which would sidestep the audio
+  session entirely but has no `navigator.vibrate` on iOS — the `<input switch>`
+  trick is a hack, and **he declined it**. The only real fix is native — `.playback`
+  **with `.mixWithOthers`**, which `navigator.audioSession` doesn't expose — and
+  **per his call that is NOT near-term**, so this compromise is the **standing
+  state, not a stopgap**. The lamp is a "which compromise today" switch, and its
+  help copy should say so.
 - **`createWakeLock()`** — the screen stays awake the whole time the app is up,
   not just while playing (you read the grid between takes as much as during them).
   No toggle; add one only if battery cost bites. Two things make it actually work:
@@ -1506,6 +1520,23 @@ one distinct bar is ever generated there's nothing left to disambiguate
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.23.1, 178/178 green.** Session 48c, his notes on v3.23.0 and the discussion
+they opened. The audio category **releases to `ambient`** now rather than restoring
+`auto` (his report: other audio stayed stopped after we let go — `auto` only means
+"browser decides", where `ambient` declares mixing; it reads the value back and
+falls back, so a refusing engine can never leave `playback` held). **`GHOST_LIFT`
+26 → 18px** and the sheet easing softened to `cubic-bezier(0.32, 0.72, 0, 1)`, both
+his calls off the phone.
+**The important outcome is a fact, not a change:** pressed on the trade, he
+identified his own usual case — silent phone, wants the thocks, wants background
+audio until he presses Play — and he is right that it is **the one unreachable
+combination**, permanently, on the web. See `createAudioSession()` above for the
+matrix, the four dead ends (including the second-control idea, which buys only the
+ringer-ON cell, and haptics, which he declined), and the fact that **the native fix
+is not near-term by his call**. Two consequences: don't re-propose those, and the
+**lamp reframe he suggested is now worth settling** — it's the permanent UI for a
+permanent compromise, not scaffolding. **Naming is still open; no action taken.**
 
 **v3.23.0, 178/178 green.** Session 48b, his phone test of v3.22.0. **20 of 25
 boxes ticked, and nothing came back broken** — rebrand, all four audio-session

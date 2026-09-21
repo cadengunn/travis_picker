@@ -105,9 +105,26 @@ export function createWakeLock({ nav = navigator, doc = document } = {}) {
 // transport-only, which meant a silenced phone had no button sound at all. A
 // momentary per-tap grab was costed and rejected — flipping categories on every
 // press would interrupt the other app's audio constantly, which is worse than one
-// clean stop. A NATIVE shell could dissolve all of this: iOS's own AVAudioSession
-// has .playback WITH .mixWithOthers (override the switch AND mix), which
-// `navigator.audioSession` simply doesn't expose. Worth revisiting at item 18.
+// clean stop.
+//
+// ⚠️ HIS USUAL CASE IS THE ONE COMBINATION THAT CANNOT WORK, and it is worth
+// knowing that before anyone "fixes" this again. The ring switch is the hidden
+// variable — under "playback" clicks sound either way and other audio always
+// stops; under "ambient" other audio always plays and clicks are silenced only
+// when the ringer is OFF. So the single unreachable cell is:
+//
+//     ringer OFF  +  clicks audible  +  other audio still playing
+//
+// which is exactly how he uses it (silent phone, wants the thocks, wants his
+// podcast until he presses Play). NO ARRANGEMENT OF WEB-SIDE CONTROLS REACHES IT:
+// a second toggle splitting "clicks" from "takeover" buys only the ringer-ON
+// cell, so it would add a control that does nothing for the actual use case —
+// proposed, costed and dropped for that reason (session 48c). Haptics would
+// sidestep the audio session entirely, but iOS has no `navigator.vibrate` and the
+// `<input switch>` trick is a hack he declined. The only real fix is native
+// (.playback WITH .mixWithOthers, which `navigator.audioSession` doesn't expose),
+// and per his call that is NOT near-term — so this compromise is the standing
+// state, not a stopgap. The lamp is a "which compromise today" switch.
 export function createAudioSession({ nav = navigator } = {}) {
   let previous = null; // the category we borrowed from, restored on stop
 
