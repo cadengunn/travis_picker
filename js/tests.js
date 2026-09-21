@@ -2671,14 +2671,25 @@ function fakeDoc(visibilityState = "visible") {
   };
 }
 
-check("platform: audio session claims playback only while the transport runs", () => {
+check("platform: audio session takes playback, and releases to an explicitly mixable category", () => {
   const nav = { audioSession: { type: "auto" } };
   const session = createAudioSession({ nav });
   assert(session.supported, "detects the API");
   session.setPlayback(true);
-  assert(nav.audioSession.type === "playback", "playing takes the category that ignores the silent switch");
+  assert(nav.audioSession.type === "playback", "claiming takes the category that ignores the silent switch");
   session.setPlayback(false);
-  assert(nav.audioSession.type === "auto", "stopping hands the previous category back");
+  // Releasing declares "ambient" outright rather than restoring "auto" (session
+  // 48c): "auto" only means "browser decides" and appeared not to relinquish —
+  // another app's audio stayed stopped after we let go.
+  assert(nav.audioSession.type === "ambient", "releasing declares a mixable category, not just 'browser decides'");
+
+  // An engine that won't take "ambient" must not be left holding "playback" —
+  // this stub refuses the assignment the way a read-only enum would.
+  const picky = { get type() { return this._t ?? "auto"; }, set type(v) { if (v !== "ambient") this._t = v; } };
+  const guarded = createAudioSession({ nav: { audioSession: picky } });
+  guarded.setPlayback(true);
+  guarded.setPlayback(false);
+  assert(picky.type !== "playback", "a rejected 'ambient' must fall back, never leave playback held");
 
   // Unsupported (every non-WebKit browser, and older Safari): a silent no-op.
   const none = createAudioSession({ nav: {} });

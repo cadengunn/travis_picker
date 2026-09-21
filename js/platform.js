@@ -125,7 +125,17 @@ export function createAudioSession({ nav = navigator } = {}) {
           if (previous == null) previous = s.type;
           s.type = "playback";
         } else {
-          s.type = previous ?? "auto";
+          // RELEASE TO "ambient", NOT back to what we borrowed (session 48c, his
+          // phone report: another app's audio stayed stopped after we let go).
+          // "ambient" declares mixable-and-silenced-by-the-switch outright, where
+          // "auto" only means "browser decides" and may not actually relinquish
+          // anything. Whether iOS treats that as ending the interruption is the
+          // open question — the web has no `.notifyOthersOnDeactivation`, so this
+          // is the only lever available short of the native shell.
+          // Read back and fall back, so an engine that rejects "ambient" can never
+          // leave us silently still holding "playback".
+          s.type = "ambient";
+          if (s.type !== "ambient") s.type = previous ?? "auto";
           previous = null;
         }
         return s.type;
