@@ -4583,28 +4583,45 @@ acheck("app: a failed Play springs the button back, and settings restore before 
     "the sheet's viewport pin must CLEAR its inline box when there's no keyboard, or a rotation leaves a stale one");
 });
 
-acheck("app: the playback category is held while foregrounded, and sheets slide via .sheet-closing (session 48)", async () => {
+acheck("app: the audio category is gated on transport+Buttons, and sheets slide via .sheet-closing (session 48b)", async () => {
   // Both are app.js glue (not imported here) and both fail SILENTLY, so they're
   // asserted against the source like the sw.js precache and the failed-Play path.
   const appjs = await (await fetch("js/app.js")).text();
   const css = await (await fetch("css/styles.css")).text();
 
-  // Silent-switch clicks (his call, session 48 — REVERSES the transport-only
-  // policy): "playback" is now held for the whole foreground session, so a button
-  // thock sounds on a silenced phone even before Play. Boot claims it, the guard
-  // hands it back on hide and re-takes it on show, and releasePlayback no longer
-  // touches it — a per-take release would silence clicks again the moment you stop.
+  // The silent-switch trade (session 48b, his call). "playback" overrides the iOS
+  // silent switch but does NOT mix, so holding it stops another app's audio — the
+  // two wants are mutually exclusive and syncAudioCategory is where that's decided.
+  // It must gate on BOTH: the transport (a take always sounds) and the Buttons lamp
+  // (the only reason to hold it outside a take). Lose the lamp term and a podcast
+  // dies on launch with no way back; lose the running term and a take could go
+  // silent on a silenced phone.
+  const sync = appjs.match(/function syncAudioCategory\(\)[\s\S]*?\n\}/)?.[0] || "";
+  assert(/setPlayback\(\s*metronome\.running\s*\|\|\s*audioPrefs\.ui\s*\)/.test(sync),
+    "syncAudioCategory must hold the category for a running transport OR the Buttons lamp, and nothing else");
   const boot = appjs.match(/async function boot\(\)[\s\S]*?refreshSavedCount\(\);/)?.[0] || "";
-  assert(/audioSession\.setPlayback\(true\)/.test(boot),
-    "boot() must take the playback category up front, so clicks sound on a silenced phone before Play");
+  assert(/syncAudioCategory\(\)/.test(boot),
+    "boot() must settle the audio category from the Buttons lamp, not claim it unconditionally");
   const guard = appjs.match(/const playbackGuard = createPlaybackGuard\(\{[\s\S]*?\n\}\);/)?.[0] || "";
   assert(/onHidden[\s\S]*?setPlayback\(false\)/.test(guard),
-    "backgrounding must hand the category back, so it stops overriding the silent switch and blocking other apps");
-  assert(/onShown[\s\S]*?setPlayback\(true\)/.test(guard),
-    "returning to foreground must re-take the category, or clicks go silent after a background trip");
+    "backgrounding must hand the category back unconditionally, so a hidden app never blocks other audio");
+  assert(/onShown[\s\S]*?syncAudioCategory\(\)/.test(guard),
+    "returning to foreground must re-settle the category, or clicks go silent after a background trip");
+  // Toggling the lamp off mid-session is the podcast escape hatch — it has to act
+  // immediately, not on the next launch.
+  const lamp = appjs.match(/el\("ui-sound-toggle"\)\.addEventListener\("change"[\s\S]*?\n  \}\);/)?.[0] || "";
+  assert(/syncAudioCategory\(\)/.test(lamp),
+    "the Buttons lamp must re-settle the audio category, or switching it off can't hand other audio back");
   const release = appjs.match(/function releasePlayback\(\)[\s\S]*?\n\}/)?.[0] || "";
-  assert(!/setPlayback/.test(release),
-    "releasePlayback must NOT drop the category — it's foreground-scoped now, not per take");
+  assert(/syncAudioCategory\(\)/.test(release),
+    "stopping must re-settle the category, or the app keeps blocking other audio after a take with Buttons off");
+
+  // The two halves of the sheet duration live in different files and must agree,
+  // or the exit class is dropped before (or long after) the slide finishes.
+  const jsMs = Number(appjs.match(/const SHEET_MS = (\d+)/)?.[1]);
+  const cssMs = Number(css.match(/--sheet-ms:\s*(\d+)ms/)?.[1]);
+  assert(jsMs && cssMs && jsMs === cssMs,
+    `SHEET_MS (${jsMs}) must match --sheet-ms (${cssMs}) — they time the same animation from two files`);
 
   // The sheet slide-out can't ride `hidden`: the global [hidden]{display:none
   // !important} yanks the panel before it can animate. showSheet holds it in the
@@ -4614,6 +4631,24 @@ acheck("app: the playback category is held while foregrounded, and sheets slide 
     "showSheet must add and later remove .sheet-closing to keep the panel alive for its exit slide");
   assert(/\.sheet\.sheet-closing\s*\{[^}]*display:\s*flex\s*!important/.test(css),
     ".sheet-closing must force display over [hidden]{!important}, or the exit animation never plays");
+});
+
+acheck("app: the carried note's ghost can never swallow its own drop (session 48b)", async () => {
+  const appjs = await (await fetch("js/app.js")).text();
+  const css = await (await fetch("css/styles.css")).text();
+
+  // THE ONE THAT FAILS SILENTLY AND TOTALLY: the ghost rides directly under the
+  // pointer, so if it can be hit-tested at all it becomes the drop target,
+  // `.closest(".cell")` comes back null, and EVERY drag quietly does nothing —
+  // with the note still animating under the finger, so it looks like it works.
+  assert(/\.drag-ghost\s*\{[^}]*pointer-events:\s*none/.test(css),
+    ".drag-ghost must be pointer-events:none, or it hit-tests as the drop target and no drag ever lands");
+
+  // `.note` is 82% of its PARENT and reads --note-font off `.grid-track`, so a
+  // clone lifted to body level inherits neither box nor type without help.
+  const ghost = appjs.match(/const makeGhost = \(cell\) => \{[\s\S]*?\n  \};/)?.[0] || "";
+  assert(/--note-font/.test(ghost) && /getBoundingClientRect\(\)/.test(ghost),
+    "makeGhost must carry the cell's box and --note-font across, or the carried note renders at the wrong size");
 });
 
 acheck("app: bpm saves with the pattern, and overwrite is offered on a name collision", async () => {

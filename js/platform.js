@@ -85,21 +85,29 @@ export function createWakeLock({ nav = navigator, doc = document } = {}) {
 // for. `navigator.audioSession` (WebKit) sets the category; "playback" is the one
 // that ignores the switch.
 //
-// The category is per-DOCUMENT, so we can't hold two at once — and that decides
-// the policy. WE HOLD "playback" FOR THE WHOLE TIME THE APP IS FOREGROUNDED, not
-// just while the transport runs (his call — the button thocks should sound on a
-// silenced phone too, since the app is a deliberately noisy hardware panel and
-// the UI-sound lamp is there for anyone who wants them off). app.js acquires it
-// at boot and re-acquires on return to foreground; it hands the category BACK on
-// hide, so a backgrounded app stops overriding the switch and lets another app's
-// music resume.
+// The category is per-DOCUMENT, so we can't hold two at once — and that is the
+// whole problem, because the one knob has the two things you might want at
+// opposite ends: "playback" ignores the silent switch but does NOT mix (it stops
+// another app's audio), while ambient/auto mixes but is silenced by the switch.
+// "Clicks on a silenced phone" and "a podcast that keeps playing" are therefore
+// mutually exclusive here, and no amount of tuning changes that.
 //
-// This REVERSES the earlier transport-only policy. That policy existed because
-// holding "playback" doesn't mix — grabbing it interrupts other apps' background
-// audio — so the app used to take it only for a take and respect the switch
-// otherwise. The cost is now accepted: opening ThumbPicker takes the audio
-// session, so it isn't a good background-music citizen while it's up. Releasing
-// it on hide is what keeps that cost bounded to "while you're actually using it."
+// THE POLICY LIVES IN app.js's `syncAudioCategory()`, not here (session 48b, his
+// call): we hold "playback" while the transport runs — non-negotiable, you must
+// hear the click — and otherwise only while the BUTTONS LAMP is on, since making
+// the UI thock audible is the only thing holding it buys outside a take. Turn
+// Buttons off and the app leaves other audio alone until you press Play. The
+// playback guard hands the category back on hide regardless, which bounds the
+// cost to "while you're actually in the app".
+//
+// History, so it isn't relitigated: v3.22.0 briefly held it for the WHOLE
+// foreground session, which cost a podcast on every launch; before that it was
+// transport-only, which meant a silenced phone had no button sound at all. A
+// momentary per-tap grab was costed and rejected — flipping categories on every
+// press would interrupt the other app's audio constantly, which is worse than one
+// clean stop. A NATIVE shell could dissolve all of this: iOS's own AVAudioSession
+// has .playback WITH .mixWithOthers (override the switch AND mix), which
+// `navigator.audioSession` simply doesn't expose. Worth revisiting at item 18.
 export function createAudioSession({ nav = navigator } = {}) {
   let previous = null; // the category we borrowed from, restored on stop
 

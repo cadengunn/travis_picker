@@ -988,8 +988,9 @@ Four dependency-free modules, all precached:
   The old rule silenced every UI voice while the transport ran, and its reasoning
   is still *true*, just no longer decisive: the web can't read the iOS ring
   switch, and playback WAS the only window in which we held the audio category
-  that overrides it (**no longer — session 48 holds it for the whole foreground
-  session, see `createAudioSession()` below**), so muting buttons there is what
+  that overrides it (**no longer — since session 48b the category is held whenever
+  THIS LAMP is on, so the lamp now also decides whether the app mixes with other
+  apps; see `createAudioSession()` below**), so muting buttons there is what
   made a silenced phone genuinely silent while the metronome and melody still came
   through. What overturned it is
   that **UI sound has its own Preferences lamp** — anyone bothered by clicks over
@@ -1033,18 +1034,32 @@ only the physical behaviour needs a phone.
   a running transport). Skipping is safe — the worker is already active, so the
   next ordinary launch is current.
 - **`createAudioSession()`** — `navigator.audioSession.type = "playback"` is the
-  opt-out from the iOS silent switch. **The category is per-DOCUMENT**, and that
-  decides the policy: **the app holds `playback` for the WHOLE FOREGROUND SESSION**
-  (session 48, his call) — `boot()` claims it, the playback guard hands it back on
-  hide and re-takes it on show — so a button thock sounds on a silenced phone even
-  before Play. `togglePlay` still re-asserts it before `metronome.start()` so the
-  AudioContext is born under it (idempotent). **This REVERSES the earlier
-  transport-only policy**: holding `playback` doesn't mix, so opening the app now
-  interrupts another app's background audio — that cost was previously the reason
-  to take the category only for a take, and is now accepted (releasing it on hide
-  is what bounds it to "while you're using the app"). `releasePlayback` no longer
-  touches the category — it's foreground-scoped, not per take. A source test pins
-  the whole shape.
+  opt-out from the iOS silent switch. **The category is per-DOCUMENT, and the one
+  knob has the two things you might want at opposite ends**: `playback` ignores the
+  switch but does **not mix** (it stops another app's audio), ambient/auto mixes but
+  is silenced by the switch. **"Clicks on a silenced phone" and "a podcast that keeps
+  playing" are mutually exclusive on the web** — that is the constraint the policy
+  is built around, not a bug to tune away.
+  **The policy is `syncAudioCategory()` in `app.js`** (session 48b, his call), which
+  is the ONLY place the trade is made: hold `playback` while the **transport runs**
+  (non-negotiable — you must hear the click) **or while the BUTTONS LAMP is on**
+  (the only thing holding it buys outside a take is an audible UI thock). So
+  **turning Buttons off is the podcast escape hatch**, with no new control to find,
+  and the lamp's help copy says so. It is called from `boot()`, the guard's
+  `onShown`, the lamp's own `change` handler (so switching it off hands audio back
+  *immediately*, not next launch), and `releasePlayback()` (so stopping a take with
+  Buttons off releases). `onHidden` releases **unconditionally**, which bounds the
+  cost to "while you're in the app". `togglePlay` claims it **unconditionally and
+  directly**, not via the gate — a take must sound whatever the lamp says, and
+  `running` is still false at that point anyway; it must also precede the
+  AudioContext being born. A source test pins the gate expression itself.
+  **Two dead ends, recorded so they aren't reproposed:** v3.22.0 held it for the
+  whole foreground session (cost a podcast on every launch — his phone report), and
+  a momentary per-tap grab was costed and rejected (flipping categories every press
+  would interrupt other audio constantly, worse than one clean stop). **A native
+  shell dissolves this entirely** — iOS's `AVAudioSession` has `.playback` **with
+  `.mixWithOthers`**, which `navigator.audioSession` doesn't expose. Revisit at
+  item 18.
 - **`createWakeLock()`** — the screen stays awake the whole time the app is up,
   not just while playing (you read the grid between takes as much as during them).
   No toggle; add one only if battery cost bites. Two things make it actually work:
@@ -1491,6 +1506,32 @@ one distinct bar is ever generated there's nothing left to disambiguate
 - Commit after each working feature; skim the diff. Commit messages end with the `Co-Authored-By` trailer.
 
 ## Status
+
+**v3.23.0, 178/178 green.** Session 48b, his phone test of v3.22.0. **20 of 25
+boxes ticked, and nothing came back broken** — rebrand, all four audio-session
+behaviours, both sheets sliding, the keyboard flash no worse, the save lamp, and
+drag-to-move across the board (threshold, tap-vs-drag, bass↔finger re-voicing,
+nothing lost or duplicated, no scroll fight). Three behavioural notes actioned:
+- **The audio category is now GATED ON THE BUTTONS LAMP** (his call, after we
+  talked it through). v3.22.0's whole-foreground hold cost a podcast on every
+  launch, which he flagged; the constraint is that the web's one knob can't both
+  override the silent switch and mix. Gating on the lamp gives the podcast case an
+  escape hatch with no new chrome. See `createAudioSession()` above — it records
+  the two rejected alternatives and the native `.mixWithOthers` escape.
+- **The dragged note is CARRIED, not teleported** ("would be good to be able to
+  see the note, pick it up with my finger"). A cloned note rides under the pointer
+  in a body-level `.drag-ghost`, **lifted 26px** so a fingertip doesn't cover it,
+  the source keeps a faint trace, and the landing cell is ringed — an occupied one
+  rings AND dims its own note, because that drop is a swap. `GHOST_LIFT` is the
+  dial. **Verified by synthetic pointer events at an emulated viewport**: ghost
+  only past the threshold, tracks, carries `--note-font`, `pointer-events: none`,
+  removed on drop with zero stray classes, swap leaves both cells filled.
+- **The sheet slide went 220ms → 300ms** ("could be slower"). `--sheet-ms` and
+  `SHEET_MS` are now pinned equal by a test — they time one animation from two files.
+- **The grid flicker is the KNOWN keyboard one** (he isolated it: only with the
+  keyboard, not on a plain open/close), so it stays accepted — don't re-chase it.
+- **Play-dead has not recurred** since first reported; still a watch item, and this
+  session's audio change didn't disturb it.
 
 **v3.22.0, 177/177 green.** Session 48, all four of his next-session notes,
 DECIDED with him before any code (the fork triage is in `CHANGELOG.md`):

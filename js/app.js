@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.22.0";
+const APP_VERSION = "v3.23.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -1189,11 +1189,28 @@ function stopTransport() {
 // It is deliberately NOT gated on `metronome.running`: a start that failed never
 // set it, and that gate is what used to make the failure unrecoverable —
 // stopTransport() returned early, so the button stayed showing STOP forever.
-// NB it no longer touches the audio category: that's held for the whole
-// foreground session now (boot + playbackGuard), not claimed per take.
 function releasePlayback() {
   el("play").setAttribute("aria-pressed", "false");
   showCountIn(null); // clears the dim and resets the label
+  syncAudioCategory(); // may hand the category back now the take is over
+}
+
+// WHETHER WE HOLD THE SILENT-SWITCH OVERRIDE, in one place (session 48b, his call).
+// On the web this is ONE knob: "playback" ignores the iOS silent switch but does
+// NOT mix, so holding it stops another app's audio. The two things you might want
+// — clicks on a silenced phone, and a podcast that keeps playing — are therefore
+// mutually exclusive, and this function is where that trade is made. We hold it
+// only where it actually buys something:
+//   • while the transport runs — non-negotiable, you must hear the click; and
+//   • while the BUTTONS LAMP is on — the only reason to want it outside a take is
+//     to make the UI thock audible through a silenced ring switch.
+// So turning Buttons off leaves another app's audio alone until you press Play,
+// which is the podcast case, with no new control to find. The playback guard
+// releases it on hide regardless, which bounds the cost to "while you're in here".
+// (A native shell could have both at once — iOS's own API has playback +
+// mixWithOthers — but `navigator.audioSession` doesn't expose that option.)
+function syncAudioCategory() {
+  audioSession.setPlayback(metronome.running || audioPrefs.ui);
 }
 
 // Guards against a second press landing while the first is still waiting on the
@@ -1213,10 +1230,10 @@ async function togglePlay() {
   // always paid back: if the start fails the button springs back, so it can
   // never sit there showing STOP over a silent app (session 32).
   el("play").setAttribute("aria-pressed", "true");
-  // Normally already held for the whole foreground session (boot + guard), but
-  // re-assert it right before the AudioContext is born — idempotent, and it
-  // guarantees the context is created under "playback" even in an edge case where
-  // the foreground claim didn't take (see platform.js).
+  // Claim it UNCONDITIONALLY here, not via syncAudioCategory(): a take must sound
+  // through a silenced switch whatever the Buttons lamp says, and `running` is
+  // still false at this point anyway. It must also precede the AudioContext being
+  // born, so the context is created under "playback" (see platform.js).
   audioSession.setPlayback(true);
   let started = false;
   try {
@@ -1841,7 +1858,7 @@ async function loadSaved(id) {
 // only extra is the exit: [hidden]{display:none!important} would kill the panel
 // before it could slide out, so we hold it in the tree with `.sheet-closing`
 // (display:flex!important in CSS) for one animation, then let `hidden` take over.
-const SHEET_MS = 220; // keep in step with --sheet-ms in styles.css
+const SHEET_MS = 300; // keep in step with --sheet-ms in styles.css (his call: 220 read as too quick)
 function showSheet(sheet, open) {
   clearTimeout(sheet._sheetTimer);
   if (open) {
@@ -2284,6 +2301,9 @@ function attach() {
   el("ui-sound-toggle").addEventListener("change", (e) => {
     audioPrefs.ui = e.target.checked;
     setUiSoundEnabled(audioPrefs.ui);
+    // The lamp is also the silent-switch/mixing trade (see syncAudioCategory):
+    // switching it off mid-session should hand another app's audio straight back.
+    syncAudioCategory();
     saveAudioPrefs();
   });
   // One-bar count-in before the loop (off = start immediately).
@@ -2329,12 +2349,58 @@ function attach() {
   // threshold separates the two, and a finished drag swallows the click it spawns
   // so the moved note isn't also toggled. Only a filled cell starts a drag, so an
   // empty cell is always a plain tap-to-place (a jittered tap can't become a drag).
+  // THE NOTE IS CARRIED, NOT TELEPORTED (session 48b, his phone note — he wanted to
+  // "pick it up with my finger"). A clone of the note rides under the pointer in a
+  // body-level ghost, the source keeps a faint trace of where it came from, and the
+  // cell it would land in is ringed — so the drop is never a guess. The ghost is
+  // LIFTED above the contact point because a fingertip is about twice a cell wide
+  // at phone size: centred on the touch it would sit under your own finger, which
+  // is the thing he couldn't see. GHOST_LIFT is the dial if that reads wrong.
   const DRAG_PX = 10;
-  let drag = null;           // { cell, x, y, moved } while a filled cell is pressed
+  const GHOST_LIFT = 26; // px above the fingertip, so the carried note stays visible
+  let drag = null;           // { cell, x, y, moved, ghost } while a filled cell is pressed
   let dragCommitted = false; // a finished drag — suppress the trailing click
+  let hoverCell = null;      // the cell currently ringed as the drop target
+
+  const setHover = (cell) => {
+    if (hoverCell === cell) return;
+    if (hoverCell) hoverCell.classList.remove("drop-target", "drop-swap");
+    hoverCell = cell;
+    if (!cell) return;
+    cell.classList.add("drop-target");
+    // An occupied target says SWAP, so it can't read as "this one gets overwritten".
+    if (cell.classList.contains("filled")) cell.classList.add("drop-swap");
+  };
+
+  const makeGhost = (cell) => {
+    const r = cell.getBoundingClientRect();
+    const ghost = document.createElement("div");
+    ghost.className = "drag-ghost";
+    ghost.style.width = `${r.width}px`;
+    ghost.style.height = `${r.height}px`;
+    // `.note` sizes itself at 82% of its parent and reads `--note-font` (declared
+    // on `.grid-track`, and re-declared per bar count) — a clone lifted to body
+    // level inherits neither, so carry the box and the type vars across by hand.
+    const cs = getComputedStyle(cell);
+    for (const v of ["--note-font", "--numeral", "--numeral-var"]) {
+      ghost.style.setProperty(v, cs.getPropertyValue(v));
+    }
+    const note = cell.querySelector(".note");
+    if (note) ghost.appendChild(note.cloneNode(true)); // keeps thumb/finger dome + glyph
+    document.body.appendChild(ghost);
+    return ghost;
+  };
+
+  const moveGhost = (ghost, x, y) => {
+    ghost.style.transform =
+      `translate(${x}px, ${y}px) translate(-50%, -50%) translateY(${-GHOST_LIFT}px)`;
+  };
 
   const endDrag = () => {
-    if (drag) drag.cell.classList.remove("dragging");
+    if (!drag) return;
+    drag.cell.classList.remove("dragging");
+    drag.ghost?.remove();
+    setHover(null);
     drag = null;
   };
 
@@ -2343,15 +2409,22 @@ function attach() {
     if (!state.editing) return;
     const cell = e.target.closest(".cell.filled"); // only a note can be dragged
     if (!cell) return;
-    drag = { cell, x: e.clientX, y: e.clientY, moved: false };
+    drag = { cell, x: e.clientX, y: e.clientY, moved: false, ghost: null };
     try { cell.setPointerCapture(e.pointerId); } catch { /* capture is best-effort */ }
   });
   el("grid").addEventListener("pointermove", (e) => {
-    if (!drag || drag.moved) return;
-    if (Math.abs(e.clientX - drag.x) > DRAG_PX || Math.abs(e.clientY - drag.y) > DRAG_PX) {
-      drag.moved = true;
+    if (!drag) return;
+    if (!drag.moved) {
+      if (Math.abs(e.clientX - drag.x) <= DRAG_PX && Math.abs(e.clientY - drag.y) <= DRAG_PX) return;
+      drag.moved = true;               // past the threshold: this is a drag, not a tap
       drag.cell.classList.add("dragging");
+      drag.ghost = makeGhost(drag.cell);
     }
+    moveGhost(drag.ghost, e.clientX, e.clientY);
+    // Hit-test from the FINGER, not the lifted ghost: the drop is computed the same
+    // way on pointerup, so the ring always marks exactly where it will land.
+    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".cell");
+    setHover(over && over !== drag.cell ? over : null);
   });
   document.addEventListener("pointercancel", endDrag);
   document.addEventListener("pointerup", (e) => {
@@ -2526,7 +2599,7 @@ const playbackGuard = createPlaybackGuard({
   onHidden: () => { stopTransport(); audioSession.setPlayback(false); },
   // Repair the audio the backgrounding may have broken, then re-take the category
   // so button thocks sound again the moment you're back in the foreground.
-  onShown: () => { metronome.recoverAudio(); audioSession.setPlayback(true); },
+  onShown: () => { metronome.recoverAudio(); syncAudioCategory(); },
 });
 
 // Register the offline service worker — but ONLY on the real HTTPS origin.
@@ -2590,10 +2663,10 @@ async function boot() {
   // practice mid-take. Re-acquired on every return to foreground (platform.js).
   wakeLock.start();
   playbackGuard.start();
-  // Take the "playback" audio category up front and hold it for the whole
-  // foreground session, so UI thocks sound through a silenced ring switch even
-  // before the first Play (his call; the guard above hands it back on hide).
-  audioSession.setPlayback(true);
+  // Claim the silent-switch override up front IF the Buttons lamp wants it, so a
+  // thock sounds through a silenced ring switch before the first Play. Gated, so
+  // Buttons-off launches leave another app's audio alone — see syncAudioCategory.
+  syncAudioCategory();
   await generate(); // roll one immediately so the grid is never empty
   seedNewBuiltins(); // one-time per id; a delete sticks across relaunches
   refreshSavedCount();

@@ -1256,7 +1256,7 @@ export const HELP = {
   "click-toggle": { title: "Metronome", body: "The click on every beat." },
   "pattern-toggle": { title: "Melody", body: "Hear the pattern played back." },
   "count-in-toggle": { title: "Count-in", body: "One bar of counting before the loop starts." },
-  "ui-sound-toggle": { title: "Buttons", body: "The mechanical click when you press a control." },
+  "ui-sound-toggle": { title: "Buttons", body: "The mechanical click when you press a control. Switch it off to let another app's music or podcast keep playing while you work." },
   tone: { title: "Tone", body: "The string sound: steel is bright, nylon is softer and darker. Change it while the loop runs to compare." },
   "label-mode": { title: "Note Labels", body: "What's written inside each note: fret number, picking finger, or nothing." },
   theme: { title: "Theme", body: "The instrument's colours." },

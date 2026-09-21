@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [48b](#where-things-stand-session-48b--v3230-2026-09-20) | **v3.23.0** | his phone test of v3.22.0 — 20 of 25 boxes, nothing broken, three behavioural notes. **The audio category is now gated on the Buttons lamp**: v3.22.0's whole-foreground hold cost a podcast on every launch, and the underlying constraint is that the web's single `audioSession.type` knob cannot both override the silent switch and mix with other apps. Gating on the lamp he already has gives the podcast case an escape hatch at zero chrome — and a native shell would dissolve the trade entirely (`.playback` + `.mixWithOthers`, which the web doesn't expose). A momentary per-tap grab was costed and rejected: it would interrupt other audio on *every press*. **The dragged note is now CARRIED** rather than teleported — his ask, "pick it up with my finger" — as a body-level ghost lifted 26px clear of the fingertip, with the landing cell ringed and an occupied one dimming to say *swap*. Plus the sheet slide 220 → 300ms, now pinned equal across its two files by a test |
 | [48](#where-things-stand-session-48--v3220-2026-09-16) | **v3.22.0** | four next-session notes, triaged into forks and **all decided with him before any code**. **Rebranded user-facing to "ThumbPicker"** (full rebrand, his call) — the home-screen label, `<title>`, manifest, help version readout, import-error text and export filenames, but NOT the repo, code identifiers or the `EXPORT_APP` machine tag. **The `playback` audio category is now held for the whole foreground session** (his note that clicks should sound on a silenced phone) — a straight REVERSAL of the transport-only policy and its documented rejection of holding it permanently; the "doesn't mix with other apps" cost is now accepted, bounded by releasing on hide. **The Options and Save/Load sheets slide up** — enter free via `@starting-style`, exit via a short-lived `.sheet-closing` that out-specifies the global `[hidden]{!important}`, `hidden` still the synchronous source of truth. **Drag notes on the grid** (the fourth note, the one editor change) shipped too — **Move + Swap**, his call: drag a filled cell to move its note, swapping onto an occupied one, the destination re-inferring hand/role. `moveNote` is pure and unit-tested; the pointer gesture is app.js glue, verified with synthetic events at an emulated viewport (the touch feel is his phone). 177/177 green |
 | [47](#where-things-stand-session-47--v3200-2026-09-14) | **v3.20.0 → v3.21.0** | a batch of his testing notes, and **three of them turned out to be something other than what they looked like**. The blinking "underscore" by the armed Edit pill was the **third instance of this stylesheet's iOS compositing bug** — `transform: translateY(1px)` promoted the pill, its layer contained the pulsing REC lamp whose glow spills past the top-left corner, and iOS painted a stray sliver there. The **beat lamp being "spotty at high tempos" was not CSS at all**: the playhead's frame loop drained every due slot but reported only the LAST, which is right for the cell highlight and silently wrong for anything edge-triggered, so a late frame swallowed the beat and kept the offbeat. And the **icon recolour was superseded mid-session** by his own new artwork — a full-bleed RGBA piece that inverted the whole pipeline's assumptions. Also: UI sound during a take is now ALLOWED (**reverses v2.8.2**, his call — the Preferences lamp is the clearer contract), ×1 gets a single pass lamp per bar, and the Save sheet no longer lets iOS shove the grid up |
 | [46e–j](#where-things-stand-session-46ej--v3170--v3190-2026-09-13) | **v3.17.0 → v3.19.0** | his phone notes, two layout bugs, and the destination reopened. **dom7 goes free** while maj7/m7 stay paid, so the tier stops coinciding with the engraved group and the lock rule moved twice more (caption-only → caption-or-face → **face-only**, his call). A purchase now **re-cuts the open reels**. **The Safari grid sat low** because `.stage` pins the grid 140px below the stage top and dumps all slack underneath — centred in `display-mode: browser` only, standalone byte-identical. **The tweed's bottom edge cost three failed CSS fixes** before two marker builds on his phone proved the strip was outside the document entirely: it was the `black-translucent` quirk, the meta is gone, and `theme-color` now follows the theme. Then he reopened **whether the App Store is worth it at all** — `APP_STORE.md` became `MONETIZATION.md` |
@@ -80,6 +81,63 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 48b — v3.23.0, 2026-09-20)
+
+His phone test of v3.22.0 came back with 20 of 25 boxes ticked and **nothing
+broken** — the rebrand, all four audio-session behaviours, both sheets sliding,
+the keyboard flash no worse, the save lamp, and drag-to-move on every count
+(threshold, tap-vs-drag separation, bass↔finger re-voicing, nothing lost or
+duplicated, no fight with page scroll). The three open notes were behavioural.
+
+**The audio category is gated on the Buttons lamp now.** He was on the fence on
+the headline question — "some people might want to work on patterns while they
+listen to a podcast" — so we talked it through before touching anything. The
+thing that settles it is the constraint: on the web there is exactly one knob,
+`navigator.audioSession.type`, and the two wants sit at opposite ends of it —
+`playback` overrides the silent switch but does **not** mix, ambient/auto mixes
+but is silenced by the switch. You cannot have both, so the only question is
+*which window gets which*. Two observations narrowed it: the contested window is
+only "app open, transport stopped" (press Play and the podcast has to go
+regardless — you can't practise to a click over a podcast), and a momentary
+per-tap grab is worse than useless, because flipping categories on every button
+press would interrupt the other app's audio constantly rather than once. The
+answer was a switch he already has: hold the category while the transport runs
+**or while the Buttons lamp is on**, since making the thock audible is the only
+thing holding it buys outside a take. Turn Buttons off and the app leaves other
+audio alone until you press Play — no new control, and the lamp's help card now
+says so. `syncAudioCategory()` is the single place that trade is made, called
+from boot, the visibility guard, the lamp's own handler (so switching it off
+hands audio back immediately, not next launch) and the stop path; `togglePlay`
+still claims it unconditionally, because a take must sound whatever the lamp
+says. **Worth remembering: a native shell dissolves this whole argument** — iOS's
+own `AVAudioSession` has `.playback` with `.mixWithOthers`, override *and* mix,
+which `navigator.audioSession` simply doesn't expose. Revisit at item 18.
+
+**The dragged note is carried, not teleported.** His note was the good kind —
+the feature worked, and was still wrong: "would be good to be able to see the
+note, 'pick it up' with my finger, as it moves." v3.22.0 dimmed the source cell
+and teleported the note on drop, which is the cheap version. Now a clone of the
+note rides under the pointer in a body-level `.drag-ghost`, the source keeps a
+faint trace of where it came from, and the cell it would land in is ringed — an
+occupied one rings *and* dims its own note, so a swap can't read as an
+overwrite. The ghost is **lifted 26px above the contact point**, because a
+fingertip is roughly twice a cell wide at phone size and a ghost centred on the
+touch would sit under the very finger that's meant to see it; `GHOST_LIFT` is
+the dial. Two things bit and are now commented at the line: `.note` is 82% of
+its *parent* and reads `--note-font` off `.grid-track`, so a clone lifted to
+body level inherits neither box nor type and has to carry both across; and the
+ghost **must** be `pointer-events: none`, or it hit-tests as its own drop target,
+`.closest(".cell")` comes back null, and every drag silently does nothing while
+still animating perfectly. A test pins that one.
+
+**Also:** the sheet slide went 220 → 300ms ("could be slower"), and since the
+duration is declared in two files a test now pins `SHEET_MS === --sheet-ms`. The
+grid flicker he'd noted turned out, on his own isolation, to be the **known**
+keyboard flash rather than anything the slide introduced — accepted, not
+re-chased. And **Play-dead has not recurred** since first reported.
 
 ---
 
