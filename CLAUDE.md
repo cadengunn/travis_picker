@@ -1534,8 +1534,21 @@ slower and speed up"; both earlier curves left fast and decelerated.
 **THE LAMP KEEPS THE NAME "Buttons"** (his call, after the reframe was offered and
 costed). Only the help copy changed, and it now states both halves: what it does,
 that it is what lets the app sound with the ringer off, and that switching it off
-keeps another app's audio playing. So the reframe thread is **closed** — don't
-reopen it without a new argument.
+keeps another app's audio playing.
+**The reframe thread is CLOSED, and the reason matters more than the verdict.**
+Pressed on what actually bothered him, it was never the label: it was that *people
+might want the sharing behaviour, it exists, and they'd never find it*. **Renaming
+cannot fix that** — someone whose podcast just stopped doesn't scan for "Override"
+or "Solo" either. What fixes discoverability is a **default**, not a word, which
+turned the question into a three-way (accept / flip Buttons to default-off / add a
+second lamp that owns the override and defaults polite). **He chose accept**: the
+Preferences page already groups these under a Sound legend, the card explains it,
+and the population is narrow — you open a practice tool meaning to play, and Play
+stops the podcast anyway. **Revisit condition, and it is concrete: if this ever
+ships to strangers (item 18), add the second lamp** — it keeps the clicks on by
+default (the mechanical character is a first-impression asset) while making the
+*surprising* behaviour opt-in, which is the right way round, since respecting the
+silent switch is what a user expects and seizing the audio session is not.
 
 **v3.23.1, 178/178 green.** Session 48c, his notes on v3.23.0 and the discussion
 they opened. The audio category **releases to `ambient`** now rather than restoring

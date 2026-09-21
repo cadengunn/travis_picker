@@ -117,7 +117,32 @@ app is actually playing, which is exactly what a help card is for. So only the
 copy changed. It now carries both halves without an em dash and inside the
 two-line ceiling: what it does, that it's what lets the app sound with the ringer
 off, and that switching it off keeps another app's music playing instead.
-**Thread closed** — reopening it needs a new argument, not a new name.
+
+**Then he said the thing that actually closed it.** Still on the fence, he named
+what was really bothering him: not the word, but that "people might be looking
+for a functionality, and it exists, but isn't clear how to enable it." That
+reframes the whole thread — **renaming was never going to fix that**, because
+someone whose podcast just stopped doesn't go scanning for "Override" or "Solo"
+any more than for "Buttons". They don't know the capability exists at all. Three
+sessions of naming were the wrong tool, and only his persistence surfaced it.
+
+What fixes discoverability is a **default**, not a label, which turned it into a
+three-way: accept it; flip Buttons to default-off (polite by default, nothing to
+discover, "Buttons" then perfectly named for the opt-in — but first-run buttons
+feel dead, losing the mechanical character on the one impression that sells it);
+or add a second lamp owning the override and defaulting polite (keeps the charm,
+everything named for exactly what it does, costs a fifth lamp and a 2×3 bank).
+Worth noting the second control had been dismissed earlier for a *different*
+question — it can't reach his own case — which was true then and irrelevant here;
+its value now is setting a better default, not reaching a new cell.
+
+**He chose accept**, and it's proportionate: the Preferences page already groups
+these under a Sound legend, the card explains it on a tap, and the population is
+narrow — you open a practice tool meaning to play, and pressing Play stops the
+podcast regardless. The revisit condition is concrete and recorded in `CLAUDE.md`:
+**if this ever ships to strangers, add the second lamp**, because respecting the
+silent switch is what a user expects and seizing the audio session isn't, and
+surprises make bad defaults.
 
 ---
 
