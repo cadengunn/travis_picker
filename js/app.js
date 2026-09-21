@@ -184,7 +184,7 @@ function syncTierLocks() {
 // Shown on help mode's own card. Bump on every release, alongside CACHE in
 // sw.js — it used to live in index.html's Options header, then at the foot of
 // the Guide modal that help mode replaced.
-const APP_VERSION = "v3.23.2";
+const APP_VERSION = "v3.24.0";
 
 // Help mode: the "?" latches and every other tap becomes an explanation instead
 // of an action. Created here rather than in attach() because the edit-toggle
@@ -957,6 +957,13 @@ const audioPrefs = {
   // pattern context because a feel belongs to a piece; "nylon or steel" is a
   // property of the instrument you're practising on.)
   tone: DEFAULT_TONE,
+  // "Let other apps play" (session 48e). OFF by design, not by accident: nearly
+  // everyone keeps a phone on silent, so a polite default would mean a dead,
+  // clickless first impression for almost every user — and the mechanical voice
+  // is the character that sells this. So the app takes the audio by default and
+  // this is the opt-OUT, for the narrower case of wanting a podcast to survive.
+  // An old blob has no `share` key, so existing users land on false unchanged.
+  share: false,
 };
 // Returns what was actually IN storage, which is not the same question as what
 // audioPrefs now holds: the defaults above are always present, so a caller that
@@ -1202,15 +1209,16 @@ function releasePlayback() {
 // mutually exclusive, and this function is where that trade is made. We hold it
 // only where it actually buys something:
 //   • while the transport runs — non-negotiable, you must hear the click; and
-//   • while the BUTTONS LAMP is on — the only reason to want it outside a take is
-//     to make the UI thock audible through a silenced ring switch.
-// So turning Buttons off leaves another app's audio alone until you press Play,
-// which is the podcast case, with no new control to find. The playback guard
-// releases it on hide regardless, which bounds the cost to "while you're in here".
+//   • while the BUTTONS LAMP is on AND "Let other apps play" is off — the only
+//     reason to hold it outside a take is to make the UI thock audible through a
+//     silenced ring switch, so holding it with the clicks muted buys nothing.
+// "Let other apps play" is the opt-out and owns this behaviour by name (session
+// 48e); `Buttons` went back to meaning only "do clicks make sound". The playback
+// guard releases it on hide regardless, bounding the cost to "while you're here".
 // (A native shell could have both at once — iOS's own API has playback +
 // mixWithOthers — but `navigator.audioSession` doesn't expose that option.)
 function syncAudioCategory() {
-  audioSession.setPlayback(metronome.running || audioPrefs.ui);
+  audioSession.setPlayback(metronome.running || (audioPrefs.ui && !audioPrefs.share));
 }
 
 // Guards against a second press landing while the first is still waiting on the
@@ -2301,8 +2309,17 @@ function attach() {
   el("ui-sound-toggle").addEventListener("change", (e) => {
     audioPrefs.ui = e.target.checked;
     setUiSoundEnabled(audioPrefs.ui);
-    // The lamp is also the silent-switch/mixing trade (see syncAudioCategory):
-    // switching it off mid-session should hand another app's audio straight back.
+    // Muting the clicks also removes the only reason to hold the audio category
+    // outside a take, so hand another app's audio straight back (syncAudioCategory).
+    syncAudioCategory();
+    saveAudioPrefs();
+  });
+  // Hand the phone's audio back to other apps (session 48e). The opt-out from the
+  // silent-switch override, and the only control here that isn't about what the
+  // app itself sounds like — it takes effect immediately, since the whole point is
+  // that a podcast you just lost should come back without relaunching.
+  el("share-audio-toggle").addEventListener("change", (e) => {
+    audioPrefs.share = e.target.checked;
     syncAudioCategory();
     saveAudioPrefs();
   });
@@ -2634,6 +2651,7 @@ async function boot() {
   el("click-toggle").checked = audioPrefs.click;
   el("pattern-toggle").checked = audioPrefs.pattern;
   el("ui-sound-toggle").checked = audioPrefs.ui;
+  el("share-audio-toggle").checked = audioPrefs.share;
   el("count-in-toggle").checked = audioPrefs.countIn;
   // A pref blob from before swing existed has none of these keys; one from the
   // v2.13.0 trial has a single free-range `swing`. Snap whatever turns up onto a

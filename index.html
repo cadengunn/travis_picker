@@ -389,6 +389,24 @@
         </label>
       </div>
 
+      <!-- On its OWN full-width row, deliberately outside the 2x2 (session 48e).
+           The four above are sound SOURCES; this one is device behaviour, so it
+           reads as a different kind of setting, and full width fits a real phrase
+           instead of another cryptic word. It is the opt-OUT: the app takes the
+           audio by default, because nearly everyone keeps a phone on silent and a
+           polite default would mean a clickless first impression for almost
+           everyone. Measured at 375x553 before adding: the Preferences panel had
+           155.89px of slack under the 88dvh cap and this row costs 49.5px. Three
+           across was measured and rejected - a third-width lamp is 109px and
+           "Metronome" alone is 83px of text before its jewel. -->
+      <div class="lamp-row one">
+        <label class="lamp" data-help="share-audio-toggle">
+          <input id="share-audio-toggle" type="checkbox" />
+          <span class="jewel"></span>
+          <span class="t">Let other apps play</span>
+        </label>
+      </div>
+
       <!-- ONE ROW OF THREE (his call, session 44c). Tone shipped on a row of its
            own under the Sound lamps, on the argument that it's a sound setting
            rather than an appearance one — but `.control-row` is a 3-slot grid and

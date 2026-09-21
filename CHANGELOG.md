@@ -11,6 +11,7 @@ reasoning that led to it is usually still the useful part.
 
 | session | versions | what it was |
 |---|---|---|
+| [48e](#where-things-stand-session-48e--v3240-2026-09-20) | **v3.24.0** | the audio control finally lands, after four rounds stuck on the wrong axis. **"Let other apps play"** is a fifth lamp, full width under the 2×2, owning the silent-switch/mixing trade by name so `Buttons` goes back to meaning only "do clicks make sound". What unlocked it: every earlier candidate (Override, Solo, Exclusive, Takeover) named the **mechanism**; naming it for the **outcome the user wants** made it self-explanatory and findable, which was the actual complaint all along. **OFF by default** on his premise that *"everyone keeps their phone on silent"* — a polite default would hand almost every first impression a dead, clickless app, and the mechanical voice is the character that sells it, so the surprise stays the default and this is the opt-out. Measured before building: the row costs **zero** panel height (Setup is the taller page), and three-across was measured and rejected |
 | [48d](#where-things-stand-session-48d--v3232-2026-09-20) | **v3.23.2** | three dials and a closed thread. **The `ambient` release failed** — other audio still needs resuming by hand — and was **kept anyway**, which is the interesting bit: by the project's own "don't keep a fix that didn't fix anything" rule it was a revert candidate, and it survives only on the narrower grounds that manual resume works under it and it's the accurate declaration for a released state. It's marked do-not-retry at the line so nobody hopes for auto-resume again. Ghost lift 18 → 12px ("should be subtle"); sheet easing to **ease-IN-out** (`0.65, 0, 0.35, 1`) on his note that it should "start slower and speed up" — both earlier curves left fast and decelerated. And after all the discussion, **the lamp keeps the name "Buttons"**: only the help copy changed, now stating that it's also what makes the app audible with the ringer off, and that switching it off keeps other audio playing |
 | [48c](#where-things-stand-session-48c--v3231-2026-09-20) | **v3.23.1** | his notes on v3.23.0, and a discussion that produced a **fact rather than a feature**. He challenged an inconsistency in what I'd said about the audio trade — correctly: the exclusion isn't "clicks vs. other audio", it's **clicks *while silenced* vs. other audio**, with the ring switch as the hidden variable. Working the matrix out properly, he identified his own usual case (silent phone, wants the thocks, wants a podcast until he presses Play) as **the single unreachable cell** — and it kills the obvious fix, because a second toggle splitting clicks from takeover buys only the *ringer-ON* cell and would do nothing for him. Haptics would sidestep the audio session entirely; he declined the web hack. With the native shell **not near-term by his call**, this compromise is the standing state, so the lamp is a "which compromise today" switch and the reframe is worth settling. Shipped: release to `ambient` rather than `auto`, ghost lift 26 → 18px, softer sheet easing |
 | [48b](#where-things-stand-session-48b--v3230-2026-09-20) | **v3.23.0** | his phone test of v3.22.0 — 20 of 25 boxes, nothing broken, three behavioural notes. **The audio category is now gated on the Buttons lamp**: v3.22.0's whole-foreground hold cost a podcast on every launch, and the underlying constraint is that the web's single `audioSession.type` knob cannot both override the silent switch and mix with other apps. Gating on the lamp he already has gives the podcast case an escape hatch at zero chrome — and a native shell would dissolve the trade entirely (`.playback` + `.mixWithOthers`, which the web doesn't expose). A momentary per-tap grab was costed and rejected: it would interrupt other audio on *every press*. **The dragged note is now CARRIED** rather than teleported — his ask, "pick it up with my finger" — as a body-level ghost lifted 26px clear of the fingertip, with the landing cell ringed and an occupied one dimming to say *swap*. Plus the sheet slide 220 → 300ms, now pinned equal across its two files by a test |
@@ -83,6 +84,50 @@ reasoning that led to it is usually still the useful part.
 Sessions 1–3 predate these notes: the generator and grid, progression mode, the
 Saved library, the manual editor and the metronome. `travis-picker-workflow.md`
 has the original build order.
+
+---
+
+## Where things stand (session 48e — v3.24.0, 2026-09-20)
+
+**The control we'd been failing to name for four rounds.** He'd picked "keep as
+is" and then immediately said *"maybe we're missing something"* and *"maybe even
+another toggle that makes it seem cleaner"* — and he was right on both counts.
+
+What we'd been missing: **every candidate name described the mechanism.** Override,
+Solo, Exclusive, Takeover — all of them describe what the app does to the audio
+session. Nobody hunting for this thinks in those terms; they think *"I want my
+podcast to keep playing."* Name the control after the **outcome the user wants**
+and it explains itself. So the fifth lamp reads **"Let other apps play"**, and
+`Buttons` goes back to owning exactly one idea: do clicks make sound. Two toggles,
+one idea each, which is the "cleaner" he was reaching for.
+
+**His premise settled the polarity, and it inverts a rule I'd been leaning on.**
+I'd argued that respecting the silent switch is expected and seizing the audio
+session is the surprise, so the surprise should be opt-in. Then he said it plainly:
+*"I ultimately do want the user to hear the buttons on a first impression, even if
+phone is silenced. Everyone keeps their phone on silent."* If that premise holds,
+a polite default doesn't produce a well-behaved app — it produces a **dead,
+clickless first impression for nearly every user**, and the mechanical voice is the
+character that sells this thing. So the app still takes the audio by default and
+the new lamp is the **opt-out**, off by default. The surprise is the product.
+
+**Measured before building, and the measurement beat the estimate.** At 375×553
+the Preferences panel had 155.89px of slack under the 88dvh cap and the new row
+costs 49.5px — comfortable. But it actually costs **zero**: both pages share one
+grid cell and Setup is the taller of the two, so the panel stayed at exactly
+330.75px with neither page overflowing (scrollHeight === clientHeight on both).
+**Three-across was measured and rejected**: a third-width lamp is 109px and
+"Metronome" alone is 83px of text before its jewel ever gets drawn.
+
+The gate is now `running || (ui && !share)` — holding the category with the clicks
+muted buys nothing, so that combination can't arise. Both lamps re-settle it
+immediately on change, because the whole point is that a podcast you just lost
+comes back without relaunching. A test pins the expression and the handler.
+
+**None of this reaches his own usual case** (silent phone + clicks + podcast),
+which remains impossible on the web; the new control is about naming, defaults and
+discoverability, not about reaching a new cell. That distinction is recorded at the
+line so nobody later mistakes it for a fix.
 
 ---
 

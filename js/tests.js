@@ -4600,16 +4600,24 @@ acheck("app: the audio category is gated on transport+Buttons, and sheets slide 
   const appjs = await (await fetch("js/app.js")).text();
   const css = await (await fetch("css/styles.css")).text();
 
-  // The silent-switch trade (session 48b, his call). "playback" overrides the iOS
-  // silent switch but does NOT mix, so holding it stops another app's audio — the
-  // two wants are mutually exclusive and syncAudioCategory is where that's decided.
-  // It must gate on BOTH: the transport (a take always sounds) and the Buttons lamp
-  // (the only reason to hold it outside a take). Lose the lamp term and a podcast
-  // dies on launch with no way back; lose the running term and a take could go
-  // silent on a silenced phone.
+  // The silent-switch trade (session 48b, refined 48e). "playback" overrides the
+  // iOS silent switch but does NOT mix, so holding it stops another app's audio —
+  // the two wants are mutually exclusive and syncAudioCategory is where that's
+  // decided. Three terms, all load-bearing: the transport (a take always sounds),
+  // the Buttons lamp (holding it with the clicks muted buys nothing), and the
+  // "Let other apps play" opt-out (the whole escape hatch). Lose the running term
+  // and a take can go silent on a silenced phone; lose either of the others and
+  // the opt-out silently stops working.
   const sync = appjs.match(/function syncAudioCategory\(\)[\s\S]*?\n\}/)?.[0] || "";
-  assert(/setPlayback\(\s*metronome\.running\s*\|\|\s*audioPrefs\.ui\s*\)/.test(sync),
-    "syncAudioCategory must hold the category for a running transport OR the Buttons lamp, and nothing else");
+  assert(/setPlayback\(\s*metronome\.running\s*\|\|\s*\(\s*audioPrefs\.ui\s*&&\s*!audioPrefs\.share\s*\)\s*\)/.test(sync),
+    "syncAudioCategory must hold the category for a running transport, or for the Buttons lamp when sharing is off");
+
+  // The opt-out has to act immediately: the point is that a podcast you just lost
+  // comes back without relaunching. A handler that only saved the pref would look
+  // right and do nothing until the next launch.
+  const share = appjs.match(/el\("share-audio-toggle"\)\.addEventListener\("change"[\s\S]*?\n  \}\);/)?.[0] || "";
+  assert(/syncAudioCategory\(\)/.test(share) && /saveAudioPrefs\(\)/.test(share),
+    "the share toggle must re-settle the category AND persist, not wait for a relaunch");
   const boot = appjs.match(/async function boot\(\)[\s\S]*?refreshSavedCount\(\);/)?.[0] || "";
   assert(/syncAudioCategory\(\)/.test(boot),
     "boot() must settle the audio category from the Buttons lamp, not claim it unconditionally");

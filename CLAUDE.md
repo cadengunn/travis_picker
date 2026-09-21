@@ -988,9 +988,9 @@ Four dependency-free modules, all precached:
   The old rule silenced every UI voice while the transport ran, and its reasoning
   is still *true*, just no longer decisive: the web can't read the iOS ring
   switch, and playback WAS the only window in which we held the audio category
-  that overrides it (**no longer — since session 48b the category is held whenever
-  THIS LAMP is on, so the lamp now also decides whether the app mixes with other
-  apps; see `createAudioSession()` below**), so muting buttons there is what
+  that overrides it (**no longer — it's held whenever this lamp is on and "Let
+  other apps play" is off; see `createAudioSession()` below**), so muting buttons
+  there is what
   made a silenced phone genuinely silent while the metronome and melody still came
   through. What overturned it is
   that **UI sound has its own Preferences lamp** — anyone bothered by clicks over
@@ -1040,15 +1040,22 @@ only the physical behaviour needs a phone.
   is silenced by the switch. **"Clicks on a silenced phone" and "a podcast that keeps
   playing" are mutually exclusive on the web** — that is the constraint the policy
   is built around, not a bug to tune away.
-  **The policy is `syncAudioCategory()` in `app.js`** (session 48b, his call), which
-  is the ONLY place the trade is made: hold `playback` while the **transport runs**
-  (non-negotiable — you must hear the click) **or while the BUTTONS LAMP is on**
-  (the only thing holding it buys outside a take is an audible UI thock). So
-  **turning Buttons off is the podcast escape hatch**, with no new control to find,
-  and the lamp's help copy says so. It is called from `boot()`, the guard's
-  `onShown`, the lamp's own `change` handler (so switching it off hands audio back
-  *immediately*, not next launch), and `releasePlayback()` (so stopping a take with
-  Buttons off releases). `onHidden` releases **unconditionally**, which bounds the
+  **The policy is `syncAudioCategory()` in `app.js`**, the ONLY place the trade is
+  made: hold `playback` while the **transport runs** (non-negotiable — you must hear
+  the click) **or while the Buttons lamp is on AND "Let other apps play" is off**
+  (holding it with the clicks muted buys nothing at all).
+  **"Let other apps play" (`#share-audio-toggle`) owns this by name** (session 48e,
+  his call) and is the podcast escape hatch; `Buttons` went back to meaning only
+  "do clicks make sound". It is **OFF by default, deliberately**: his premise is
+  that nearly everyone keeps a phone on silent, so a polite default would mean a
+  dead, clickless first impression for almost every user — and the mechanical voice
+  is the character that sells this. So the app takes the audio by default and this
+  is the **opt-out**. That inverts the usual "surprises make bad defaults" rule on
+  purpose; the surprise is the product here.
+  `syncAudioCategory()` is called from `boot()`, the guard's `onShown`, **both**
+  lamps' `change` handlers (either one must act *immediately* — the whole point is
+  that a podcast you just lost comes back without relaunching), and
+  `releasePlayback()`. `onHidden` releases **unconditionally**, which bounds the
   cost to "while you're in the app". `togglePlay` claims it **unconditionally and
   directly**, not via the gate — a take must sound whatever the lamp says, and
   `running` is still false at that point anyway; it must also precede the
@@ -1060,20 +1067,22 @@ only the physical behaviour needs a phone.
   the ringer is **off**. So exactly one cell is unreachable —
   **ringer OFF + clicks audible + other audio still playing** — and that is how he
   actually uses it (silent phone, wants the thocks, wants his podcast until he
-  presses Play). **No arrangement of web-side controls reaches it**, which kills
-  the obvious-looking fix: a second toggle splitting "clicks" from "takeover" buys
-  only the *ringer-ON* cell, i.e. a fifth lamp that does nothing for the real use
-  case. Proposed, costed, dropped.
-  **Four dead ends, recorded so they aren't reproposed:** v3.22.0's whole-foreground
+  presses Play). **No arrangement of web-side controls reaches it** — and the second
+  control shipped in 48e does NOT change that. It exists for **naming, defaults and
+  discoverability**, not to reach a new cell: it buys only the *ringer-ON* case
+  (clicks plus a podcast with the ringer up). Don't mistake it for a fix.
+  **Three dead ends, recorded so they aren't reproposed:** v3.22.0's whole-foreground
   hold (cost a podcast on every launch); a momentary per-tap grab (flipping
   categories every press interrupts other audio constantly — worse than one clean
-  stop); the second control above; and **haptics**, which would sidestep the audio
-  session entirely but has no `navigator.vibrate` on iOS — the `<input switch>`
-  trick is a hack, and **he declined it**. The only real fix is native — `.playback`
-  **with `.mixWithOthers`**, which `navigator.audioSession` doesn't expose — and
-  **per his call that is NOT near-term**, so this compromise is the **standing
-  state, not a stopgap**. The lamp is a "which compromise today" switch, and its
-  help copy should say so.
+  stop); and **haptics**, which would sidestep the audio session entirely but has no
+  `navigator.vibrate` on iOS — the `<input switch>` trick is a hack, and **he
+  declined it**. The only real fix is native — `.playback` **with `.mixWithOthers`**,
+  which `navigator.audioSession` doesn't expose — and **per his call that is NOT
+  near-term**, so this compromise is the **standing state, not a stopgap**.
+  **Renaming was ruled out as a fix for discoverability** (48d): someone whose
+  podcast just stopped doesn't scan for "Override" or "Solo" either. What worked was
+  naming a control after the **outcome the user wants** rather than the mechanism,
+  which is how "Let other apps play" got there after four rounds on the wrong axis.
 - **`createWakeLock()`** — the screen stays awake the whole time the app is up,
   not just while playing (you read the grid between takes as much as during them).
   No toggle; add one only if battery cost bites. Two things make it actually work:
@@ -1521,6 +1530,21 @@ one distinct bar is ever generated there's nothing left to disambiguate
 
 ## Status
 
+**v3.24.0, 178/178 green.** Session 48e. **A fifth lamp — "Let other apps play"**
+(`#share-audio-toggle`), full width on its own row under the 2×2, owning the
+silent-switch/mixing trade by name so `Buttons` means only "do clicks make sound".
+**OFF by default on his premise that "everyone keeps their phone on silent"**: a
+polite default would give almost every first impression a dead, clickless app, and
+the mechanical voice is what sells it — so the app still takes the audio by default
+and this is the opt-out. The gate became
+`running || (ui && !share)`. **Measured before building, and the result beat the
+estimate: the row costs ZERO panel height** — Setup is the taller page and
+Preferences had the headroom, so the panel stayed at 330.75px against a 486.64px
+cap, with neither page overflowing. **Three-across was measured and rejected** (a
+third-width lamp is 109px; "Metronome" alone is 83px of text before its jewel).
+What unlocked this after four rounds: every earlier candidate name described the
+*mechanism*; naming it for the **outcome the user wants** made it self-explanatory.
+
 **v3.23.2, 178/178 green.** Session 48d, three dials off his phone and the naming
 question settled. **The `ambient` release FAILED its purpose** — measured on his
 phone, other audio still needs resuming by hand — and it is **kept anyway** on the
@@ -1539,16 +1563,13 @@ keeps another app's audio playing.
 Pressed on what actually bothered him, it was never the label: it was that *people
 might want the sharing behaviour, it exists, and they'd never find it*. **Renaming
 cannot fix that** — someone whose podcast just stopped doesn't scan for "Override"
-or "Solo" either. What fixes discoverability is a **default**, not a word, which
-turned the question into a three-way (accept / flip Buttons to default-off / add a
-second lamp that owns the override and defaults polite). **He chose accept**: the
-Preferences page already groups these under a Sound legend, the card explains it,
-and the population is narrow — you open a practice tool meaning to play, and Play
-stops the podcast anyway. **Revisit condition, and it is concrete: if this ever
-ships to strangers (item 18), add the second lamp** — it keeps the clicks on by
-default (the mechanical character is a first-impression asset) while making the
-*surprising* behaviour opt-in, which is the right way round, since respecting the
-silent switch is what a user expects and seizing the audio session is not.
+or "Solo" either. The fix was a **second control named after the outcome**, which
+is what shipped in 48e as "Let other apps play" (see `createAudioSession()`).
+**What unlocked it after four rounds on the wrong axis:** every candidate had been
+named for the *mechanism*; naming it for what the user wants instead made it
+self-explanatory. And his own premise settled the polarity — *"everyone keeps their
+phone on silent"* — so a polite default would hand almost every first impression a
+dead, clickless app. The surprise stays the default; the new lamp is the opt-out.
 
 **v3.23.1, 178/178 green.** Session 48c, his notes on v3.23.0 and the discussion
 they opened. The audio category **releases to `ambient`** now rather than restoring

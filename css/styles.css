@@ -1715,6 +1715,9 @@ main {
    control (keyboard + a11y intact). */
 /* A 2x2 bank of switches, on the panel's grid so it aligns with the rows above. */
 .lamp-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+/* The full-width fifth lamp sits on its own row under the 2x2: device behaviour
+   rather than a sound source, and the width buys a real phrase for a label. */
+.lamp-row.one { grid-template-columns: 1fr; margin-top: 8px; }
 .lamp {
   display: flex;
   align-items: center;
